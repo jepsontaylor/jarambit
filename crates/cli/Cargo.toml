@@ -12,4 +12,5 @@ jarambit-monte-carlo = { path = "../monte_carlo" }
 jarambit-evolve = { path = "../evolve" }
 jarambit-redteam = { path = "../redteam" }
 jarambit-docs = { path = "../docs" }
+jarambit-crescent = { path = "../crescent" }
 mimalloc = { version = "0.1", default-features = false }

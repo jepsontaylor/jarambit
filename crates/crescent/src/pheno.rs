@@ -1,0 +1,289 @@
+//! Crescent genotype -> silhouette (one C2 spline + ring union + tangent neck fillets, C.4
+//! serrations + thumb-seat jimping) + lightening holes in C.4 zones + 0.25 mm thickness raster.
+use crate::c4_ref as c4;
+use crate::genome::*;
+use crate::geom::*;
+use jarambit_genotype::TiGrade;
+use std::f64::consts::PI;
+
+pub const EDGE_T: f64 = 0.5;
+pub const GRID: f64 = 0.25;
+pub const CAP_MM: f64 = 4.0 * 25.4;   // 101.6 sharpened-edge cap (each edge)
+pub const FLOOR_MM: f64 = 3.375 * 25.4 + 0.5; // 86.225 design floor (all three)
+
+#[derive(Clone, Debug, Default)]
+pub struct Blade { pub tip_to_heel: f64, pub horizontal_reach: f64, pub arc_in: f64, pub arc_sp: f64, pub sharpened_arc: f64, pub spine_offset_used: f64, pub hook_drop: f64 }
+
+#[derive(Clone, Debug)]
+pub struct Field { pub x0: f64, pub y0: f64, pub g: f64, pub nx: usize, pub ny: usize, pub th: Vec<f32>, pub base: Vec<f32> }
+impl Field {
+    pub fn at(&self, q: P2) -> f64 {
+        let i = ((q.0 - self.x0) / self.g).floor() as i64; let j = ((q.1 - self.y0) / self.g).floor() as i64;
+        for r in 0..4i64 { let mut best: Option<(f64, f64)> = None;
+            for a in i - r..=i + r { for b in j - r..=j + r {
+                if a < 0 || b < 0 || a >= self.nx as i64 || b >= self.ny as i64 { continue; }
+                let v = self.th[b as usize * self.nx + a as usize]; if v.is_nan() { continue; }
+                let c = (self.x0 + (a as f64 + 0.5) * self.g, self.y0 + (b as f64 + 0.5) * self.g); let d = dist(c, q);
+                if best.map_or(true, |x| d < x.0) { best = Some((d, v as f64)); } } }
+            if let Some(b) = best { return b.1; } }
+        EDGE_T
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Pheno {
+    pub cp: Vec<P2>,
+    /// Full exterior: scallops + jimping + ring + fillets (clockwise like C.4).
+    pub outline: Vec<P2>,
+    /// Same silhouette without scallops/jimping (aesthetic curvature metrics).
+    pub macro_outline: Vec<P2>,
+    /// Smooth spline samples tip->tip (before the ring union) and control-point sample indices.
+    pub curve: Vec<P2>, pub cidx: Vec<usize>,
+    /// [ring, comet, eye?, cairn]
+    pub holes: Vec<Vec<P2>>, pub hole_names: Vec<&'static str>,
+    pub t: f64, pub mat: TiGrade, pub tip: P2, pub heel: P2, pub dx: f64,
+    pub edge_in: Vec<P2>, pub edge_sp: Vec<P2>, pub blade: Blade,
+    pub grip_len: f64, pub ring_od: f64, pub ring_id: f64, pub pad: [P2; 4],
+    pub teeth_in: usize, pub teeth_sp: usize, pub ripple_in: f64, pub ripple_sp: f64,
+    pub field: Field,
+    pub mass_g: f64, pub blank_g: f64, pub area_mm2: f64,
+    /// Volume removed (mm^3): relief, lattice, fuller, flute, texture; and web-floor clamped cells.
+    pub removed: [f64; 5], pub web_clamped: usize, pub min_web: f64,
+    pub land_full_mm2: f64, pub pad_flat: bool,
+    pub fails: Vec<String>,
+}
+
+fn scallop_depth(table: &[(f64, f64, f64)], s: f64, dscale: &dyn Fn(f64, f64) -> f64) -> f64 {
+    for &(a, p, d0) in table { if s >= a && s <= a + p {
+        let d = dscale(p, d0); if d <= 0.0 { return 0.0; }
+        let r = (p * p / 4.0 + d * d) / (2.0 * d); let x = s - a - p / 2.0;
+        return ((r * r - x * x).max(0.0).sqrt() - (r - d)).max(0.0); } }
+    0.0
+}
+
+pub fn control_points(g: &Genome) -> Vec<P2> {
+    let base: Vec<P2> = c4::SPLINE_P.to_vec();
+    let orient = signed_area(&base[..39]).signum();
+    let mut p = base.clone();
+    for i in 0..N_CP { let d = g.v[i]; if d == 0.0 { continue; }
+        let prev = if i == 0 { base[38] } else { base[i - 1] }; let next = if i == 39 { base[1] } else { base[i + 1] };
+        let t = norm(sub(next, prev)); let n_out = if orient > 0.0 { (t.1, -t.0) } else { (-t.1, t.0) };
+        p[i] = add(p[i], mul(n_out, d)); }
+    let dx = g.v[GRIP_DX];
+    for i in (0..=13).chain(28..=39) { p[i].0 += dx; }
+    let a = -g.v[DROP].to_radians(); let (ca, sa) = (a.cos(), a.sin()); let pv = p[8];
+    for i in (0..=7).chain(31..=39) { let q = sub(p[i], pv); p[i] = add(pv, (ca * q.0 - sa * q.1, sa * q.0 + ca * q.1)); }
+    p
+}
+
+/// Replace the run of `c` inside the ring disk (r_od about the origin) by tangent fillets + ring arc.
+fn ring_union(c: &[P2], n_out: &[P2], r_od: f64, rf: f64) -> Option<(Vec<P2>, usize, usize)> {
+    let inside: Vec<bool> = c.iter().map(|q| q.0.hypot(q.1) < r_od).collect();
+    let a = inside.iter().position(|&b| b)?; let b = inside.iter().rposition(|&b| b)?;
+    if inside[a..=b].iter().any(|&x| !x) { return None; }
+    let f = |j: usize| { let o = add(c[j], mul(n_out[j], rf)); o.0.hypot(o.1) - (r_od + rf) };
+    let mut ja = None; for j in (0..a).rev() { if f(j) >= 0.0 { ja = Some(j); break; } }
+    let mut jb = None; for j in b + 1..c.len() { if f(j) >= 0.0 { jb = Some(j); break; } }
+    let (ja, jb) = (ja?, jb?);
+    let fillet = |j: usize, to_ring: bool| -> (Vec<P2>, f64) {
+        let o = add(c[j], mul(n_out[j], rf)); let lo = o.0.hypot(o.1); let tr = mul(o, r_od / lo);
+        let (p1, p2) = if to_ring { (c[j], tr) } else { (tr, c[j]) };
+        let a1 = (p1.1 - o.1).atan2(p1.0 - o.0); let mut a2 = (p2.1 - o.1).atan2(p2.0 - o.0);
+        while a2 - a1 > PI { a2 -= 2.0 * PI; } while a1 - a2 > PI { a2 += 2.0 * PI; }
+        let k = (((a2 - a1).abs() * rf) / 0.3).ceil().max(4.0) as usize;
+        ((1..k).map(|i| { let th = a1 + (a2 - a1) * i as f64 / k as f64; (o.0 + rf * th.cos(), o.1 + rf * th.sin()) }).collect(), tr.1.atan2(tr.0))
+    };
+    let (fa, tha) = fillet(ja, true); let (fb, thb) = fillet(jb, false);
+    // ring arc from tha to thb passing the rear (angle pi)
+    let mut d = thb - tha; while d > 0.0 { d -= 2.0 * PI; } while d <= -2.0 * PI { d += 2.0 * PI; }
+    if ((tha + d / 2.0).cos()) > 0.0 { d += 2.0 * PI; }
+    let k = ((d.abs() * r_od) / 0.3).ceil() as usize;
+    let mut out: Vec<P2> = c[..=ja].to_vec();
+    out.extend(fa);
+    for i in 0..=k { let th = tha + d * i as f64 / k as f64; out.push((r_od * th.cos(), r_od * th.sin())); }
+    out.extend(fb);
+    out.extend_from_slice(&c[jb..c.len() - 1]); // last sample == tip == first sample
+    Some((out, ja, jb))
+}
+
+pub fn build(g: &Genome) -> Pheno {
+    let mut fails: Vec<String> = Vec::new();
+    let cp = control_points(g);
+    let (c, cidx) = natural_spline(&cp, 0.1);
+    let n = c.len();
+    let seg = cumlen(&c);
+    let orient = signed_area(&c[..n - 1]).signum();
+    let tan: Vec<P2> = (0..n).map(|i| norm(sub(c[(i + 1).min(n - 1)], c[i.saturating_sub(1)]))).collect();
+    // inward normal: interior is left of travel for CCW, right for CW
+    let n_in: Vec<P2> = tan.iter().map(|t| if orient > 0.0 { (-t.1, t.0) } else { (t.1, -t.0) }).collect();
+    let n_out: Vec<P2> = n_in.iter().map(|q| (-q.0, -q.1)).collect();
+    let dx = g.v[GRIP_DX];
+    let tip = c[0]; let i_heel = cidx[8]; let heel = c[i_heel];
+    let in_len = seg[i_heel];
+    let sp_full = seg[n - 1] - seg[cidx[30]];
+    let off = g.v[SPINE_OFF].max(sp_full - (CAP_MM - 0.3)).max(0.0);
+    let i_sp0 = (cidx[30]..n).find(|&i| seg[i] - seg[cidx[30]] >= off).unwrap_or(n - 2);
+    let arc_sp = seg[n - 1] - seg[i_sp0];
+    let blade = Blade { tip_to_heel: dist(tip, heel), horizontal_reach: tip.0 - heel.0, arc_in: in_len, arc_sp,
+        sharpened_arc: in_len.max(arc_sp), spine_offset_used: off, hook_drop: heel.1 - tip.1 };
+    // ---- serrations (C.4 tables, depth genes) + thumb-seat jimping ----
+    let mut depth = vec![0.0; n];
+    let (dl, ds, df, js) = (g.v[SER_L], g.v[SER_S], g.v[SER_F], g.v[JIMP]);
+    let din = |p: f64, d0: f64| if p > 4.0 { dl } else { ds * d0 / 0.7 };
+    let dsp = |_p: f64, d0: f64| df * d0 / 0.75;
+    for i in 0..=i_heel { depth[i] = scallop_depth(&c4::SC_IN, in_len - seg[i], &din); }
+    for i in i_sp0..n { depth[i] = scallop_depth(&c4::SC_SP, seg[i] - seg[i_sp0], &dsp); }
+    let s_j0 = seg[cidx[28]] - 7.0; let rj = 0.55;
+    for j in 0..7 { let sc = s_j0 + 2.0 * j as f64; let dj = 0.8 * (0.45 + 0.55 * (PI * (j as f64 + 0.5) / 7.0).sin()) * js;
+        for i in 0..n { let x = seg[i] - sc; if x.abs() <= rj { let d = ((dj - rj) + (rj * rj - x * x).max(0.0).sqrt()).max(0.0); depth[i] = depth[i].max(d); } } }
+    let cs: Vec<P2> = (0..n).map(|i| add(c[i], mul(n_in[i], depth[i]))).collect();
+    let teeth_in = c4::SC_IN.len(); let teeth_sp = c4::SC_SP.len();
+    let rip = |r: std::ops::Range<usize>| { let v: Vec<f64> = depth[r].to_vec(); let m = v.iter().sum::<f64>() / v.len().max(1) as f64; (v.iter().map(|d| (d - m).powi(2)).sum::<f64>() / v.len().max(1) as f64).sqrt() };
+    let (ripple_in, ripple_sp) = (rip(0..i_heel), rip(i_sp0..n));
+    // ---- ring union + neck fillets ----
+    let ring_id = g.v[RING_ID]; let ring_od = ring_id + 2.0 * g.v[RING_WALL];
+    let rf = g.v[NECK_FILLET];
+    let (outline, macro_outline) = match (ring_union(&cs, &n_out, ring_od / 2.0, rf), ring_union(&c, &n_out, ring_od / 2.0, rf)) {
+        (Some(a), Some(b)) => (a.0, b.0),
+        _ => { fails.push("Disconnected: ring does not join the crescent".into()); (cs[..n - 1].to_vec(), c[..n - 1].to_vec()) }
+    };
+    // ---- lightening holes, C.4 zones only ----
+    let mut holes = vec![circle((0.0, 0.0), ring_id / 2.0, 256, true)]; let mut hole_names = vec!["ring"];
+    let (x0, x1, y0) = (g.v[COMET_X0], g.v[COMET_X1], g.v[COMET_Y]); let l = x1 - x0; let bow = g.v[COMET_BOW];
+    let comet_c = bezier([(x0, y0), (x0 + 0.325 * l, y0 + bow), (x0 + 0.675 * l, y0 + 0.83 * bow), (x1, y0 - 0.1)], 80);
+    holes.push(taper_slot(&comet_c, g.v[COMET_W0], g.v[COMET_W1])); hole_names.push("comet");
+    if g.v[EYE] >= 0.5 { let s = g.v[EYE]; let ctr = (90.0, 1.7);
+        let e: Vec<P2> = [(84.0, 2.6), (88.0, 2.4), (92.0, 1.6), (96.0, 0.2)].iter().map(|q| (ctr.0 + s * (q.0 - ctr.0) + dx, ctr.1 + s * (q.1 - ctr.1))).collect();
+        holes.push(taper_slot(&bezier([e[0], e[1], e[2], e[3]], 40), 5.0 * s, 2.2 * s)); hole_names.push("eye"); }
+    holes.push(circle((85.0 + dx, -15.0), g.v[CAIRN] / 2.0, 64, true)); hole_names.push("cairn");
+    let (pw, pl) = (g.v[PAD_W], g.v[PAD_L]); let pc = (g.v[PAD_X] + dx, g.v[PAD_Y]);
+    let pad = [(pc.0 - pw / 2.0, pc.1 - pl / 2.0), (pc.0 + pw / 2.0, pc.1 - pl / 2.0), (pc.0 + pw / 2.0, pc.1 + pl / 2.0), (pc.0 - pw / 2.0, pc.1 + pl / 2.0)];
+    let neck_x = ring_od / 2.0 - 3.0;
+    let grip_len = cp[13].0 - neck_x;
+    let edge_in: Vec<P2> = c[..=i_heel].to_vec(); let edge_sp: Vec<P2> = c[i_sp0..].to_vec();
+    let mut p = Pheno { cp, outline, macro_outline, curve: c, cidx, holes, hole_names, t: g.v[T], mat: g.mat, tip, heel, dx,
+        edge_in, edge_sp, blade, grip_len, ring_od, ring_id, pad, teeth_in, teeth_sp, ripple_in, ripple_sp,
+        field: Field { x0: 0.0, y0: 0.0, g: GRID, nx: 0, ny: 0, th: vec![], base: vec![] }, mass_g: 0.0, blank_g: 0.0, area_mm2: 0.0,
+        removed: [0.0; 5], web_clamped: 0, min_web: 0.0, land_full_mm2: 0.0, pad_flat: false, fails };
+    thickness_field(g, &mut p);
+    p
+}
+
+fn density(m: TiGrade) -> f64 { jarambit_physics::material(m).density }
+
+/// 0.25 mm raster: distal taper, flat grinds from the SMOOTH edges (edge angle genes), then the
+/// 3-D feature layer (medial-axis section relief, hex lattice dimples, blade fuller, comet-ligament
+/// flutes, machined grip texture). Brand pad and the holder friction land are protected (full t).
+fn thickness_field(g: &Genome, p: &mut Pheno) {
+    let gsz = GRID;
+    let (mut lo, mut hi) = ((f64::MAX, f64::MAX), (f64::MIN, f64::MIN));
+    for q in &p.outline { lo.0 = lo.0.min(q.0); lo.1 = lo.1.min(q.1); hi.0 = hi.0.max(q.0); hi.1 = hi.1.max(q.1); }
+    let (x0, y0) = (lo.0 - gsz, lo.1 - gsz);
+    let nx = ((hi.0 - x0) / gsz).ceil() as usize + 2; let ny = ((hi.1 - y0) / gsz).ceil() as usize + 2;
+    let mut th = vec![f32::NAN; nx * ny]; let mut base_v = vec![f32::NAN; nx * ny];
+    let rings: Vec<&Vec<P2>> = std::iter::once(&p.outline).chain(p.holes.iter()).collect();
+    let t = p.t; let t_tip = g.v[T_TIP]; let tx0 = g.v[TAPER_X0] + p.dx; let maxx = hi.0;
+    let (tan_in, tan_sp) = (g.v[EA_IN].to_radians().tan(), g.v[EA_SP].to_radians().tan());
+    let et = g.v[EDGE_TH];
+    let nn_in = Nn::new(&densify(&p.edge_in, 0.25, false), 2.0);
+    let nn_sp = Nn::new(&densify(&p.edge_sp, 0.25, false), 2.0);
+    let mut bpts: Vec<P2> = densify(&p.outline, 0.25, true);
+    for h in &p.holes { bpts.extend(densify(h, 0.25, true)); }
+    let nn_b = Nn::new(&bpts, 2.0);
+    let pad = p.pad; let in_pad = |q: P2, m: f64| q.0 >= pad[0].0 - m && q.0 <= pad[1].0 + m && q.1 >= pad[0].1 - m && q.1 <= pad[2].1 + m;
+    let land = |q: P2| q.0 >= 78.0 + p.dx && q.0 <= 100.0 + p.dx;          // holder friction land / ricasso band
+    let handle = |q: P2| q.0 < 78.0 + p.dx;
+    let r_od = p.ring_od / 2.0;
+    // lattice centres (hex, rotated), with rim checks
+    let (ld, lp, lf, la) = (g.v[LAT_D], g.v[LAT_P], g.v[LAT_F], g.v[LAT_A].to_radians());
+    let lr = lf * lp / 2.0;
+    let mut dimples: Vec<P2> = Vec::new();
+    if ld > 0.05 && (g.v[LAT_H] > 0.5 || g.v[LAT_B] > 0.5) {
+        let (ca, sa) = (la.cos(), la.sin()); let rr = 0.5 * ((hi.0 - lo.0).hypot(hi.1 - lo.1)) + lp;
+        let cen = ((lo.0 + hi.0) / 2.0, (lo.1 + hi.1) / 2.0);
+        let nj = (rr / (lp * 0.866)) as i64 + 1; let ni = (rr / lp) as i64 + 1;
+        for j in -nj..=nj { for i in -ni..=ni {
+            let u = (i as f64 + if j % 2 != 0 { 0.5 } else { 0.0 }) * lp; let v = j as f64 * lp * 0.866;
+            let q = (cen.0 + ca * u - sa * v, cen.1 + sa * u + ca * v);
+            if q.0 < lo.0 || q.0 > hi.0 || q.1 < lo.1 || q.1 > hi.1 { continue; }
+            if !crate::geom::point_in_poly(q, &p.outline) || p.holes.iter().any(|h| crate::geom::point_in_poly(q, h)) { continue; }
+            if nn_b.nearest(q, 30.0) < lr + 1.5 || in_pad(q, lr + 1.0) || land(q) || q.0.hypot(q.1) < r_od + lr + 1.0 { continue; }
+            let hz = g.v[LAT_H] > 0.5 && q.0 >= 18.0 && q.0 <= 74.0 + p.dx;
+            let bz = g.v[LAT_B] > 0.5 && q.0 >= 102.0 + p.dx && {
+                let b = t - (t - t_tip) * ((q.0 - tx0) / (maxx - tx0)).clamp(0.0, 1.0);
+                nn_in.nearest(q, 40.0) >= (b - et) / (2.0 * tan_in) + lr + 1.0 && nn_sp.nearest(q, 40.0) >= (b - et) / (2.0 * tan_sp) + lr + 1.0 };
+            if hz || bz { dimples.push(q); } } }
+    }
+    let nn_dim = if dimples.is_empty() { None } else { Some(Nn::new(&dimples, lp.max(2.0))) };
+    // fuller centreline: midpoints between inside edge and spine over [s0, s1] of the inside edge
+    let (fd, fw) = (g.v[FUL_D], g.v[FUL_W]);
+    let nn_ful = if fd > 0.05 {
+        let ei = &p.edge_in; let m = ei.len(); let spd = densify(&p.curve[p.cidx[29]..], 0.5, false);
+        let mut pts = Vec::new();
+        let (s0, s1) = (g.v[FUL_S0], g.v[FUL_S1]);
+        for k in 0..200 { let u = s0 + (s1 - s0) * k as f64 / 199.0; let q = ei[((1.0 - u) * (m - 1) as f64) as usize];
+            let sp = spd.iter().copied().min_by(|a, b| dist(*a, q).partial_cmp(&dist(*b, q)).unwrap()).unwrap();
+            pts.push(((q.0 + sp.0) / 2.0, (q.1 + sp.1) / 2.0)); }
+        Some(Nn::new(&densify(&pts, 0.2, false), 2.0)) } else { None };
+    let (rd, rw, rq) = (g.v[RELIEF_D], g.v[RELIEF_W], g.v[RELIEF_Q]);
+    let (tm, tdp, tpi, tang) = (g.v[TEX_MODE] >= 0.5, g.v[TEX_D], g.v[TEX_P], g.v[TEX_A].to_radians());
+    let (wx0, wx1) = (g.v[WRAP_X0], g.v[WRAP_X0] + g.v[WRAP_L]);
+    let web_min = (0.3 * t).max(1.5);
+    let mut removed = [0.0f64; 5]; let mut clamped = 0usize; let mut min_web = f64::MAX;
+    let mut land_full = 0.0; let mut pad_flat = true; let mut area = 0.0;
+    for j in 0..ny {
+        let y = y0 + (j as f64 + 0.5) * gsz;
+        let mut xs: Vec<f64> = Vec::new();
+        for r in &rings { let m = r.len(); for i in 0..m { let (a, b) = (r[i], r[(i + 1) % m]);
+            if (a.1 > y) != (b.1 > y) { xs.push(a.0 + (y - a.1) * (b.0 - a.0) / (b.1 - a.1)); } } }
+        xs.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        for pr in xs.chunks(2) { if pr.len() < 2 { continue; }
+            let i0 = (((pr[0] - x0) / gsz) - 0.5).ceil().max(0.0) as usize; let i1 = (((pr[1] - x0) / gsz) - 0.5).floor() as i64;
+            if i1 < i0 as i64 { continue; }
+            for i in i0..=(i1 as usize).min(nx - 1) {
+                let q = (x0 + (i as f64 + 0.5) * gsz, y);
+                let base = t - (t - t_tip) * ((q.0 - tx0) / (maxx - tx0)).clamp(0.0, 1.0);
+                let gi = et + 2.0 * nn_in.nearest(q, 14.0).min(1e3) * tan_in;
+                let gs = et + 2.0 * nn_sp.nearest(q, 14.0).min(1e3) * tan_sp;
+                let th0 = base.min(gi).min(gs); let grind = th0 < base - 1e-9;
+                let prot = in_pad(q, 1.0) || land(q);
+                let db = nn_b.nearest(q, 12.0);
+                let mut rem = [0.0f64; 5];
+                if !prot && !grind && handle(q) && rd > 0.0 && db < rw { rem[0] = 2.0 * rd * (1.0 - db / rw).powf(rq); }
+                if let Some(nd) = &nn_dim { if !prot && !grind { let d = nd.nearest(q, lr); if d < lr { rem[1] = 2.0 * ld * (1.0 - (d / lr).powi(2)); } } }
+                if let Some(nf) = &nn_ful { if !prot && !grind && q.0 > p.heel.0 - 5.0 { let d = nf.nearest(q, fw / 2.0); if d < fw / 2.0 { rem[2] = 2.0 * fd * (1.0 - (2.0 * d / fw).powi(2)); } } }
+                if tm && !prot && q.0 >= wx0 && q.0 <= wx1 && db >= 1.0 && q.0.hypot(q.1) > r_od && !grind {
+                    let ph = ((q.0 * tang.cos() + q.1 * tang.sin()) / tpi).rem_euclid(1.0);
+                    if ph < 0.5 { rem[4] = 2.0 * tdp * (PI * ph / 0.5).sin(); } }
+                let tot: f64 = rem.iter().sum();
+                let mut thv = th0 - tot;
+                if !grind { if thv < web_min { if tot > 0.0 { clamped += 1; } thv = web_min.min(th0); } min_web = min_web.min(thv); }
+                let removed_here = th0 - thv;
+                if tot > 0.0 { for k in 0..5 { removed[k] += removed_here * rem[k] / tot * gsz * gsz; } }
+                th[j * nx + i] = thv as f32; base_v[j * nx + i] = base as f32; area += gsz * gsz;
+                if land(q) && !grind && (thv - t).abs() < 1e-6 { land_full += gsz * gsz; }
+                if in_pad(q, 0.0) && (thv - t).abs() > 1e-6 { pad_flat = false; }
+            } }
+    }
+    // flutes on the two comet ligaments (C.2 P1, x 28..46): column runs, flat-bottom, rim >= 2.3 mm
+    let fl = g.v[FLUTE];
+    if fl > 0.05 {
+        for i in 0..nx { let x = x0 + (i as f64 + 0.5) * gsz; if x < 28.0 || x > 46.0 { continue; }
+            let mut runs: Vec<(usize, usize)> = Vec::new(); let mut s: Option<usize> = None;
+            for j in 0..ny { let inside = !th[j * nx + i].is_nan(); match (inside, s) { (true, None) => s = Some(j), (false, Some(a)) => { runs.push((a, j - 1)); s = None; } _ => {} } }
+            if let Some(a) = s { runs.push((a, ny - 1)); }
+            if runs.len() < 2 { continue; }
+            for (run, w) in [(runs[runs.len() - 1], 2.2), (runs[0], 2.6)] {
+                let len = (run.1 - run.0 + 1) as f64 * gsz; if len < w + 4.6 { continue; }
+                let mid = (run.0 + run.1) as f64 / 2.0;
+                for j in run.0..=run.1 { if ((j as f64 - mid) * gsz).abs() < w / 2.0 {
+                    let k = j * nx + i; let old = th[k] as f64; let new = (old - 2.0 * fl).max(web_min);
+                    if new < old { removed[3] += (old - new) * gsz * gsz; th[k] = new as f32; min_web = min_web.min(new); } } } } }
+    }
+    let rho = density(p.mat);
+    let vol: f64 = th.iter().filter(|v| !v.is_nan()).map(|&v| v as f64 * gsz * gsz).sum();
+    p.mass_g = vol * rho / 1000.0; p.blank_g = area * t * rho / 1000.0; p.area_mm2 = area;
+    p.removed = removed; p.web_clamped = clamped; p.min_web = if min_web == f64::MAX { t } else { min_web };
+    p.land_full_mm2 = land_full; p.pad_flat = pad_flat;
+    p.field = Field { x0, y0, g: gsz, nx, ny, th, base: base_v };
+}

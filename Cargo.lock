@@ -57,6 +57,7 @@ dependencies = [
 name = "jarambit"
 version = "0.1.0"
 dependencies = [
+ "jarambit-crescent",
  "jarambit-docs",
  "jarambit-evolve",
  "jarambit-genotype",
@@ -65,6 +66,16 @@ dependencies = [
  "jarambit-physics",
  "jarambit-redteam",
  "mimalloc",
+]
+
+[[package]]
+name = "jarambit-crescent"
+version = "0.1.0"
+dependencies = [
+ "jarambit-genotype",
+ "jarambit-phenotype",
+ "jarambit-physics",
+ "jarambit-redteam",
 ]
 
 [[package]]

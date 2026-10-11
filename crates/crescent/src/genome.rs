@@ -1,0 +1,138 @@
+//! Crescent genotype: SWITCHBACK C.4 spline control-point offsets inside an aesthetic envelope,
+//! plus a 3-D thickness-field / lattice / medial-axis feature layer. Not a stick figure: the
+//! silhouette is ONE C2 spline (tip = only corner) + ring union with tangent neck fillets, and
+//! every gene moves a smooth feature of that crescent. Cannot collapse to a stick figure either:
+//! offsets are bounded per zone (mm), and the aesthetic floor (Hausdorff / curvature histogram /
+//! straight-run vs C.4) rejects anything that drifts out of the C.4 family.
+use jarambit_genotype::{q01, Rng, TiGrade};
+
+pub const N_CP: usize = 40;
+pub const NG: usize = 90;
+pub const DROP: usize = 40; pub const GRIP_DX: usize = 41; pub const RING_WALL: usize = 42; pub const RING_ID: usize = 43;
+pub const NECK_FILLET: usize = 44; pub const T: usize = 45; pub const T_TIP: usize = 46; pub const TAPER_X0: usize = 47;
+pub const EA_IN: usize = 48; pub const EA_SP: usize = 49;
+pub const COMET_X0: usize = 50; pub const COMET_X1: usize = 51; pub const COMET_W0: usize = 52; pub const COMET_W1: usize = 53;
+pub const COMET_BOW: usize = 54; pub const COMET_Y: usize = 55; pub const EYE: usize = 56; pub const CAIRN: usize = 57;
+pub const DETENT: usize = 58; pub const WALL: usize = 59; pub const JIMP: usize = 60;
+pub const SER_L: usize = 61; pub const SER_S: usize = 62; pub const SER_F: usize = 63; pub const SPINE_OFF: usize = 64;
+pub const RELIEF_D: usize = 65; pub const RELIEF_W: usize = 66; pub const RELIEF_Q: usize = 67;
+pub const LAT_D: usize = 68; pub const LAT_P: usize = 69; pub const LAT_F: usize = 70; pub const LAT_A: usize = 71;
+pub const LAT_H: usize = 72; pub const LAT_B: usize = 73;
+pub const FUL_D: usize = 74; pub const FUL_W: usize = 75; pub const FUL_S0: usize = 76; pub const FUL_S1: usize = 77;
+pub const FLUTE: usize = 78; pub const TEX_MODE: usize = 79; pub const TEX_D: usize = 80; pub const TEX_P: usize = 81;
+pub const TEX_A: usize = 82; pub const WRAP_X0: usize = 83; pub const WRAP_L: usize = 84;
+pub const PAD_X: usize = 85; pub const PAD_Y: usize = 86; pub const PAD_W: usize = 87; pub const PAD_L: usize = 88;
+/// Thickness left at the edge before the final sharpening (C.4: 0.5 mm). Tip-snap vs cutting knob.
+pub const EDGE_TH: usize = 89;
+
+pub const NAMES: [&str; NG - N_CP] = ["blade_drop_deg", "grip_dx", "ring_wall", "ring_id", "neck_fillet", "t_stock", "t_tip", "taper_x0",
+    "edge_angle_in", "edge_angle_sp", "comet_x0", "comet_x1", "comet_w0", "comet_w1", "comet_bow", "comet_y", "eye_scale", "cairn_d",
+    "nub_engage", "holder_wall", "jimp_scale", "serr_large_d", "serr_small_d", "serr_fine_d", "spine_sharp_offset",
+    "relief_d", "relief_w", "relief_q", "lattice_d", "lattice_pitch", "lattice_frac", "lattice_angle", "lattice_handle", "lattice_blade",
+    "fuller_d", "fuller_w", "fuller_s0", "fuller_s1", "flute_d", "texture_mode", "texture_d", "texture_pitch", "texture_angle",
+    "wrap_x0", "wrap_len", "pad_x", "pad_y", "pad_w", "pad_l", "edge_t"];
+
+/// Finished-thickness floor from 6.35 mm (1/4 in) Ti plate; ceiling = JARAMBIT_T_MAX (<= 6.0).
+pub const T_MIN: f64 = 5.3;
+pub const PLATE_MM: f64 = 6.35;
+pub fn t_max() -> f64 {
+    static TM: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
+    *TM.get_or_init(|| std::env::var("JARAMBIT_T_MAX").ok().and_then(|v| v.parse::<f64>().ok()).map(|t| t.clamp(T_MIN, 6.0)).unwrap_or(6.0))
+}
+
+/// Aesthetic envelope: max normal offset (mm) of each C.4 spline control point.
+/// 0 = pinned (tip corner; the four points hidden inside the ring disk).
+pub fn cp_delta(i: usize) -> f64 {
+    match i { 0 | 39 | 19..=22 => 0.0, 1..=7 => 3.0, 8 => 2.0, 9..=13 => 3.5, 14..=18 => 3.0, 23..=27 => 3.0, 28 | 29 => 2.0, 30..=35 => 3.5, 36..=38 => 2.5, _ => 0.0 }
+}
+
+pub fn bounds() -> Vec<(f64, f64)> {
+    let mut b: Vec<(f64, f64)> = (0..N_CP).map(|i| (-cp_delta(i), cp_delta(i))).collect();
+    b.extend_from_slice(&[(-4.0, 4.0), (-0.4, 10.0), (4.5, 7.0), (24.9, 25.9), (8.0, 18.0), (T_MIN, t_max()), (2.6, 4.5), (115.0, 150.0),
+        (14.0, 22.0), (14.0, 22.0), (22.0, 30.0), (56.0, 70.0), (7.0, 12.0), (3.5, 6.0), (0.0, 4.0), (0.5, 4.0), (0.0, 1.25), (4.0, 7.0),
+        (0.4, 1.2), (1.2, 2.0), (0.6, 1.2), (1.0, 1.5), (0.4, 0.8), (0.5, 0.9), (0.0, 45.0),
+        (0.0, 1.2), (2.0, 8.0), (1.0, 3.0), (0.0, 1.5), (4.0, 9.0), (0.4, 0.8), (0.0, 60.0), (0.0, 1.0), (0.0, 1.0),
+        (0.0, 1.2), (2.0, 5.0), (0.05, 0.4), (0.5, 0.9), (0.0, 1.0), (0.0, 1.0), (0.15, 0.4), (1.5, 3.0), (-45.0, 45.0),
+        (16.0, 26.0), (45.0, 60.0), (70.0, 80.0), (-5.0, 3.0), (6.0, 9.0), (12.0, 16.0), (0.5, 0.9)]);
+    assert_eq!(b.len(), NG);
+    b
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Genome { pub v: Vec<f64>, pub mat: TiGrade }
+
+impl Genome {
+    /// SWITCHBACK Rev C.4 at `t` mm finished stock: zero offsets, C.4 holes/flutes/serrations,
+    /// spine sharpening moved aft so its arc fits the 4.0 in edge cap, bare-flat 3-D layer.
+    pub fn c4_seed(t: f64) -> Self {
+        let mut v = vec![0.0; N_CP];
+        v.extend_from_slice(&[0.0, 0.0, 6.3, 25.4, 15.0, t, 3.0, 130.0, 16.0, 16.0, 25.0, 66.0, 11.0, 5.2, 2.3, 2.3, 1.0, 6.0,
+            0.6, 1.3, 1.0, 1.38, 0.7, 0.75, 24.0, 0.0, 4.0, 2.0, 0.0, 6.0, 0.6, 0.0, 0.0, 0.0, 0.0, 3.0, 0.15, 0.7, 0.6,
+            0.0, 0.25, 2.0, 30.0, 20.0, 52.0, 75.0, -1.0, 6.5, 12.0, 0.5]);
+        let mut g = Genome { v, mat: TiGrade::Ti6Al4V }; g.clamp(); g
+    }
+    pub fn get(&self, i: usize) -> f64 { self.v[i] }
+    pub fn clamp(&mut self) {
+        let b = bounds();
+        for (x, (lo, hi)) in self.v.iter_mut().zip(&b) { *x = if x.is_finite() { x.clamp(*lo, *hi) } else { *lo }; }
+        self.v[T] = q01(self.v[T]).clamp(T_MIN, t_max());
+        self.v[T_TIP] = self.v[T_TIP].min(self.v[T] - 0.5);
+        // holder stack: t + 2 wall + 2 x 0.2 clearance <= 9.0 mm
+        self.v[WALL] = self.v[WALL].min((9.0 - self.v[T] - 0.4) / 2.0).max(1.2);
+        // nub engagement <= t/4 (it seats in the cairn hole)
+        self.v[DETENT] = self.v[DETENT].min(self.v[T] / 4.0);
+        if self.v[FUL_S1] < self.v[FUL_S0] + 0.15 { self.v[FUL_S1] = (self.v[FUL_S0] + 0.15).min(0.9); }
+        if self.v[COMET_X1] < self.v[COMET_X0] + 28.0 { self.v[COMET_X1] = self.v[COMET_X0] + 28.0; }
+    }
+    pub fn random_in_envelope(r: &mut Rng) -> Self {
+        let b = bounds();
+        let mut g = Genome { v: b.iter().map(|(lo, hi)| r.range(*lo, *hi)).collect(), mat: if r.f64() < 0.8 { TiGrade::Ti6Al4V } else { TiGrade::Ti3Al2_5V } };
+        // smooth the silhouette offsets (a random walk per zone, not white noise)
+        let raw = g.v[..N_CP].to_vec();
+        for i in 0..N_CP { if cp_delta(i) == 0.0 { g.v[i] = 0.0; continue; }
+            let (a, c) = (raw[(i + N_CP - 1) % N_CP], raw[(i + 1) % N_CP]); g.v[i] = (0.25 * a + 0.5 * raw[i] + 0.25 * c).clamp(-cp_delta(i), cp_delta(i)); }
+        g.clamp(); g
+    }
+
+    /// Mutation operators that stay INSIDE the aesthetic envelope.
+    /// 0 gaussian per-gene, 1 smooth silhouette bump (low-frequency offset field over the spline),
+    /// 2 thickness-field op (taper/relief/medial-axis section), 3 lattice op, 4 fuller/flute op.
+    pub fn mutate(&self, r: &mut Rng, sigma: f64) -> Self {
+        let b = bounds();
+        let mut g = self.clone();
+        let op = (r.f64() * 5.0) as usize;
+        let span = |i: usize| b[i].1 - b[i].0;
+        let jig = |g: &mut Genome, i: usize, r: &mut Rng, s: f64| { g.v[i] += r.normal() * s * span(i); };
+        match op {
+            0 => { for i in 0..NG { if r.f64() < 0.15 { jig(&mut g, i, r, sigma); } } }
+            1 => { let c = r.range(0.0, N_CP as f64); let w = r.range(1.5, 5.0); let a = r.normal() * sigma * 6.0;
+                   for i in 0..N_CP { let d = (i as f64 - c).abs().min(N_CP as f64 - (i as f64 - c).abs());
+                       g.v[i] += a * (-(d / w).powi(2)).exp() * (cp_delta(i) / 3.5); }
+                   if r.f64() < 0.3 { jig(&mut g, DROP, r, sigma); } if r.f64() < 0.3 { jig(&mut g, GRIP_DX, r, sigma); } }
+            2 => { for i in [T, T_TIP, TAPER_X0, RELIEF_D, RELIEF_W, RELIEF_Q, EA_IN, EA_SP, RING_WALL, EDGE_TH] { if r.f64() < 0.5 { jig(&mut g, i, r, sigma * 1.5); } } }
+            3 => { for i in [LAT_D, LAT_P, LAT_F, LAT_A] { if r.f64() < 0.6 { jig(&mut g, i, r, sigma * 1.5); } }
+                   if r.f64() < 0.2 { g.v[LAT_H] = 1.0 - g.v[LAT_H]; } if r.f64() < 0.2 { g.v[LAT_B] = 1.0 - g.v[LAT_B]; } }
+            _ => { for i in [FUL_D, FUL_W, FUL_S0, FUL_S1, FLUTE, TEX_MODE, TEX_D, TEX_P, TEX_A, COMET_W0, COMET_W1, COMET_BOW, EYE, CAIRN] { if r.f64() < 0.4 { jig(&mut g, i, r, sigma * 1.5); } } }
+        }
+        if r.f64() < 0.03 { g.mat = if g.mat == TiGrade::Ti6Al4V { TiGrade::Ti3Al2_5V } else { TiGrade::Ti6Al4V }; }
+        g.clamp(); g
+    }
+    pub fn crossover(&self, o: &Self, r: &mut Rng) -> Self {
+        // block crossover: silhouette block, then each named gene independently
+        let take_sil = r.f64() < 0.5;
+        let v = (0..NG).map(|i| if i < N_CP { if take_sil { self.v[i] } else { o.v[i] } } else if r.f64() < 0.5 { self.v[i] } else { o.v[i] }).collect();
+        let mut g = Genome { v, mat: if r.f64() < 0.5 { self.mat } else { o.mat } }; g.clamp(); g
+    }
+    pub fn csv_header() -> String {
+        let mut h: Vec<String> = (0..N_CP).map(|i| format!("cp{i:02}")).collect();
+        h.extend(NAMES.iter().map(|s| s.to_string())); h.push("material".into()); h.join(",")
+    }
+    pub fn csv_row(&self) -> String {
+        let mut s: Vec<String> = self.v.iter().map(|x| format!("{x:.4}")).collect(); s.push(self.mat.name().into()); s.join(",")
+    }
+    pub fn from_csv(fields: &[&str]) -> Option<Self> {
+        if fields.len() < NG + 1 { return None; }
+        let v: Option<Vec<f64>> = fields[..NG].iter().map(|s| s.parse().ok()).collect();
+        Some(Genome { v: v?, mat: if fields[NG].contains("3Al") { TiGrade::Ti3Al2_5V } else { TiGrade::Ti6Al4V } })
+    }
+}

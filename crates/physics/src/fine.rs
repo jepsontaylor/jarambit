@@ -285,15 +285,21 @@ impl Skyline {
 }
 
 /// Assembled plate (5 dofs / node: u, v, w, w_x, w_y).
-pub struct Plate { pub mesh: Mesh, pub t: f64, pub cmat: [[f64; 3]; 3], perm: Vec<usize> }
+/// `te`: optional per-element thickness (mm, same order as `mesh.tris`); empty = uniform `t`.
+/// Added 2026-10-11 for the crescent thickness field (pockets, lattice, fullers, distal taper).
+pub struct Plate { pub mesh: Mesh, pub t: f64, pub cmat: [[f64; 3]; 3], perm: Vec<usize>, pub te: Vec<f64> }
 
 pub struct System { sky: Skyline, map: Vec<isize> }
 
 impl Plate {
     pub fn new(mesh: Mesh, t: f64, e_mpa: f64, nu: f64) -> Self {
         let perm = rcm(mesh.xy.len(), &mesh.tris);
-        Plate { mesh, t, cmat: c_plane(e_mpa, nu), perm }
+        Plate { mesh, t, cmat: c_plane(e_mpa, nu), perm, te: Vec::new() }
     }
+    /// Per-element thickness field (len = tris). Uniform-t results are unchanged when not called.
+    pub fn with_thickness(mut self, te: Vec<f64>) -> Self { assert_eq!(te.len(), self.mesh.tris.len()); self.te = te; self }
+    /// Thickness of element `e`.
+    pub fn t_of(&self, e: usize) -> f64 { self.te.get(e).copied().unwrap_or(self.t) }
     pub fn n(&self) -> usize { self.mesh.xy.len() }
 
     /// Assemble and factor with the dofs in `fixed` (len n*5) removed.
@@ -309,8 +315,9 @@ impl Plate {
             if let Some(&mn) = ids.iter().min() { for &i in &ids { first[i] = first[i].min(mn); } }
         }
         let mut sky = Skyline::new(nf, first);
-        let (t, c) = (self.t, self.cmat);
-        for tri in &self.mesh.tris {
+        let c = self.cmat;
+        for (e, tri) in self.mesh.tris.iter().enumerate() {
+            let t = self.t_of(e);
             let xs = [self.mesh.xy[tri[0]].0, self.mesh.xy[tri[1]].0, self.mesh.xy[tri[2]].0];
             let ys = [self.mesh.xy[tri[0]].1, self.mesh.xy[tri[1]].1, self.mesh.xy[tri[2]].1];
             let a2 = a2_of(&xs, &ys);
@@ -347,8 +354,8 @@ impl Plate {
     pub fn stresses(&self, u: &[f64]) -> (Vec<f64>, Vec<f64>) {
         let mut sm = Vec::with_capacity(self.mesh.tris.len());
         let mut sb = Vec::with_capacity(self.mesh.tris.len());
-        for tri in &self.mesh.tris {
-            let (s_m, s_b) = self.elem_stress(tri, u);
+        for (e, tri) in self.mesh.tris.iter().enumerate() {
+            let (s_m, s_b) = self.elem_stress_t(tri, u, self.t_of(e));
             sm.push(von_mises(s_m));
             sb.push(corners(&s_b).iter().map(|s| von_mises(*s)).fold(0.0, f64::max));
         }
@@ -356,7 +363,10 @@ impl Plate {
     }
 
     /// Membrane stress and bending surface stress at the 3 Gauss points.
-    pub fn elem_stress(&self, tri: &[usize; 3], u: &[f64]) -> ([f64; 3], [[f64; 3]; 3]) {
+    pub fn elem_stress(&self, tri: &[usize; 3], u: &[f64]) -> ([f64; 3], [[f64; 3]; 3]) { self.elem_stress_t(tri, u, self.t) }
+
+    /// As `elem_stress` with an explicit element thickness (bending surface stress = E k t/2).
+    pub fn elem_stress_t(&self, tri: &[usize; 3], u: &[f64], t_e: f64) -> ([f64; 3], [[f64; 3]; 3]) {
         let xs = [self.mesh.xy[tri[0]].0, self.mesh.xy[tri[1]].0, self.mesh.xy[tri[2]].0];
         let ys = [self.mesh.xy[tri[0]].1, self.mesh.xy[tri[1]].1, self.mesh.xy[tri[2]].1];
         let a2 = a2_of(&xs, &ys);
@@ -373,7 +383,7 @@ impl Plate {
             let bb = dkt_b(&xs, &ys, a2, &tt, *l);
             let mut k = [0.0; 3];
             for r in 0..3 { for q in 0..9 { k[r] += bb[r][q] * ub[q]; } }
-            let h = self.t * 0.5;
+            let h = t_e * 0.5;
             s_b[g] = [h * (c[0][0] * k[0] + c[0][1] * k[1]), h * (c[1][0] * k[0] + c[1][1] * k[1]), h * c[2][2] * k[2]];
         }
         (s_m, s_b)
@@ -568,7 +578,7 @@ pub fn at_temp(c: &FineCaps, m: &Material, from_c: f64, to_c: f64) -> FineCaps {
 /// 6-node quadratic membrane triangles on a `Mesh` (midside nodes added on every edge).
 /// Stress is linear in the element, so peaks at fillets and holes converge O(h^2) instead of the
 /// CST's O(h). Used for the in-plane cases (pry, ring pull). Dofs (u, v) per node.
-pub struct T6 { pub xy: Vec<P2>, pub tris: Vec<[usize; 6]>, pub n_corner: usize, pub t: f64, pub cmat: [[f64; 3]; 3], perm: Vec<usize> }
+pub struct T6 { pub xy: Vec<P2>, pub tris: Vec<[usize; 6]>, pub n_corner: usize, pub t: f64, pub cmat: [[f64; 3]; 3], perm: Vec<usize>, pub te: Vec<f64> }
 pub struct T6System { sky: Skyline, map: Vec<isize> }
 
 const T6_GP: [([f64; 3], f64); 3] = [([2.0 / 3.0, 1.0 / 6.0, 1.0 / 6.0], 1.0 / 3.0), ([1.0 / 6.0, 2.0 / 3.0, 1.0 / 6.0], 1.0 / 3.0), ([1.0 / 6.0, 1.0 / 6.0, 2.0 / 3.0], 1.0 / 3.0)];
@@ -590,8 +600,10 @@ impl T6 {
         }
         let adj6: Vec<[usize; 3]> = tris.iter().flat_map(|t| [[t[0], t[3], t[5]], [t[3], t[1], t[4]], [t[5], t[4], t[2]], [t[3], t[4], t[5]]]).collect();
         let perm = rcm(xy.len(), &adj6);
-        T6 { xy, tris, n_corner: n, t, cmat: c_plane(e_mpa, nu), perm }
+        T6 { xy, tris, n_corner: n, t, cmat: c_plane(e_mpa, nu), perm, te: Vec::new() }
     }
+    /// Per-element membrane thickness (len = tris); empty = uniform `t`.
+    pub fn with_thickness(mut self, te: Vec<f64>) -> Self { assert_eq!(te.len(), self.tris.len()); self.te = te; self }
     pub fn n(&self) -> usize { self.xy.len() }
 
     fn grads(&self, e: usize) -> ([f64; 3], [f64; 3], f64) {
@@ -634,7 +646,7 @@ impl T6 {
             let (b, c, a2) = self.grads(e);
             let area = 0.5 * a2.abs();
             let mut k = [[0.0; 12]; 12];
-            for (l, w) in T6_GP { let bm = Self::bmat(&b, &c, &l); btcb(&bm, &self.cmat, w * area * self.t, &mut k); }
+            for (l, w) in T6_GP { let bm = Self::bmat(&b, &c, &l); btcb(&bm, &self.cmat, w * area * self.te.get(e).copied().unwrap_or(self.t), &mut k); }
             let id: [isize; 12] = std::array::from_fn(|q| map[t[q / 2] * 2 + q % 2]);
             for a in 0..12 { if id[a] < 0 { continue; } for bb in 0..=a { if id[bb] >= 0 { sky.add(id[a] as usize, id[bb] as usize, k[a][bb]); } } }
         }
