@@ -14,7 +14,11 @@ pub mod verify;
 pub use fem::{capacities as plate_capacities, Caps as PlateCaps};
 
 pub struct Material { pub name: &'static str, pub density: f64, pub yield_mpa: f64, pub e_gpa: f64, pub dyield_dt: f64 }
-pub const TI_6AL_4V: Material = Material { name: "Ti-6Al-4V", density: 4.43, yield_mpa: 880.0, e_gpa: 113.8, dyield_dt: -0.0011 };
+/// D1 (2026-10-11): SCREENING yield = 828 MPa, provisional (TIMET Ti-6Al-4V Grade 5 annealed plate
+/// MINIMUM 0.2 % yield, 120 ksi). Was 880 MPa (typical). Knock-down 828/880 = 0.941; never round up
+/// to 830 for a marginal pass. See docs/CALIBRATION.md "D1 yield allowable".
+pub const TI64_YIELD_TYPICAL_MPA: f64 = 880.0;
+pub const TI_6AL_4V: Material = Material { name: "Ti-6Al-4V", density: 4.43, yield_mpa: 828.0, e_gpa: 113.8, dyield_dt: -0.0011 };
 pub const TI_3AL_2_5V: Material = Material { name: "Ti-3Al-2.5V", density: 4.48, yield_mpa: 620.0, e_gpa: 100.0, dyield_dt: -0.0012 };
 pub fn material(g: TiGrade) -> &'static Material { match g { TiGrade::Ti6Al4V => &TI_6AL_4V, TiGrade::Ti3Al2_5V => &TI_3AL_2_5V } }
 impl Material {

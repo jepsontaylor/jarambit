@@ -1,0 +1,49 @@
+name: d1-gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: d1-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  # JARAMBIT_ANCHOR deliberately unset: C.6 is the gate anchor.
+
+jobs:
+  test:
+    name: cargo test --release + D1 gate smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo test --release (all crates, incl. D1 owner-lock gate tests)
+        run: cargo test --release --workspace
+      - name: D1 owner-lock gate tests (explicit, fast)
+        run: cargo test --release -p jarambit-crescent d1_lock -- --nocapture
+      - name: D1 smoke (crescent-d1 on wave14_c03 reference)
+        run: |
+          cargo build --release -p jarambit
+          ./target/release/jarambit crescent-d1 \
+            --genomes w14c03=docs/d1/wave15_16_collect/wave14_c03_genome.csv \
+            --threads "$(nproc)" --out out/ci_d1
+          python3 ops/ci/d1_smoke.py out/ci_d1
+      - name: Upload D1 smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d1-smoke
+          path: out/ci_d1/d1_rescreen.*
+          if-no-files-found: ignore

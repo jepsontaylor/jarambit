@@ -75,6 +75,30 @@ The jarambit bias 1.070 was therefore **unconservative** for ground crescent tip
 6. **C.5 jimping** adoption is a separate item and not blocking (the jimping-scale gene stays near C.4).
 7. Linear-elastic first-yield only; no fatigue, fracture, residual stress from grinding/waterjet, or sheath shock.
 
+## 7. Rev C.6 adoption (2026-10-11, owner Jepson) — ring-face racetrack groove
+* **Anchor:** SWITCHBACK Rev **C.6** = C.5 (outline, R0.8 / 0.45 mm jimping, holes, flutes, stock) + a **two-sided ring-face
+  racetrack groove**: annulus concentric with the finger-ring bore, r = r_bore + 1.6 … r_OD − 1.6 mm (C.6 nominal 14.3–17.4 mm),
+  **0.6 mm deep per face** (web t − 1.2 mm), R0.5 floor fillet (B-rep only). Source: `jarambit_ref/hiking-karambit/revC6_outline.json`,
+  `switchback_revC6_{blank_taper,ground,flatground_noserrbevel}.step` (ground STEP 46.93 g Gr5, valid).
+* **Implementation:** `crates/crescent/src/c6_ref.rs` (re-exports C.5 + groove constants); `pheno.rs` cuts the groove into the
+  0.25 mm thickness raster on both faces wherever the solid covers the annulus (not on grind cells), so FEM, mass and the
+  watertight STEP/STL all carry it. The genome is unchanged (the groove follows the ring-wall genes); `JARAMBIT_ANCHOR=C5`
+  rebuilds the C.5 phenotype for A/B studies.
+* **New HARD aesthetic item:** the C.6 groove must be present with radial width ≥ 2.0 mm (Ø2 mm cutter) — i.e. ring wall
+  ≥ 5.2 mm with the fixed 1.6 mm rims. Hausdorff / EMD / continuity are still measured against the C.5 = C.6 exterior.
+* **Consequence (measured, out/rescore_c6):** 29 of 42 prior certified/legal crescents had thinned the ring wall below 5.2 mm
+  to save mass and now FAIL the C.6 look (they are not re-promoted). 11 of 42 pass C.6 aesthetic + all gates + certified
+  floors + < 80 g; the best (wave8_c01 under C.6) gets lighter **and** keeps its certified lateral (75.55 g, SPG 4.03 N/g).
+* **Patentable callout (document only; NO prior-art search performed):** *dual-face ring contrast-anodize channels on a
+  crescent karambit* — a machined, recessed annular channel on BOTH faces of the finger ring, concentric with the bore and
+  bounded by full-thickness rims at the bore and at the ring OD, sized so a second (contrast) anodize colour or a masked
+  bead-blast sits below the worn ring faces, combined with a continuous one-spline crescent planform. Functional side:
+  the rims keep the bore/OD contact surfaces at full stock while the channel removes mass where the certified ring-pull
+  SF is ~9 (low-stress zone). See WHITEPAPER IX-C.
+* **Open:** the R0.5 floor fillet is not in the raster (slightly conservative on mass, slightly unconservative on the
+  groove-floor Kt in the ring-pull case — ring SF ≥ 8.8 so not governing). Contrast-anodize process masking is an owner
+  / finisher item, not modelled.
+
 ## 6. Reproduce
 ```
 cargo build --release --bin jarambit
@@ -84,3 +108,26 @@ python3 ops/wave_figures/make_crescent_plate.py out/crescent_smoke out/mh1/heatm
 ```
 Committed copies: `docs/crescent/` (report, convergence, archive, history, genome, plate index) and
 `docs/figures/wave_heatmaps/wave6_crescent_*` (aesthetic passers only).
+
+* **C.6 status after waves 13–14 (2026-10-11):** C.6 silhouette floor (Hausdorff vs C.6 exterior + groove ≥ 2 mm) is a hard
+  gate; novelty is scored only inside that envelope. Lightest C.6-certified design wave13_c01 74.37 g (A 0.763, novelty 0.173).
+  Remaining gap: through-lattice designs (wave 14) trade aesthetic score (A 0.69–0.76) for SPG; owner review of perforation
+  visual language is open.
+
+## 8. D1 review gaps (2026-10-11): status
+
+| item | status | where |
+|---|---|---|
+| chord torsion vs bending couple | FIXED + unit tests (strip benchmark, St-Venant 3D) | crates/crescent/src/fem.rs, tests.rs |
+| 1.82 N*m twist floor | measured; tip-patch fixture FAILS all designs (SF 0.45-0.56, peak on the ground tip); body >15 mm from tip SF 2.9-3.6. OWNER decides the fixture | docs/d1/D1_P0_STATUS.md |
+| yield 828 MPa provisional | DONE | crates/physics/src/lib.rs, CALIBRATION §7 |
+| joint thin+hot | DONE (product) | fem::joint_k |
+| analytic grind export | grind-law JSON REAL (`export::grind_law_json`: ruled surface C(s)+u(N,tan theta), land line); analytic STEP B-rep is a STUB, ETA ~1 working day. **Faceted STEP is not a machining release.** | crates/crescent/src/export.rs |
+| failure sequence (hand onset >= 1.2 x blade onset) | proxy REAL (`Fem::seq_ratio`); all evolved designs FAIL (0.83-0.97, lateral) | fem.rs |
+| tip exclusion submodel | STUB (the peak sits at the 4 mm exclusion edge) | — |
+| ring peel | STUB | — |
+| fatigue | STUB | — |
+| pry | real T6 capacity, no floor; feeds the seq proxy | fem.rs |
+| continuous-rail architecture / thickness field | PLAN only (D1_P0_STATUS answer d) | — |
+| holder orientation | OPEN | — |
+| promotion | BLOCKED until Jepson's aesthetic sign-off | — |

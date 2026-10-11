@@ -89,3 +89,33 @@ pub fn step(s: &Solid, name: &str) -> String {
     o.push_str(&format!("#{id}=MANIFOLD_SOLID_BREP('{safe}',#{sh});\nENDSEC;\nEND-ISO-10303-21;\n"));
     o
 }
+
+
+/// D1 item 4 — evolved grind-angle law as an ANALYTIC definition (machining-release input), not the
+/// faceted STEP. Thickness inside the grind: th(q) = et + 2 d_e(q) tan(theta_e), capped by the stock/taper
+/// base(x) = t - (t - t_tip) clamp((x - x_taper)/(x_max - x_taper)); faces z = +-th/2 (symmetric).
+/// Each grind face is the ruled surface S(s, u) = C_e(s) + u (N_e(s), tan theta_e) over the planar edge curve
+/// C_e at z = +-et/2, inward normal N_e, u in [0, w_e(s)], w_e = (base - et) / (2 tan theta_e) (grind-to-flat
+/// runout = land line). This JSON gives C_e (0.25 mm samples), N_e, w_e and the land line per edge.
+/// STATUS: law export REAL; analytic STEP B-rep (B_SPLINE_SURFACE_WITH_KNOTS deg (3,1) + trimmed ADVANCED_FACE)
+/// NOT implemented — see docs/AESTHETIC_GAPS.md "D1 grind export". Faceted STEP is NOT a machining release.
+pub fn grind_law_json(p: &Pheno, g: &crate::genome::Genome, label: &str) -> String {
+    use crate::genome::*;
+    let (t, t_tip, xt) = (p.t, g.v[T_TIP], g.v[TAPER_X0] + p.dx);
+    let xmax = p.outline.iter().map(|q| q.0).fold(f64::MIN, f64::max);
+    let base = |x: f64| t - (t - t_tip) * ((x - xt) / (xmax - xt)).clamp(0.0, 1.0);
+    let et = g.v[EDGE_TH];
+    let edge = |name: &str, c: &[P2], ang: f64| -> String {
+        let c = densify(c, 0.25, false); let tn = ang.to_radians().tan(); let n = c.len();
+        let mut rows = Vec::with_capacity(n);
+        for i in 0..n {
+            let tg = norm(sub(c[(i + 1).min(n - 1)], c[i.saturating_sub(1)])); let mut nn = (-tg.1, tg.0);
+            let probe = add(c[i], mul(nn, 0.3)); if !point_in_poly(probe, &p.outline) { nn = (-nn.0, -nn.1); }
+            let w = ((base(c[i].0) - et) / (2.0 * tn)).max(0.0); let land = add(c[i], mul(nn, w));
+            rows.push(format!("[{:.4},{:.4},{:.5},{:.5},{:.4},{:.4},{:.4}]", c[i].0, c[i].1, nn.0, nn.1, w, land.0, land.1));
+        }
+        format!("{{\"edge\":\"{name}\",\"half_angle_deg\":{ang:.4},\"tan\":{tn:.6},\"edge_thickness_mm\":{et:.4},\"columns\":[\"x\",\"y\",\"nx_in\",\"ny_in\",\"grind_width_mm\",\"land_x\",\"land_y\"],\"samples\":[{}]}}", rows.join(","))
+    };
+    format!("{{\"label\":\"{label}\",\"kind\":\"analytic grind law (D1 item 4); NOT a B-rep\",\"units\":\"mm\",\"stock_t\":{t:.3},\"t_tip\":{t_tip:.3},\"taper_x0\":{xt:.3},\"x_max\":{xmax:.3},\"thickness_law\":\"th(q)=min(base(x), et+2*d_in(q)*tan_in, et+2*d_sp(q)*tan_sp); base(x)=t-(t-t_tip)*clamp((x-taper_x0)/(x_max-taper_x0),0,1); faces z=+-th/2; then pockets/grooves/perfs (see thickness raster)\",\"edges\":[{},{}]}}",
+        edge("inner", &p.edge_in, g.v[EA_IN]), edge("spine", &p.edge_sp, g.v[EA_SP]))
+}
