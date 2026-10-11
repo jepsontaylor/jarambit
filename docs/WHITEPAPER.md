@@ -122,6 +122,15 @@ anodize / masked finish below the worn faces, in combination with a single-splin
 by tangent neck fillets. The channel sits in the ring's low-stress zone (certified ring-pull SF ≈ 9), so it is also a
 mass-relief feature that does not touch the governing lateral path at the grip-ring neck.
 
+**Waves 13–14 under C.6 (results).** Wave 13 (xbabe2, 43 k evaluations) certified 24 finalists: 15 pass every hard item
+(floors 180/260/1500 N robust = min of 20 °C at −0.1 mm stock and 100 °C yield; certification min over 0.25 / 0.125 mm²),
+all under 80 g; the lightest is **wave13_c01, 74.37 g (watertight STEP 74.10 g), t 5.6 mm, SPG 3.93 N/g, certified robust
+lateral 292 N (hunter SF 1.13), ring 13.7 kN (SF 9.1), strict 0.0625 mm² lateral 284 N**, with three through-perforations
+in the handle web, C.6 groove present, Hausdorff 1.28 mm to the C.6 exterior. Wave 14 (xbabe3, through-lattice lane, ≥ 3
+through-features required) certified 24/24 finalists passing all floors and the strict check at 74.8–77.0 g, best SPG
+4.05 N/g at 76.54 g. Waves 15 (mass target 72 g, 240 generations) and 16 (≥ 4 through-features, 240 generations) continue
+the search. Tip twist (100 °C proxy SF 0.86–1.22) is reported as an advisory warning only, per owner direction.
+
 ## X. Limitations and Ethics
 The beam surrogate and the coarse plate both miss the grip-ring neck. On the wave-5 candidate the refined plate is weakest there at 100 °C (safety factor 0.58). The released outline meets the ring in a sharp re-entrant corner. A neck flare and a tangent fillet are not in this revision; the red-team ligament check (at least 3 mm from the upper ring hole to the outline) is what a later reinforcement has to keep. Until an h-refinement study of at least four levels, with peak stress and tip deflection inside 5 %, and a measured Monte Carlo-to-plate factor are in the code, neither the beam nor the coarse plate is a strength to publish. The 0.526 median in §V is the earlier short-arc population, not the legal-blade population.
 

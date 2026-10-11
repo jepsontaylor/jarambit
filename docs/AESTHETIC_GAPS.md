@@ -108,3 +108,8 @@ python3 ops/wave_figures/make_crescent_plate.py out/crescent_smoke out/mh1/heatm
 ```
 Committed copies: `docs/crescent/` (report, convergence, archive, history, genome, plate index) and
 `docs/figures/wave_heatmaps/wave6_crescent_*` (aesthetic passers only).
+
+* **C.6 status after waves 13–14 (2026-10-11):** C.6 silhouette floor (Hausdorff vs C.6 exterior + groove ≥ 2 mm) is a hard
+  gate; novelty is scored only inside that envelope. Lightest C.6-certified design wave13_c01 74.37 g (A 0.763, novelty 0.173).
+  Remaining gap: through-lattice designs (wave 14) trade aesthetic score (A 0.69–0.76) for SPG; owner review of perforation
+  visual language is open.
