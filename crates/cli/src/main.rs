@@ -6,26 +6,34 @@ fn main() {
     let a: Vec<String> = std::env::args().collect();
     let arg = |k: &str, d: usize| a.iter().position(|x| x == k).and_then(|i| a.get(i + 1)).and_then(|v| v.parse().ok()).unwrap_or(d);
     let threads = arg("--threads", 16).min(48); // shared box cap
-    let cfg = Config { pop: arg("--pop", 32), gens: arg("--gens", 5), mc_samples: arg("--mc", 256), threads, seed: arg("--seed", 42) as u64 };
     let out = a.iter().position(|x| x == "--out").and_then(|i| a.get(i + 1)).cloned().unwrap_or("out".into());
     std::fs::create_dir_all(&out).unwrap();
+    let mut cfg = Config::new(arg("--pop", 32), arg("--gens", 5), arg("--mc", 256), threads, arg("--seed", 42) as u64);
+    cfg.islands = arg("--islands", 1).max(1);
+    cfg.migrate_every = arg("--migrate", 5);
+    cfg.checkpoint = Some(format!("{out}/checkpoint.txt"));
+    cfg.resume = a.iter().any(|x| x == "--resume");
+    let hist_path = format!("{out}/history.csv");
+    let q_path = format!("{out}/quarantine.csv");
     let mut rows = vec![];
-    let mut csv = format!("gen,best_p05_spg,pop_mean_p05,diversity,rejected_in_gen,best_strength_n,best_mass_g,{}\n", Genotype::CSV_HEADER);
-    let mut qcsv = String::from("gen,reasons\n");
+    let mut csv = if cfg.resume && std::path::Path::new(&hist_path).exists() { std::fs::read_to_string(&hist_path).unwrap() }
+        else { format!("gen,best_p05_spg,pop_mean_p05,diversity,rejected_in_gen,best_strength_n,best_mass_g,best_cut_p05,best_sharp_p05,{}\n", Genotype::CSV_HEADER) };
+    let mut qcsv = if cfg.resume && std::path::Path::new(&q_path).exists() { std::fs::read_to_string(&q_path).unwrap() } else { String::from("gen,reasons\n") };
     let mut raw: Vec<(f64, f64)> = vec![];
     let (best, front) = run(&cfg, |s| {
         let b = &s.pop[0];
         let feas: Vec<f64> = s.pop.iter().map(|i| i.fit).filter(|f| *f > -1e2).collect();
         let mean = if feas.is_empty() { f64::NAN } else { feas.iter().sum::<f64>() / feas.len() as f64 };
         for i in s.pop { raw.push((s.gen as f64, i.fit.max(-20.0))); }
-        println!("gen {:3}  best p05 spg {:.3} N/g  S={:.0}N m={:.1}g  div={:.3}  rejected={}  t={:.1}mm grip={:.1}", s.gen, b.fit, b.strength_n, b.mass_g, s.diversity, s.rejected, b.g.thickness, b.g.grip_len);
+        println!("gen {:3}  best p05 spg {:.3} N/g  cut {:.3}  sharp {:.2}  S={:.0}N m={:.1}g  div={:.3}  rejected={}  islands={}  t={:.1}mm grip={:.1}", s.gen, b.fit, b.cut_p05, b.sharp_p05, b.strength_n, b.mass_g, s.diversity, s.rejected, cfg.islands, b.g.thickness, b.g.grip_len);
         rows.push((s.gen, b.fit, mean, s.diversity));
-        let _ = writeln!(csv, "{},{:.5},{:.5},{:.4},{},{:.1},{:.2},{}", s.gen, b.fit, mean, s.diversity, s.rejected, b.strength_n, b.mass_g, b.g.to_csv_row());
+        let _ = writeln!(csv, "{},{:.5},{:.5},{:.4},{},{:.1},{:.2},{:.4},{:.4},{}", s.gen, b.fit, mean, s.diversity, s.rejected, b.strength_n, b.mass_g, b.cut_p05, b.sharp_p05, b.g.to_csv_row());
         for (_, why) in &s.quarantine { let _ = writeln!(qcsv, "{},\"{}\"", s.gen, why.replace('"', "'")); }
     });
     let (p, rt, e) = nominal(&best.g);
-    println!("final p05 spg {:.3} N/g  redteam={:?}  floors_ok={}  mass={:.1}g  S={:.0}N  blade tip-heel/reach/arc = {:.1}/{:.1}/{:.1} mm (limit {:.3})",
-        best.fit, rt, e.floors_ok(), e.mass_g, e.strength_n, p.blade.tip_to_heel, p.blade.horizontal_reach, p.blade.sharpened_arc, limits::BLADE_LIMIT_MM);
+    let hf = jarambit_redteam::holder_forces(best.g.holder.holder_wall, best.g.holder.detent_depth);
+    println!("final p05 spg {:.3} N/g  cut {:.3}  redteam={:?}  floors_ok={}  mass={:.1}g  S={:.0}N  insert/draw {:.1}/{:.1} N  blade tip-heel/reach/arc = {:.1}/{:.1}/{:.1} mm (limit {:.3})",
+        best.fit, best.cut_p05, rt, e.floors_ok(), e.mass_g, e.strength_n, hf.insertion_n, hf.draw_n, p.blade.tip_to_heel, p.blade.horizontal_reach, p.blade.sharpened_arc, limits::BLADE_LIMIT_MM);
     let w = |f: &str, s: String| std::fs::write(format!("{out}/{f}"), s).unwrap();
     w("history.csv", csv); w("quarantine.csv", qcsv);
     let mut pc = format!("strength_n,mass_g,spg,p05_spg,{}\n", Genotype::CSV_HEADER);
@@ -46,7 +54,8 @@ fn main() {
         best.g.material.name(), p.thickness, e.mass_g, e.strength_n, e.blade_lat_n, e.grip_lat_n, e.ring_pull_n, e.strength_per_gram, best.fit, e.hiker_ok, e.hunter_ok, e.ring_ok);
     let _ = writeln!(rep, "blade (limit {:.3} mm, guard {:.1}): tip_to_heel {:.2} | horizontal_reach {:.2} | sharpened_arc {:.2} (outer {:.2}, inner {:.2}) | sweep {:.1} deg",
         limits::BLADE_LIMIT_MM, limits::BLADE_GUARD_MM, p.blade.tip_to_heel, p.blade.horizontal_reach, p.blade.sharpened_arc, p.blade.sharpened_arc_outer, p.blade.sharpened_arc_inner, p.blade.sweep_deg);
-    let _ = writeln!(rep, "grip (ring-neck to guard): {:.2} mm\nring ID: {:.2} mm\nholder: ricasso land {:.1} mm, shoulder {:.2} mm/side, detent {:.2} mm @ {:.0}% grip, friction {:.1} mm, drain {:.1} mm, shell {:.2} mm",
-        p.grip_len, p.ring_id, best.g.holder.ricasso_len, best.g.holder.shoulder_w, best.g.holder.detent_depth, best.g.holder.detent_pos * 100.0, best.g.holder.friction_len, best.g.holder.drain_d, best.g.holder.holder_wall);
+    let _ = writeln!(rep, "grip (ring-neck to guard): {:.2} mm\nring ID: {:.2} mm\nholder: ricasso land {:.1} mm, shoulder {:.2} mm/side, detent {:.2} mm @ {:.0}% grip, friction {:.1} mm, drain {:.1} mm, shell {:.2} mm\nholder forces (proxy): insertion {:.1} N, draw {:.1} N\nMC p05 cut margin {:.3}  p05 sharpness {:.3}\nsearch: NSGA-II, {} island(s), {} samples/candidate",
+        p.grip_len, p.ring_id, best.g.holder.ricasso_len, best.g.holder.shoulder_w, best.g.holder.detent_depth, best.g.holder.detent_pos * 100.0, best.g.holder.friction_len, best.g.holder.drain_d, best.g.holder.holder_wall,
+        hf.insertion_n, hf.draw_n, best.cut_p05, best.sharp_p05, cfg.islands, cfg.mc_samples);
     w("best_report.md", rep);
 }
