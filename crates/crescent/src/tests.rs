@@ -261,3 +261,65 @@ fn p1_genome_csv_roundtrip_is_exact() {
     let row = g.csv_row(); let f: Vec<&str> = row.split(',').collect();
     let h = Genome::from_csv(&f).unwrap(); assert_eq!(h.v, g.v);
 }
+
+// ---------------- D1 OWNER-LOCK gate regression (CI: .github/workflows/d1-gates.yml) ----------------
+// These pin the D1 gate DEFINITION. A change that loosens any of them must fail CI and be an explicit owner decision.
+#[test] fn d1_lock_screening_yield_828_and_floors_180_260_1500() {
+    assert_eq!(jarambit_physics::TI_6AL_4V.yield_mpa, 828.0, "Ti-6Al-4V screening yield must stay 828 MPa (TIMET min)");
+    assert!(jarambit_physics::TI_6AL_4V.yield_at(100.0) < jarambit_physics::TI_6AL_4V.yield_at(20.0), "hot (100 C) knock-down must stay in the joint factor");
+    assert_eq!(jarambit_physics::floors::HIKER_LATERAL_N, 180.0);
+    assert_eq!(jarambit_physics::floors::HUNTER_LATERAL_N, 260.0);
+    assert_eq!(jarambit_physics::floors::RING_PULL_N, 1500.0);
+    // JOINT thin+hot factor is the PRODUCT (never min of the two)
+    let m = &jarambit_physics::TI_6AL_4V; let t = 5.8;
+    let k = crate::fem::joint_k(m, t, 2);
+    let thin = ((t - 0.1) / t).powi(2); let hot = m.yield_at(100.0) / m.yield_at(20.0);
+    assert!((k - thin * hot).abs() < 1e-12 && k < thin.min(hot));
+}
+
+#[test] fn d1_lock_blade_3p375_all_three_measures() {
+    assert!((crate::pheno::FLOOR_MM - (3.375 * 25.4 + 0.5)).abs() < 1e-12, "blade floor must stay 3.375 in (+0.5 mm guard)");
+    let g = Genome::c6_seed(5.7);
+    let base = crate::pheno::build(&g);
+    assert!(!crate::gates::check(&g, &base).iter().any(|r| r.starts_with("BladeTooShort")), "C.6 seed blade must clear 3.375 in");
+    for which in 0..3 {
+        let mut p = crate::pheno::build(&g);
+        let v = crate::pheno::FLOOR_MM - 0.01;
+        match which { 0 => p.blade.tip_to_heel = v, 1 => p.blade.horizontal_reach = v, _ => p.blade.sharpened_arc = v }
+        let name = ["tip_to_heel", "horizontal_reach", "sharpened_arc"][which];
+        assert!(crate::gates::check(&g, &p).iter().any(|r| r.starts_with("BladeTooShort") && r.contains(name)), "{name} below 3.375 in must be rejected");
+    }
+}
+
+#[test] fn d1_lock_c6_aesthetic_groove_required() {
+    assert!(crate::c6_ref::active(), "C.6 must be the default aesthetic anchor (JARAMBIT_ANCHOR unset)");
+    assert_eq!(crate::c6_ref::RING_GROOVE_MIN_W, 2.0);
+    let g = Genome::c6_seed(5.7);
+    let mut p = crate::pheno::build(&g);
+    assert!(crate::aesthetic::evaluate(&g, &p).pass);
+    p.groove_w = 1.9;
+    let a = crate::aesthetic::evaluate(&g, &p);
+    assert!(!a.pass && a.fails.iter().any(|f| f.contains("C.6")), "missing/narrow C.6 groove must fail aesthetic: {:?}", a.fails);
+}
+
+#[test] fn d1_lock_twist_body_and_tip_1p82_and_promote_truth_table() {
+    use crate::fem::*;
+    assert_eq!(TWIST_FLOOR_NMM, 1820.0, "twist floor must stay 1.82 N*m");
+    assert_eq!(SEQ_TARGET, 1.2);
+    assert_eq!(MASS_BAND, (74.0, 77.0)); assert_eq!(MASS_CAP_HARD, 80.0);
+    assert!(twist_floor_ok(1.0, 1.0));
+    assert!(!twist_floor_ok(0.999, 5.0), "body twist alone must gate");
+    assert!(!twist_floor_ok(5.0, 0.999), "tip submodel alone must gate");
+    // all-pass reference
+    let ok = |a: bool, gt: bool, fl: bool, sl: f64, sq: f64, b: f64, tz: f64, m: f64| promote_eligible(a, gt, fl, sl, sq, b, tz, m);
+    assert!(ok(true, true, true, 260.0, 1.2, 1.0, 1.0, 75.5));
+    assert!(!ok(false, true, true, 300.0, 2.0, 2.0, 2.0, 75.5), "aesthetic (C.6)");
+    assert!(!ok(true, false, true, 300.0, 2.0, 2.0, 2.0, 75.5), "hard gates (blade 3.375 all three, ...)");
+    assert!(!ok(true, true, false, 300.0, 2.0, 2.0, 2.0, 75.5), "828 joint floors 180/260/1500");
+    assert!(!ok(true, true, true, 259.9, 2.0, 2.0, 2.0, 75.5), "strict hunter 260");
+    assert!(!ok(true, true, true, 300.0, 1.19, 2.0, 2.0, 75.5), "seq 1.2");
+    assert!(!ok(true, true, true, 300.0, 2.0, 0.99, 2.0, 75.5), "twist body");
+    assert!(!ok(true, true, true, 300.0, 2.0, 2.0, 0.99, 75.5), "twist tip submodel");
+    assert!(!ok(true, true, true, 300.0, 2.0, 2.0, 2.0, 73.9), "mass band low");
+    assert!(!ok(true, true, true, 300.0, 2.0, 2.0, 2.0, 77.1), "mass band high");
+}
