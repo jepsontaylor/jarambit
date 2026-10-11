@@ -17,7 +17,7 @@ def outline(ax, d, c4=True):
     o = np.array(d['outline']); ax.add_patch(MPoly(o, closed=True, fill=False, ec='k', lw=0.6))
     for h in d['holes']: h = np.array(h); ax.add_patch(MPoly(h, closed=True, fill=False, ec='k', lw=0.5))
     if c4:
-        c = np.array(d['c4']); ax.plot(np.r_[c[:, 0], c[0, 0]], np.r_[c[:, 1], c[0, 1]], ls='--', lw=0.5, color='#7a3cff', label='SWITCHBACK C.4')
+        c = np.array(d['c4']); ax.plot(np.r_[c[:, 0], c[0, 0]], np.r_[c[:, 1], c[0, 1]], ls='--', lw=0.5, color='#7a3cff', label='SWITCHBACK C.5')
     p = np.array(d['pad']); ax.add_patch(MPoly(p, closed=True, fill=False, ec='#d00', lw=0.7))
     ax.set_aspect('equal'); ax.set_xticks([]); ax.set_yticks([])
     lo = o.min(0) - 4; hi = o.max(0) + 4; ax.set_xlim(lo[0], hi[0]); ax.set_ylim(lo[1], hi[1])

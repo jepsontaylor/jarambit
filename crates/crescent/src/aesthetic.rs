@@ -1,9 +1,9 @@
-//! Aesthetic floor vs SWITCHBACK Rev C.4 (HARD) + aesthetic score (soft multiplier).
+//! Aesthetic floor vs SWITCHBACK Rev C.5 (C.4 + R0.8/0.45 jimping; was C.4 through wave10) (HARD) + aesthetic score (soft multiplier).
 //! Floor: continuous crescent (no straight stem; convex spine, concave hawkbill), smooth blends
 //! (min concave radius), thumb seat + guard lobe present, Hausdorff and curvature-histogram
 //! distance to C.4 within bounds, lightening only in C.4 zones, textured / cord-wrap grip,
 //! flat brand pad. A design failing any of these is NOT an aesthetic passer and gets no novelty.
-use crate::c4_ref as c4;
+use crate::c5_ref as c4; // Rev C.5 anchor
 use crate::genome::*;
 use crate::geom::*;
 use crate::pheno::*;
@@ -14,6 +14,8 @@ pub const STRAIGHT_R_MM: f64 = 250.0;   // |kappa| < 1/250 counts as "straight"
 pub const STRAIGHT_SLACK_MM: f64 = 8.0; // allowed over the C.4 longest straight run
 pub const MIN_BLEND_R_MM: f64 = 2.0;
 pub const HIST_BINS: usize = 32;
+pub const JIMP_C5_LO: f64 = 0.8;
+pub const JIMP_C5_HI: f64 = 1.2;
 
 #[derive(Clone, Debug, Default)]
 pub struct Aes {
@@ -96,7 +98,7 @@ pub fn evaluate(g: &Genome, p: &Pheno) -> Aes {
     a.lobe_prom = (c[ci[8]].1 + c[ci[14]].1) / 2.0 - ymin(ci[9]..=ci[13]);
     a.hook_drop = p.blade.hook_drop;
     let mut f = Vec::new();
-    if !(a.hausdorff <= HAUSDORFF_MAX_MM) { f.push(format!("Hausdorff {:.2} > {HAUSDORFF_MAX_MM} mm vs C.4", a.hausdorff)); }
+    if !(a.hausdorff <= HAUSDORFF_MAX_MM) { f.push(format!("Hausdorff {:.2} > {HAUSDORFF_MAX_MM} mm vs C.5", a.hausdorff)); }
     if !(a.emd <= EMD_MAX) { f.push(format!("curvature-histogram EMD {:.3} > {EMD_MAX}", a.emd)); }
     if !(a.straight_mm <= rf.straight + STRAIGHT_SLACK_MM) { f.push(format!("straight stem {:.1} mm > C.4 {:.1}+{STRAIGHT_SLACK_MM}", a.straight_mm, rf.straight)); }
     if !(a.min_concave_r >= MIN_BLEND_R_MM.min(0.8 * rf.min_r)) { f.push(format!("blend radius {:.2} mm < {:.2}", a.min_concave_r, MIN_BLEND_R_MM.min(0.8 * rf.min_r))); }
@@ -109,6 +111,8 @@ pub fn evaluate(g: &Genome, p: &Pheno) -> Aes {
     let texture = g.v[WRAP_L] >= 45.0 && (g.v[TEX_MODE] < 0.5 || g.v[TEX_D] >= 0.15);
     if !texture { f.push("no cord-wrap / textured grip zone".into()); }
     if !p.pad_flat { f.push("brand pad not flat".into()); }
+    // C.5 thumb-seat jimping is part of the adopted outline: R0.8, depth 0.45 x scale within +/-20 % (0.36-0.54 mm)
+    if !(g.v[JIMP] >= JIMP_C5_LO - 1e-9 && g.v[JIMP] <= JIMP_C5_HI + 1e-9) { f.push(format!("jimping depth {:.2} mm outside C.5 0.45 +/-20 %", c4::JIMP_D * g.v[JIMP])); }
     a.score = (-a.hausdorff / 6.0).exp() * (-a.emd / 0.05).exp() * (1.0 - 0.5 * ((a.straight_mm - rf.straight).max(0.0) / STRAIGHT_SLACK_MM).min(1.0));
     a.pass = f.is_empty(); a.fails = f;
     a

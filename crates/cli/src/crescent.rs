@@ -24,7 +24,7 @@ fn plate_json(r: &qd::Rec, label: &str, cert: Option<(fem::Fem, fem::Fields)>) -
     let tris: Vec<String> = fl.tris.iter().map(|t| format!("[{},{},{}]", t[0], t[1], t[2])).collect();
     let mut rr = r.clone(); rr.spg = fm.lat_rob / rr.mass_g; rr.fem = Some(fm.clone()); rr.fit = qd::fitness(&rr);
     Some(format!("{{\"label\":\"{label}\",\"metrics\":{},\"fine_area\":\"certified min(0.25, 0.125)\",\"outline\":{},\"holes\":[{}],\"hole_names\":{:?},\"pad\":{},\"c4\":{},\"field\":{{\"x0\":{},\"y0\":{},\"g\":{},\"nx\":{},\"ny\":{},\"th\":{}}},\"mesh\":{{\"xy\":{},\"tris\":[{}],\"te\":{},\"env_vm\":{},\"sf\":{},\"lat\":{},\"pry\":{},\"ring\":{},\"twist\":{}}},\"genome_header\":\"{}\",\"genome\":\"{}\"}}",
-        rec_metrics(&rr), jarr(&p.outline), p.holes.iter().map(|h| jarr(h)).collect::<Vec<_>>().join(","), p.hole_names, jarr(&p.pad), jarr(&jarambit_crescent::c4_ref::EXTERIOR),
+        rec_metrics(&rr), jarr(&p.outline), p.holes.iter().map(|h| jarr(h)).collect::<Vec<_>>().join(","), p.hole_names, jarr(&p.pad), jarr(&jarambit_crescent::c5_ref::EXTERIOR),
         fd.x0, fd.y0, fd.g * step as f64, (fd.nx + step - 1) / step, (fd.ny + step - 1) / step, jnum(&th),
         jarr(&fl.xy), tris.join(","), jnum(&fl.te), jnum(&fl.env_vm), jnum(&fl.sf), jnum(&fl.lat), jnum(&fl.pry), jnum(&fl.ring), jnum(&fl.twist), Genome::csv_header(), r.g.csv_row()))
 }
@@ -193,9 +193,9 @@ fn write_progress(out: &str, gen: usize, all: &[qd::Rec], archive: &std::collect
 #[allow(clippy::too_many_arguments)]
 pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, threads: usize, seed: u64, fem_area: f64, seeds_csv: &str, seed_top: usize, migrate: usize, kick: f64, n_cert: usize) -> bool {
     std::fs::create_dir_all(out).unwrap();
-    let seeds = { let mut s = load_seeds(seeds_csv, seed_top); s.push(Genome::c4_seed(5.7)); s };
+    let seeds = { let mut s = load_seeds(seeds_csv, seed_top); s.push(Genome::c5_seed(5.7)); s };
     let mut rep = String::new();
-    let _ = writeln!(rep, "# {wave} — crescent internal-machining evolve (island GA + QD) — author Jepson Taylor\n\nislands {islands} x pop {pop}, gens {gens}, migrate every {migrate}, threads {threads}, seed {seed}, FEM search area {fem_area} mm^2 (bias 1.11/1.08), certification min(0.25, 0.125 mm^2) no bias, T_MAX {:.1}, mass target {:?} g (JARAMBIT_MASS_CAP; target only, every hard item unchanged), seeds {} (from {seeds_csv} + C.4), machining kick {kick}\n", t_max(), qd::mass_cap(), seeds.len());
+    let _ = writeln!(rep, "# {wave} — crescent internal-machining evolve (island GA + QD) — author Jepson Taylor\n\nislands {islands} x pop {pop}, gens {gens}, migrate every {migrate}, threads {threads}, seed {seed}, FEM search area {fem_area} mm^2 (bias 1.11/1.08), certification min(0.25, 0.125 mm^2) no bias, T_MAX {:.1}, mass target {:?} g (JARAMBIT_MASS_CAP; target only, every hard item unchanged), seeds {} (from {seeds_csv} + C.5), aesthetic anchor SWITCHBACK Rev C.5 (jimping R0.8/0.45), machining kick {kick}, min through-features {} (JARAMBIT_MIN_THROUGH)\n", t_max(), qd::mass_cap(), seeds.len(), qd::min_through());
     let cfg = qd::IslandCfg { base: qd::RunCfg { pop, gens, threads, seed, fem_area, t_seed: 5.7 }, islands, migrate_every: migrate, migrants: 2, seeds, kick_frac: kick };
     let t0 = std::time::Instant::now();
     let mut hist_f = String::new();
@@ -226,20 +226,27 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     for r in light.iter().take(20) { order.push(("light", r)); }
     for r in novel.iter().take(10) { order.push(("novel", r)); }
     let mut picked: Vec<(String, qd::Rec, fem::Fem, fem::Fields)> = Vec::new(); let (mut n_try, mut n_fail) = (0usize, 0usize);
-    let mut seen: Vec<Genome> = Vec::new(); let mut cert_rows = String::from("kind,id,gen,mass_g,t,search_lat_rob,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,twist_sf_proxy,floors_ok_cert,spg_cert,aes,novelty,relief_frac,n_win,n_perf\n");
+    let mut seen: Vec<Genome> = Vec::new(); let mut cert_rows = String::from("kind,id,gen,mass_g,t,search_lat_rob,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,twist_sf_proxy,floors_ok_cert,spg_cert,aes,novelty,relief_frac,n_win,n_perf,strict_lat_rob_0p0625,strict_ok\n");
     let mut queue: Vec<(&str, &qd::Rec)> = Vec::new();
     for (kind, r) in order { if queue.len() >= (2 * n_cert).max(12) { break; } if seen.contains(&r.g) || !r.legal() { continue; } seen.push(r.g.clone()); queue.push((kind, r)); }
     // certify the queue in parallel (each certification is single-threaded: 0.25 + 0.125 mm^2 solves)
     let th = threads.max(1).min(queue.len().max(1));
-    let certs: Vec<Option<(fem::Fem, fem::Fields)>> = std::thread::scope(|s| {
-        let hs: Vec<_> = (0..th).map(|t| { let q = &queue; s.spawn(move || q.iter().enumerate().filter(|(i, _)| i % th == t).map(|(i, (_, r))| (i, fem::certify(&pheno::build(&r.g)))).collect::<Vec<_>>()) }).collect();
-        let mut v: Vec<(usize, Option<(fem::Fem, fem::Fields)>)> = hs.into_iter().flat_map(|h| h.join().unwrap()).collect(); v.sort_by_key(|x| x.0); v.into_iter().map(|x| x.1).collect()
+    // JARAMBIT_CERT_STRICT=1: also solve 0.0625 mm^2 (refinement beyond certification; machined designs
+    // were found to keep losing 3-7 % below 0.125 mm^2). strict_ok = robust floors also hold there.
+    let strict = std::env::var("JARAMBIT_CERT_STRICT").map_or(false, |v| v == "1");
+    let certs: Vec<(Option<(fem::Fem, fem::Fields)>, Option<fem::Fem>)> = std::thread::scope(|s| {
+        let hs: Vec<_> = (0..th).map(|t| { let q = &queue; s.spawn(move || q.iter().enumerate().filter(|(i, _)| i % th == t).map(|(i, (_, r))| { let p = pheno::build(&r.g); (i, fem::certify(&p), if strict { fem::run_unbiased(&p, 0.0625) } else { None }) }).collect::<Vec<_>>()) }).collect();
+        let mut v: Vec<(usize, Option<(fem::Fem, fem::Fields)>, Option<fem::Fem>)> = hs.into_iter().flat_map(|h| h.join().unwrap()).collect(); v.sort_by_key(|x| x.0); v.into_iter().map(|x| (x.1, x.2)).collect()
     });
-    for ((kind, r), c) in queue.into_iter().zip(certs) {
+    let mut strict_ok_ids: Vec<usize> = Vec::new();
+    for ((kind, r), (c, f16)) in queue.into_iter().zip(certs) {
         n_try += 1;
         let Some((cf, fl)) = c else { n_fail += 1; continue; };
+        let (s_lat, s_ok) = match &f16 { Some(f) => { let m = jarambit_physics::material(r.g.mat); let rob = (f.lat20 * ((r.t - 0.1) / r.t).powi(2)).min(f.lat20 * m.yield_at(100.0) / m.yield_at(20.0)).min(cf.lat_rob);
+            (rob, rob >= jarambit_physics::floors::HUNTER_LATERAL_N) } None => (f64::NAN, !strict) };
+        if s_ok && cf.floors_ok { strict_ok_ids.push(r.id); }
         let tw = cf.twist20_nmm * jarambit_physics::material(r.g.mat).yield_at(100.0) / jarambit_physics::material(r.g.mat).yield_at(20.0) / fem::TWIST_DESIGN_NMM;
-        let _ = writeln!(cert_rows, "{kind},{},{},{:.2},{:.1},{:.1},{:.1},{:.1},{:.3},{:.3},{:.3},{:.3},{},{:.4},{:.4},{:.4},{:.4},{},{}", r.id, r.gen, r.mass_g, r.t, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob, cf.sf_hiker, cf.sf_hunter, cf.sf_ring, tw, cf.floors_ok, cf.lat_rob / r.mass_g, r.aes.score, r.novelty, qd::relief_frac(r), r.n_win, r.n_perf);
+        let _ = writeln!(cert_rows, "{kind},{},{},{:.2},{:.1},{:.1},{:.1},{:.1},{:.3},{:.3},{:.3},{:.3},{},{:.4},{:.4},{:.4},{:.4},{},{},{:.1},{}", r.id, r.gen, r.mass_g, r.t, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob, cf.sf_hiker, cf.sf_hunter, cf.sf_ring, tw, cf.floors_ok, cf.lat_rob / r.mass_g, r.aes.score, r.novelty, qd::relief_frac(r), r.n_win, r.n_perf, s_lat, s_ok && cf.floors_ok);
         if !cf.floors_ok { n_fail += 1; let _ = writeln!(rep, "- certification FAIL id {} ({kind}, {:.1} g): search lat_rob {:.0} -> certified {:.0} N, ring {:.0}", r.id, r.mass_g, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob); continue; }
         if picked.len() >= n_cert { continue; }
         let mut rr = (*r).clone(); rr.spg = cf.lat_rob / rr.mass_g; rr.fem = Some(cf.clone()); rr.fit = qd::fitness(&rr);
@@ -248,13 +255,13 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     std::fs::write(format!("{out}/certification.csv"), cert_rows).unwrap();
     let _ = writeln!(rep, "\n## Certification (min over 0.25 / 0.125 mm^2, no bias)\ncandidates certified {n_try}, rejected at the converged mesh {n_fail}\n\n## Plate designs (aesthetic passers only; certified metrics; twist SF = advisory)");
     // rank certified: under-cap by fitness first
-    picked.sort_by(|a, b| { let ka = (qd::under_cap(&a.1), a.1.fit); let kb = (qd::under_cap(&b.1), b.1.fit); kb.partial_cmp(&ka).unwrap() });
+    picked.sort_by(|a, b| { let ka = (strict_ok_ids.contains(&a.1.id), qd::under_cap(&a.1), a.1.fit); let kb = (strict_ok_ids.contains(&b.1.id), qd::under_cap(&b.1), b.1.fit); kb.partial_cmp(&ka).unwrap() });
     let mut plates = Vec::new();
     for (k, (kind, r, cf, fl)) in picked.into_iter().enumerate() {
         let label = format!("{wave}_c{:02}_{kind}", k + 1);
         let tw = cf.twist20_nmm * jarambit_physics::material(r.g.mat).yield_at(100.0) / jarambit_physics::material(r.g.mat).yield_at(20.0) / fem::TWIST_DESIGN_NMM;
         if let Some(j) = plate_json(&r, &label, Some((cf, fl))) { std::fs::write(format!("{out}/{label}.json"), &j).unwrap(); plates.push(label.clone()); }
-        let _ = writeln!(rep, "- {label} (twist SF proxy {tw:.2}, advisory; n_win {}, relief_frac {:.4}): {}", r.n_win, qd::relief_frac(&r), rec_metrics(&r));
+        let _ = writeln!(rep, "- {label} (strict 0.0625 mm^2 check: {}; twist SF proxy {tw:.2}, advisory; n_win {}, n_perf {}, relief_frac {:.4}): {}", if strict_ok_ids.contains(&r.id) { "PASS" } else if strict { "FAIL" } else { "not run" }, r.n_win, r.n_perf, qd::relief_frac(&r), rec_metrics(&r));
         let p = pheno::build(&r.g);
         if let Some(s) = export::solid(&p, 1.0) {
             let (once, more, dmax) = export::census(&s.tris); let v = export::volume(&s);
@@ -317,4 +324,48 @@ pub fn refine(csvs: &str, threads: usize, out: &str) -> bool {
         let _ = writeln!(md, "| {k} | {:.2} | {:.1} | {:.1} | {:.1} | {:.3} | {:.0} | {:.0} | {:.0} | ({:.1}, {:.1}) | {:.1} | {:.3} |", p.mass_g, f[0].lat20, f[1].lat20, f[2].lat20, f[2].lat20 / f[0].lat20.min(f[1].lat20), f[0].ring20, f[1].ring20, f[2].ring20, f[2].lat_at.0, f[2].lat_at.1, rob, rob / 260.0);
     }
     println!("{md}"); std::fs::create_dir_all(out).ok(); std::fs::write(format!("{out}/refine.md"), md).is_ok()
+}
+
+/// Re-score prior certified crescents against the adopted SWITCHBACK Rev C.5 anchor: every genome
+/// (one per `*_genome.csv`, or the top `top` legal rows of an all_evals CSV) is rebuilt with the C.5
+/// phenotype (C.5 jimping; jimp_scale clamped into the C.5 band), then aesthetic floor vs C.5, all hard
+/// gates, certification min(0.25, 0.125 mm^2) and the strict 0.0625 mm^2 level. Writes rescore.csv /
+/// rescore.md and `c5_pass_genomes.csv` (only designs passing EVERYTHING) for re-seeding.
+pub fn rescore(csvs: &str, top: usize, threads: usize, out: &str) -> bool {
+    let mut gs: Vec<(String, Genome)> = Vec::new();
+    for path in csvs.split(',').filter(|s| !s.is_empty()) {
+        let tag = path.rsplit('/').next().unwrap_or(path).replace("_genome.csv", "").replace(".csv", "");
+        for (k, mut g) in load_seeds(path, top).into_iter().enumerate() { g.clamp(); if !gs.iter().any(|x| x.1 == g) { gs.push((format!("{tag}#{k}"), g)); } }
+    }
+    gs.push(("C.5_seed_t5.7".into(), Genome::c5_seed(5.7)));
+    let th = threads.max(1).min(gs.len().max(1));
+    let res: Vec<(usize, qd::Rec, Option<fem::Fem>, Option<fem::Fem>)> = std::thread::scope(|s| {
+        let hs: Vec<_> = (0..th).map(|t| { let gs = &gs; s.spawn(move || gs.iter().enumerate().filter(|(i, _)| i % th == t).map(|(i, (_, g))| {
+            let r = qd::evaluate(g, i, 0, 2.0); let p = pheno::build(g);
+            let ok = r.aes.pass && r.rejects.is_empty();
+            let c = if ok { fem::certify(&p).map(|x| x.0) } else { None };
+            let s16 = if ok { fem::run_unbiased(&p, 0.0625) } else { None };
+            (i, r, c, s16) }).collect::<Vec<_>>()) }).collect();
+        let mut v: Vec<_> = hs.into_iter().flat_map(|h| h.join().unwrap()).collect(); v.sort_by_key(|x| x.0); v
+    });
+    let mut csv = String::from("design,mass_g,t,aes_pass_c5,aes_score_c5,hausdorff_c5,emd,jimp_depth_mm,gates_ok,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,cert_floors_ok,strict_lat_rob_0p0625,strict_sf_hunter,strict_ok,spg_cert,all_pass,fails\n");
+    let mut md = String::from("# Re-score vs SWITCHBACK Rev C.5 (jimping R0.8 / 0.45 mm)\n\nEvery design rebuilt with the C.5 phenotype; certification = min(0.25, 0.125 mm^2) unbiased; strict = 0.0625 mm^2 unbiased (robust factors applied).\n\n| design | mass g | t | A(C.5) | H mm | gates | cert lat_rob N | SF hiker | SF hunter | SF ring | strict lat_rob @0.0625 | SPG cert | ALL PASS | fails |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
+    let mut pass_rows = format!("{}\n", Genome::csv_header()); let mut n_pass = 0;
+    for (i, r, c, s16) in &res {
+        let name = &gs[*i].0; let gates_ok = r.rejects.is_empty();
+        let m = jarambit_physics::material(r.g.mat); let hot = m.yield_at(100.0) / m.yield_at(20.0); let tk = ((r.t - 0.1) / r.t).powi(2);
+        let s_rob = s16.as_ref().map_or(f64::NAN, |f| (f.lat20 * tk).min(f.lat20 * hot));
+        let cfl = c.as_ref().map_or(false, |f| f.floors_ok); let s_ok = s_rob >= jarambit_physics::floors::HUNTER_LATERAL_N;
+        let all = r.aes.pass && gates_ok && cfl && r.mass_g < 80.0;
+        let mut fails: Vec<String> = r.aes.fails.clone(); fails.extend(r.rejects.iter().cloned());
+        if c.is_some() && !cfl { fails.push("cert floors".into()); } if r.mass_g >= 80.0 { fails.push(format!("mass {:.1} >= 80 g", r.mass_g)); }
+        let (cl, cr, sh, su, sr) = c.as_ref().map_or((f64::NAN, f64::NAN, f64::NAN, f64::NAN, f64::NAN), |f| (f.lat_rob, f.ring_rob, f.sf_hiker, f.sf_hunter, f.sf_ring));
+        let _ = writeln!(csv, "{name},{:.2},{:.1},{},{:.4},{:.3},{:.4},{:.3},{},{:.1},{:.1},{:.3},{:.3},{:.3},{},{:.1},{:.3},{},{:.4},{},\"{}\"", r.mass_g, r.t, r.aes.pass, r.aes.score, r.aes.hausdorff, r.aes.emd, 0.45 * r.g.v[JIMP], gates_ok, cl, cr, sh, su, sr, cfl, s_rob, s_rob / 260.0, s_ok, cl / r.mass_g, all, fails.join("; "));
+        let _ = writeln!(md, "| {name} | {:.2} | {:.1} | {:.3}{} | {:.2} | {} | {:.1} | {:.3} | {:.3} | {:.2} | {:.1}{} | {:.3} | {} | {} |", r.mass_g, r.t, r.aes.score, if r.aes.pass { "" } else { " FAIL" }, r.aes.hausdorff, if gates_ok { "ok" } else { "FAIL" }, cl, sh, su, sr, s_rob, if s_ok { "" } else { " (<260)" }, cl / r.mass_g, if all { "**YES**" } else { "no" }, fails.join("; "));
+        if all { n_pass += 1; let _ = writeln!(pass_rows, "{}", r.g.csv_row()); }
+    }
+    let _ = writeln!(md, "\n{n_pass} of {} designs pass C.5 aesthetic + all gates + certified floors + < 80 g.", res.len());
+    std::fs::create_dir_all(out).ok();
+    println!("{md}");
+    std::fs::write(format!("{out}/rescore.csv"), csv).is_ok() && std::fs::write(format!("{out}/rescore.md"), md).is_ok() && std::fs::write(format!("{out}/c5_pass_genomes.csv"), pass_rows).is_ok()
 }

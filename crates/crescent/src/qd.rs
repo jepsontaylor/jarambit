@@ -68,6 +68,8 @@ pub fn mass_cap() -> Option<f64> {
     static C: std::sync::OnceLock<Option<f64>> = std::sync::OnceLock::new();
     *C.get_or_init(|| std::env::var("JARAMBIT_MASS_CAP").ok().and_then(|v| v.parse::<f64>().ok()).filter(|c| *c > 20.0))
 }
+/// JARAMBIT_MIN_THROUGH: minimum count of through-features for the through-lattice lane (default 0 = off).
+pub fn min_through() -> usize { std::env::var("JARAMBIT_MIN_THROUGH").ok().and_then(|v| v.parse().ok()).unwrap_or(0) }
 pub fn under_cap(r: &Rec) -> bool { mass_cap().map_or(true, |c| r.mass_g < c) }
 
 pub fn fitness(r: &Rec) -> f64 {
@@ -77,6 +79,9 @@ pub fn fitness(r: &Rec) -> f64 {
     match &r.fem { None => -50.0,
         Some(f) if !f.floors_ok => -1.0 - 10.0 * ((1.0 - f.lat_rob / 260.0).max(0.0) + (1.0 - f.ring_rob / 1500.0).max(0.0)) - 10.0 * excess,
         Some(_) if excess > 0.0 || !under_cap(r) => -0.5 - 10.0 * excess,
+        // through-lattice experiment lane (JARAMBIT_MIN_THROUGH=N): a legal design with fewer than N machined
+        // through-features (pierced-fuller windows + perforations) is ranked below every design that has them
+        Some(_) if r.n_win + r.n_perf < min_through() => -0.3 - 0.02 * (min_through() - r.n_win - r.n_perf) as f64 + 0.01 * r.spg,
         Some(_) => r.spg * r.aes.score * (1.0 + r.novelty) }
 }
 

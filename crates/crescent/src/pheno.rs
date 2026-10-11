@@ -1,6 +1,6 @@
 //! Crescent genotype -> silhouette (one C2 spline + ring union + tangent neck fillets, C.4
 //! serrations + thumb-seat jimping) + lightening holes in C.4 zones + 0.25 mm thickness raster.
-use crate::c4_ref as c4;
+use crate::c5_ref as c4; // Rev C.5 anchor (C.4 + R0.8 / uniform 0.45 mm jimping)
 use crate::genome::*;
 use crate::geom::*;
 use jarambit_genotype::TiGrade;
@@ -156,8 +156,9 @@ pub fn build(g: &Genome) -> Pheno {
     let dsp = |_p: f64, d0: f64| df * d0 / 0.75;
     for i in 0..=i_heel { depth[i] = scallop_depth(&c4::SC_IN, in_len - seg[i], &din); }
     for i in i_sp0..n { depth[i] = scallop_depth(&c4::SC_SP, seg[i] - seg[i_sp0], &dsp); }
-    let s_j0 = seg[cidx[28]] - 7.0; let rj = 0.55;
-    for j in 0..7 { let sc = s_j0 + 2.0 * j as f64; let dj = 0.8 * (0.45 + 0.55 * (PI * (j as f64 + 0.5) / 7.0).sin()) * js;
+    // Rev C.5 jimping: 7 notches, 2.0 mm pitch, R0.8, UNIFORM depth 0.45 mm x jimp_scale (C.4 was R0.55 graduated 0.45-0.8)
+    let s_j0 = seg[cidx[28]] - 7.0; let rj = c4::JIMP_R;
+    for j in 0..c4::JIMP_N { let sc = s_j0 + c4::JIMP_PITCH * j as f64; let dj = c4::JIMP_D * js;
         for i in 0..n { let x = seg[i] - sc; if x.abs() <= rj { let d = ((dj - rj) + (rj * rj - x * x).max(0.0).sqrt()).max(0.0); depth[i] = depth[i].max(d); } } }
     let cs: Vec<P2> = (0..n).map(|i| add(c[i], mul(n_in[i], depth[i]))).collect();
     let teeth_in = c4::SC_IN.len(); let teeth_sp = c4::SC_SP.len();

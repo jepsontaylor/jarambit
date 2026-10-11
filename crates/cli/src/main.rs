@@ -25,6 +25,7 @@ fn main() {
         let ok = crescent::conv(&sarg("--evals", "out/crescent_smoke/all_evals.csv"), narg("--n", 24), narg("--threads", 24).min(jarambit_monte_carlo::max_threads()), &sarg("--out", "out/crescent_conv"));
         std::process::exit(if ok { 0 } else { 1 });
     }
+    if a.iter().any(|s| s == "crescent-rescore") { let ok = crescent::rescore(&sarg("--genomes", ""), narg("--top", 12), narg("--threads", 24).min(jarambit_monte_carlo::max_threads()), &sarg("--out", "out/rescore_c5")); std::process::exit(if ok { 0 } else { 1 }); }
     if a.iter().any(|s| s == "crescent-refine") { let ok = crescent::refine(&sarg("--genomes", ""), narg("--threads", 24).min(jarambit_monte_carlo::max_threads()), &sarg("--out", "out/refine")); std::process::exit(if ok { 0 } else { 1 }); }
     if a.iter().any(|s| s == "crescent-mprobe") { crescent::mprobe(&sarg("--genome", "docs/crescent/best_genome.csv"), farg("--area", 2.0)); return; }
     if a.iter().any(|s| s == "crescent-evolve") {

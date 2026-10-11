@@ -1,5 +1,5 @@
 use crate::aesthetic::{self, *};
-use crate::c4_ref as c4;
+use crate::c5_ref as c4;
 use crate::genome::*;
 use crate::geom::*;
 use crate::pheno::*;
@@ -17,7 +17,7 @@ fn c4_stock_genome() -> Genome {
 #[test] fn seed_reproduces_c4_silhouette_and_blade() {
     let p = build(&Genome::c4_seed(5.7));
     let h = hausdorff(&densify(&p.outline, 0.25, true), &densify(&c4::EXTERIOR, 0.25, true));
-    eprintln!("seed Hausdorff vs C.4 {h:.3} mm; blade {:?}; grip {:.2}", p.blade, p.grip_len);
+    eprintln!("seed Hausdorff vs C.5 {h:.3} mm; blade {:?}; grip {:.2}", p.blade, p.grip_len);
     assert!(h < 1.5, "seed Hausdorff {h}");
     assert!((p.blade.tip_to_heel - 96.655).abs() < 1.0 && (p.blade.horizontal_reach - 87.005).abs() < 0.5 && (p.blade.arc_in - 101.17).abs() < 1.0, "{:?}", p.blade);
     assert!((p.grip_len - 60.5).abs() < 0.6, "grip {}", p.grip_len);

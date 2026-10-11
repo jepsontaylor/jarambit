@@ -31,7 +31,7 @@ def outline(ax, d, c4=True):
     for h, nm in zip(d['holes'], d['hole_names']):
         h = np.array(h); ax.add_patch(MPoly(h, closed=True, fill=False, ec='#06c' if nm == 'window' else 'k', lw=0.7 if nm == 'window' else 0.5))
     if c4:
-        c = np.array(d['c4']); ax.plot(np.r_[c[:, 0], c[0, 0]], np.r_[c[:, 1], c[0, 1]], ls='--', lw=0.5, color='#7a3cff', label='SWITCHBACK C.4')
+        c = np.array(d['c4']); ax.plot(np.r_[c[:, 0], c[0, 0]], np.r_[c[:, 1], c[0, 1]], ls='--', lw=0.5, color='#7a3cff', label='SWITCHBACK C.5')
     p = np.array(d['pad']); ax.add_patch(MPoly(p, closed=True, fill=False, ec='#d00', lw=0.7))
     ax.set_aspect('equal'); ax.set_xticks([]); ax.set_yticks([])
     lo = o.min(0) - 4; hi = o.max(0) + 4; ax.set_xlim(lo[0], hi[0]); ax.set_ylim(lo[1], hi[1])
@@ -53,7 +53,7 @@ for lab in labels:
     fig.text(0.5, 0.952, "Detailed plate FEM (physics::fine DKT bending + T6 membrane), per-element thickness (taper, grinds, isogrid pockets, ring flute, relief, flutes); through-windows meshed as holes. "
              "Capacities CERTIFIED = min over 0.25 / 0.125 mm² meshes, no bias; robust = min(20 °C at −0.1 mm stock, 100 °C yield)", ha='center', fontsize=8.2)
     bl = min(m['tip_to_heel'], m['horizontal_reach'], max(m['arc_in'], m['arc_sp']))
-    badges = [("AESTHETIC FLOOR (C.4): PASS\nH %.2f mm · EMD %.3f · A %.3f" % (m['hausdorff'], m['emd'], m['aes_score']), '#2a7'),
+    badges = [("AESTHETIC FLOOR (C.5): PASS\nH %.2f mm · EMD %.3f · A %.3f" % (m['hausdorff'], m['emd'], m['aes_score']), '#2a7'),
               ("BLADE ≥ 3.375 in all three: %s\nmin %.3f in" % ('PASS' if bl >= 86.225 else 'FAIL', bl / IN), '#2a7' if bl >= 86.225 else '#c22'),
               ("HARD GATES + MFG: %s" % ('PASS' if not m['rejects'] else 'FAIL\n' + '; '.join(m['rejects'])[:60]), '#2a7' if not m['rejects'] else '#c22'),
               ("FLOORS 180/260/1500 N (certified): %s\nlat %.0f N · ring %.0f N" % ('PASS' if m['floors_ok'] else 'FAIL', m['lat_rob'], m['ring_rob']), '#2a7' if m['floors_ok'] else '#c22'),
