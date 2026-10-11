@@ -1,3 +1,6 @@
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc; // per-thread heaps: glibc malloc spent ~75% in kernel at >8 MC threads
+
 use jarambit_evolve::{nominal, run, Config, Indiv};
 use jarambit_genotype::{limits, Genotype};
 use jarambit_physics::{material, plate_capacities};
@@ -6,7 +9,7 @@ use std::fmt::Write;
 fn main() {
     let a: Vec<String> = std::env::args().collect();
     let arg = |k: &str, d: usize| a.iter().position(|x| x == k).and_then(|i| a.get(i + 1)).and_then(|v| v.parse().ok()).unwrap_or(d);
-    let threads = arg("--threads", 16).min(48); // shared box cap
+    let threads = arg("--threads", 16).min(jarambit_monte_carlo::max_threads()); // per-host cap: JARAMBIT_MAX_THREADS (default 48)
     let out = a.iter().position(|x| x == "--out").and_then(|i| a.get(i + 1)).cloned().unwrap_or("out".into());
     std::fs::create_dir_all(&out).unwrap();
     let mut cfg = Config::new(arg("--pop", 32), arg("--gens", 5), arg("--mc", 256), threads, arg("--seed", 42) as u64);

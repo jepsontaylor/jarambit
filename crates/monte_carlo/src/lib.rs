@@ -102,12 +102,20 @@ fn pct_index(n: usize, num: usize, den: usize) -> usize {
     ((n * num) / den).min(n.saturating_sub(1))
 }
 
-/// Evaluate `n` samples across `threads` (capped at 48). Each sample returns `K` scalars.
+/// Per-host thread cap. Default 48 (shared-box safe). Override with env
+/// `JARAMBIT_MAX_THREADS` (e.g. 64 on xbabe2, 80-96 on idle 128-core xbabe1/xbabe3);
+/// always clamped to the machine's available parallelism.
+pub fn max_threads() -> usize {
+    let hw = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
+    std::env::var("JARAMBIT_MAX_THREADS").ok().and_then(|v| v.parse::<usize>().ok()).unwrap_or(48).clamp(1, hw)
+}
+
+/// Evaluate `n` samples across `threads` (capped at `max_threads()`). Each sample returns `K` scalars.
 /// Column tails are independent. Thread count does not change the sample multiset.
 pub fn run_cols<const K: usize, F>(g: &Genotype, n: usize, threads: usize, seed: u64, f: F) -> [Tails; K]
 where F: Fn(&Genotype, &mut Rng) -> [f64; K] + Sync {
     let n = n.max(1);
-    let threads = threads.max(1).min(48).min(n);
+    let threads = threads.max(1).min(max_threads()).min(n);
     let all: Vec<[f64; K]> = std::thread::scope(|s| {
         let mut handles = Vec::with_capacity(threads);
         let mut start = 0usize;
