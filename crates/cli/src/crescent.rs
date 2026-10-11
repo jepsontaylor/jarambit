@@ -335,7 +335,11 @@ pub fn rescore(csvs: &str, top: usize, threads: usize, out: &str) -> bool {
     let mut gs: Vec<(String, Genome)> = Vec::new();
     for path in csvs.split(',').filter(|s| !s.is_empty()) {
         let tag = path.rsplit('/').next().unwrap_or(path).replace("_genome.csv", "").replace(".csv", "");
-        for (k, mut g) in load_seeds(path, top).into_iter().enumerate() { g.clamp(); if !gs.iter().any(|x| x.1 == g) { gs.push((format!("{tag}#{k}"), g)); } }
+        for (k, mut g) in load_seeds(path, top).into_iter().enumerate() { g.clamp();
+            // C.6 repair: a ring wall too thin for the 1.6 mm rims + 2 mm groove is re-tried at the minimum C.6 wall
+            let wmin = 2.0 * jarambit_crescent::c6_ref::RING_GROOVE_RIM + jarambit_crescent::c6_ref::RING_GROOVE_MIN_W + 0.01;
+            if jarambit_crescent::c6_ref::active() && g.v[RING_WALL] < wmin { let mut h = g.clone(); h.v[RING_WALL] = wmin; h.clamp(); if !gs.iter().any(|x| x.1 == h) { gs.push((format!("{tag}#{k}+c6wall"), h)); } }
+            if !gs.iter().any(|x| x.1 == g) { gs.push((format!("{tag}#{k}"), g)); } }
     }
     gs.push((format!("{}_seed_t5.7", jarambit_crescent::c6_ref::rev()), Genome::c6_seed(5.7)));
     let th = threads.max(1).min(gs.len().max(1));
