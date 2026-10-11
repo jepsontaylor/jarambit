@@ -1,9 +1,14 @@
-//! Surrogate physics (FEM verification = codex lane B). Titanium only.
-//! Strength model: plate/beam section capacities at the governing sections, with serration and
-//! detent notch knock-downs. PRIMARY FITNESS = strength-per-gram (N/g) subject to hiker AND hunter
-//! strength floors (see docs/WHITEPAPER.md §III-B). Strength alone is never the objective.
+//! Strength model for a titanium hiking/utility karambit.
+//! `surrogate` / `evaluate` is the beam section formula used by Monte Carlo.
+//! `plate_capacities` is a coarse Kirchhoff plate (DKT + membrane) on the same
+//! outline: the check against the surrogate, not the 10k-sample loop.
+//! PRIMARY FITNESS = strength-per-gram (N/g) subject to hiker AND hunter floors
+//! (see docs/WHITEPAPER.md §III-B). Strength alone is never the objective.
+//! Floors are firm (Jepson, 2026-10-11): 180 N / 260 N / 1500 N.
 use jarambit_genotype::{limits, TiGrade};
 use jarambit_phenotype::Phenotype;
+mod fem;
+pub use fem::{capacities as plate_capacities, Caps as PlateCaps};
 
 pub struct Material { pub name: &'static str, pub density: f64, pub yield_mpa: f64, pub e_gpa: f64, pub dyield_dt: f64 }
 pub const TI_6AL_4V: Material = Material { name: "Ti-6Al-4V", density: 4.43, yield_mpa: 880.0, e_gpa: 113.8, dyield_dt: -0.0011 };
@@ -38,8 +43,8 @@ pub struct Eval {
 }
 impl Eval { pub fn floors_ok(&self) -> bool { self.hiker_ok && self.hunter_ok && self.ring_ok } }
 
-/// Evaluate at temperature `temp_c` (MC samples -10..100 C). `ser_depth` = (inner, outer) serration depth.
-pub fn evaluate(p: &Phenotype, edge_angle_deg: f64, ser_depth: (f64, f64), m: &Material, temp_c: f64) -> Eval {
+/// Beam/plate section surrogate. Kept so FEM capacities can be checked against it.
+pub fn surrogate(p: &Phenotype, edge_angle_deg: f64, ser_depth: (f64, f64), m: &Material, temp_c: f64) -> Eval {
     let t = p.thickness; let sy = m.yield_at(temp_c);
     let h_eff = (limits::BLADE_H_MM - ser_depth.0 - ser_depth.1).max(1.0);
     let lever_blade = p.blade.tip_to_heel.max(1.0);
@@ -59,6 +64,13 @@ pub fn evaluate(p: &Phenotype, edge_angle_deg: f64, ser_depth: (f64, f64), m: &M
         strength_per_gram: strength / mass.max(1e-6),
         hiker_ok: strength >= floors::HIKER_LATERAL_N, hunter_ok: strength >= floors::HUNTER_LATERAL_N, ring_ok: ring_pull >= floors::RING_PULL_N,
         safety_factor: strength / floors::HUNTER_LATERAL_N * 2.0, sharpness: sharp, serration_score: serr, ergonomics: ergo }
+}
+
+/// Evaluate at temperature `temp_c` (MC samples -10..100 C). `ser_depth` = (inner, outer) serration depth.
+/// This is the surrogate. Plate FEM is `plate_capacities`, run on a sample of designs
+/// and on the reported winner — not on every Monte Carlo draw.
+pub fn evaluate(p: &Phenotype, edge_angle_deg: f64, ser_depth: (f64, f64), m: &Material, temp_c: f64) -> Eval {
+    surrogate(p, edge_angle_deg, ser_depth, m, temp_c)
 }
 
 /// Primary scalar fitness: strength-per-gram if both floors hold, else a graded penalty (< 0).
@@ -82,4 +94,32 @@ mod tests {
         assert!(e2.strength_n > e.strength_n && e2.mass_g > e.mass_g);
     }
     #[test] fn hot_is_weaker() { assert!(TI_6AL_4V.yield_at(100.0) < TI_6AL_4V.yield_at(-10.0)); }
+    #[test] fn floors_stay_at_confirmed_values() {
+        assert_eq!(floors::HIKER_LATERAL_N, 180.0);
+        assert_eq!(floors::HUNTER_LATERAL_N, 260.0);
+        assert_eq!(floors::RING_PULL_N, 1500.0);
+    }
+    #[test] fn fem_tracks_surrogate_order() {
+        let mut r = Rng(11);
+        let mut ratios = Vec::new();
+        let mut missed = 0;
+        for _ in 0..20 {
+            let g = Genotype::random(&mut r);
+            let p = Phenotype::from_genotype(&g);
+            let s = surrogate(&p, g.edge_angle_deg, (g.serr_inner.depth, g.serr_outer.depth), &TI_6AL_4V, 20.0);
+            let Some(c) = plate_capacities(&p, &TI_6AL_4V, 20.0, (g.serr_inner.depth, g.serr_outer.depth)) else {
+                missed += 1;
+                continue;
+            };
+            assert!(c.free_dofs > 0 && c.nodes > 0);
+            let fem_s = c.blade_lat_n.min(c.grip_lat_n);
+            assert!(fem_s.is_finite() && fem_s > 0.0 && c.ring_pull_n > 0.0, "{fem_s}");
+            ratios.push((fem_s / s.strength_n, c.blade_lat_n / s.blade_lat_n, c.grip_lat_n / s.grip_lat_n, c.ring_pull_n / s.ring_pull_n));
+        }
+        assert!(missed <= 4, "plate mesh missed {missed} of 20");
+        let mut lat: Vec<f64> = ratios.iter().map(|r| r.0).collect();
+        lat.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let med = lat[lat.len() / 2];
+        assert!(med > 0.2 && med < 8.0, "median plate/surrogate lateral {med} ratios {ratios:?}");
+    }
 }

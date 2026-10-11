@@ -1,5 +1,6 @@
 use jarambit_evolve::{nominal, run, Config, Indiv};
 use jarambit_genotype::{limits, Genotype};
+use jarambit_physics::{material, plate_capacities};
 use std::fmt::Write;
 
 fn main() {
@@ -32,8 +33,10 @@ fn main() {
     });
     let (p, rt, e) = nominal(&best.g);
     let hf = jarambit_redteam::holder_forces(best.g.holder.holder_wall, best.g.holder.detent_depth);
-    println!("final p05 spg {:.3} N/g  cut {:.3}  redteam={:?}  floors_ok={}  mass={:.1}g  S={:.0}N  insert/draw {:.1}/{:.1} N  blade tip-heel/reach/arc = {:.1}/{:.1}/{:.1} mm (limit {:.3})",
-        best.fit, best.cut_p05, rt, e.floors_ok(), e.mass_g, e.strength_n, hf.insertion_n, hf.draw_n, p.blade.tip_to_heel, p.blade.horizontal_reach, p.blade.sharpened_arc, limits::BLADE_LIMIT_MM);
+    let plate = plate_capacities(&p, material(best.g.material), 20.0, (best.g.serr_inner.depth, best.g.serr_outer.depth));
+    let plate_s = plate.as_ref().map(|c| c.blade_lat_n.min(c.grip_lat_n)).unwrap_or(f64::NAN);
+    println!("final p05 spg {:.3} N/g  cut {:.3}  redteam={:?}  floors_ok={}  mass={:.1}g  S={:.0}N  plate={:.0}N  insert/draw {:.1}/{:.1} N  blade tip-heel/reach/arc = {:.1}/{:.1}/{:.1} mm (limit {:.3})",
+        best.fit, best.cut_p05, rt, e.floors_ok(), e.mass_g, e.strength_n, plate_s, hf.insertion_n, hf.draw_n, p.blade.tip_to_heel, p.blade.horizontal_reach, p.blade.sharpened_arc, limits::BLADE_LIMIT_MM);
     let w = |f: &str, s: String| std::fs::write(format!("{out}/{f}"), s).unwrap();
     w("history.csv", csv); w("quarantine.csv", qcsv);
     let mut pc = format!("strength_n,mass_g,spg,p05_spg,{}\n", Genotype::CSV_HEADER);
@@ -54,8 +57,13 @@ fn main() {
         best.g.material.name(), p.thickness, e.mass_g, e.strength_n, e.blade_lat_n, e.grip_lat_n, e.ring_pull_n, e.strength_per_gram, best.fit, e.hiker_ok, e.hunter_ok, e.ring_ok);
     let _ = writeln!(rep, "blade (limit {:.3} mm, guard {:.1}): tip_to_heel {:.2} | horizontal_reach {:.2} | sharpened_arc {:.2} (outer {:.2}, inner {:.2}) | sweep {:.1} deg",
         limits::BLADE_LIMIT_MM, limits::BLADE_GUARD_MM, p.blade.tip_to_heel, p.blade.horizontal_reach, p.blade.sharpened_arc, p.blade.sharpened_arc_outer, p.blade.sharpened_arc_inner, p.blade.sweep_deg);
-    let _ = writeln!(rep, "grip (ring-neck to guard): {:.2} mm\nring ID: {:.2} mm\nholder: ricasso land {:.1} mm, shoulder {:.2} mm/side, detent {:.2} mm @ {:.0}% grip, friction {:.1} mm, drain {:.1} mm, shell {:.2} mm\nholder forces (proxy): insertion {:.1} N, draw {:.1} N\nMC p05 cut margin {:.3}  p05 sharpness {:.3}\nsearch: NSGA-II, {} island(s), {} samples/candidate",
+    let _ = writeln!(rep, "grip (ring-neck to guard): {:.2} mm\nring ID: {:.2} mm\nholder: ricasso land {:.1} mm, shoulder {:.2} mm/side, detent {:.2} mm @ {:.0}% grip, friction {:.1} mm, drain {:.1} mm, shell {:.2} mm\nholder forces (proxy): insertion {:.1} N, draw {:.1} N\nMC p05 cut margin {:.3}  p05 sharpness {:.3}\nsearch: NSGA-II, {} island(s), {} samples/candidate\nfitness model: beam surrogate (Monte Carlo). Plate check is one Kirchhoff solve at 20 C, not inside the sample loop.",
         p.grip_len, p.ring_id, best.g.holder.ricasso_len, best.g.holder.shoulder_w, best.g.holder.detent_depth, best.g.holder.detent_pos * 100.0, best.g.holder.friction_len, best.g.holder.drain_d, best.g.holder.holder_wall,
         hf.insertion_n, hf.draw_n, best.cut_p05, best.sharp_p05, cfg.islands, cfg.mc_samples);
+    match &plate {
+        Some(c) => { let _ = writeln!(rep, "plate FEM: lateral {:.1} N (blade {:.1} / grip {:.1}), in-plane {:.0} N, ring pull {:.0} N, {} nodes / {} free dofs",
+            c.blade_lat_n.min(c.grip_lat_n), c.blade_lat_n, c.grip_lat_n, c.inplane_n, c.ring_pull_n, c.nodes, c.free_dofs); }
+        None => { let _ = writeln!(rep, "plate FEM: mesh did not solve"); }
+    }
     w("best_report.md", rep);
 }
