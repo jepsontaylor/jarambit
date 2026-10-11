@@ -47,6 +47,22 @@ pub enum Reject {
     UnsafeGeometry(String),
 }
 
+/// Minimum distance (mm) from the upper ring-hole samples to the outer outline.
+/// That is the grip-ring neck ligament, the 100 °C hot spot on the refined plate.
+/// The gate already requires every hole sample, neck included, to stay at least 3 mm
+/// inside the outline. A neck flare or fillet must not eat this ligament.
+pub fn neck_ligament_mm(p: &Phenotype) -> f64 {
+    let y_cut = p.ring_center.1;
+    let mut best = f64::MAX;
+    let mut n = 0usize;
+    for &q in &p.ring_hole {
+        if q.1 < y_cut { continue; }
+        n += 1;
+        best = best.min(dist_to_poly(q, &p.outline));
+    }
+    if n == 0 { 0.0 } else { best }
+}
+
 /// True when every reject is a short-blade quarantine and there is at least one.
 pub fn only_blade_short(errs: &[Reject]) -> bool {
     !errs.is_empty() && errs.iter().all(|e| matches!(e, Reject::BladeTooShort { .. }))
@@ -366,6 +382,52 @@ mod tests {
         stiff.thickness = 2.5; // keep the stack check from being the only failure mode
         let e = check(&stiff, &Phenotype::from_genotype(&stiff)).unwrap_err();
         assert!(e.iter().any(|x| matches!(x, Reject::Holder(s) if s.contains("insertion force") || s.contains("draw force"))), "{e:?}");
+    }
+    /// Grip-ring neck. The reinforcement gene is not in this revision; these tests lock the
+    /// ligament it has to preserve, and they reject a pinched neck and a neck that breaks the solid.
+    #[test] fn repaired_designs_keep_grip_ring_neck_ligament() {
+        let mut r = Rng(61);
+        for _ in 0..200 {
+            let g = Genotype::random(&mut r);
+            let p = Phenotype::from_genotype(&g);
+            let w = neck_ligament_mm(&p);
+            assert!(w >= 3.0 - 1e-6, "neck ligament {w} mm");
+        }
+    }
+    #[test] fn pinched_grip_ring_neck_is_rejected() {
+        let g = Genotype::random(&mut Rng(62));
+        let mut p = Phenotype::from_genotype(&g);
+        let top = p.ring_hole.iter().copied().max_by(|a, b| a.1.partial_cmp(&b.1).unwrap()).unwrap();
+        let i = p.outline.iter().enumerate().min_by(|(_, a), (_, b)| {
+            let da = (a.0 - top.0).hypot(a.1 - top.1);
+            let db = (b.0 - top.0).hypot(b.1 - top.1);
+            da.partial_cmp(&db).unwrap()
+        }).unwrap().0;
+        let c = p.ring_center;
+        let hole_r = p.ring_id / 2.0;
+        let (vx, vy) = (p.outline[i].0 - c.0, p.outline[i].1 - c.1);
+        let len = vx.hypot(vy).max(1e-9);
+        p.outline[i] = (c.0 + vx / len * (hole_r + 0.4), c.1 + vy / len * (hole_r + 0.4));
+        assert!(neck_ligament_mm(&p) < 3.0, "pinch did not reach the hole");
+        assert!(check(&g, &p).unwrap_err().contains(&Reject::Disconnected));
+    }
+    #[test] fn outward_neck_flare_stays_one_solid() {
+        // Stand-in for the neck-flare gene: push the flank-ring corners outward by 1.5 mm.
+        // The hole stays inside, the ligament does not shrink, and the outline stays one solid.
+        let g = Genotype::random(&mut Rng(63));
+        let mut p = Phenotype::from_genotype(&g);
+        let before = neck_ligament_mm(&p);
+        let c = p.ring_center;
+        let y_top = c.1 + p.ring_outer_r;
+        for q in p.outline.iter_mut() {
+            if (q.1 - y_top).abs() < 2.5 && (q.0 - c.0).abs() > p.ring_id / 2.0 {
+                q.0 += if q.0 < c.0 { -1.5 } else { 1.5 };
+            }
+        }
+        assert!(neck_ligament_mm(&p) + 1e-6 >= before, "{} -> {}", before, neck_ligament_mm(&p));
+        let e = check(&g, &p).err().into_iter().flatten().collect::<Vec<_>>();
+        assert!(!e.iter().any(|x| matches!(x, Reject::Disconnected)), "{e:?}");
+        assert!(!e.iter().any(|x| matches!(x, Reject::NoFingerRing)), "{e:?}");
     }
     #[test] fn in_spec_holder_forces_sit_in_window() {
         let mut r = Rng(43);
