@@ -12,6 +12,8 @@ IN2MM = 25.4; LIMIT = 3.375 * IN2MM
 FLOORS = dict(hiker=180.0, hunter=260.0, ring=1500.0)
 TWIST_NMM = 180.0 * 7.0          # hiker load x half blade height (proxy, not a floor)
 TEMPS = (-10.0, 20.0, 100.0)
+# 'maxy' = legacy tip pick (waves 1-4); 'far' = farthest blade node from ricasso (raked blades).
+TIP_MODE = os.environ.get('WAVE_TIP', 'maxy')
 
 def num(pat, txt, default=float('nan')):
     m = re.search(pat, txt); return float(m.group(1)) if m else default
@@ -50,7 +52,14 @@ def analyse(d):
     si, so, ok = serr_depths(d, r['mass']); r['serr'] = (si, so, ok)
     he = max(pf.BLADE_H - si - so, 1.0); lat_k = pf.BLADE_H / he; in_k = lat_k ** 2
     blade = cen[:, 1] >= -0.5
-    tip = np.argmax(np.where(on_outer, xy[:, 1], -1e9)); tp = xy[tip]
+    ric0 = (xy[:, 1] <= 0.8) & (xy[:, 1] >= -r['ricasso'] - 0.8)
+    if TIP_MODE == 'far':
+        # raked blades (blade-angle knob, 152ad95): the tip is the outer-boundary blade node farthest
+        # from the ricasso, not the highest node (which sits mid-arc once the blade is raked).
+        hc0 = xy[ric0].mean(0)
+        tip = np.argmax(np.where(on_outer & (xy[:, 1] > -0.5), np.hypot(*(xy - hc0).T), -1e9)); tp = xy[tip]
+    else:
+        tip = np.argmax(np.where(on_outer, xy[:, 1], -1e9)); tp = xy[tip]
     near_tip = np.hypot(*(xy - tp).T) <= 2.0
     near_tip &= on_outer | (np.hypot(*(xy - tp).T) <= 1.0)
     ric = (xy[:, 1] <= 0.8) & (xy[:, 1] >= -r['ricasso'] - 0.8)

@@ -969,5 +969,52 @@
   "wave": "0",
   "label": "smoke (pre-constraint scaffold)",
   "error": "no best.svg / best_report.md written by that binary; outline not recoverable \u2014 skipped"
+ },
+ {
+  "wave": "5",
+  "label": "legal-blade smoke (smoke_legal_blade, first legal winner, post blade-angle knob)",
+  "src": "out/smoke_legal_blade",
+  "fitness": 7.045,
+  "fit_kind": "robust plate N/g (FEM-in-loop)",
+  "mass_g": 48.92,
+  "blade_in": [
+   3.526,
+   3.496,
+   3.964
+  ],
+  "blade_ok": true,
+  "redteam_ok": true,
+  "plate_floors_ok": false,
+  "calibrated": false,
+  "caps": {
+   "-10.0": {
+    "lateral": 171.0,
+    "twist": 17159.8,
+    "pry": 573.5,
+    "ring": 6709.8
+   },
+   "20.0": {
+    "lateral": 165.6,
+    "twist": 16611.6,
+    "pry": 555.2,
+    "ring": 6495.4
+   },
+   "100.0": {
+    "lateral": 151.0,
+    "twist": 15149.8,
+    "pry": 506.4,
+    "ring": 5923.8
+   }
+  },
+  "min_sf_100C": 0.581,
+  "n_tris": 6657,
+  "cw_fixed": 0,
+  "files": [
+   "out/mh1/heatmaps/wave5_FEM_metrics.png",
+   "out/mh1/heatmaps/wave5_FEM_metrics.pdf",
+   "out/mh1/heatmaps/wave5_best_SPG7p04_wgt48p9g_loadcases.png",
+   "out/mh1/heatmaps/wave5_best_SPG7p04_wgt48p9g_loadcases.pdf"
+  ],
+  "note": "post-fix (152ad95 blade-angle knob, b46c774 FEM caps); NOT PRE-BLADE-FIX"
  }
 ]
