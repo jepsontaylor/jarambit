@@ -5,9 +5,16 @@ use jarambit_evolve::{nominal, run, Config, Indiv};
 use jarambit_genotype::{limits, Genotype};
 use jarambit_physics::{material, plate_capacities};
 use std::fmt::Write;
+mod fem_smoke;
 
 fn main() {
     let a: Vec<String> = std::env::args().collect();
+    if a.iter().any(|s| s == "fem-smoke") {
+        let out = a.iter().position(|x| x == "--out").and_then(|i| a.get(i + 1)).cloned().unwrap_or_else(|| "out/fem_smoke".into());
+        let mh1 = a.iter().position(|x| x == "--mh1").and_then(|i| a.get(i + 1)).cloned().unwrap_or_else(|| "out/mh1".into());
+        let ok = fem_smoke::run(&out, &mh1);
+        std::process::exit(if ok { 0 } else { 1 });
+    }
     let arg = |k: &str, d: usize| a.iter().position(|x| x == k).and_then(|i| a.get(i + 1)).and_then(|v| v.parse().ok()).unwrap_or(d);
     let threads = arg("--threads", 16).min(jarambit_monte_carlo::max_threads()); // per-host cap: JARAMBIT_MAX_THREADS (default 48)
     let out = a.iter().position(|x| x == "--out").and_then(|i| a.get(i + 1)).cloned().unwrap_or("out".into());

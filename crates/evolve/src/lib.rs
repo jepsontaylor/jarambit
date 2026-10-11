@@ -342,6 +342,15 @@ fn load_ckpt(path: &str) -> Result<Loaded, String> {
     Ok(Loaded { next_gen, islands, archive })
 }
 
+/// Highest-fitness genotype in the saved island populations.
+pub fn checkpoint_best(path: &str) -> Result<Genotype, String> {
+    let loaded = load_ckpt(path)?;
+    loaded.islands.iter().flat_map(|isl| isl.pop.iter())
+        .max_by(|a, b| a.fit.partial_cmp(&b.fit).unwrap_or(std::cmp::Ordering::Equal))
+        .map(|i| i.g.clone())
+        .ok_or_else(|| "empty checkpoint".into())
+}
+
 pub fn run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> (Indiv, Vec<Indiv>) {
     let n_islands = cfg.islands.max(1);
     let pop_n = cfg.pop.max(2);
@@ -449,6 +458,8 @@ mod tests {
             assert!(rt.is_ok(), "{rt:?} teeth {}/{}", p.inner_teeth, p.outer_teeth);
         }
         let loaded = load_ckpt(path).unwrap();
+        let best_g = checkpoint_best(path).unwrap();
+        assert_eq!(best_g.to_vec().len(), 20);
         assert_eq!(loaded.next_gen, 2);
         assert_eq!(loaded.islands.len(), 2);
         assert!(!loaded.islands[0].pop.is_empty());
