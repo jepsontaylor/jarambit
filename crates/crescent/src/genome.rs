@@ -172,7 +172,9 @@ impl Genome {
         h.extend(NAMES.iter().map(|s| s.to_string())); h.push("material".into()); h.join(",")
     }
     pub fn csv_row(&self) -> String {
-        let mut s: Vec<String> = self.v.iter().map(|x| format!("{x:.4}")).collect(); s.push(self.mat.name().into()); s.join(",")
+        // D1: full round-trip precision (Rust shortest repr). {:.4} made on-disk genomes differ from the certified
+        // in-memory design (wave13_c01 re-certifies 12 % lower from its CSV).
+        let mut s: Vec<String> = self.v.iter().map(|x| format!("{x}")).collect(); s.push(self.mat.name().into()); s.join(",")
     }
     pub fn from_csv(fields: &[&str]) -> Option<Self> {
         // material column = first field naming a Ti grade; genes before it. Older layouts (90 genes = wave6,

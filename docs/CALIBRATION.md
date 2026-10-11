@@ -139,3 +139,14 @@ cargo build --release
 ./target/release/jarambit diag --ckpt out/cal1/s12/checkpoint.txt  # verify-mesh capacity + peak of a checkpoint best
 JARAMBIT_T_MAX=6.0 ./target/release/jarambit --fine --seed-ref --seed-ckpt out/cal1/s12/checkpoint.txt --seed-thick 5.6 --pop 48 --gens 40 --mc 1000 --islands 2 --threads 12 --seed 24 --out out/cal_t6/s24
 ```
+
+## 7. D1 review (2026-10-11): yield allowable, joint robustness, chord torsion
+
+- **Yield allowable (screening):** Ti-6Al-4V `yield_mpa` 880 -> **828 MPa provisional** (TIMET Gr5 annealed MINIMUM 0.2 % yield, 120 ksi). Knock-down 828/880 = **0.941** on every first-yield capacity. Do **not** round to 830 for a marginal PASS. The typical value is kept as `TI64_YIELD_TYPICAL_MPA` for the record only. To be replaced by the mill cert (MTR) value of the actual plate lot.
+- **Joint thin+hot realisation:** the robust capacity is now `F20 x ((t-0.1)/t)^p x yield(100 C)/yield(20 C)` (p = 2 for bending/torsion, 1 for the ring membrane). This is the product, replacing the pre-D1 `min(thin, hot)`. At t = 5.8 the joint factor is 0.851, against a pre-D1 min of 0.912. Combined with 828 MPa, robust lateral capacities drop about 12.6 % vs the pre-D1 numbers.
+- **Chord torsion:** the crescent "twist" load was a bending couple (slope-dof load along the chord d). It is fixed to n = (-d_y, d_x). St-Venant 3D thick-section factor (exact series):
+  - 1.067 at b/t 10, 1.183 at 4, 1.247 at 3 (strip benchmark, plate = thin-strip theory at 1.000);
+  - it is applied at the peak section.
+- **Proposed floor:** 1.82 N*m (`fem::TWIST_FLOOR_NMM`), advisory until the owner fixes the fixture.
+- **Genome CSV precision:** `{:.4}` -> round-trip. The 4-decimal wave13_c01 genome re-certifies at 258 N vs a recorded 292 N.
+- Re-screen tool: `jarambit crescent-d1`. Results: `docs/d1/`.

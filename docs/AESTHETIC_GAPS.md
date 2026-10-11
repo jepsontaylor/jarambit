@@ -113,3 +113,21 @@ Committed copies: `docs/crescent/` (report, convergence, archive, history, genom
   gate; novelty is scored only inside that envelope. Lightest C.6-certified design wave13_c01 74.37 g (A 0.763, novelty 0.173).
   Remaining gap: through-lattice designs (wave 14) trade aesthetic score (A 0.69–0.76) for SPG; owner review of perforation
   visual language is open.
+
+## 8. D1 review gaps (2026-10-11): status
+
+| item | status | where |
+|---|---|---|
+| chord torsion vs bending couple | FIXED + unit tests (strip benchmark, St-Venant 3D) | crates/crescent/src/fem.rs, tests.rs |
+| 1.82 N*m twist floor | measured; tip-patch fixture FAILS all designs (SF 0.45-0.56, peak on the ground tip); body >15 mm from tip SF 2.9-3.6. OWNER decides the fixture | docs/d1/D1_P0_STATUS.md |
+| yield 828 MPa provisional | DONE | crates/physics/src/lib.rs, CALIBRATION §7 |
+| joint thin+hot | DONE (product) | fem::joint_k |
+| analytic grind export | grind-law JSON REAL (`export::grind_law_json`: ruled surface C(s)+u(N,tan theta), land line); analytic STEP B-rep is a STUB, ETA ~1 working day. **Faceted STEP is not a machining release.** | crates/crescent/src/export.rs |
+| failure sequence (hand onset >= 1.2 x blade onset) | proxy REAL (`Fem::seq_ratio`); all evolved designs FAIL (0.83-0.97, lateral) | fem.rs |
+| tip exclusion submodel | STUB (the peak sits at the 4 mm exclusion edge) | — |
+| ring peel | STUB | — |
+| fatigue | STUB | — |
+| pry | real T6 capacity, no floor; feeds the seq proxy | fem.rs |
+| continuous-rail architecture / thickness field | PLAN only (D1_P0_STATUS answer d) | — |
+| holder orientation | OPEN | — |
+| promotion | BLOCKED until Jepson's aesthetic sign-off | — |

@@ -226,7 +226,7 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     for r in light.iter().take(20) { order.push(("light", r)); }
     for r in novel.iter().take(10) { order.push(("novel", r)); }
     let mut picked: Vec<(String, qd::Rec, fem::Fem, fem::Fields)> = Vec::new(); let (mut n_try, mut n_fail) = (0usize, 0usize);
-    let mut seen: Vec<Genome> = Vec::new(); let mut cert_rows = String::from("kind,id,gen,mass_g,t,search_lat_rob,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,twist_sf_proxy,floors_ok_cert,spg_cert,aes,novelty,relief_frac,n_win,n_perf,strict_lat_rob_0p0625,strict_ok\n");
+    let mut seen: Vec<Genome> = Vec::new(); let mut cert_rows = String::from("kind,id,gen,mass_g,t,search_lat_rob,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,twist_sf_1p82_joint3d,floors_ok_cert,spg_cert,aes,novelty,relief_frac,n_win,n_perf,strict_lat_rob_0p0625,strict_ok\n");
     let mut queue: Vec<(&str, &qd::Rec)> = Vec::new();
     for (kind, r) in order { if queue.len() >= (2 * n_cert).max(12) { break; } if seen.contains(&r.g) || !r.legal() { continue; } seen.push(r.g.clone()); queue.push((kind, r)); }
     // certify the queue in parallel (each certification is single-threaded: 0.25 + 0.125 mm^2 solves)
@@ -242,10 +242,10 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     for ((kind, r), (c, f16)) in queue.into_iter().zip(certs) {
         n_try += 1;
         let Some((cf, fl)) = c else { n_fail += 1; continue; };
-        let (s_lat, s_ok) = match &f16 { Some(f) => { let m = jarambit_physics::material(r.g.mat); let rob = (f.lat20 * ((r.t - 0.1) / r.t).powi(2)).min(f.lat20 * m.yield_at(100.0) / m.yield_at(20.0)).min(cf.lat_rob);
+        let (s_lat, s_ok) = match &f16 { Some(f) => { let m = jarambit_physics::material(r.g.mat); let rob = (f.lat20 * fem::joint_k(m, r.t, 2)).min(cf.lat_rob);
             (rob, rob >= jarambit_physics::floors::HUNTER_LATERAL_N) } None => (f64::NAN, !strict) };
         if s_ok && cf.floors_ok { strict_ok_ids.push(r.id); }
-        let tw = cf.twist20_nmm * jarambit_physics::material(r.g.mat).yield_at(100.0) / jarambit_physics::material(r.g.mat).yield_at(20.0) / fem::TWIST_DESIGN_NMM;
+        let tw = cf.twist_sf;
         let _ = writeln!(cert_rows, "{kind},{},{},{:.2},{:.1},{:.1},{:.1},{:.1},{:.3},{:.3},{:.3},{:.3},{},{:.4},{:.4},{:.4},{:.4},{},{},{:.1},{}", r.id, r.gen, r.mass_g, r.t, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob, cf.sf_hiker, cf.sf_hunter, cf.sf_ring, tw, cf.floors_ok, cf.lat_rob / r.mass_g, r.aes.score, r.novelty, qd::relief_frac(r), r.n_win, r.n_perf, s_lat, s_ok && cf.floors_ok);
         if !cf.floors_ok { n_fail += 1; let _ = writeln!(rep, "- certification FAIL id {} ({kind}, {:.1} g): search lat_rob {:.0} -> certified {:.0} N, ring {:.0}", r.id, r.mass_g, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob); continue; }
         if picked.len() >= n_cert { continue; }
@@ -259,9 +259,9 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     let mut plates = Vec::new();
     for (k, (kind, r, cf, fl)) in picked.into_iter().enumerate() {
         let label = format!("{wave}_c{:02}_{kind}", k + 1);
-        let tw = cf.twist20_nmm * jarambit_physics::material(r.g.mat).yield_at(100.0) / jarambit_physics::material(r.g.mat).yield_at(20.0) / fem::TWIST_DESIGN_NMM;
+        let tw = cf.twist_sf;
         if let Some(j) = plate_json(&r, &label, Some((cf, fl))) { std::fs::write(format!("{out}/{label}.json"), &j).unwrap(); plates.push(label.clone()); }
-        let _ = writeln!(rep, "- {label} (strict 0.0625 mm^2 check: {}; twist SF proxy {tw:.2}, advisory; n_win {}, n_perf {}, relief_frac {:.4}): {}", if strict_ok_ids.contains(&r.id) { "PASS" } else if strict { "FAIL" } else { "not run" }, r.n_win, r.n_perf, qd::relief_frac(&r), rec_metrics(&r));
+        let _ = writeln!(rep, "- {label} (strict 0.0625 mm^2 check: {}; chord-torsion SF vs 1.82 N*m joint+3D {tw:.2}, advisory; n_win {}, n_perf {}, relief_frac {:.4}): {}", if strict_ok_ids.contains(&r.id) { "PASS" } else if strict { "FAIL" } else { "not run" }, r.n_win, r.n_perf, qd::relief_frac(&r), rec_metrics(&r));
         let p = pheno::build(&r.g);
         if let Some(s) = export::solid(&p, 1.0) {
             let (once, more, dmax) = export::census(&s.tris); let v = export::volume(&s);
@@ -319,8 +319,8 @@ pub fn refine(csvs: &str, threads: usize, out: &str) -> bool {
         let f: Vec<Option<&fem::Fem>> = (0..LV.len()).map(|l| res.iter().find(|x| x.0 == (i, l)).and_then(|x| x.1.as_ref())).collect();
         if f.iter().any(|x| x.is_none()) { let _ = writeln!(md, "| {k} | mesh failed |||||||||||"); continue; }
         let f: Vec<&fem::Fem> = f.into_iter().map(|x| x.unwrap()).collect(); let p = pheno::build(g);
-        let m = jarambit_physics::material(g.mat); let hot = m.yield_at(100.0) / m.yield_at(20.0); let tk = ((p.t - 0.1) / p.t).powi(2);
-        let rob = (f[2].lat20 * tk).min(f[2].lat20 * hot);
+        let m = jarambit_physics::material(g.mat);
+        let rob = f[2].lat20 * fem::joint_k(m, p.t, 2);
         let _ = writeln!(md, "| {k} | {:.2} | {:.1} | {:.1} | {:.1} | {:.3} | {:.0} | {:.0} | {:.0} | ({:.1}, {:.1}) | {:.1} | {:.3} |", p.mass_g, f[0].lat20, f[1].lat20, f[2].lat20, f[2].lat20 / f[0].lat20.min(f[1].lat20), f[0].ring20, f[1].ring20, f[2].ring20, f[2].lat_at.0, f[2].lat_at.1, rob, rob / 260.0);
     }
     println!("{md}"); std::fs::create_dir_all(out).ok(); std::fs::write(format!("{out}/refine.md"), md).is_ok()
@@ -358,8 +358,8 @@ pub fn rescore(csvs: &str, top: usize, threads: usize, out: &str) -> bool {
     let mut pass_rows = format!("{}\n", Genome::csv_header()); let mut n_pass = 0;
     for (i, r, c, s16) in &res {
         let name = &gs[*i].0; let gates_ok = r.rejects.is_empty();
-        let m = jarambit_physics::material(r.g.mat); let hot = m.yield_at(100.0) / m.yield_at(20.0); let tk = ((r.t - 0.1) / r.t).powi(2);
-        let s_rob = s16.as_ref().map_or(f64::NAN, |f| (f.lat20 * tk).min(f.lat20 * hot));
+        let m = jarambit_physics::material(r.g.mat);
+        let s_rob = s16.as_ref().map_or(f64::NAN, |f| f.lat20 * fem::joint_k(m, r.t, 2));
         let cfl = c.as_ref().map_or(false, |f| f.floors_ok); let s_ok = s_rob >= jarambit_physics::floors::HUNTER_LATERAL_N;
         let all = r.aes.pass && gates_ok && cfl && r.mass_g < 80.0;
         let mut fails: Vec<String> = r.aes.fails.clone(); fails.extend(r.rejects.iter().cloned());
@@ -373,4 +373,58 @@ pub fn rescore(csvs: &str, top: usize, threads: usize, out: &str) -> bool {
     std::fs::create_dir_all(out).ok();
     println!("{md}");
     std::fs::write(format!("{out}/rescore.csv"), csv).is_ok() && std::fs::write(format!("{out}/rescore.md"), md).is_ok() && std::fs::write(format!("{out}/{}_pass_genomes.csv", rev_tag.replace('.', "").to_lowercase()), pass_rows).is_ok()
+}
+
+
+/// D1 review re-screen: every genome (one per CSV row 1) is rebuilt with the CURRENT phenotype (C.6 anchor),
+/// aesthetic + gates, certification min(0.25, 0.125 mm^2) and strict 0.0625 mm^2, all at the 828 MPa screening
+/// yield with the JOINT thin+hot factor; chord-torsion fixture vs the 1.82 N*m floor (plate + St-Venant 3D);
+/// the pre-D1 numbers (880 MPa, min(thin, hot), bending-couple "twist") are reported alongside for the record.
+/// `name=path` entries label rows; `ref:` prefix marks thin-stock REFERENCE rows (never ranked with evolved parts).
+pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
+    let mut gs: Vec<(String, Genome)> = Vec::new();
+    for ent in csvs.split(',').filter(|s| !s.is_empty()) {
+        let (name, path) = ent.split_once('=').unwrap_or((ent, ent));
+        if path == "C6_SEED_T5.7" { gs.push((name.to_string(), Genome::c6_seed(5.7))); continue; }
+        if path == "C6_STOCK_3P175" { // thin-stock REFERENCE as built (bypasses clamp, like tests::c4_stock_genome)
+            let mut g = Genome::c6_seed(5.7); g.v[T] = 3.175; g.v[T_TIP] = 2.6; g.v[TAPER_X0] = 130.0; g.v[SPINE_OFF] = 0.0;
+            g.v[EA_IN] = ((3.175 - 0.5) / 2.0 / 6.0f64).atan().to_degrees(); g.v[EA_SP] = ((3.175 - 0.5) / 2.0 / 5.0f64).atan().to_degrees();
+            gs.push((name.to_string(), g)); continue; }
+        if let Some(g) = load_seeds(path, 1).into_iter().next() { gs.push((name.to_string(), g)); } else { eprintln!("d1: no genome in {path}"); }
+    }
+    let th = threads.max(1).min(gs.len().max(1));
+    let res: Vec<(usize, qd::Rec, Option<fem::Fem>, Option<fem::Fem>)> = std::thread::scope(|s| {
+        let hs: Vec<_> = (0..th).map(|t| { let gs = &gs; s.spawn(move || gs.iter().enumerate().filter(|(i, _)| i % th == t).map(|(i, (_, g))| {
+            let r = qd::evaluate(g, i, 0, 2.0); let p = pheno::build(g);
+            if std::env::var("D1_DUMP").is_ok() { eprintln!("D1_DUMP {}: holes {:?} outline_n {} mass {:.4}", gs[i].0, p.holes.iter().zip(&p.hole_names).map(|(h, n)| (*n, (h.iter().map(|q| q.0).fold(f64::MAX, f64::min) * 100.0).round() / 100.0, (h.iter().map(|q| q.1).fold(f64::MAX, f64::min) * 100.0).round() / 100.0)).collect::<Vec<_>>(), p.outline.len(), p.mass_g); }
+            std::fs::create_dir_all(out).ok(); let _ = std::fs::write(format!("{out}/{}_grind_law.json", gs[i].0.replace(['(', ')', '.'], "_")), export::grind_law_json(&p, g, &gs[i].0));
+            let c = fem::certify(&p).map(|x| x.0); if let Some(c) = &c { eprintln!("D1 {}: lat_at {:?} lat20 {:.1} twist_at {:?}", gs[i].0, c.lat_at, c.lat20, c.twist_at); }
+            (i, r, c, fem::run_unbiased(&p, 0.0625)) }).collect::<Vec<_>>()) }).collect();
+        let mut v: Vec<_> = hs.into_iter().flat_map(|h| h.join().unwrap()).collect(); v.sort_by_key(|x| x.0); v
+    });
+    let fl = jarambit_physics::floors::HIKER_LATERAL_N; let fh = jarambit_physics::floors::HUNTER_LATERAL_N; let fr = jarambit_physics::floors::RING_PULL_N;
+    let k880 = jarambit_physics::TI64_YIELD_TYPICAL_MPA / jarambit_physics::TI_6AL_4V.yield_mpa;
+    let mut csv = String::from("design,mass_g,t,aes_pass,gates_ok,lat20_828,joint_lat_cert,sf_hiker,sf_hunter,joint_ring_cert,sf_ring,strict_joint_lat_0p0625,strict_sf_hunter,pass_828_joint,old_lat_rob_880_min,old_sf_hunter_880_min,twist20_plate_nmm,twist_kc_3d,twist_b_mm,twist_t_mm,twist_joint3d_nmm,twist_sf_1p82,twist_pass,twist_peak_tipdist_mm,twist_body15_joint_nmm,twist_hand_joint_nmm,old_couple20_nmm,old_twist_sf_proxy,seq_ratio,seq_case,seq_pass\n");
+    let mut md = String::from("| design | mass g | t mm | A pass | gates | joint lat N (cert) | SF hiker | SF hunter | joint ring N | SF ring | strict 0.0625 joint lat N (SF hunter) | PASS @828 joint | pre-D1 lat_rob 880/min N (SF hunter) | chord-torsion plate N*mm @20C | 3D k (b/t) | joint+3D N*mm | SF vs 1.82 N*m | twist | peak dist from tip mm | body (>15 mm from tip) joint N*mm | hand-side joint N*mm | pre-D1 couple N*mm (old SF) | seq ratio (case) |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
+    for (i, r, c, s16) in &res {
+        let name = &gs[*i].0; let gates_ok = r.rejects.is_empty(); let m = jarambit_physics::material(r.g.mat);
+        let Some(c) = c else { let _ = writeln!(md, "| {name} | {:.2} | {:.1} | {} | {} | certify failed |", r.mass_g, r.t, r.aes.pass, gates_ok); continue; };
+        let s_j = s16.as_ref().map_or(f64::NAN, |f| f.lat20 * fem::joint_k(m, r.t, 2));
+        let pass = c.lat_rob >= fl && c.lat_rob >= fh && c.ring_rob >= fr && s_j >= fh;
+        let hot = m.yield_at(100.0) / m.yield_at(20.0); let tk = ((r.t - 0.1) / r.t).powi(2);
+        let old = c.lat20 * k880 * tk.min(hot); let old_tw = c.couple20_nmm * k880 * hot / fem::TWIST_DESIGN_NMM;
+        let tw_pass = c.twist_sf >= 1.0; let seq_pass = c.seq_ratio >= fem::SEQ_TARGET;
+        let _ = writeln!(csv, "{name},{:.2},{:.1},{},{},{:.1},{:.1},{:.3},{:.3},{:.0},{:.3},{:.1},{:.3},{},{:.1},{:.3},{:.0},{:.3},{:.2},{:.2},{:.0},{:.3},{},{:.1},{:.0},{:.0},{:.0},{:.3},{:.3},{},{}",
+            r.mass_g, r.t, r.aes.pass, gates_ok, c.lat20, c.lat_rob, c.sf_hiker, c.sf_hunter, c.ring_rob, c.sf_ring, s_j, s_j / fh, pass, old, old / fh,
+            c.twist20_nmm, c.twist_kc, c.twist_b_mm, c.twist_t_mm, c.twist_joint_nmm, c.twist_sf, tw_pass, c.twist_tipdist, c.twist_body_joint_nmm, c.twist_hand_joint_nmm, c.couple20_nmm, old_tw, c.seq_ratio, c.seq_case, seq_pass);
+        let _ = writeln!(md, "| {name} | {:.2} | {:.1} | {} | {} | {:.1} | {:.3} | {:.3} | {:.0} | {:.2} | {:.1} ({:.3}) | {} | {:.1} ({:.3}) | {:.0} | {:.3} ({:.1}) | {:.0} | {:.3} | {} | {:.1} | {:.0} | {:.0} | {:.0} ({:.2}) | {:.2} ({}) |",
+            r.mass_g, r.t, if r.aes.pass { "yes" } else { "NO" }, if gates_ok { "ok" } else { "FAIL" }, c.lat_rob, c.sf_hiker, c.sf_hunter, c.ring_rob, c.sf_ring, s_j, s_j / fh,
+            if pass { "**PASS**" } else { "**FAIL**" }, old, old / fh, c.twist20_nmm, c.twist_kc, c.twist_b_mm / c.twist_t_mm.max(1e-6), c.twist_joint_nmm, c.twist_sf, if tw_pass { "PASS" } else { "FAIL" }, c.twist_tipdist, c.twist_body_joint_nmm, c.twist_hand_joint_nmm,
+            c.couple20_nmm, old_tw, c.seq_ratio, c.seq_case);
+    }
+    let hdr = format!("# D1 re-screen — screening yield {:.0} MPa (TIMET min, provisional), JOINT thin+hot, chord-torsion floor {:.2} N*m\n\nCertification min(0.25, 0.125 mm^2) unbiased; strict 0.0625 mm^2 unbiased; joint factor = ((t-0.1)/t)^2 x yield(100C)/yield(20C) (ring: ^1). PASS = hiker 180 / hunter 260 / ring 1500 N at certification AND hunter at strict. Twist = advisory proposed floor (not a gate yet). Seq ratio = hand-zone / blade-zone yield-onset load (min over lateral, chord-torsion, pry), target >= {:.1}.\n\n",
+        jarambit_physics::TI_6AL_4V.yield_mpa, fem::TWIST_FLOOR_NMM / 1000.0, fem::SEQ_TARGET);
+    let md = hdr + &md;
+    std::fs::create_dir_all(out).ok(); println!("{md}");
+    std::fs::write(format!("{out}/d1_rescreen.csv"), csv).is_ok() && std::fs::write(format!("{out}/d1_rescreen.md"), md).is_ok()
 }

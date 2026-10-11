@@ -1,0 +1,5 @@
+design,mass_g,t,aes_pass,gates_ok,lat20_828,joint_lat_cert,sf_hiker,sf_hunter,joint_ring_cert,sf_ring,strict_joint_lat_0p0625,strict_sf_hunter,pass_828_joint,old_lat_rob_880_min,old_sf_hunter_880_min,twist20_plate_nmm,twist_kc_3d,twist_b_mm,twist_t_mm,twist_joint3d_nmm,twist_sf_1p82,twist_pass,twist_peak_tipdist_mm,twist_body15_joint_nmm,twist_hand_joint_nmm,old_couple20_nmm,old_twist_sf_proxy,seq_ratio,seq_case,seq_pass
+wave15_c01,71.65,5.7,true,true,286.9,252.6,1.403,0.971,11885,7.923,243.9,0.938,false,278.1,1.070,1138,1.173,9.15,2.17,854,0.469,false,4.1,4350,20719,1138,0.876,0.893,lateral,false
+wave15_c02,71.82,5.7,true,true,259.6,228.5,1.269,0.879,12422,8.281,242.0,0.931,false,251.6,0.968,1129,1.172,9.25,2.18,848,0.466,false,4.1,4880,22627,1133,0.872,0.967,lateral,false
+wave15_c03,71.51,5.6,true,true,274.6,241.6,1.342,0.929,12500,8.333,233.9,0.900,false,266.1,1.024,1146,1.148,9.45,1.94,878,0.483,false,4.0,4722,22379,1302,1.002,0.898,lateral,false
+wave16_c01,71.66,5.8,true,true,298.3,262.7,1.459,1.010,12754,8.503,246.5,0.948,false,289.1,1.112,1296,1.175,9.70,2.32,972,0.534,false,4.1,5984,24897,1449,1.114,0.840,lateral,false
