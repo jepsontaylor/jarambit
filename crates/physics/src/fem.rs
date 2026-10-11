@@ -26,15 +26,22 @@ pub struct Caps {
 }
 
 const NU: f64 = 0.34;
+/// Plate mesh gates. Dense Cholesky on 800 dofs is ~1.7e8 flop (tens of ms), still one nominal
+/// solve per candidate, never per MC sample.
+pub const MAX_NODES: usize = 160;
+pub const MAX_TRIS: usize = 320;
+pub const MAX_FREE_DOFS: usize = 800;
 
 pub fn capacities(p: &Phenotype, m: &Material, temp_c: f64, ser: (f64, f64)) -> Option<Caps> {
-    let outer = decimate_outline(&p.outline, p.ricasso_len);
+    let outer = decimate_outline(&p.outline, p.ricasso_len, p.blade.tip);
     let hole = sample_n(&p.ring_hole, 12);
     let (outer, hole, tris) = triangulate(&outer, &hole)?;
-    if tris.is_empty() || tris.len() > 140 { return None; }
+    // Caps raised 2026-10-11 (blade floor 444a74d + blade-angle knob 152ad95): long raked blades
+    // decimate to ~83-120 nodes. Old 80-node / 140-tri / 420-dof gates returned None on them.
+    if tris.is_empty() || tris.len() > MAX_TRIS { return None; }
     let n_out = outer.len();
     let xy: Vec<(f64, f64)> = outer.iter().copied().chain(hole.iter().copied()).collect();
-    if xy.len() < 8 || xy.len() > 80 { return None; }
+    if xy.len() < 8 || xy.len() > MAX_NODES { return None; }
     let t = p.thickness.max(0.2);
     let sy = m.yield_at(temp_c).max(1.0);
     let ee = m.e_gpa * 1000.0;
@@ -43,7 +50,9 @@ pub fn capacities(p: &Phenotype, m: &Material, temp_c: f64, ser: (f64, f64)) -> 
     let lat_k = h / he;
     let in_k = (h / he).powi(2);
 
-    let tip = (0..n_out).max_by(|&i, &j| xy[i].1.partial_cmp(&xy[j].1).unwrap())?;
+    // Load at the real blade tip (nearest outline node). With the blade-angle knob the highest
+    // point is mid-arc, not the tip, so the old max-y pick would shorten the lever.
+    let tip = (0..n_out).min_by(|&i, &j| hypot(xy[i], p.blade.tip).partial_cmp(&hypot(xy[j], p.blade.tip)).unwrap())?;
     let ring = |i: usize| i >= n_out;
     let ricasso = |i: usize| {
         let y = xy[i].1;
@@ -110,7 +119,7 @@ fn solve_plate(
         for c in 0..5 { map[i * 5 + c] = nf; nf += 1; }
     }
     let nf = nf as usize;
-    if nf < 5 || nf > 420 { return None; }
+    if nf < 5 || nf > MAX_FREE_DOFS { return None; }
     let cmat = c_plane(ee, nu);
     let mut k = vec![0.0; nf * nf];
     for tri in tris {
@@ -377,10 +386,10 @@ fn solve_with(l: &[f64], n: usize, b: &mut [f64]) {
     }
 }
 
-fn decimate_outline(poly: &[P2], ricasso: f64) -> Vec<P2> {
+fn decimate_outline(poly: &[P2], ricasso: f64, tip_pt: P2) -> Vec<P2> {
     let n = poly.len();
     if n <= 36 { return poly.to_vec(); }
-    let tip = poly.iter().enumerate().max_by(|(_, a), (_, b)| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal)).unwrap().0;
+    let tip = poly.iter().enumerate().min_by(|(_, a), (_, b)| hypot(**a, tip_pt).partial_cmp(&hypot(**b, tip_pt)).unwrap_or(std::cmp::Ordering::Equal)).unwrap().0;
     let mut keep = vec![false; n];
     keep[tip] = true;
     for i in 0..n {
@@ -489,6 +498,31 @@ mod tests {
         let exact = 1.0 / (width * t);
         let ratio = mb / exact;
         assert!(ratio > 0.7 && ratio < 1.4, "vm/exact {ratio} vm {mb} exact {exact}");
+    }
+
+    /// Long blades (all-three floor) and the raked SWITCHBACK-like genome must mesh and solve.
+    #[test]
+    fn long_raked_blades_mesh_and_solve() {
+        use jarambit_genotype::{bounds, Genotype, Rng};
+        use jarambit_phenotype::Phenotype;
+        let m = &super::super::TI_6AL_4V;
+        let mut r = Rng(77);
+        let mut max_nodes = 0;
+        for i in 0..40 {
+            let mut g = Genotype::random(&mut r);
+            g.blade_arc_len = bounds::BLADE_ARC_LEN.1 - 0.2 * (i % 10) as f64;
+            g.curve_radius = 40.0 + 1.25 * i as f64;
+            g.clamp();
+            let p = Phenotype::from_genotype(&g);
+            let c = capacities(&p, m, 20.0, (g.serr_inner.depth, g.serr_outer.depth)).unwrap_or_else(|| panic!("no mesh for {:?}", p.blade));
+            assert!(c.blade_lat_n.is_finite() && c.blade_lat_n > 0.0 && c.ring_pull_n > 0.0);
+            max_nodes = max_nodes.max(c.nodes);
+        }
+        assert!(max_nodes > 80, "long blades should exceed the old 80-node cap ({max_nodes})");
+        let mut g = Genotype::random(&mut Rng(9));
+        g.blade_arc_len = 87.55; g.curve_radius = 90.0; g.blade_angle_deg = 13.0; g.ring_wall = 4.5; g.clamp();
+        let p = Phenotype::from_genotype(&g);
+        assert!(capacities(&p, m, 20.0, (g.serr_inner.depth, g.serr_outer.depth)).is_some());
     }
 
     /// Ring pull vs net section σ = F / (2 · wall · t), two walls sharing the load.
