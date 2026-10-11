@@ -150,3 +150,133 @@ pub fn conv(evals_csv: &str, n: usize, threads: usize, out: &str) -> bool {
     println!("{md}");
     std::fs::create_dir_all(out).ok(); std::fs::write(format!("{out}/convergence.md"), md).is_ok()
 }
+
+/// Load seed genomes: every CSV row that parses as a genome (current or legacy 90-gene layout) at
+/// the column of the `cp00` header; rows of an all_evals.csv are filtered to LEGAL and ranked by fit.
+pub fn load_seeds(paths: &str, top: usize) -> Vec<Genome> {
+    let mut out: Vec<Genome> = Vec::new();
+    for path in paths.split(',').filter(|s| !s.is_empty()) {
+        let Ok(txt) = std::fs::read_to_string(path) else { eprintln!("seeds: cannot read {path}"); continue; };
+        let mut lines = txt.lines(); let Some(h) = lines.next() else { continue; };
+        let hdr: Vec<&str> = h.split(',').collect();
+        let Some(off) = hdr.iter().position(|c| *c == "cp00") else { continue; };
+        let (fi, li) = (hdr.iter().position(|c| *c == "fit"), hdr.iter().position(|c| *c == "legal"));
+        let mut rows: Vec<(f64, Genome)> = lines.filter_map(|l| { let f: Vec<&str> = l.split(',').collect();
+            if let Some(li) = li { if f.get(li) != Some(&"true") { return None; } }
+            let fit = fi.and_then(|i| f.get(i)).and_then(|v| v.parse().ok()).unwrap_or(0.0);
+            Genome::from_csv(&f[off.min(f.len())..]).map(|g| (fit, g)) }).collect();
+        rows.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+        for (_, g) in rows.into_iter().take(top) { if !out.contains(&g) { out.push(g); } }
+    }
+    out
+}
+
+fn write_progress(out: &str, gen: usize, all: &[qd::Rec], archive: &std::collections::BTreeMap<(usize, usize), qd::Rec>) {
+    let mut ac = String::from("cell_removal,cell_mass,id,gen,fit,spg,mass_g,aes_score,novelty,relief_frac,sf_hunter,n_win\n");
+    for ((a, b), r) in archive { let _ = writeln!(ac, "{a},{b},{},{},{:.4},{:.4},{:.2},{:.4},{:.4},{:.4},{:.3},{}", r.id, r.gen, r.fit, r.spg, r.mass_g, r.aes.score, r.novelty, qd::relief_frac(r), r.fem.as_ref().map_or(0.0, |f| f.sf_hunter), r.n_win); }
+    std::fs::write(format!("{out}/qd_archive.csv"), ac).ok();
+    let mut leg: Vec<&qd::Rec> = all.iter().filter(|r| r.legal()).collect();
+    leg.sort_by(|a, b| a.mass_g.partial_cmp(&b.mass_g).unwrap());
+    let mut s = format!("# progress gen {gen}: evals {}, LEGAL (search level) {}, legal under cap {}\n\nlightest LEGAL (search-level, NOT yet certified):\n", all.len(), leg.len(), leg.iter().filter(|r| qd::under_cap(r)).count());
+    for r in leg.iter().take(12) { let f = r.fem.as_ref().unwrap(); let _ = writeln!(s, "- id {} gen {} mass {:.2} g t {:.1} SPG {:.3} lat_rob {:.0} ring_rob {:.0} A {:.3} nov {:.3} relief {:.3} win {} fit {:.3}", r.id, r.gen, r.mass_g, r.t, r.spg, f.lat_rob, f.ring_rob, r.aes.score, r.novelty, qd::relief_frac(r), r.n_win, r.fit); }
+    std::fs::write(format!("{out}/progress.md"), s).ok();
+}
+
+/// `jarambit crescent-evolve`: island GA + shared novelty/MAP-Elites over the crescent genotype WITH the
+/// internal-machining layer (isogrid pockets, pierced-fuller windows, ring flute). Seeds from certified
+/// wave6 crescents + C.4. Hard floors / gates / aesthetic floor identical to crescent-smoke. Every plated
+/// design is CERTIFIED at min(0.25, 0.125 mm^2); STEP exported for every certified plate.
+#[allow(clippy::too_many_arguments)]
+pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, threads: usize, seed: u64, fem_area: f64, seeds_csv: &str, seed_top: usize, migrate: usize, kick: f64, n_cert: usize) -> bool {
+    std::fs::create_dir_all(out).unwrap();
+    let seeds = { let mut s = load_seeds(seeds_csv, seed_top); s.push(Genome::c4_seed(5.7)); s };
+    let mut rep = String::new();
+    let _ = writeln!(rep, "# {wave} — crescent internal-machining evolve (island GA + QD) — author Jepson Taylor\n\nislands {islands} x pop {pop}, gens {gens}, migrate every {migrate}, threads {threads}, seed {seed}, FEM search area {fem_area} mm^2 (bias 1.11/1.08), certification min(0.25, 0.125 mm^2) no bias, T_MAX {:.1}, mass target {:?} g (JARAMBIT_MASS_CAP; target only, every hard item unchanged), seeds {} (from {seeds_csv} + C.4), machining kick {kick}\n", t_max(), qd::mass_cap(), seeds.len());
+    let cfg = qd::IslandCfg { base: qd::RunCfg { pop, gens, threads, seed, fem_area, t_seed: 5.7 }, islands, migrate_every: migrate, migrants: 2, seeds, kick_frac: kick };
+    let t0 = std::time::Instant::now();
+    let mut hist_f = String::new();
+    let ro = qd::run_islands(&cfg, |l| { eprintln!("{l}  ({:.0}s)", t0.elapsed().as_secs_f64()); hist_f.push_str(l); hist_f.push('\n'); std::fs::write(format!("{out}/history_live.csv"), &hist_f).ok(); },
+        |gen, all, arch| { if gen % 5 == 0 { write_progress(out, gen, all, arch); } });
+    std::fs::write(format!("{out}/history.csv"), ro.history.join("\n") + "\n").unwrap();
+    write_progress(out, gens, &ro.all, &ro.archive);
+    let mut all = String::from("[\n"); let mut csv = format!("id,gen,fit,spg,mass_g,aes_pass,aes_score,hausdorff,emd,novelty,lat_rob,ring_rob,sf_hunter,legal,n_rejects,relief_frac,n_win,{}\n", Genome::csv_header());
+    for (i, r) in ro.all.iter().enumerate() {
+        let f = r.fem.clone().unwrap_or_default();
+        let _ = writeln!(csv, "{},{},{:.4},{:.4},{:.2},{},{:.4},{:.3},{:.4},{:.4},{:.1},{:.1},{:.3},{},{},{:.4},{},{}", r.id, r.gen, r.fit, r.spg, r.mass_g, r.aes.pass, r.aes.score, r.aes.hausdorff, r.aes.emd, r.novelty, f.lat_rob, f.ring_rob, f.sf_hunter, r.legal(), r.rejects.len(), qd::relief_frac(r), r.n_win, r.g.csv_row());
+        all.push_str(&rec_metrics(r)); all.push_str(if i + 1 < ro.all.len() { ",\n" } else { "\n" });
+    }
+    all.push(']'); std::fs::write(format!("{out}/all_evals.json"), all).unwrap(); std::fs::write(format!("{out}/all_evals.csv"), csv).unwrap();
+    let mut cnt: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    for r in &ro.all { for x in r.aes.fails.iter().chain(r.rejects.iter()) { let k: String = x.split(|c: char| c.is_ascii_digit() || c == '(').next().unwrap_or("").trim().to_string(); *cnt.entry(k).or_default() += 1; } }
+    let n_all = ro.all.len(); let n_aes = ro.all.iter().filter(|r| r.aes.pass).count(); let n_gate = ro.all.iter().filter(|r| r.aes.pass && r.rejects.is_empty()).count();
+    let n_leg = ro.all.iter().filter(|r| r.legal()).count(); let n_cap = ro.all.iter().filter(|r| r.legal() && qd::under_cap(r)).count();
+    let _ = writeln!(rep, "## Census\nevaluations {n_all}; aesthetic passers {n_aes}; aesthetic + all hard gates {n_gate}; LEGAL (search level) {n_leg}; LEGAL and under the mass target {n_cap}\n\nreject reasons (count):");
+    for (k, v) in &cnt { let _ = writeln!(rep, "- {k}: {v}"); }
+    // ---- certification: LEGAL+under-cap first (by fit), then lightest LEGAL, then most novel; distinct genomes ----
+    let mut cand: Vec<&qd::Rec> = ro.all.iter().filter(|r| r.aes.pass && r.rejects.is_empty() && r.fem.is_some()).collect();
+    cand.sort_by(|a, b| { let ka = (a.legal() && qd::under_cap(a), a.legal(), a.fit); let kb = (b.legal() && qd::under_cap(b), b.legal(), b.fit); kb.partial_cmp(&ka).unwrap() });
+    let mut light: Vec<&qd::Rec> = ro.all.iter().filter(|r| r.legal()).collect(); light.sort_by(|a, b| a.mass_g.partial_cmp(&b.mass_g).unwrap());
+    let mut novel: Vec<&qd::Rec> = ro.all.iter().filter(|r| r.legal()).collect(); novel.sort_by(|a, b| b.novelty.partial_cmp(&a.novelty).unwrap());
+    let mut order: Vec<(&str, &qd::Rec)> = Vec::new();
+    for (i, r) in cand.iter().enumerate() { if i < 30 { order.push(("fit", r)); } }
+    for r in light.iter().take(20) { order.push(("light", r)); }
+    for r in novel.iter().take(10) { order.push(("novel", r)); }
+    let mut picked: Vec<(String, qd::Rec, fem::Fem, fem::Fields)> = Vec::new(); let (mut n_try, mut n_fail) = (0usize, 0usize);
+    let mut seen: Vec<Genome> = Vec::new(); let mut cert_rows = String::from("kind,id,gen,mass_g,t,search_lat_rob,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,twist_sf_proxy,floors_ok_cert,spg_cert,aes,novelty,relief_frac,n_win\n");
+    for (kind, r) in order { if picked.len() >= n_cert || n_try >= 60 { break; }
+        if seen.contains(&r.g) || !r.legal() { continue; } seen.push(r.g.clone()); n_try += 1;
+        let p = pheno::build(&r.g);
+        let Some((cf, fl)) = fem::certify(&p) else { n_fail += 1; continue; };
+        let tw = cf.twist20_nmm * jarambit_physics::material(r.g.mat).yield_at(100.0) / jarambit_physics::material(r.g.mat).yield_at(20.0) / fem::TWIST_DESIGN_NMM;
+        let _ = writeln!(cert_rows, "{kind},{},{},{:.2},{:.1},{:.1},{:.1},{:.1},{:.3},{:.3},{:.3},{:.3},{},{:.4},{:.4},{:.4},{:.4},{}", r.id, r.gen, r.mass_g, r.t, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob, cf.sf_hiker, cf.sf_hunter, cf.sf_ring, tw, cf.floors_ok, cf.lat_rob / r.mass_g, r.aes.score, r.novelty, qd::relief_frac(r), r.n_win);
+        if !cf.floors_ok { n_fail += 1; let _ = writeln!(rep, "- certification FAIL id {} ({kind}, {:.1} g): search lat_rob {:.0} -> certified {:.0} N, ring {:.0}", r.id, r.mass_g, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob); continue; }
+        let mut rr = (*r).clone(); rr.spg = cf.lat_rob / rr.mass_g; rr.fem = Some(cf.clone()); rr.fit = qd::fitness(&rr);
+        picked.push((kind.to_string(), rr, cf, fl));
+    }
+    std::fs::write(format!("{out}/certification.csv"), cert_rows).unwrap();
+    let _ = writeln!(rep, "\n## Certification (min over 0.25 / 0.125 mm^2, no bias)\ncandidates certified {n_try}, rejected at the converged mesh {n_fail}\n\n## Plate designs (aesthetic passers only; certified metrics; twist SF = advisory)");
+    // rank certified: under-cap by fitness first
+    picked.sort_by(|a, b| { let ka = (qd::under_cap(&a.1), a.1.fit); let kb = (qd::under_cap(&b.1), b.1.fit); kb.partial_cmp(&ka).unwrap() });
+    let mut plates = Vec::new();
+    for (k, (kind, r, cf, fl)) in picked.into_iter().enumerate() {
+        let label = format!("{wave}_c{:02}_{kind}", k + 1);
+        let tw = cf.twist20_nmm * jarambit_physics::material(r.g.mat).yield_at(100.0) / jarambit_physics::material(r.g.mat).yield_at(20.0) / fem::TWIST_DESIGN_NMM;
+        if let Some(j) = plate_json(&r, &label, Some((cf, fl))) { std::fs::write(format!("{out}/{label}.json"), &j).unwrap(); plates.push(label.clone()); }
+        let _ = writeln!(rep, "- {label} (twist SF proxy {tw:.2}, advisory; n_win {}, relief_frac {:.4}): {}", r.n_win, qd::relief_frac(&r), rec_metrics(&r));
+        let p = pheno::build(&r.g);
+        if let Some(s) = export::solid(&p, 1.0) {
+            let (once, more, dmax) = export::census(&s.tris); let v = export::volume(&s);
+            std::fs::write(format!("{out}/{label}.stl"), export::stl(&s, &label)).unwrap();
+            std::fs::write(format!("{out}/{label}.step"), export::step(&s, &label)).unwrap();
+            let _ = writeln!(rep, "  export: boundary edges {once}, non-manifold {more}, max directed repeat {dmax} => {}; volume {v:.0} mm^3 = {:.2} g (raster {:.2} g)", if once == 0 && more == 0 && dmax == 1 { "WATERTIGHT" } else { "NOT WATERTIGHT" }, v * jarambit_physics::material(r.g.mat).density / 1000.0, r.mass_g);
+        }
+        std::fs::write(format!("{out}/{label}_genome.csv"), format!("{}\n{}\n", Genome::csv_header(), r.g.csv_row())).unwrap();
+    }
+    let _ = writeln!(rep, "\nplates: {:?}\nwall time {:.0} s", plates, t0.elapsed().as_secs_f64());
+    std::fs::write(format!("{out}/report.md"), rep).unwrap();
+    std::fs::write(format!("{out}/plates.txt"), plates.join("\n") + "\n").unwrap();
+    true
+}
+
+/// Probe the internal-machining layer on a genome (no GA): ablation of each feature family.
+pub fn mprobe(genome_csv: &str, fem_area: f64) {
+    let gs = load_seeds(genome_csv, 1); let Some(g0) = gs.first() else { eprintln!("no genome"); return; };
+    let mut vars: Vec<(String, Genome)> = vec![("as-is".into(), g0.clone())];
+    for t in [5.3, 5.5] { let mut g = g0.clone(); g.v[T] = t; g.clamp(); vars.push((format!("t{t}"), g)); }
+    let mut g = g0.clone(); g.v[T] = 5.5; g.v[ISO_D] = 1.2; g.v[ISO_ZB] = 1.0; g.v[ISO_XB] = 0.55; g.v[ISO_P] = 11.0; g.clamp(); vars.push(("t5.5 iso blade".into(), g.clone()));
+    g.v[ISO_ZH] = 1.0; vars.push(("t5.5 iso blade+handle".into(), g.clone()));
+    g.v[WIN_N] = 4.0; g.v[WIN_S0] = 0.1; g.v[WIN_S1] = 0.6; g.v[WIN_W] = 7.0; g.clamp(); vars.push(("+4 windows".into(), g.clone()));
+    g.v[RFL_D] = 1.0; g.v[RFL_ARC] = 220.0; vars.push(("+ring flute".into(), g.clone()));
+    let mut g2 = g0.clone(); g2.v[T] = 6.0; g2.v[ISO_D] = 1.4; g2.v[ISO_ZL] = 1.0; g2.v[ISO_ZB] = 1.0; g2.v[ISO_XB] = 0.5; g2.v[ISO_RIM] = 2.0; g2.v[RING_WALL] = 4.8; g2.v[RFL_D] = 1.0; g2.v[RFL_ARC] = 220.0; g2.clamp(); vars.push(("t6 land+blade iso, ring wall 4.8, flute".into(), g2.clone()));
+    g2.v[ISO_ZH] = 1.0; g2.v[ISO_XH] = 0.6; g2.v[ISO_GR] = -0.8; vars.push(("+handle iso (far 40%, graded)".into(), g2.clone()));
+    for (name, g) in vars {
+        let p = pheno::build(&g);
+        { let fd = &p.field; let rho = jarambit_physics::material(g.mat).density / 1000.0; let mut z = [0.0f64; 4];
+          for j in 0..fd.ny { for i in 0..fd.nx { let v = fd.th[j * fd.nx + i]; if v.is_nan() { continue; } let x = fd.x0 + (i as f64 + 0.5) * fd.g;
+            let k = if x < p.ring_od / 2.0 { 0 } else if x < 78.0 + p.dx { 1 } else if x < 100.0 + p.dx { 2 } else { 3 }; z[k] += v as f64 * fd.g * fd.g * rho; } }
+          println!("  mass by zone (g): ring {:.1} handle {:.1} land {:.1} blade {:.1}; land_full {:.0} mm2", z[0], z[1], z[2], z[3], p.land_full_mm2); } let a = aesthetic::evaluate(&g, &p); let r = gates::check(&g, &p);
+        let f = fem::run(&p, fem_area, false).map(|x| x.0);
+        println!("{name}: mass {:.2} t {:.1} removed {:?} win {} aes {} rejects {:?}\n  lat_rob {:.0} ring_rob {:.0} lat_at {:?} floors {}", p.mass_g, p.t, p.removed.map(|x| x.round()), p.n_win, a.pass, r,
+            f.as_ref().map_or(0.0, |f| f.lat_rob), f.as_ref().map_or(0.0, |f| f.ring_rob), f.as_ref().map(|f| f.lat_at), f.as_ref().map_or(false, |f| f.floors_ok));
+    }
+}

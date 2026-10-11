@@ -7,7 +7,9 @@
 use jarambit_genotype::{q01, Rng, TiGrade};
 
 pub const N_CP: usize = 40;
-pub const NG: usize = 90;
+pub const NG: usize = 110;
+/// Legacy (wave6) genome length; rows of this length load with every internal-machining gene OFF.
+pub const NG_LEGACY: usize = 90;
 pub const DROP: usize = 40; pub const GRIP_DX: usize = 41; pub const RING_WALL: usize = 42; pub const RING_ID: usize = 43;
 pub const NECK_FILLET: usize = 44; pub const T: usize = 45; pub const T_TIP: usize = 46; pub const TAPER_X0: usize = 47;
 pub const EA_IN: usize = 48; pub const EA_SP: usize = 49;
@@ -24,13 +26,32 @@ pub const TEX_A: usize = 82; pub const WRAP_X0: usize = 83; pub const WRAP_L: us
 pub const PAD_X: usize = 85; pub const PAD_Y: usize = 86; pub const PAD_W: usize = 87; pub const PAD_L: usize = 88;
 /// Thickness left at the edge before the final sharpening (C.4: 0.5 mm). Tip-snap vs cutting knob.
 pub const EDGE_TH: usize = 89;
+// ---- internal machining layer (wave7+, exec/lattice) ----
+/// Two-sided ISOGRID pockets (equilateral-triangle cells, full-thickness ribs, Ø2 mm end-mill corner
+/// radius, flat floor clamped to the web floor), depth per side, cell height (pitch), rib width,
+/// orientation, rim to outline / holes / grind lines, zone switches and a depth grade along x.
+pub const ISO_D: usize = 90; pub const ISO_P: usize = 91; pub const ISO_RIB: usize = 92; pub const ISO_A: usize = 93;
+pub const ISO_RIM: usize = 94; pub const ISO_ZB: usize = 95; pub const ISO_ZH: usize = 96; pub const ISO_XB: usize = 97; pub const ISO_GR: usize = 98;
+/// PIERCED FULLER: n through-windows (curved stadium slots, Ø>=3 mm tool) on the blade medial line
+/// inside the C.4 fuller band [s0, s1]; max width, slot length / pitch, width decay toward the tip.
+pub const WIN_N: usize = 99; pub const WIN_S0: usize = 100; pub const WIN_S1: usize = 101; pub const WIN_W: usize = 102;
+pub const WIN_FILL: usize = 103; pub const WIN_DECAY: usize = 104;
+/// RING FLUTE: two-sided ball-nose groove on the finger-ring wall faces (depth/side, width fraction of
+/// the wall, arc extent centred on the rear of the ring so it stays clear of the neck fillets).
+pub const RFL_D: usize = 105; pub const RFL_W: usize = 106; pub const RFL_ARC: usize = 107;
+/// Isogrid handle-zone start (fraction of x 18..74 kept solid next to the ring neck, where the lateral
+/// moment peaks) and the guard / holder-land band switch (x 78..100; the >= 40 mm^2 full-thickness land
+/// gate still applies: rib tops are the land).
+pub const ISO_XH: usize = 108; pub const ISO_ZL: usize = 109;
 
 pub const NAMES: [&str; NG - N_CP] = ["blade_drop_deg", "grip_dx", "ring_wall", "ring_id", "neck_fillet", "t_stock", "t_tip", "taper_x0",
     "edge_angle_in", "edge_angle_sp", "comet_x0", "comet_x1", "comet_w0", "comet_w1", "comet_bow", "comet_y", "eye_scale", "cairn_d",
     "nub_engage", "holder_wall", "jimp_scale", "serr_large_d", "serr_small_d", "serr_fine_d", "spine_sharp_offset",
     "relief_d", "relief_w", "relief_q", "lattice_d", "lattice_pitch", "lattice_frac", "lattice_angle", "lattice_handle", "lattice_blade",
     "fuller_d", "fuller_w", "fuller_s0", "fuller_s1", "flute_d", "texture_mode", "texture_d", "texture_pitch", "texture_angle",
-    "wrap_x0", "wrap_len", "pad_x", "pad_y", "pad_w", "pad_l", "edge_t"];
+    "wrap_x0", "wrap_len", "pad_x", "pad_y", "pad_w", "pad_l", "edge_t",
+    "iso_d", "iso_pitch", "iso_rib", "iso_angle", "iso_rim", "iso_blade", "iso_handle", "iso_blade_extent", "iso_grade",
+    "win_n", "win_s0", "win_s1", "win_w", "win_fill", "win_decay", "rflute_d", "rflute_w", "rflute_arc", "iso_handle_start", "iso_land"];
 
 /// Finished-thickness floor from 6.35 mm (1/4 in) Ti plate; ceiling = JARAMBIT_T_MAX (<= 6.0).
 pub const T_MIN: f64 = 5.3;
@@ -46,6 +67,9 @@ pub fn cp_delta(i: usize) -> f64 {
     match i { 0 | 39 | 19..=22 => 0.0, 1..=7 => 3.0, 8 => 2.0, 9..=13 => 3.5, 14..=18 => 3.0, 23..=27 => 3.0, 28 | 29 => 2.0, 30..=35 => 3.5, 36..=38 => 2.5, _ => 0.0 }
 }
 
+/// Internal-machining genes with every feature OFF (C.4 / legacy wave6 genomes).
+pub const MACHINING_OFF: [f64; NG - NG_LEGACY] = [0.0, 10.0, 2.0, 0.0, 3.0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.2, 0.75, 6.0, 0.6, 0.7, 0.0, 0.5, 200.0, 0.3, 0.0];
+
 pub fn bounds() -> Vec<(f64, f64)> {
     let mut b: Vec<(f64, f64)> = (0..N_CP).map(|i| (-cp_delta(i), cp_delta(i))).collect();
     b.extend_from_slice(&[(-4.0, 4.0), (-0.4, 10.0), (4.5, 7.0), (24.9, 25.9), (8.0, 18.0), (T_MIN, t_max()), (2.6, 4.5), (115.0, 150.0),
@@ -53,7 +77,9 @@ pub fn bounds() -> Vec<(f64, f64)> {
         (0.4, 1.2), (1.2, 2.0), (0.6, 1.2), (1.0, 1.5), (0.4, 0.8), (0.5, 0.9), (0.0, 45.0),
         (0.0, 1.2), (2.0, 8.0), (1.0, 3.0), (0.0, 1.5), (4.0, 9.0), (0.4, 0.8), (0.0, 60.0), (0.0, 1.0), (0.0, 1.0),
         (0.0, 1.2), (2.0, 5.0), (0.05, 0.4), (0.5, 0.9), (0.0, 1.0), (0.0, 1.0), (0.15, 0.4), (1.5, 3.0), (-45.0, 45.0),
-        (16.0, 26.0), (45.0, 60.0), (70.0, 80.0), (-5.0, 3.0), (6.0, 9.0), (12.0, 16.0), (0.5, 0.9)]);
+        (16.0, 26.0), (45.0, 60.0), (70.0, 80.0), (-5.0, 3.0), (6.0, 9.0), (12.0, 16.0), (0.5, 0.9),
+        (0.0, 1.6), (7.0, 16.0), (1.4, 3.0), (-30.0, 30.0), (2.0, 5.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (-0.8, 0.8),
+        (0.0, 7.99), (0.05, 0.5), (0.5, 0.92), (3.0, 10.0), (0.45, 0.8), (0.4, 1.0), (0.0, 2.0), (0.3, 0.7), (120.0, 260.0), (0.0, 0.8), (0.0, 1.0)]);
     assert_eq!(b.len(), NG);
     b
 }
@@ -69,6 +95,7 @@ impl Genome {
         v.extend_from_slice(&[0.0, 0.0, 6.3, 25.4, 15.0, t, 3.0, 130.0, 16.0, 16.0, 25.0, 66.0, 11.0, 5.2, 2.3, 2.3, 1.0, 6.0,
             0.6, 1.3, 1.0, 1.38, 0.7, 0.75, 24.0, 0.0, 4.0, 2.0, 0.0, 6.0, 0.6, 0.0, 0.0, 0.0, 0.0, 3.0, 0.15, 0.7, 0.6,
             0.0, 0.25, 2.0, 30.0, 20.0, 52.0, 75.0, -1.0, 6.5, 12.0, 0.5]);
+        v.extend_from_slice(&MACHINING_OFF);
         let mut g = Genome { v, mat: TiGrade::Ti6Al4V }; g.clamp(); g
     }
     pub fn get(&self, i: usize) -> f64 { self.v[i] }
@@ -83,6 +110,7 @@ impl Genome {
         self.v[DETENT] = self.v[DETENT].min(self.v[T] / 4.0);
         if self.v[FUL_S1] < self.v[FUL_S0] + 0.15 { self.v[FUL_S1] = (self.v[FUL_S0] + 0.15).min(0.9); }
         if self.v[COMET_X1] < self.v[COMET_X0] + 28.0 { self.v[COMET_X1] = self.v[COMET_X0] + 28.0; }
+        if self.v[WIN_S1] < self.v[WIN_S0] + 0.2 { self.v[WIN_S1] = (self.v[WIN_S0] + 0.2).min(0.92); }
     }
     pub fn random_in_envelope(r: &mut Rng) -> Self {
         let b = bounds();
@@ -100,7 +128,7 @@ impl Genome {
     pub fn mutate(&self, r: &mut Rng, sigma: f64) -> Self {
         let b = bounds();
         let mut g = self.clone();
-        let op = (r.f64() * 5.0) as usize;
+        let op = (r.f64() * 6.0) as usize;
         let span = |i: usize| b[i].1 - b[i].0;
         let jig = |g: &mut Genome, i: usize, r: &mut Rng, s: f64| { g.v[i] += r.normal() * s * span(i); };
         match op {
@@ -112,6 +140,9 @@ impl Genome {
             2 => { for i in [T, T_TIP, TAPER_X0, RELIEF_D, RELIEF_W, RELIEF_Q, EA_IN, EA_SP, RING_WALL, EDGE_TH] { if r.f64() < 0.5 { jig(&mut g, i, r, sigma * 1.5); } } }
             3 => { for i in [LAT_D, LAT_P, LAT_F, LAT_A] { if r.f64() < 0.6 { jig(&mut g, i, r, sigma * 1.5); } }
                    if r.f64() < 0.2 { g.v[LAT_H] = 1.0 - g.v[LAT_H]; } if r.f64() < 0.2 { g.v[LAT_B] = 1.0 - g.v[LAT_B]; } }
+            5 => { for i in [ISO_D, ISO_P, ISO_RIB, ISO_A, ISO_RIM, ISO_XB, ISO_XH, ISO_GR, WIN_S0, WIN_S1, WIN_W, WIN_FILL, WIN_DECAY, RFL_D, RFL_W, RFL_ARC, T] { if r.f64() < 0.4 { jig(&mut g, i, r, sigma * 1.5); } }
+                   for z in [ISO_ZB, ISO_ZH, ISO_ZL] { if r.f64() < 0.12 { g.v[z] = 1.0 - g.v[z]; } }
+                   if r.f64() < 0.25 { g.v[WIN_N] += if r.f64() < 0.5 { -1.0 } else { 1.0 }; } }
             _ => { for i in [FUL_D, FUL_W, FUL_S0, FUL_S1, FLUTE, TEX_MODE, TEX_D, TEX_P, TEX_A, COMET_W0, COMET_W1, COMET_BOW, EYE, CAIRN] { if r.f64() < 0.4 { jig(&mut g, i, r, sigma * 1.5); } } }
         }
         if r.f64() < 0.03 { g.mat = if g.mat == TiGrade::Ti6Al4V { TiGrade::Ti3Al2_5V } else { TiGrade::Ti6Al4V }; }
@@ -131,8 +162,19 @@ impl Genome {
         let mut s: Vec<String> = self.v.iter().map(|x| format!("{x:.4}")).collect(); s.push(self.mat.name().into()); s.join(",")
     }
     pub fn from_csv(fields: &[&str]) -> Option<Self> {
-        if fields.len() < NG + 1 { return None; }
-        let v: Option<Vec<f64>> = fields[..NG].iter().map(|s| s.parse().ok()).collect();
-        Some(Genome { v: v?, mat: if fields[NG].contains("3Al") { TiGrade::Ti3Al2_5V } else { TiGrade::Ti6Al4V } })
+        // current rows: NG genes + material; legacy wave6 rows: 90 genes + material (machining OFF)
+        let n = if fields.len() >= NG + 1 && fields[NG].starts_with("Ti") { NG } else if fields.len() >= NG_LEGACY + 1 && fields[NG_LEGACY].starts_with("Ti") { NG_LEGACY } else { return None };
+        let mut v: Vec<f64> = fields[..n].iter().map(|s| s.trim().parse().ok()).collect::<Option<Vec<f64>>>()?;
+        if n == NG_LEGACY { v.extend_from_slice(&MACHINING_OFF); }
+        Some(Genome { v, mat: if fields[n].contains("3Al") { TiGrade::Ti3Al2_5V } else { TiGrade::Ti6Al4V } })
+    }
+    /// Activate the internal-machining layer at random (seeding operator for the lattice lane).
+    pub fn machining_kick(&self, r: &mut Rng) -> Self {
+        let b = bounds(); let mut g = self.clone();
+        for i in [ISO_D, ISO_P, ISO_RIB, ISO_A, ISO_RIM, ISO_XB, ISO_XH, ISO_GR, WIN_S0, WIN_S1, WIN_W, WIN_FILL, WIN_DECAY, RFL_D, RFL_W, RFL_ARC] { g.v[i] = r.range(b[i].0, b[i].1); }
+        for z in [ISO_ZB, ISO_ZH] { g.v[z] = if r.f64() < 0.5 { 1.0 } else { 0.0 }; }
+        g.v[WIN_N] = (r.f64() * 8.0).floor().min(7.0);
+        if r.f64() < 0.5 { g.v[T] = r.range(T_MIN, t_max()); }
+        g.clamp(); g
     }
 }

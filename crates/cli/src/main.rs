@@ -25,6 +25,14 @@ fn main() {
         let ok = crescent::conv(&sarg("--evals", "out/crescent_smoke/all_evals.csv"), narg("--n", 24), narg("--threads", 24).min(jarambit_monte_carlo::max_threads()), &sarg("--out", "out/crescent_conv"));
         std::process::exit(if ok { 0 } else { 1 });
     }
+    if a.iter().any(|s| s == "crescent-mprobe") { crescent::mprobe(&sarg("--genome", "docs/crescent/best_genome.csv"), farg("--area", 2.0)); return; }
+    if a.iter().any(|s| s == "crescent-evolve") {
+        // internal-machining lane: island GA + QD, seeds from certified crescents + C.4 (crates/crescent)
+        let ok = crescent::evolve(&sarg("--out", "out/wave7_lattice"), &sarg("--wave", "wave7"), narg("--pop", 48), narg("--islands", 4), narg("--gens", 40),
+            narg("--threads", 48).min(jarambit_monte_carlo::max_threads()), narg("--seed", 7) as u64, farg("--area", 2.0),
+            &sarg("--seeds", "docs/crescent/best_genome.csv"), narg("--seed-top", 12), narg("--migrate", 5), farg("--kick", 0.5), narg("--cert", 6));
+        std::process::exit(if ok { 0 } else { 1 });
+    }
     if a.iter().any(|s| s == "crescent-smoke") {
         // SWITCHBACK C.4-anchored crescent genotype: aesthetic floor + novelty QD (crates/crescent)
         let ok = crescent::smoke(&sarg("--out", "out/crescent_smoke"), narg("--pop", 48), narg("--gens", 16), narg("--threads", 32).min(jarambit_monte_carlo::max_threads()),
