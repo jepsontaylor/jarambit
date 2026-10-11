@@ -1,0 +1,56 @@
+# GAPS.md — jarambit: current state vs world-class (IEEE publication grade)
+
+*Author: Jepson Taylor. Snapshot 2026-10-11 ~11:00Z (05:00 MT). Utility/hiking karambit only. Floors FIRM: hiker 180 N / hunter 260 N / ring pull 1500 N.*
+
+Legend: **have** = on main and tested; **gap** = what a reviewer will ask for.
+
+## 1. FEM / structural accuracy
+| Topic | Have | Gap to world-class |
+|---|---|---|
+| Element | DKT plate + CST membrane on decimated outline (≤420 dof); linear tets rejected (locking, ~7 % beam stress) | Quadratic tets (T10) or solid-shell/MITC, or DKT with adaptive refinement; documented choice with locking study |
+| Mesh convergence | none (single coarse mesh, ≤140 tris) | h-refinement study (≥4 levels), Richardson extrapolation, GCI < 5 % on peak σ_vm and tip δ; plot |
+| Verification | cantilever (δ 0.70–1.35, σ 0.5–1.8 of beam), tension patch (0.7–1.4) | Tight bands (≤3–5 %) vs Euler–Bernoulli beam, Kirchhoff clamped/simply-supported plate (Timoshenko & Woinowsky-Krieger), curved-beam (Winkler) for the hooked blade, Kirsch hole (Kt=3) for ring |
+| Surrogate fidelity | plate/surrogate lateral median 0.526 (range 0.20–0.84) — surrogate is NON-conservative by ~2× | Calibrate surrogate to FEM (per-feature factors or GP correction); MC fitness must be on calibrated or FEM-in-loop value |
+| Plasticity | elastic + first yield only | Either J2 elasto-plastic (limit load / 0.2 % offset) or state explicitly "elastic + first-yield, conservative" with reserve factor |
+| Stress concentrations | scallops/jimping not meshed; serration = h/h_eff scale; detent Kt = 1+0.6 d/1.2 (ad hoc) | Local submodel of scallop root (Kt vs pitch/depth/root radius), jimping R0.55 notch Kt, detent Kt from Peterson / local FEM |
+| Supports / contact | ring nodes fixed (tip load); ricasso fixed (ring pull) | Support sensitivity: full-grip clamp vs ring-only vs twisted wood grip (elastic foundation / frictional contact); report spread |
+| Temperature | yield derated linearly (−0.11 %/°C); E constant | T-dependent E, σ_y, (ν) for Ti-6Al-4V / Ti-3Al-2.5V from −10…100 °C (MMPDS-style table, interpolated) in BOTH MC and FEM |
+| 3-D effects | flat extrusion; bevel/edge not modeled | Bevel geometry in section (thinner edge band), through-thickness stress at edge |
+| Out of scope (must be listed in paper) | — | Fatigue crack growth, K_Ic fracture, strain-rate effects, plate/sheet anisotropy (texture), grind/waterjet residual stress & HAZ, holder retention shock |
+
+## 1b. Export / artifacts
+- mh1 winners' `best.stl` are OPEN and `best.step` is POLYLINE: mh1 binary was built before the watertight exporter (9054745). Unit test is green on main; winners must be re-exported from checkpoint genotypes.
+
+## 2. Failure modes
+| Mode | Have | Gap |
+|---|---|---|
+| Lateral tip twist (blade / grip) | beam surrogate + plate check | FEM-calibrated, support-sensitive |
+| Ring pull | one-wall net section; plate two-wall | Kirsch/curved-beam Kt, FEM peak |
+| Edge chipping / serration-root fatigue | none (score only) | Root Kt × Basquin/Goodman S-N for Ti-6Al-4V, cycles-to-crack-initiation per use profile |
+| Tip snap | none | Tip-region section modulus vs in-plane/lateral tip load at last 5 mm |
+| Ring peel (open-up) | none | Curved-beam opening moment on ring under hook load |
+| Handle rail buckle under pry | none | Euler/plate buckling of grip web under pry moment (eigenvalue on plate model) |
+| Baton shock | none | Impact energy → dynamic factor (quasi-static ×DAF or explicit) on spine |
+| Wet/cold grip loss coupled to load | temp only affects yield | Friction μ(wet, cold, glove) → slip threshold coupled to applied twist in MC |
+| Sheath pop-out under yank | holder insert/draw force gate (12.9/7.1 N on winner) | Retention vs yank/shock load MC, detent wear |
+
+## 3. Intelligence / optimisation
+| Topic | Have | Gap |
+|---|---|---|
+| Genotype | 20 continuous genes + Ti grade, annular-sector blade | Richer, still-constrained representation: medial-axis + thickness field, spline spine, CSG primitives; show expressivity vs constraint satisfaction |
+| Search | NSGA-II, 2 islands/proc, migrate every 5; 20 independent groups on 3 hosts | Cross-host island migration (ring/torus topology), migration-rate ablation |
+| Surrogate-assisted fitness | none (MC 10k–50k on beam surrogate) | GP/RBF or NN surrogate with infill (EI) when FEM enters the loop; error-controlled |
+| Diversity | div metric logged (~0.29) | Genotypic + phenotypic diversity (pairwise distance, entropy), hypervolume indicator over gens |
+| Red-team | per-sample gate (−1000), quarantine.csv | Report quarantine rates by rule; adversarial fuzz statistics |
+| Statistics | single run per seed, no baselines | ≥10 seeds per arm, median ± IQR, Wilcoxon/Mann–Whitney; baselines: random search, CMA-ES, single-island GA, no-MC (nominal) |
+| Ablations | none | −MC (nominal), −islands, −red-team, −temp, MC 1k vs 10k vs 50k, surrogate vs FEM fitness |
+| Objective realism | winner collapses blade to ~44 mm tip-heel (limit 85.7) since SPG rewards short levers; cut-media objective negative (−0.04) | Utility constraint/objective on min useful cutting length or cut score; report trade-off frontier, not just SPG |
+
+## 4. Figures (out/paper_figs/) — none exist yet
+Needed: fitness vs gen (median ± IQR across seeds), Pareto S vs mass (merged mh1), genotype diversity vs gen, constraint-violation / quarantine rates, MC histograms (angle, speed, temp, media), FEM safety-factor colormap on winner, mesh-convergence curve, surrogate-vs-FEM parity plot.
+
+## 5. Paper
+| Item | Have | Gap |
+|---|---|---|
+| WHITEPAPER.md | ~2.3k words (≈3 IEEE pages), 11 sections; Intro 35 w, Related Work 18 w | 6–8 pp (~5–6k words + 8 figs + 2–3 tables); author line "Jepson Taylor"; full related work (≥25 refs); methods/assumptions/limitations; results with statistics |
+| Reproducibility | seeds, checkpoints, deterministic MC | Artifact appendix: exact commands, commit hash, hardware, runtime |
