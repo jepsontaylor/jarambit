@@ -1,0 +1,12 @@
+[package]
+name = "jarambit-evolve"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+jarambit-genotype = { path = "../genotype" }
+jarambit-phenotype = { path = "../phenotype" }
+jarambit-physics = { path = "../physics" }
+jarambit-redteam = { path = "../redteam" }
+jarambit-monte-carlo = { path = "../monte_carlo" }

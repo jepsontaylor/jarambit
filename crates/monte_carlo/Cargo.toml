@@ -1,0 +1,8 @@
+[package]
+name = "jarambit-monte-carlo"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+jarambit-genotype = { path = "../genotype" }
