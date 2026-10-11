@@ -44,7 +44,7 @@ Legend: **have** = on main and tested; **gap** = what a reviewer will ask for.
 | Red-team | per-sample gate (−1000), quarantine.csv | Report quarantine rates by rule; adversarial fuzz statistics |
 | Statistics | single run per seed, no baselines | ≥10 seeds per arm, median ± IQR, Wilcoxon/Mann–Whitney; baselines: random search, CMA-ES, single-island GA, no-MC (nominal) |
 | Ablations | none | −MC (nominal), −islands, −red-team, −temp, MC 1k vs 10k vs 50k, surrogate vs FEM fitness |
-| Objective realism | winner collapses blade to ~44 mm tip-heel (limit 85.7) since SPG rewards short levers; cut-media objective negative (−0.04) | Utility constraint/objective on min useful cutting length or cut score; report trade-off frontier, not just SPG |
+| Objective realism | pre-fix winners had ~44 mm tip-heel because the blade rule was inverted (fixed 2026-10-11: now ≥ 85.725 mm all three; phenotype still needs a rake gene to reach the horizontal floor); cut-media objective negative (−0.04) | Utility constraint/objective on min useful cutting length or cut score; report trade-off frontier, not just SPG |
 
 ## 4. Figures (out/paper_figs/) — none exist yet
 Needed: fitness vs gen (median ± IQR across seeds), Pareto S vs mass (merged mh1), genotype diversity vs gen, constraint-violation / quarantine rates, MC histograms (angle, speed, temp, media), FEM safety-factor colormap on winner, mesh-convergence curve, surrogate-vs-FEM parity plot.

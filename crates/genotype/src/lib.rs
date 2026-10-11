@@ -2,8 +2,9 @@
 //! All lengths in millimetres; thickness quantised to 0.1 mm.
 //!
 //! HARD CONSTRAINTS (see docs/WHITEPAPER.md §III-A and crates/redteam):
-//! * blade < 3.375 in (85.725 mm) on ALL THREE measures: tip-to-heel, horizontal reach,
-//!   sharpened-edge arc (SWITCHBACK Rev C.2 all-three policy; any one >= limit => reject);
+//! * blade >= 3.375 in (85.725 mm) on ALL THREE measures: tip-to-heel, horizontal reach,
+//!   sharpened-edge arc (Jepson 2026-10-11 all-three FLOOR; any one below floor => reject;
+//!   0.5 mm guard => design floor 86.225 mm), and sharpened edge arc <= 4.0 in (101.6 mm);
 //! * grip (ring-neck to guard/shoulder) >= 60 mm, usable band 60-80 mm;
 //! * finger ring ID 25.4 mm (+/-0.5 mm);
 //! * curved (never straight), double-edged with BOTH edges serrated;
@@ -33,10 +34,15 @@ impl Rng {
 
 /// Hard limits shared by genotype repair, red-team gate and docs. Never weaken.
 pub mod limits {
-    /// 3.375 in in mm. Applies to tip-to-heel, horizontal reach AND sharpened-edge arc.
+    /// 3.375 in in mm: a MINIMUM. Tip-to-heel, horizontal reach AND sharpened-edge arc must
+    /// each be >= this (owner requirement, Jepson 2026-10-11; replaces the old "< 3.375 in" max rule).
     pub const BLADE_LIMIT_MM: f64 = 3.375 * 25.4; // 85.725
-    /// Design guard band under the legal-style limit to absorb CNC/waterjet tolerance.
+    /// Design guard band ABOVE the floor so CNC/waterjet tolerance cannot drop a part under it.
     pub const BLADE_GUARD_MM: f64 = 0.5;
+    /// Effective design floor applied by the red-team gate (85.725 + 0.5 = 86.225 mm).
+    pub const BLADE_FLOOR_MM: f64 = BLADE_LIMIT_MM + BLADE_GUARD_MM;
+    /// Upper cap on the sharpened-edge arc: 4.0 in.
+    pub const BLADE_EDGE_MAX_MM: f64 = 4.0 * 25.4; // 101.6
     /// Grip floor: ring-neck to guard (shoulder) length.
     pub const GRIP_MIN_MM: f64 = 60.0;
     pub const GRIP_MAX_MM: f64 = 80.0;
@@ -54,7 +60,10 @@ pub mod limits {
 
 /// Parameter bounds (min, max). Encodes the hard design envelope.
 pub mod bounds {
-    pub const BLADE_ARC_LEN: (f64, f64) = (45.0, 72.0);     // target outer sharpened arc, mm
+    /// Outer-arc gene (mm). Phenotype adds a fixed ~9.22 mm tip run (hypot(BLADE_H/2, 6)), so
+    /// sharpened_arc = gene + 9.22 spans ~86.3..101.5 mm: inside [BLADE_FLOOR_MM, BLADE_EDGE_MAX_MM].
+    /// (Old 45..72 mm cap removed 2026-10-11: it made every design < 3.375 in.)
+    pub const BLADE_ARC_LEN: (f64, f64) = (77.1, 92.3);
     pub const CURVE_RADIUS: (f64, f64) = (28.0, 45.0);      // mid-blade radius, mm (curved)
     pub const THICKNESS: (f64, f64) = (2.5, 4.5);           // stock, mm, 0.1 mm quantum
     pub const EDGE_ANGLE_DEG: (f64, f64) = (14.0, 22.0);    // per side; Ti practical

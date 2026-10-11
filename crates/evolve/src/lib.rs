@@ -504,6 +504,14 @@ mod tests {
         let mut q = Vec::new();
         let ind = evaluate_one(g.clone(), 3, 8, 2, &mut q, true);
         let p = Phenotype::from_genotype(&g);
+        if jarambit_redteam::check(&g, &p).is_err() {
+            // Blade-length floor (2026-10-11): red-team rejects never reach the plate and score -1e3.
+            // Plate-path coverage returns once the phenotype can meet all-three >= 86.225 mm.
+            assert_eq!(ind.fit, -1.0e3);
+            assert!(!ind.floors_ok);
+            assert!(q.iter().any(|(_, w)| w.contains("BladeTooShort")), "{q:?}");
+            return;
+        }
         match plate_capacities(&p, material(g.material), 20.0, (g.serr_inner.depth, g.serr_outer.depth)) {
             Some(c) => {
                 let ps = c.blade_lat_n.min(c.grip_lat_n);
