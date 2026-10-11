@@ -11,7 +11,8 @@
 use jarambit_genotype::{Genotype, Rng, TiGrade};
 use jarambit_monte_carlo::{cut_margin, media_sample, run_cols};
 use jarambit_phenotype::Phenotype;
-use jarambit_physics::{evaluate, floors, material, plate_capacities, primary_fitness, Eval};
+use jarambit_physics::{calib, evaluate, fine, floors, material, plate_capacities, primary_fitness, Eval};
+use jarambit_physics::fine::FineCaps;
 
 pub struct Config {
     pub pop: usize,
@@ -30,11 +31,18 @@ pub struct Config {
     /// Do not resume a surrogate checkpoint with this set: the stored scores
     /// would mix the two models.
     pub fem: bool,
+    /// CALIBRATED search (2026-10-11): detailed plate (`physics::fine`, converged mesh family)
+    /// solved per candidate at SEARCH_AREA, divided by the measured mesh bias, times the
+    /// surrogate MC p05/nominal knockdown; floors must also hold at 100 C nominal. Overrides `fem`.
+    pub fine: bool,
+    /// Legal starting genomes. Each island's initial population gets these plus mutants of them
+    /// (up to half the population); the rest stay random. Not promoted: they are re-scored.
+    pub seeds: Vec<Genotype>,
 }
 
 impl Config {
     pub fn new(pop: usize, gens: usize, mc_samples: usize, threads: usize, seed: u64) -> Self {
-        Self { pop, gens, mc_samples, threads, seed, islands: 1, migrate_every: 5, checkpoint: None, resume: false, fem: false }
+        Self { pop, gens, mc_samples, threads, seed, islands: 1, migrate_every: 5, checkpoint: None, resume: false, fem: false, fine: false, seeds: Vec::new() }
     }
 }
 
@@ -55,7 +63,9 @@ fn sample_metrics(h: &Genotype, r: &mut Rng) -> [f64; 5] {
     let env = jarambit_monte_carlo::env_sample(r);
     let e = evaluate(&p, h.edge_angle_deg, (h.serr_inner.depth, h.serr_outer.depth), material(h.material), env.temp_c);
     let margin = cut_margin(e.blade_lat_n, e.inplane_n, e.sharpness, e.serration_score, media_sample(r));
-    [primary_fitness(&e), margin, e.sharpness, e.strength_n, e.ring_pull_n]
+    // column 0 (surrogate-only score) uses the calibrated surrogate so it cannot overstate the
+    // detailed plate (physics::calib); columns 3-4 feed ratios, where the factor cancels.
+    [primary_fitness(&calib::calibrated_surrogate(&e)), margin, e.sharpness, e.strength_n, e.ring_pull_n]
 }
 
 fn knocked(level: f64, nom: f64, p05: f64) -> f64 { level * (p05 / nom.max(1e-9)) }
@@ -256,6 +266,76 @@ fn evaluate_one(g: Genotype, sample_seed: u64, mc: usize, threads: usize, q: &mu
     }
 }
 
+/// Calibrated robust capacities from a detailed-plate solve: (lateral, ring) in N, each the min of
+/// the MC-knocked 20 C level and the 100 C nominal level, after dividing by the mesh bias.
+pub fn calibrated_levels(c: &FineCaps, e: &Eval, s_p05: f64, r_p05: f64, m: &jarambit_physics::Material) -> (f64, f64) {
+    let lat20 = c.lateral_n / calib::MESH_BIAS_LAT_MAX;
+    let ring20 = c.ring_pull_n / calib::MESH_BIAS_RING_MAX;
+    let hot = m.yield_at(100.0) / m.yield_at(20.0);
+    let lat = knocked(lat20, e.strength_n, s_p05).min(lat20 * hot);
+    let ring = knocked(ring20, e.ring_pull_n, r_p05).min(ring20 * hot);
+    (lat, ring)
+}
+
+/// Firm floors on calibrated levels: lateral >= 180 AND >= 260 N, ring >= 1500 N.
+pub fn calibrated_floors_ok(lat: f64, ring: f64) -> bool {
+    lat >= floors::HIKER_LATERAL_N && lat >= floors::HUNTER_LATERAL_N && ring >= floors::RING_PULL_N
+}
+
+fn evaluate_fine(g: Genotype, sample_seed: u64, mc: usize, threads: usize, q: &mut Vec<(Genotype, String)>, caps: Option<FineCaps>) -> Indiv {
+    let (p, rt, e) = nominal(&g);
+    let crazy = !e.mass_g.is_finite() || !(5.0..=250.0).contains(&e.mass_g);
+    if let Err(v) = &rt { q.push((g.clone(), format!("{v:?}"))); }
+    else if crazy { q.push((g.clone(), format!("crazy phenotype mass {:.2} g", e.mass_g))); }
+    let cols = run_cols(&g, mc, threads, sample_seed, sample_metrics);
+    let bad = |g: Genotype, fit: f64| Indiv { g, fit, mean: cols[0].mean, strength_n: 0.0, mass_g: e.mass_g, floors_ok: false, cut_p05: cols[1].p05, sharp_p05: cols[2].p05 };
+    if let Err(v) = &rt {
+        // short-blade-only rejects are shaped by the shortfall so the search can climb into the
+        // legal (>= 3.375 in on all three) region; they stay infeasible and are never winners.
+        let fit = if jarambit_redteam::only_blade_short(v) { -50.0 - jarambit_redteam::blade_shortfall_mm(&p) } else { -1e3 };
+        return bad(g, fit);
+    }
+    if crazy { return bad(g, -1e3); }
+    let Some(c) = caps else { q.push((g.clone(), "detailed plate mesh miss".into())); return bad(g, -1e3); };
+    let (lat, ring) = calibrated_levels(&c, &e, cols[3].p05, cols[4].p05, material(g.material));
+    let ok = calibrated_floors_ok(lat, ring);
+    let fit = if ok { lat / e.mass_g.max(1e-6) } else {
+        // graded: nominal-hot deficit + robust deficit + share of MC draws the red team rejects
+        let m = material(g.material);
+        let hot = m.yield_at(100.0) / m.yield_at(20.0);
+        let (lh, rh) = (c.lateral_n / calib::MESH_BIAS_LAT_MAX * hot, c.ring_pull_n / calib::MESH_BIAS_RING_MAX * hot);
+        let d = |l: f64, r: f64| (1.0 - l / floors::HUNTER_LATERAL_N).max(0.0) + (1.0 - r / floors::RING_PULL_N).max(0.0);
+        let rej = (-cols[0].mean / 1e3).clamp(0.0, 1.0);
+        -1.0 - 5.0 * d(lh, rh) - 5.0 * d(lat, ring) - 10.0 * rej
+    };
+    Indiv { g, fit, mean: cols[0].mean, strength_n: lat, mass_g: e.mass_g, floors_ok: ok, cut_p05: cols[1].p05, sharp_p05: cols[2].p05 }
+}
+
+/// Evaluate a batch. In calibrated (`fine`) mode the detailed-plate solves run in parallel first
+/// (`threads` workers, red-team-clean candidates only), then the MC knockdown per candidate.
+fn eval_batch(items: Vec<(Genotype, u64)>, cfg: &Config, q: &mut Vec<(Genotype, String)>) -> Vec<Indiv> {
+    if !cfg.fine {
+        return items.into_iter().map(|(g, s)| evaluate_one(g, s, cfg.mc_samples, cfg.threads, q, cfg.fem)).collect();
+    }
+    let n = items.len();
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let caps: Vec<std::sync::Mutex<Option<FineCaps>>> = (0..n).map(|_| std::sync::Mutex::new(None)).collect();
+    std::thread::scope(|s| {
+        for _ in 0..cfg.threads.max(1).min(n.max(1)) {
+            s.spawn(|| loop {
+                let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                if i >= n { break; }
+                let g = &items[i].0;
+                let p = Phenotype::from_genotype(g);
+                if jarambit_redteam::check(g, &p).is_err() { continue; }
+                let c = fine::capacities(&p, material(g.material), 20.0, (g.serr_inner.depth, g.serr_outer.depth), fine::SEARCH_AREA);
+                *caps[i].lock().unwrap() = c;
+            });
+        }
+    });
+    items.into_iter().zip(caps).map(|((g, s), c)| evaluate_fine(g, s, cfg.mc_samples, cfg.threads, q, c.into_inner().unwrap())).collect()
+}
+
 fn genes_exact(g: &Genotype) -> String {
     let v = g.to_vec();
     let mut s: Vec<String> = v.iter().enumerate().map(|(i, x)| if i == 2 { format!("{x:.1}") } else { format!("{x:.8}") }).collect();
@@ -266,7 +346,8 @@ fn genes_exact(g: &Genotype) -> String {
 fn parse_genes(csv: &str) -> Result<Genotype, String> {
     let cols: Vec<&str> = csv.split(',').collect();
     // 22 = current (blade_angle_deg at index 20); 21 = legacy pre-knob checkpoint (un-raked blade).
-    let n = match cols.len() { 21 => 20, 22 => 21, k => return Err(format!("gene columns {k}")) };
+    // 25 = current (neck genes 21-23); 22 = pre-neck (blade angle at 20); 21 = pre-knob.
+    let n = match cols.len() { 21 => 20, 22 => 21, 25 => 24, k => return Err(format!("gene columns {k}")) };
     let mut v = vec![0.0; n];
     for i in 0..n { v[i] = cols[i].parse().map_err(|_| format!("gene {i}"))?; }
     let mat = match cols[n] {
@@ -370,11 +451,16 @@ pub fn run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> (Indiv, Vec<Indiv>) 
     if islands.is_empty() {
         islands = (0..n_islands).map(|i| {
             let mut rng = Rng(cfg.seed.wrapping_add((i as u64 + 1).wrapping_mul(0x9E37_79B9_7F4A_7C15)));
-            let pop = (0..pop_n).map(|_| {
-                let g = Genotype::random(&mut rng);
+            let n_seed = if cfg.seeds.is_empty() { 0 } else { pop_n / 2 };
+            let items: Vec<(Genotype, u64)> = (0..pop_n).map(|k| {
+                let g = if k < n_seed {
+                    let base = &cfg.seeds[k % cfg.seeds.len()];
+                    if k < cfg.seeds.len() { let mut b = base.clone(); b.clamp(); b } else { base.mutate(&mut rng, 0.06) }
+                } else { Genotype::random(&mut rng) };
                 let s = rng.next_u64();
-                evaluate_one(g, s, cfg.mc_samples, cfg.threads, &mut q, cfg.fem)
+                (g, s)
             }).collect();
+            let pop = eval_batch(items, cfg, &mut q);
             Island { rng, pop }
         }).collect();
         archive.extend(islands.iter().flat_map(|isl| isl.pop.iter().cloned()));
@@ -399,8 +485,8 @@ pub fn run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> (Indiv, Vec<Indiv>) 
         let sigma = 0.10 * (1.0 - gen as f64 / (cfg.gens.max(1) as f64)) + 0.02;
         for isl in islands.iter_mut() {
             let (rank, crowd) = rank_crowd(&isl.pop);
-            let mut kids = Vec::with_capacity(isl.pop.len());
-            while kids.len() < isl.pop.len() {
+            let mut items: Vec<(Genotype, u64)> = Vec::with_capacity(isl.pop.len());
+            while items.len() < isl.pop.len() {
                 let g = if isl.rng.f64() < 0.1 { Genotype::random(&mut isl.rng) }
                 else {
                     let ia = tournament(&isl.pop, &rank, &crowd, &mut isl.rng);
@@ -408,8 +494,9 @@ pub fn run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> (Indiv, Vec<Indiv>) 
                     isl.pop[ia].g.crossover(&isl.pop[ib].g, &mut isl.rng).mutate(&mut isl.rng, sigma)
                 };
                 let s = isl.rng.next_u64();
-                kids.push(evaluate_one(g, s, cfg.mc_samples, cfg.threads, &mut q, cfg.fem));
+                items.push((g, s));
             }
+            let kids = eval_batch(items, cfg, &mut q);
             archive.extend(kids.iter().cloned());
             let mut both = std::mem::take(&mut isl.pop);
             both.extend(kids);
@@ -460,7 +547,7 @@ mod tests {
         }
         let loaded = load_ckpt(path).unwrap();
         let best_g = checkpoint_best(path).unwrap();
-        assert_eq!(best_g.to_vec().len(), 21);
+        assert_eq!(best_g.to_vec().len(), 24);
         assert_eq!(loaded.next_gen, 2);
         assert_eq!(loaded.islands.len(), 2);
         assert!(!loaded.islands[0].pop.is_empty());

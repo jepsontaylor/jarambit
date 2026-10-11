@@ -1,0 +1,91 @@
+design,case,max_area,nodes,tris,value_n,err_vs_extrap
+wave5_smoke_legal_blade,lateral,4,1819,2894,119.956,0.00881
+wave5_smoke_legal_blade,lateral,2,2089,3423,123.789,0.02285
+wave5_smoke_legal_blade,lateral,1,2832,4866,122.243,0.01008
+wave5_smoke_legal_blade,lateral,0.5,5891,10303,121.051,0.00023
+wave5_smoke_legal_blade,lateral,0.25,9290,17038,121.787,0.00631
+wave5_smoke_legal_blade,lateral,0.125,17762,33247,120.259,0.00631
+wave5_smoke_legal_blade,pry,4,1819,2894,304.374,0.00319
+wave5_smoke_legal_blade,pry,2,2089,3423,306.077,0.00880
+wave5_smoke_legal_blade,pry,1,2832,4866,307.350,0.01300
+wave5_smoke_legal_blade,pry,0.5,5891,10303,297.796,0.01849
+wave5_smoke_legal_blade,pry,0.25,9290,17038,305.583,0.00717
+wave5_smoke_legal_blade,pry,0.125,17762,33247,301.231,0.00717
+wave5_smoke_legal_blade,ring pull,4,1819,2894,2820.182,0.02554
+wave5_smoke_legal_blade,ring pull,2,2089,3423,2813.966,0.02328
+wave5_smoke_legal_blade,ring pull,1,2832,4866,2830.696,0.02936
+wave5_smoke_legal_blade,ring pull,0.5,5891,10303,2791.331,0.01505
+wave5_smoke_legal_blade,ring pull,0.25,9290,17038,2790.094,0.01460
+wave5_smoke_legal_blade,ring pull,0.125,17762,33247,2709.819,0.01460
+mh1_xbabe1_s3001,lateral,4,1538,2463,188.890,0.01083
+mh1_xbabe1_s3001,lateral,2,1722,2815,189.557,0.00734
+mh1_xbabe1_s3001,lateral,1,2235,3801,183.380,0.03969
+mh1_xbabe1_s3001,lateral,0.5,4510,7801,187.547,0.01786
+mh1_xbabe1_s3001,lateral,0.25,6889,12488,191.643,0.00358
+mh1_xbabe1_s3001,lateral,0.125,12765,23681,190.274,0.00358
+mh1_xbabe1_s3001,pry,4,1538,2463,434.118,0.01818
+mh1_xbabe1_s3001,pry,2,1722,2815,436.968,0.02486
+mh1_xbabe1_s3001,pry,1,2235,3801,434.128,0.01820
+mh1_xbabe1_s3001,pry,0.5,4510,7801,431.219,0.01138
+mh1_xbabe1_s3001,pry,0.25,6889,12488,429.867,0.00821
+mh1_xbabe1_s3001,pry,0.125,12765,23681,422.870,0.00821
+mh1_xbabe1_s3001,ring pull,4,1538,2463,2357.866,0.02917
+mh1_xbabe1_s3001,ring pull,2,1722,2815,2361.529,0.03077
+mh1_xbabe1_s3001,ring pull,1,2235,3801,2357.448,0.02899
+mh1_xbabe1_s3001,ring pull,0.5,4510,7801,2309.857,0.00822
+mh1_xbabe1_s3001,ring pull,0.25,6889,12488,2329.267,0.01669
+mh1_xbabe1_s3001,ring pull,0.125,12765,23681,2252.796,0.01669
+switchback_ref_sharp_neck,lateral,4,2947,4802,30.290,0.00546
+switchback_ref_sharp_neck,lateral,2,3179,5237,31.113,0.02154
+switchback_ref_sharp_neck,lateral,1,3841,6524,29.952,0.01658
+switchback_ref_sharp_neck,lateral,0.5,7600,13088,30.450,0.00023
+switchback_ref_sharp_neck,lateral,0.25,10679,19174,30.780,0.01061
+switchback_ref_sharp_neck,lateral,0.125,19577,35954,30.134,0.01061
+switchback_ref_sharp_neck,pry,4,2947,4802,104.250,0.01245
+switchback_ref_sharp_neck,pry,2,3179,5237,104.890,0.01865
+switchback_ref_sharp_neck,pry,1,3841,6524,105.374,0.02336
+switchback_ref_sharp_neck,pry,0.5,7600,13088,102.518,0.00438
+switchback_ref_sharp_neck,pry,0.25,10679,19174,103.895,0.00899
+switchback_ref_sharp_neck,pry,0.125,19577,35954,102.043,0.00899
+switchback_ref_sharp_neck,ring pull,4,2947,4802,1087.597,0.03376
+switchback_ref_sharp_neck,ring pull,2,3179,5237,1092.692,0.03860
+switchback_ref_sharp_neck,ring pull,1,3841,6524,1093.350,0.03923
+switchback_ref_sharp_neck,ring pull,0.5,7600,13088,1077.566,0.02423
+switchback_ref_sharp_neck,ring pull,0.25,10679,19174,1062.653,0.01005
+switchback_ref_sharp_neck,ring pull,0.125,19577,35954,1041.502,0.01005
+switchback_ref_neck_fillet6_flare3,lateral,4,2878,4684,50.638,0.00262
+switchback_ref_neck_fillet6_flare3,lateral,2,3085,5077,51.656,0.02276
+switchback_ref_neck_fillet6_flare3,lateral,1,3798,6464,49.864,0.01271
+switchback_ref_neck_fillet6_flare3,lateral,0.5,7554,13046,51.713,0.02390
+switchback_ref_neck_fillet6_flare3,lateral,0.25,10692,19243,50.499,0.00014
+switchback_ref_neck_fillet6_flare3,lateral,0.125,19813,36466,50.513,0.00014
+switchback_ref_neck_fillet6_flare3,pry,4,2878,4684,115.842,0.01394
+switchback_ref_neck_fillet6_flare3,pry,2,3085,5077,116.547,0.02012
+switchback_ref_neck_fillet6_flare3,pry,1,3798,6464,116.809,0.02241
+switchback_ref_neck_fillet6_flare3,pry,0.5,7554,13046,115.346,0.00960
+switchback_ref_neck_fillet6_flare3,pry,0.25,10692,19243,114.083,0.00145
+switchback_ref_neck_fillet6_flare3,pry,0.125,19813,36466,114.415,0.00145
+switchback_ref_neck_fillet6_flare3,ring pull,4,2878,4684,3684.908,0.02484
+switchback_ref_neck_fillet6_flare3,ring pull,2,3085,5077,3675.574,0.02224
+switchback_ref_neck_fillet6_flare3,ring pull,1,3798,6464,3657.242,0.01714
+switchback_ref_neck_fillet6_flare3,ring pull,0.5,7554,13046,3660.682,0.01810
+switchback_ref_neck_fillet6_flare3,ring pull,0.25,10692,19243,3660.542,0.01806
+switchback_ref_neck_fillet6_flare3,ring pull,0.125,19813,36466,3530.652,0.01806
+wave5_with_neck_fillet6_flare3,lateral,4,1721,2728,220.544,0.00552
+wave5_with_neck_fillet6_flare3,lateral,2,2005,3275,219.674,0.00155
+wave5_with_neck_fillet6_flare3,lateral,1,2791,4815,218.675,0.00301
+wave5_with_neck_fillet6_flare3,lateral,0.5,5843,10246,219.067,0.00122
+wave5_with_neck_fillet6_flare3,lateral,0.25,9323,17135,219.945,0.00278
+wave5_with_neck_fillet6_flare3,lateral,0.125,17914,33596,218.724,0.00278
+wave5_with_neck_fillet6_flare3,pry,4,1721,2728,401.068,0.01586
+wave5_with_neck_fillet6_flare3,pry,2,2005,3275,400.980,0.01563
+wave5_with_neck_fillet6_flare3,pry,1,2791,4815,399.121,0.01092
+wave5_with_neck_fillet6_flare3,pry,0.5,5843,10246,394.931,0.00031
+wave5_with_neck_fillet6_flare3,pry,0.25,9323,17135,395.297,0.00124
+wave5_with_neck_fillet6_flare3,pry,0.125,17914,33596,394.320,0.00124
+wave5_with_neck_fillet6_flare3,ring pull,4,1721,2728,9358.667,0.01782
+wave5_with_neck_fillet6_flare3,ring pull,2,2005,3275,9329.197,0.01461
+wave5_with_neck_fillet6_flare3,ring pull,1,2791,4815,9410.629,0.02347
+wave5_with_neck_fillet6_flare3,ring pull,0.5,5843,10246,9340.573,0.01585
+wave5_with_neck_fillet6_flare3,ring pull,0.25,9323,17135,9368.632,0.01890
+wave5_with_neck_fillet6_flare3,ring pull,0.125,17914,33596,9021.017,0.01890

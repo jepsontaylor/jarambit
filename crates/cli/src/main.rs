@@ -6,6 +6,7 @@ use jarambit_genotype::{limits, Genotype};
 use jarambit_physics::{material, plate_capacities};
 use std::fmt::Write;
 mod fem_smoke;
+mod calib;
 
 fn main() {
     let a: Vec<String> = std::env::args().collect();
@@ -14,6 +15,36 @@ fn main() {
         let mh1 = a.iter().position(|x| x == "--mh1").and_then(|i| a.get(i + 1)).cloned().unwrap_or_else(|| "out/mh1".into());
         let ok = fem_smoke::run(&out, &mh1);
         std::process::exit(if ok { 0 } else { 1 });
+    }
+    let sarg = |k: &str, d: &str| a.iter().position(|x| x == k).and_then(|i| a.get(i + 1)).cloned().unwrap_or_else(|| d.to_string());
+    let narg = |k: &str, d: usize| a.iter().position(|x| x == k).and_then(|i| a.get(i + 1)).and_then(|v| v.parse().ok()).unwrap_or(d);
+    if a.iter().any(|s| s == "fem-verify") {
+        let ok = calib::fem_verify(&sarg("--out", "out/fem_verify"), &sarg("--mh1", "out/mh1"), narg("--threads", 16).min(jarambit_monte_carlo::max_threads()));
+        std::process::exit(if ok { 0 } else { 1 });
+    }
+    if a.iter().any(|s| s == "diag") {
+        // diag --ckpt PATH [--ckpt PATH..]: detailed-plate (verify mesh) capacities + peak location of each checkpoint best
+        for (i, x) in a.iter().enumerate() {
+            if x != "--ckpt" { continue; }
+            let Some(pth) = a.get(i + 1) else { continue };
+            let g = match jarambit_evolve::checkpoint_best(pth) { Ok(g) => g, Err(e) => { eprintln!("{pth}: {e}"); continue } };
+            let (p, rt, e) = nominal(&g);
+            let m = material(g.material);
+            match jarambit_physics::fine::capacities(&p, m, 20.0, (g.serr_inner.depth, g.serr_outer.depth), jarambit_physics::fine::VERIFY_AREA) {
+                Some(c) => {
+                    let h = jarambit_physics::fine::at_temp(&c, m, 20.0, 100.0);
+                    println!("{pth}: mass {:.1} g t {:.1} {} lat20 {:.0} N lat100 {:.0} N ring100 {:.0} N peak {} ({:.1},{:.1}) ring_at ({:.1},{:.1}) rt_ok {} | grip {:.1} ric {:.1} sh {:.2} angle {:.1} R {:.1} arc {:.1} wall {:.1} flare {:.2}/{:.1}/{:.1} blade {:.1}/{:.1}/{:.1}",
+                        e.mass_g, g.thickness, g.material.name(), c.lateral_n, h.lateral_n, h.ring_pull_n, c.lateral_region, c.lateral_at.0, c.lateral_at.1, c.ring_at.0, c.ring_at.1, rt.is_ok(),
+                        g.grip_len, g.holder.ricasso_len, g.holder.shoulder_w, g.blade_angle_deg, g.curve_radius, g.blade_arc_len, g.ring_wall, g.neck_flare, g.neck_flare_len, g.neck_fillet_r, p.blade.tip_to_heel, p.blade.horizontal_reach, p.blade.sharpened_arc);
+                }
+                None => println!("{pth}: mesh fail"),
+            }
+        }
+        return;
+    }
+    if a.iter().any(|s| s == "calib") {
+        calib::calib(&sarg("--out", "out/calib"), &sarg("--mh1", "out/mh1"), narg("--threads", 16).min(jarambit_monte_carlo::max_threads()), narg("--n", 120));
+        return;
     }
     let arg = |k: &str, d: usize| a.iter().position(|x| x == k).and_then(|i| a.get(i + 1)).and_then(|v| v.parse().ok()).unwrap_or(d);
     let threads = arg("--threads", 16).min(jarambit_monte_carlo::max_threads()); // per-host cap: JARAMBIT_MAX_THREADS (default 48)
@@ -25,6 +56,18 @@ fn main() {
     cfg.checkpoint = Some(format!("{out}/checkpoint.txt"));
     cfg.resume = a.iter().any(|x| x == "--resume");
     cfg.fem = std::env::var("JARAMBIT_FEM").ok().as_deref() == Some("1");
+    cfg.fine = a.iter().any(|x| x == "--fine") || std::env::var("JARAMBIT_FINE").ok().as_deref() == Some("1");
+    // --seed-ckpt PATH (repeatable): best genome of each checkpoint seeds the initial islands
+    for (i, x) in a.iter().enumerate() {
+        if x == "--seed-ckpt" { if let Some(pth) = a.get(i + 1) { match jarambit_evolve::checkpoint_best(pth) { Ok(g) => cfg.seeds.push(g), Err(e) => eprintln!("seed {pth}: {e}") } } }
+    }
+    if a.iter().any(|x| x == "--seed-ref") {
+        // SWITCHBACK-class reference genome from the red-team suite (all-three blade floor, every gate)
+        let mut g = Genotype::random(&mut jarambit_genotype::Rng(9));
+        g.blade_arc_len = 87.55; g.curve_radius = 90.0; g.blade_angle_deg = 13.0; g.ring_wall = 4.5;
+        g.thickness = 4.5; g.neck_flare = 4.0; g.neck_flare_len = 20.0; g.neck_fillet_r = 8.0; g.clamp();
+        cfg.seeds.push(g);
+    }
     let hist_path = format!("{out}/history.csv");
     let q_path = format!("{out}/quarantine.csv");
     let mut rows = vec![];
@@ -84,5 +127,12 @@ fn main() {
             c.blade_lat_n.min(c.grip_lat_n), c.blade_lat_n, c.grip_lat_n, c.inplane_n, c.ring_pull_n, c.nodes, c.free_dofs); }
         None => { let _ = writeln!(rep, "plate FEM: mesh did not solve"); }
     }
+    if cfg.fine {
+        let _ = writeln!(rep, "calibrated search (detailed plate in loop): robust lateral {:.1} N, robust SPG {:.3} N/g; see calibrated_pareto.md", best.strength_n, best.fit);
+    }
     w("best_report.md", rep);
+    if cfg.fine {
+        let n = calib::verify_front(&out, &front, threads);
+        println!("calibrated front: {n} LEGAL on the verification mesh -> {out}/calibrated_pareto.md");
+    }
 }

@@ -130,22 +130,27 @@ impl Phenotype {
         let y_neck = y_sh - g.grip_len;                   // ring neck
         let ring_r_out = g.ring_id / 2.0 + g.ring_wall;
         let al = (-(hw / 2.0) / ring_r_out).acos();       // left handle side meets ring (upper-left)
-        let ar = ((hw / 2.0) / ring_r_out).acos();        // right side (upper-right)
         let ring_c = (xm, y_neck - ring_r_out * al.sin());
         let y_det = y_sh - h.detent_pos * g.grip_len; let dd = h.detent_depth;
+        // grip-ring neck: optional taper (flare) + tangent fillet into the ring OD (left side,
+        // mirrored about x = xm for the right side). Legacy genomes: sharp corner at (hxl, y_neck).
+        let (neck_l, al2) = neck_flank(xm, hw, y_neck, ring_c, ring_r_out, g.neck_flare, g.neck_flare_len, g.neck_fillet_r);
+        let ar2 = PI - al2;
 
         let mut outline: Vec<P2> = Vec::new();
         outline.push((hx0, 0.0)); outline.push((hx0, y_sh));            // ricasso land, left
         outline.push((hxl, y_sh));                                        // left shoulder
         outline.push((hxl, y_det + 1.5 * dd)); outline.push((hxl + dd, y_det)); outline.push((hxl, y_det - 1.5 * dd)); // detent V
-        // ring outer circle starts/ends exactly at (hxl, y_neck)/(hxr, y_neck)
-        for i in 0..=72 { let a = al + (2.0 * PI + ar - al) * i as f64 / 72.0; outline.push((ring_c.0 + ring_r_out * a.cos(), ring_c.1 + ring_r_out * a.sin())); }
+        outline.extend(neck_l.iter().copied());                           // neck flank / fillet, left (top -> ring)
+        for i in 1..144 { let a = al2 + (2.0 * PI + ar2 - al2) * i as f64 / 144.0; outline.push((ring_c.0 + ring_r_out * a.cos(), ring_c.1 + ring_r_out * a.sin())); }
+        outline.extend(neck_l.iter().rev().map(|q| (2.0 * xm - q.0, q.1)));  // mirrored, ring -> top
         outline.push((hxr, y_sh));           // right grip side
         outline.push((hx1, y_sh)); outline.push((hx1, 0.0));              // right shoulder + ricasso land
         outline.extend(inner.iter().skip(1));                             // concave serrated edge heel->tip
         outline.push(tip);
         outline.extend(outer.iter().rev().take(outer.len() - 1));         // convex serrated edge tip->heel
-        let ring_hole: Vec<P2> = (0..64).map(|i| { let a = -2.0 * PI * i as f64 / 64.0; (ring_c.0 + g.ring_id / 2.0 * a.cos(), ring_c.1 + g.ring_id / 2.0 * a.sin()) }).collect();
+        let outline = round_concave(&outline, limits::MIN_INSIDE_RADIUS_MM);
+        let ring_hole: Vec<P2> = (0..128).map(|i| { let a = -2.0 * PI * i as f64 / 128.0; (ring_c.0 + g.ring_id / 2.0 * a.cos(), ring_c.1 + g.ring_id / 2.0 * a.sin()) }).collect();
 
         let pw = g.brand_pad_w; let pl = g.brand_pad_l;
         let py = y_neck + 3.0 + pl / 2.0;
@@ -191,6 +196,91 @@ impl Phenotype {
         format!("<svg xmlns='http://www.w3.org/2000/svg' viewBox='{:.1} {:.1} {:.1} {:.1}' width='400'><path d='{} {}' fill='#9aa' fill-rule='evenodd' stroke='#333' stroke-width='0.3'/><path d='{}' fill='none' stroke='#c33' stroke-width='0.3'/></svg>",
             x0 - pad, -y1 - pad, x1 - x0 + 2.0 * pad, y1 - y0 + 2.0 * pad, path(&self.outline), path(&self.ring_hole), path(&bp))
     }
+}
+
+/// Round every concave corner (turn > 15 deg against the polygon's orientation) with a tangent arc
+/// of radius `r`, shrunk so each tangent length stays <= 0.45 of both adjacent edges.
+pub fn round_concave(poly: &[P2], r: f64) -> Vec<P2> {
+    let n = poly.len();
+    if n < 4 || r <= 0.0 { return poly.to_vec(); }
+    let orient = shoelace(poly).signum();
+    let mut out = Vec::with_capacity(n * 2);
+    for i in 0..n {
+        let (a, b, c) = (poly[(i + n - 1) % n], poly[i], poly[(i + 1) % n]);
+        let (l1, l2) = (dist(a, b), dist(b, c));
+        if l1 < 1e-9 || l2 < 1e-9 { out.push(b); continue; }
+        let u = ((b.0 - a.0) / l1, (b.1 - a.1) / l1);
+        let v = ((c.0 - b.0) / l2, (c.1 - b.1) / l2);
+        let cr = u.0 * v.1 - u.1 * v.0;
+        let phi = cr.atan2(u.0 * v.0 + u.1 * v.1).abs();
+        if cr * orient >= 0.0 || phi < 15f64.to_radians() || phi > 175f64.to_radians() { out.push(b); continue; }
+        let tl = (r * (phi / 2.0).tan()).min(0.45 * l1.min(l2));
+        let re = tl / (phi / 2.0).tan();
+        let t1 = (b.0 - u.0 * tl, b.1 - u.1 * tl);
+        let sg = cr.signum();
+        let nrm = (-u.1 * sg, u.0 * sg);
+        let o = (t1.0 + nrm.0 * re, t1.1 + nrm.1 * re);
+        let th1 = (t1.1 - o.1).atan2(t1.0 - o.0);
+        let k = ((phi / 5f64.to_radians()).ceil() as usize).max(3);
+        for j in 0..=k { let th = th1 + sg * phi * j as f64 / k as f64; out.push((o.0 + re * th.cos(), o.1 + re * th.sin())); }
+    }
+    out
+}
+
+/// Left grip-ring neck flank from the top of the taper down to the ring OD, ending ON the ring
+/// circle, plus the polar angle (about the ring centre) of that end point. Material is to the +x
+/// side of the flank. `flare` widens the flank linearly over `flare_len` above the neck; `fillet`
+/// rounds the flank->ring corner with a circle tangent to both (shrunk until it fits).
+fn neck_flank(xm: f64, hw: f64, y_neck: f64, c: P2, rr: f64, flare: f64, flare_len: f64, fillet: f64) -> (Vec<P2>, f64) {
+    let hxl = xm - hw / 2.0;
+    let mut pts: Vec<P2> = Vec::new();
+    // flank line through A with unit direction d (downward), inward normal n (+x side)
+    let (a, d) = if flare > 1e-9 && hw / 2.0 + flare < 0.9 * rr {
+        // taper ends ON the ring OD at half-width hw/2 + flare, and starts flare_len above that
+        let alf = (-(hw / 2.0 + flare) / rr).acos();
+        let b = (xm - (hw / 2.0 + flare), c.1 + rr * alf.sin());
+        let a = (hxl, b.1 + flare_len);
+        let l = (b.0 - a.0).hypot(b.1 - a.1);
+        pts.push(a);
+        (a, ((b.0 - a.0) / l, (b.1 - a.1) / l))
+    } else { ((hxl, y_neck + flare_len), (0.0, -1.0)) };
+    let n = (-d.1, d.0); // rotate d by +90 deg: for d = (0,-1) gives (1, 0) = +x (material side)
+    let line_hit = |off: f64, rad: f64| -> Option<f64> {
+        // smallest s >= 0 with |a + off*n + s d - c| = rad
+        let p = (a.0 + off * n.0 - c.0, a.1 + off * n.1 - c.1);
+        let bq = p.0 * d.0 + p.1 * d.1;
+        let cq = p.0 * p.0 + p.1 * p.1 - rad * rad;
+        let disc = bq * bq - cq;
+        if disc < 0.0 { return None; }
+        let s = -bq - disc.sqrt();
+        (s >= -1e-9).then_some(s.max(0.0))
+    };
+    let mut rf = fillet.max(0.0);
+    while rf > 0.05 {
+        if let Some(s) = line_hit(-rf, rr + rf) {
+            let o = (a.0 - rf * n.0 + s * d.0, a.1 - rf * n.1 + s * d.1);
+            let t1 = (a.0 + s * d.0, a.1 + s * d.1);
+            let (ox, oy) = (o.0 - c.0, o.1 - c.1);
+            let lo = ox.hypot(oy);
+            let t2 = (c.0 + rr * ox / lo, c.1 + rr * oy / lo);
+            // the fillet must stay on the left half and above the ring centre
+            if t2.0 < xm && t2.1 > c.1 && t1.1 <= a.1 + 1e-9 {
+                let th1 = (t1.1 - o.1).atan2(t1.0 - o.0);
+                let mut th2 = (t2.1 - o.1).atan2(t2.0 - o.0);
+                while th2 - th1 > PI { th2 -= 2.0 * PI; }
+                while th1 - th2 > PI { th2 += 2.0 * PI; }
+                let k = (((th2 - th1).abs() * rf) / 0.5).ceil().max(4.0) as usize;
+                for i in 0..=k { let th = th1 + (th2 - th1) * i as f64 / k as f64; pts.push((o.0 + rf * th.cos(), o.1 + rf * th.sin())); }
+                return (pts, oy.atan2(ox));
+            }
+        }
+        rf *= 0.8;
+    }
+    // sharp corner: flank meets the ring OD
+    let s = line_hit(0.0, rr).unwrap_or(0.0);
+    let j = (a.0 + s * d.0, a.1 + s * d.1);
+    pts.push(j);
+    (pts, (j.1 - c.1).atan2(j.0 - c.0))
 }
 
 pub fn shoelace(p: &[P2]) -> f64 {

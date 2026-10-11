@@ -8,6 +8,9 @@
 use jarambit_genotype::{limits, TiGrade};
 use jarambit_phenotype::Phenotype;
 mod fem;
+pub mod fine;
+pub mod calib;
+pub mod verify;
 pub use fem::{capacities as plate_capacities, Caps as PlateCaps};
 
 pub struct Material { pub name: &'static str, pub density: f64, pub yield_mpa: f64, pub e_gpa: f64, pub dyield_dt: f64 }

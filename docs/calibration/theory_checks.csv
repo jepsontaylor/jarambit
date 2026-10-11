@@ -1,0 +1,46 @@
+check,max_area,nodes,model,theory,ratio
+"cantilever tip deflection",4,149,2.812331e-2,2.811951e-2,1.00014
+"cantilever mid-span stress",4,149,1.041578e0,1.000000e0,1.04158
+"cantilever tip deflection (mesh rotated 33 deg)",4,142,2.812303e-2,2.811951e-2,1.00013
+"cantilever mid-span stress (mesh rotated 33 deg)",4,142,1.041671e0,1.000000e0,1.04167
+"clamped plate point-load deflection",4,362,1.086077e-4,1.074728e-4,1.01056
+"clamped plate uniform-load deflection",4,362,3.908623e-2,3.869019e-2,1.01024
+"clamped plate edge von Mises (uniform)",4,362,1.178849e2,1.094314e2,1.07725
+"curved bar inner-fibre stress (Golovin, T6)",4,766,6.925256e1,6.932628e1,0.99894
+"hole Kt_gross (Heywood, d/W=0.2, T6)",4,8192,3.092068e0,3.140000e0,0.98474
+"cantilever tip deflection",2,276,2.812102e-2,2.811951e-2,1.00005
+"cantilever mid-span stress",2,276,1.027089e0,1.000000e0,1.02709
+"cantilever tip deflection (mesh rotated 33 deg)",2,275,2.812122e-2,2.811951e-2,1.00006
+"cantilever mid-span stress (mesh rotated 33 deg)",2,275,1.027885e0,1.000000e0,1.02788
+"clamped plate point-load deflection",2,658,1.081249e-4,1.074728e-4,1.00607
+"clamped plate uniform-load deflection",2,658,3.898350e-2,3.869019e-2,1.00758
+"clamped plate edge von Mises (uniform)",2,658,1.146383e2,1.094314e2,1.04758
+"curved bar inner-fibre stress (Golovin, T6)",2,1205,6.927651e1,6.932628e1,0.99928
+"hole Kt_gross (Heywood, d/W=0.2, T6)",2,16017,3.110814e0,3.140000e0,0.99071
+"cantilever tip deflection",1,526,2.812026e-2,2.811951e-2,1.00003
+"cantilever mid-span stress",1,526,1.020130e0,1.000000e0,1.02013
+"cantilever tip deflection (mesh rotated 33 deg)",1,510,2.812031e-2,2.811951e-2,1.00003
+"cantilever mid-span stress (mesh rotated 33 deg)",1,510,1.019835e0,1.000000e0,1.01984
+"clamped plate point-load deflection",1,1316,1.079830e-4,1.074728e-4,1.00475
+"clamped plate uniform-load deflection",1,1316,3.891517e-2,3.869019e-2,1.00581
+"clamped plate edge von Mises (uniform)",1,1316,1.136778e2,1.094314e2,1.03880
+"curved bar inner-fibre stress (Golovin, T6)",1,1989,6.931959e1,6.932628e1,0.99990
+"hole Kt_gross (Heywood, d/W=0.2, T6)",1,31715,3.150774e0,3.140000e0,1.00343
+"cantilever tip deflection",0.5,1041,2.811991e-2,2.811951e-2,1.00001
+"cantilever mid-span stress",0.5,1041,1.013995e0,1.000000e0,1.01400
+"cantilever tip deflection (mesh rotated 33 deg)",0.5,1024,2.811988e-2,2.811951e-2,1.00001
+"cantilever mid-span stress (mesh rotated 33 deg)",0.5,1024,1.013752e0,1.000000e0,1.01375
+"clamped plate point-load deflection",0.5,2578,1.078302e-4,1.074728e-4,1.00333
+"clamped plate uniform-load deflection",0.5,2578,3.888162e-2,3.869019e-2,1.00495
+"clamped plate edge von Mises (uniform)",0.5,2578,1.124867e2,1.094314e2,1.02792
+"curved bar inner-fibre stress (Golovin, T6)",0.5,5810,6.931058e1,6.932628e1,0.99977
+"hole Kt_gross (Heywood, d/W=0.2, T6)",0.5,64124,3.175355e0,3.140000e0,1.01126
+"cantilever tip deflection",0.25,2000,2.811969e-2,2.811951e-2,1.00001
+"cantilever mid-span stress",0.25,2000,1.009853e0,1.000000e0,1.00985
+"cantilever tip deflection (mesh rotated 33 deg)",0.25,1988,2.811969e-2,2.811951e-2,1.00001
+"cantilever mid-span stress (mesh rotated 33 deg)",0.25,1988,1.009620e0,1.000000e0,1.00962
+"clamped plate point-load deflection",0.25,5120,1.077773e-4,1.074728e-4,1.00283
+"clamped plate uniform-load deflection",0.25,5120,3.886787e-2,3.869019e-2,1.00459
+"clamped plate edge von Mises (uniform)",0.25,5120,1.120343e2,1.094314e2,1.02379
+"curved bar inner-fibre stress (Golovin, T6)",0.25,9355,6.931913e1,6.932628e1,0.99990
+"hole Kt_gross (Heywood, d/W=0.2, T6)",0.25,126759,3.181737e0,3.140000e0,1.01329

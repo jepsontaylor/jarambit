@@ -22,6 +22,8 @@ pub fn perturb(g: &Genotype, r: &mut Rng) -> Genotype {
     h.holder.detent_depth += r.normal() * 0.05;
     h.holder.shoulder_w += r.normal() * 0.05;
     h.holder.holder_wall += r.normal() * 0.03;
+    h.neck_flare += r.normal() * 0.05;
+    h.neck_fillet_r = (h.neck_fillet_r + r.normal() * 0.1).max(0.0);
     h
 }
 

@@ -54,6 +54,10 @@ pub mod limits {
     pub const MAX_SWEEP_DEG: f64 = 140.0;
     /// Nominal blade height (edge-to-edge) used by phenotype & physics.
     pub const BLADE_H_MM: f64 = 14.0;
+    /// Every concave (re-entrant) outline corner is rounded to this radius (or the largest radius
+    /// the adjacent edges allow): waterjet/end-mill inside corners are never sharp, and a sharp
+    /// re-entrant corner is a stress singularity that no plate mesh converges on.
+    pub const MIN_INSIDE_RADIUS_MM: f64 = 1.0;
     /// Brand pad must be at least this flat area (mm x mm).
     pub const BRAND_PAD_MIN: (f64, f64) = (6.0, 12.0);
 }
@@ -75,7 +79,18 @@ pub mod bounds {
     /// - = hawkbill droop. The phenotype only rakes FORWARD: if the natural chord is already
     /// flatter than this, the blade is left un-raked.
     pub const BLADE_ANGLE_DEG: (f64, f64) = (-5.0, 25.0);
+    /// Grip-ring neck reinforcement (2026-10-11, Jepson: add material at the 100 C hot spot).
+    /// Extra half-width (mm per side) at the bottom of a taper that starts NECK_FLARE_LEN above
+    /// the ring neck. The taper sits in the exposed grip below the holder friction zone.
+    pub const NECK_FLARE: (f64, f64) = (0.0, 6.0);
+    pub const NECK_FLARE_LEN: (f64, f64) = (6.0, 25.0);
+    /// Tangent fillet radius (mm) between the grip flank and the ring OD. 0 = the old sharp
+    /// re-entrant corner (a stress singularity: plate stress there does not converge).
+    pub const NECK_FILLET_R: (f64, f64) = (0.0, 10.0);
     pub const THICKNESS: (f64, f64) = (2.5, 4.5);           // stock, mm, 0.1 mm quantum
+    /// Exploratory stock ceiling (JARAMBIT_T_MAX, mm). Default = THICKNESS.1. Hard cap 6.0 mm:
+    /// the holder stack (t + 2*wall_min + clearance <= 9.0 mm) cannot take more.
+    pub const THICKNESS_EXPLORE_CAP: f64 = 6.0;
     pub const EDGE_ANGLE_DEG: (f64, f64) = (14.0, 22.0);    // per side; Ti practical
     pub const SERR_PITCH: (f64, f64) = (2.5, 6.0);          // mm
     pub const SERR_DEPTH: (f64, f64) = (0.4, 1.5);          // mm
@@ -137,6 +152,12 @@ pub struct Genotype {
     pub material: TiGrade,
     /// Blade angle knob (deg), see `bounds::BLADE_ANGLE_DEG`. Gene index 20.
     pub blade_angle_deg: f64,
+    /// Grip-ring neck taper: extra half-width per side (mm). Gene index 21.
+    pub neck_flare: f64,
+    /// Length of that taper above the ring neck (mm). Gene index 22.
+    pub neck_flare_len: f64,
+    /// Fillet radius flank->ring OD (mm). Gene index 23.
+    pub neck_fillet_r: f64,
     /// Raw sweep override for adversarial tests; None = derived from arc/radius.
     pub sweep_override_deg: Option<f64>,
 }
@@ -166,7 +187,7 @@ impl Genotype {
         let mut g = Genotype {
             blade_arc_len: r.range(BLADE_ARC_LEN.0, BLADE_ARC_LEN.1),
             curve_radius: r.range(CURVE_RADIUS.0, CURVE_RADIUS.1),
-            thickness: r.range(THICKNESS.0, THICKNESS.1),
+            thickness: r.range(THICKNESS.0, thickness_max()),
             edge_angle_deg: r.range(EDGE_ANGLE_DEG.0, EDGE_ANGLE_DEG.1),
             serr_inner: s(r), serr_outer: s(r),
             ring_id: r.range(RING_ID.0, RING_ID.1),
@@ -185,6 +206,9 @@ impl Genotype {
             },
             material: if r.f64() < 0.5 { TiGrade::Ti6Al4V } else { TiGrade::Ti3Al2_5V },
             blade_angle_deg: r.range(BLADE_ANGLE_DEG.0, BLADE_ANGLE_DEG.1),
+            neck_flare: r.range(NECK_FLARE.0, NECK_FLARE.1),
+            neck_flare_len: r.range(NECK_FLARE_LEN.0, NECK_FLARE_LEN.1),
+            neck_fillet_r: r.range(NECK_FILLET_R.0, NECK_FILLET_R.1),
             sweep_override_deg: None,
         };
         g.clamp(); g
@@ -201,7 +225,7 @@ impl Genotype {
         let r_out_min = self.blade_arc_len / limits::MAX_SWEEP_DEG.to_radians();
         let half_h = limits::BLADE_H_MM / 2.0;
         self.curve_radius = self.curve_radius.min(r_out_max - half_h).max(r_out_min - half_h).clamp(CURVE_RADIUS.0, CURVE_RADIUS.1);
-        c(&mut self.thickness, THICKNESS);
+        c(&mut self.thickness, (THICKNESS.0, thickness_max()));
         self.thickness = q01(self.thickness);
         c(&mut self.edge_angle_deg, EDGE_ANGLE_DEG);
         let t = self.thickness;
@@ -218,6 +242,9 @@ impl Genotype {
         c(&mut h.holder_wall, HOLDER_WALL);
         // holder pop-in: detent must sit inside the friction-face zone; >= 30 mm of grip + ring stay exposed
         h_repair(&mut self.holder, self.grip_len);
+        c(&mut self.neck_flare, NECK_FLARE); c(&mut self.neck_flare_len, NECK_FLARE_LEN); c(&mut self.neck_fillet_r, NECK_FILLET_R);
+        // taper stays in the exposed grip: >= 2 mm below the holder friction face
+        self.neck_flare_len = self.neck_flare_len.min(self.grip_len - self.holder.friction_len - 2.0).max(NECK_FLARE_LEN.0);
         let hw = self.handle_w();
         c(&mut self.brand_pad_w, BRAND_PAD_W); c(&mut self.brand_pad_l, BRAND_PAD_L);
         self.brand_pad_w = self.brand_pad_w.min(hw - 2.0 * self.holder.detent_depth - 1.0).max(limits::BRAND_PAD_MIN.0);
@@ -239,6 +266,7 @@ impl Genotype {
         m(&mut g.holder.detent_depth, 0.8); m(&mut g.holder.detent_pos, 0.35);
         m(&mut g.holder.friction_len, 22.0); m(&mut g.holder.drain_d, 3.0); m(&mut g.holder.holder_wall, 0.8);
         m(&mut g.blade_angle_deg, 30.0);
+        m(&mut g.neck_flare, 6.0); m(&mut g.neck_flare_len, 19.0); m(&mut g.neck_fillet_r, 10.0);
         if r.f64() < sigma * 0.5 { g.material = if g.material == TiGrade::Ti6Al4V { TiGrade::Ti3Al2_5V } else { TiGrade::Ti6Al4V }; }
         g.clamp(); g
     }
@@ -257,7 +285,7 @@ impl Genotype {
              self.serr_inner.pitch, self.serr_inner.depth, self.serr_outer.pitch, self.serr_outer.depth,
              self.ring_id, self.ring_wall, self.grip_len, self.brand_pad_w, self.brand_pad_l,
              h.ricasso_len, h.shoulder_w, h.detent_depth, h.detent_pos, h.friction_len, h.drain_d, h.holder_wall,
-             self.blade_angle_deg]
+             self.blade_angle_deg, self.neck_flare, self.neck_flare_len, self.neck_fillet_r]
     }
     /// Accepts the legacy 20-gene vector (pre blade-angle knob): blade_angle_deg then defaults to
     /// the top of its range, i.e. the old un-raked (tangent-parallel-to-grip) blade.
@@ -267,7 +295,10 @@ impl Genotype {
             serr_inner: Serration { pitch: v[4], depth: v[5] }, serr_outer: Serration { pitch: v[6], depth: v[7] },
             ring_id: v[8], ring_wall: v[9], grip_len: v[10], brand_pad_w: v[11], brand_pad_l: v[12],
             holder: HolderIface { ricasso_len: v[13], shoulder_w: v[14], detent_depth: v[15], detent_pos: v[16], friction_len: v[17], drain_d: v[18], holder_wall: v[19] },
-            material, blade_angle_deg: v.get(20).copied().unwrap_or(LEGACY_BLADE_ANGLE_DEG), sweep_override_deg: None,
+            material, blade_angle_deg: v.get(20).copied().unwrap_or(LEGACY_BLADE_ANGLE_DEG),
+            // pre-neck-gene genomes (<= 21 genes): no taper, sharp corner = the old geometry
+            neck_flare: v.get(21).copied().unwrap_or(0.0), neck_flare_len: v.get(22).copied().unwrap_or(15.0),
+            neck_fillet_r: v.get(23).copied().unwrap_or(0.0), sweep_override_deg: None,
         }
     }
     /// Span of each gene's bounds (same order as to_vec), for normalised distances.
@@ -275,7 +306,7 @@ impl Genotype {
         use bounds::*;
         [BLADE_ARC_LEN, CURVE_RADIUS, THICKNESS, EDGE_ANGLE_DEG, SERR_PITCH, SERR_DEPTH, SERR_PITCH, SERR_DEPTH,
          RING_ID, RING_WALL, GRIP_LEN, BRAND_PAD_W, BRAND_PAD_L, RICASSO_LEN, SHOULDER_W, DETENT_DEPTH, DETENT_POS,
-         FRICTION_LEN, HOLDER_DRAIN_D, HOLDER_WALL, BLADE_ANGLE_DEG].iter().map(|b| b.1 - b.0).collect()
+         FRICTION_LEN, HOLDER_DRAIN_D, HOLDER_WALL, BLADE_ANGLE_DEG, NECK_FLARE, NECK_FLARE_LEN, NECK_FILLET_R].iter().map(|b| b.1 - b.0).collect()
     }
     pub fn distance(&self, o: &Self) -> f64 {
         let s = Self::spans();
@@ -289,7 +320,7 @@ impl Genotype {
         s.push(self.material.name().into());
         s.join(",")
     }
-    pub const CSV_HEADER: &'static str = "blade_arc_len,curve_radius,thickness,edge_angle_deg,serr_in_pitch,serr_in_depth,serr_out_pitch,serr_out_depth,ring_id,ring_wall,grip_len,brand_pad_w,brand_pad_l,ricasso_len,shoulder_w,detent_depth,detent_pos,friction_len,holder_drain_d,holder_wall,blade_angle_deg,material";
+    pub const CSV_HEADER: &'static str = "blade_arc_len,curve_radius,thickness,edge_angle_deg,serr_in_pitch,serr_in_depth,serr_out_pitch,serr_out_depth,ring_id,ring_wall,grip_len,brand_pad_w,brand_pad_l,ricasso_len,shoulder_w,detent_depth,detent_pos,friction_len,holder_drain_d,holder_wall,blade_angle_deg,neck_flare,neck_flare_len,neck_fillet_r,material";
 }
 
 #[cfg(test)]
@@ -313,4 +344,12 @@ mod tests {
         let g = Genotype::random(&mut Rng(3));
         assert_eq!(g.to_csv_row().split(',').count(), Genotype::CSV_HEADER.split(',').count());
     }
+}
+
+/// Stock-thickness ceiling for this process: bounds::THICKNESS.1 (4.5 mm) unless JARAMBIT_T_MAX
+/// sets an exploratory value (clamped to bounds::THICKNESS_EXPLORE_CAP). Read once.
+pub fn thickness_max() -> f64 {
+    static T: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
+    *T.get_or_init(|| std::env::var("JARAMBIT_T_MAX").ok().and_then(|v| v.parse::<f64>().ok())
+        .map(|t| t.clamp(bounds::THICKNESS.1, bounds::THICKNESS_EXPLORE_CAP)).unwrap_or(bounds::THICKNESS.1))
 }
