@@ -7,7 +7,9 @@
 use jarambit_genotype::{q01, Rng, TiGrade};
 
 pub const N_CP: usize = 40;
-pub const NG: usize = 117;
+pub const NG: usize = 128;
+/// Pre-P1 genome length (wave7..wave16 lattice layout); rows of this length load with the P1 layer OFF.
+pub const NG_P0: usize = 117;
 /// Legacy (wave6) genome length; rows of this length load with every internal-machining gene OFF.
 pub const NG_LEGACY: usize = 90;
 pub const DROP: usize = 40; pub const GRIP_DX: usize = 41; pub const RING_WALL: usize = 42; pub const RING_ID: usize = 43;
@@ -50,6 +52,19 @@ pub const ISO_XH: usize = 108; pub const ISO_ZL: usize = 109;
 /// outside stress concentrations and free mass inside low-stress zones.
 pub const PERF_D: usize = 110; pub const PERF_GAP: usize = 111; pub const PERF_A: usize = 112; pub const PERF_E: usize = 113;
 pub const PERF_ZL: usize = 114; pub const PERF_ZH: usize = 115; pub const PERF_XH: usize = 116;
+// ---- D1 P1 continuous-rail layer (wave17+, exec/d1) ----
+/// P1_ON (>= 0.5): continuous-rail architecture. Full-thickness (= local knot-field base) RAILS of width RAIL_W
+/// from the outline and every hole rim, from the ring OD to the heel; full-thickness NECK out to r_od + NECK_L;
+/// NO through-perforations / pierced-fuller windows / isogrid / dimple lattice / edge relief / comet flutes /
+/// ring flute / machined texture (clamped OFF). Only SHALLOW face pockets (<= 0.6 mm/face, POCKET_D) with
+/// >= R3 runouts (POCKET_R) inside the rails, outside the grinds, and only where the PARENT's 100 C SF map > 2
+/// (JARAMBIT_P1_SFMAP). Thickness: K_N (3..5) centreline knots K0..K4 (mm, <= stock T) evenly spaced from the
+/// ring centre to taper_x0, piecewise-linear, then the distal taper to t_tip.
+pub const P1_ON: usize = 117; pub const RAIL_W: usize = 118; pub const NECK_L: usize = 119; pub const POCKET_D: usize = 120;
+pub const POCKET_R: usize = 121; pub const K_N: usize = 122; pub const K0: usize = 123;
+/// P1 caps.
+pub const P1_POCKET_MAX: f64 = 0.6; pub const P1_RUNOUT_MIN: f64 = 3.0;
+pub fn p1_env() -> bool { std::env::var("JARAMBIT_P1").map_or(false, |v| v == "1") }
 
 pub const NAMES: [&str; NG - N_CP] = ["blade_drop_deg", "grip_dx", "ring_wall", "ring_id", "neck_fillet", "t_stock", "t_tip", "taper_x0",
     "edge_angle_in", "edge_angle_sp", "comet_x0", "comet_x1", "comet_w0", "comet_w1", "comet_bow", "comet_y", "eye_scale", "cairn_d",
@@ -58,7 +73,8 @@ pub const NAMES: [&str; NG - N_CP] = ["blade_drop_deg", "grip_dx", "ring_wall", 
     "fuller_d", "fuller_w", "fuller_s0", "fuller_s1", "flute_d", "texture_mode", "texture_d", "texture_pitch", "texture_angle",
     "wrap_x0", "wrap_len", "pad_x", "pad_y", "pad_w", "pad_l", "edge_t",
     "iso_d", "iso_pitch", "iso_rib", "iso_angle", "iso_rim", "iso_blade", "iso_handle", "iso_blade_extent", "iso_grade",
-    "win_n", "win_s0", "win_s1", "win_w", "win_fill", "win_decay", "rflute_d", "rflute_w", "rflute_arc", "iso_handle_start", "iso_land", "perf_d", "perf_gap", "perf_angle", "perf_elong", "perf_land", "perf_handle", "perf_handle_start"];
+    "win_n", "win_s0", "win_s1", "win_w", "win_fill", "win_decay", "rflute_d", "rflute_w", "rflute_arc", "iso_handle_start", "iso_land", "perf_d", "perf_gap", "perf_angle", "perf_elong", "perf_land", "perf_handle", "perf_handle_start",
+    "p1_on", "rail_w", "neck_l", "pocket_d", "pocket_r", "k_n", "k0", "k1", "k2", "k3", "k4"];
 
 /// Finished-thickness floor from 6.35 mm (1/4 in) Ti plate; ceiling = JARAMBIT_T_MAX (<= 6.0).
 pub const T_MIN: f64 = 5.3;
@@ -75,7 +91,9 @@ pub fn cp_delta(i: usize) -> f64 {
 }
 
 /// Internal-machining genes with every feature OFF (C.4 / legacy wave6 genomes).
-pub const MACHINING_OFF: [f64; NG - NG_LEGACY] = [0.0, 10.0, 2.0, 0.0, 3.0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.2, 0.75, 6.0, 0.6, 0.7, 0.0, 0.5, 200.0, 0.3, 0.0, 0.0, 4.0, 0.0, 1.0, 0.0, 0.0, 0.3];
+pub const MACHINING_OFF: [f64; NG - NG_LEGACY] = [0.0, 10.0, 2.0, 0.0, 3.0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.2, 0.75, 6.0, 0.6, 0.7, 0.0, 0.5, 200.0, 0.3, 0.0, 0.0, 4.0, 0.0, 1.0, 0.0, 0.0, 0.3,
+    // P1 layer OFF (knots are overwritten with the stock T by clamp when P1 is off)
+    0.0, 3.0, 8.0, 0.0, 4.0, 3.0, 6.0, 6.0, 6.0, 6.0, 6.0];
 
 pub fn bounds() -> Vec<(f64, f64)> {
     let mut b: Vec<(f64, f64)> = (0..N_CP).map(|i| (-cp_delta(i), cp_delta(i))).collect();
@@ -86,7 +104,8 @@ pub fn bounds() -> Vec<(f64, f64)> {
         (0.0, 1.2), (2.0, 5.0), (0.05, 0.4), (0.5, 0.9), (0.0, 1.0), (0.0, 1.0), (0.15, 0.4), (1.5, 3.0), (-45.0, 45.0),
         (16.0, 26.0), (45.0, 60.0), (70.0, 80.0), (-5.0, 3.0), (6.0, 9.0), (12.0, 16.0), (0.5, 0.9),
         (0.0, 1.6), (7.0, 16.0), (1.4, 3.0), (-30.0, 30.0), (2.0, 5.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (-0.8, 0.8),
-        (0.0, 7.99), (0.05, 0.5), (0.5, 0.92), (3.0, 10.0), (0.45, 0.8), (0.4, 1.0), (0.0, 2.0), (0.3, 0.7), (120.0, 260.0), (0.0, 0.8), (0.0, 1.0), (0.0, 7.0), (3.2, 8.0), (-40.0, 40.0), (1.0, 2.4), (0.0, 1.0), (0.0, 1.0), (0.0, 0.9)]);
+        (0.0, 7.99), (0.05, 0.5), (0.5, 0.92), (3.0, 10.0), (0.45, 0.8), (0.4, 1.0), (0.0, 2.0), (0.3, 0.7), (120.0, 260.0), (0.0, 0.8), (0.0, 1.0), (0.0, 7.0), (3.2, 8.0), (-40.0, 40.0), (1.0, 2.4), (0.0, 1.0), (0.0, 1.0), (0.0, 0.9),
+        (0.0, 1.0), (3.0, 7.0), (4.0, 12.0), (0.0, P1_POCKET_MAX), (P1_RUNOUT_MIN, 6.0), (3.0, 5.99), (T_MIN, 6.0), (T_MIN, 6.0), (T_MIN, 6.0), (T_MIN, 6.0), (T_MIN, 6.0)]);
     assert_eq!(b.len(), NG);
     b
 }
@@ -124,7 +143,29 @@ impl Genome {
         if self.v[FUL_S1] < self.v[FUL_S0] + 0.15 { self.v[FUL_S1] = (self.v[FUL_S0] + 0.15).min(0.9); }
         if self.v[COMET_X1] < self.v[COMET_X0] + 28.0 { self.v[COMET_X1] = self.v[COMET_X0] + 28.0; }
         if self.v[WIN_S1] < self.v[WIN_S0] + 0.2 { self.v[WIN_S1] = (self.v[WIN_S0] + 0.2).min(0.92); }
+        if p1_env() { self.v[P1_ON] = 1.0; }
+        if self.p1() {
+            // continuous-rail architecture: every through-feature / deep face-pocket family OFF
+            for i in [ISO_D, ISO_ZB, ISO_ZH, ISO_ZL, WIN_N, RFL_D, PERF_D, PERF_ZL, PERF_ZH, LAT_D, LAT_H, LAT_B, RELIEF_D, FLUTE, TEX_MODE] { self.v[i] = 0.0; }
+            self.v[FUL_D] = self.v[FUL_D].min(P1_POCKET_MAX);
+            self.v[POCKET_D] = self.v[POCKET_D].clamp(0.0, P1_POCKET_MAX); self.v[POCKET_R] = self.v[POCKET_R].max(P1_RUNOUT_MIN);
+            for k in 0..5 { self.v[K0 + k] = self.v[K0 + k].clamp(T_MIN, self.v[T]); }
+            // the stock is the thickest knot (finished from 6.35 plate; 0.1 mm stock rule applies to T)
+            let kn = self.k_n(); let kmax = (0..kn).map(|k| self.v[K0 + k]).fold(T_MIN, f64::max);
+            if kmax < self.v[T] - 1e-9 { let s = self.v[T] - kmax; for k in 0..kn { self.v[K0 + k] = (self.v[K0 + k] + s).min(self.v[T]); } }
+        } else { for k in 0..5 { self.v[K0 + k] = self.v[T]; } }
     }
+    pub fn p1(&self) -> bool { self.v.len() > P1_ON && self.v[P1_ON] >= 0.5 }
+    pub fn k_n(&self) -> usize { (self.v[K_N].floor() as usize).clamp(3, 5) }
+    /// P1 knot thickness at x (ring centre = 0 .. taper_x0 + dx), piecewise-linear; stock T when P1 is off.
+    pub fn knot_t(&self, x: f64, tx0: f64) -> f64 {
+        if !self.p1() { return self.v[T]; }
+        let kn = self.k_n(); let u = (x / tx0.max(1.0)).clamp(0.0, 1.0) * (kn - 1) as f64;
+        let i = (u.floor() as usize).min(kn - 2); let f = u - i as f64;
+        self.v[K0 + i] * (1.0 - f) + self.v[K0 + i + 1] * f
+    }
+    /// Thinnest knot (P1) — the joint thin+hot factor uses this, conservatively; stock T otherwise.
+    pub fn t_joint(&self) -> f64 { if !self.p1() { return self.v[T]; } (0..self.k_n()).map(|k| self.v[K0 + k]).fold(f64::MAX, f64::min) }
     pub fn random_in_envelope(r: &mut Rng) -> Self {
         let b = bounds();
         let mut g = Genome { v: b.iter().map(|(lo, hi)| r.range(*lo, *hi)).collect(), mat: if r.f64() < 0.8 { TiGrade::Ti6Al4V } else { TiGrade::Ti3Al2_5V } };
@@ -150,7 +191,9 @@ impl Genome {
                    for i in 0..N_CP { let d = (i as f64 - c).abs().min(N_CP as f64 - (i as f64 - c).abs());
                        g.v[i] += a * (-(d / w).powi(2)).exp() * (cp_delta(i) / 3.5); }
                    if r.f64() < 0.3 { jig(&mut g, DROP, r, sigma); } if r.f64() < 0.3 { jig(&mut g, GRIP_DX, r, sigma); } }
-            2 => { for i in [T, T_TIP, TAPER_X0, RELIEF_D, RELIEF_W, RELIEF_Q, EA_IN, EA_SP, RING_WALL, EDGE_TH] { if r.f64() < 0.5 { jig(&mut g, i, r, sigma * 1.5); } } }
+            2 => { for i in [T, T_TIP, TAPER_X0, RELIEF_D, RELIEF_W, RELIEF_Q, EA_IN, EA_SP, RING_WALL, EDGE_TH] { if r.f64() < 0.5 { jig(&mut g, i, r, sigma * 1.5); } }
+                   if g.p1() { for i in [K0, K0 + 1, K0 + 2, K0 + 3, K0 + 4, K_N] { if r.f64() < 0.5 { jig(&mut g, i, r, sigma * 1.5); } } } }
+            5 if g.p1() => { for i in [RAIL_W, NECK_L, POCKET_D, POCKET_R, K_N, K0, K0 + 1, K0 + 2, K0 + 3, K0 + 4, T, FUL_D, RING_WALL, NECK_FILLET] { if r.f64() < 0.4 { jig(&mut g, i, r, sigma * 1.5); } } }
             3 => { for i in [LAT_D, LAT_P, LAT_F, LAT_A] { if r.f64() < 0.6 { jig(&mut g, i, r, sigma * 1.5); } }
                    if r.f64() < 0.2 { g.v[LAT_H] = 1.0 - g.v[LAT_H]; } if r.f64() < 0.2 { g.v[LAT_B] = 1.0 - g.v[LAT_B]; } }
             5 => { for i in [ISO_D, ISO_P, ISO_RIB, ISO_A, ISO_RIM, ISO_XB, ISO_XH, ISO_GR, WIN_S0, WIN_S1, WIN_W, WIN_FILL, WIN_DECAY, RFL_D, RFL_W, RFL_ARC, PERF_D, PERF_GAP, PERF_A, PERF_E, PERF_XH, T] { if r.f64() < 0.4 { jig(&mut g, i, r, sigma * 1.5); } }
@@ -181,6 +224,7 @@ impl Genome {
         // 110 = wave7) are padded with the remaining internal-machining genes OFF.
         let n = fields.iter().position(|f| f.trim().starts_with("Ti"))?;
         if n < NG_LEGACY || n > NG { return None; }
+        // pre-P1 rows (<= 117 genes) get the P1 layer OFF; knots follow the stock via clamp()
         let mut v: Vec<f64> = fields[..n].iter().map(|s| s.trim().parse().ok()).collect::<Option<Vec<f64>>>()?;
         v.extend_from_slice(&MACHINING_OFF[n - NG_LEGACY..]);
         Some(Genome { v, mat: if fields[n].contains("3Al") { TiGrade::Ti3Al2_5V } else { TiGrade::Ti6Al4V } })
@@ -188,6 +232,10 @@ impl Genome {
     /// Activate the internal-machining layer at random (seeding operator for the lattice lane).
     pub fn machining_kick(&self, r: &mut Rng) -> Self {
         let b = bounds(); let mut g = self.clone();
+        if g.p1() { // P1: re-draw the rail / neck / pocket / knot layer instead of through-machining
+            for i in [RAIL_W, NECK_L, POCKET_D, POCKET_R, K_N, K0, K0 + 1, K0 + 2, K0 + 3, K0 + 4] { g.v[i] = r.range(b[i].0, b[i].1); }
+            if r.f64() < 0.5 { g.v[T] = r.range(T_MIN, t_max()); }
+            g.clamp(); return g; }
         for i in [ISO_D, ISO_P, ISO_RIB, ISO_A, ISO_RIM, ISO_XB, ISO_XH, ISO_GR, WIN_S0, WIN_S1, WIN_W, WIN_FILL, WIN_DECAY, RFL_D, RFL_W, RFL_ARC, PERF_D, PERF_GAP, PERF_A, PERF_E, PERF_XH] { g.v[i] = r.range(b[i].0, b[i].1); }
         for z in [ISO_ZB, ISO_ZH, ISO_ZL, PERF_ZL, PERF_ZH] { g.v[z] = if r.f64() < 0.5 { 1.0 } else { 0.0 }; }
         g.v[WIN_N] = (r.f64() * 8.0).floor().min(7.0);

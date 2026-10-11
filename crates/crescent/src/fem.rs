@@ -34,6 +34,11 @@ pub struct Fem {
     /// (no 3D factor) first-yield torque if the peak search excludes 15 mm around the tip ("body"), and
     /// if it is restricted to the hand side x < heel.x - 3 mm ("hand").
     pub twist_tipdist: f64, pub twist_body_joint_nmm: f64, pub twist_hand_joint_nmm: f64,
+    /// D1 P1 two-fixture twist report (Jepson pending tip vs body+submodel; default hard evaluation on finalists
+    /// = the tip-loaded `twist_sf`): BODY = same 1.82 N*m tip torque, peak searched > 15 mm from the tip, St-Venant
+    /// 3D factor at the body peak section; TIP SUBMODEL = peak restricted to the 4..15 mm tip annulus with its own
+    /// 3D factor (taken from the strict 0.0625 mm^2 solve in crescent-d1 / certification).
+    pub twist_body_kc: f64, pub twist_body_sf: f64, pub twist_tipzone_kc: f64, pub twist_tipzone_joint_nmm: f64, pub twist_tipzone_sf: f64,
 }
 
 pub struct Fields { pub xy: Vec<P2>, pub tris: Vec<[usize; 3]>, pub te: Vec<f64>, pub env_vm: Vec<f64>, pub sf: Vec<f64>,
@@ -45,6 +50,19 @@ pub const TWIST_DESIGN_NMM: f64 = 180.0 * 7.0;
 pub const TWIST_FLOOR_NMM: f64 = 1820.0;
 /// D1 failure-sequence target: hand-adjacent onset >= 1.2 x blade-zone onset.
 pub const SEQ_TARGET: f64 = 1.2;
+/// OWNER LOCK (Jepson, 2026-10-11 14:52 MT): twist floor = BODY torsion AND TIP SUBMODEL, both at 1.82 N*m chord
+/// torsion (joint thin+hot, 828, St-Venant 3D), SF >= 1 each. Tip-only SF is always reported alongside (not the gate).
+pub fn twist_floor_ok(body_sf: f64, tipzone_sf_strict: f64) -> bool { body_sf >= 1.0 && tipzone_sf_strict >= 1.0 }
+/// OWNER LOCK promote mass band (g) and hard cap.
+pub const MASS_BAND: (f64, f64) = (74.0, 77.0); pub const MASS_CAP_HARD: f64 = 80.0;
+/// OWNER LOCK promote-eligibility (still needs human aesthetic sign-off; never auto-promoted):
+/// aesthetic C.6 + every hard gate (blade >= 3.375 in on all three measures, ...) + 828 joint floors at certification
+/// + hunter >= 260 at strict 0.0625 + seq >= 1.2 + twist body AND tip submodel >= 1.82 N*m + mass in 74-77 g and < 80 g.
+#[allow(clippy::too_many_arguments)]
+pub fn promote_eligible(aes_pass: bool, gates_ok: bool, floors_ok: bool, strict_lat: f64, seq: f64, body_sf: f64, tipzone_sf: f64, mass_g: f64) -> bool {
+    aes_pass && gates_ok && floors_ok && strict_lat >= floors::HUNTER_LATERAL_N && seq >= SEQ_TARGET && twist_floor_ok(body_sf, tipzone_sf)
+        && mass_g >= MASS_BAND.0 && mass_g <= MASS_BAND.1 && mass_g < MASS_CAP_HARD
+}
 
 /// D1 JOINT robustness factor: (stock -0.1 mm)^p x yield(100 C)/yield(20 C), both at once
 /// (p = 2 for bending/torsion surface stress, 1 for membrane). Replaces min(thin, hot).
@@ -93,11 +111,13 @@ pub fn certify(p: &Pheno) -> Option<(Fem, Fields)> {
     let m = material(p.mat);
     let gov = if a.lat20 <= b.lat20 { &a } else { &b };
     let lat20 = a.lat20.min(b.lat20); let ring20 = a.ring20.min(b.ring20);
-    let lat_rob = lat20 * joint_k(&m, p.t, 2); let ring_rob = ring20 * joint_k(&m, p.t, 1);
+    let lat_rob = lat20 * joint_k(&m, p.t_joint, 2); let ring_rob = ring20 * joint_k(&m, p.t_joint, 1);
     let tg = if a.twist_joint_nmm <= b.twist_joint_nmm { &a } else { &b };
     let f = Fem { lat20, pry20: a.pry20.min(b.pry20), twist20_nmm: a.twist20_nmm.min(b.twist20_nmm), ring20, lat_rob, ring_rob,
         couple20_nmm: a.couple20_nmm.min(b.couple20_nmm), twist_kc: tg.twist_kc, twist_b_mm: tg.twist_b_mm, twist_t_mm: tg.twist_t_mm, twist_at: tg.twist_at,
         twist_joint_nmm: tg.twist_joint_nmm, twist_sf: tg.twist_sf,
+        twist_body_kc: if a.twist_body_sf <= b.twist_body_sf { a.twist_body_kc } else { b.twist_body_kc }, twist_body_sf: a.twist_body_sf.min(b.twist_body_sf),
+        twist_tipzone_kc: if a.twist_tipzone_sf <= b.twist_tipzone_sf { a.twist_tipzone_kc } else { b.twist_tipzone_kc }, twist_tipzone_joint_nmm: a.twist_tipzone_joint_nmm.min(b.twist_tipzone_joint_nmm), twist_tipzone_sf: a.twist_tipzone_sf.min(b.twist_tipzone_sf),
         twist_tipdist: tg.twist_tipdist, twist_body_joint_nmm: a.twist_body_joint_nmm.min(b.twist_body_joint_nmm), twist_hand_joint_nmm: a.twist_hand_joint_nmm.min(b.twist_hand_joint_nmm),
         seq_ratio: if a.seq_ratio <= b.seq_ratio { a.seq_ratio } else { b.seq_ratio }, seq_case: if a.seq_ratio <= b.seq_ratio { a.seq_case } else { b.seq_case },
         sf_hiker: lat_rob / floors::HIKER_LATERAL_N, sf_hunter: lat_rob / floors::HUNTER_LATERAL_N, sf_ring: ring_rob / floors::RING_PULL_N,
@@ -147,11 +167,17 @@ fn run_b(p: &Pheno, max_area: f64, keep: bool, bias_lat: f64, bias_ring: f64) ->
     // section through the twist peak along n (inside the outline, outside every hole) -> St-Venant 3D factor
     let inside = |q: P2| point_in_poly(q, &outer) && !holes.iter().any(|h| point_in_poly(q, h));
     let walk = |s: f64| { let mut d = 0.0; while d < 60.0 && inside((cen[et_e].0 + s * (d + 0.05) * nvec.0, cen[et_e].1 + s * (d + 0.05) * nvec.1)) { d += 0.05; } d };
+    let kc_at = |e: usize| { let w = |s: f64| { let mut d = 0.0; while d < 60.0 && inside((cen[e].0 + s * (d + 0.05) * nvec.0, cen[e].1 + s * (d + 0.05) * nvec.1)) { d += 0.05; } d };
+        let b = w(1.0) + w(-1.0); let t = te[e]; torsion_3d_factor(b.max(t) / b.min(t).max(1e-6)) };
     let tw_b = walk(1.0) + walk(-1.0); let tw_t = te[et_e];
     let tw_kc = torsion_3d_factor(tw_b.max(tw_t) / tw_b.min(tw_t).max(1e-6));
     let excl15: Vec<bool> = cen.iter().map(|c| dist(*c, tp) < 15.0).collect();
+    let tipzone_ex: Vec<bool> = cen.iter().map(|c| { let d = dist(*c, tp); d < fine::TIP_EXCL_MM || d >= 15.0 }).collect();
     let hand_ex: Vec<bool> = cen.iter().map(|c| c.0 >= p.heel.0 - 3.0).collect();
-    let (st_body, _) = peak(&twist, &excl15); let (st_hand, _) = peak(&twist, &hand_ex);
+    let (st_body, e_body) = peak(&twist, &excl15); let (st_hand, _) = peak(&twist, &hand_ex); let (st_tz, e_tz) = peak(&twist, &tipzone_ex);
+    let (kc_body, kc_tz) = (kc_at(e_body), kc_at(e_tz));
+    let mt = material(p.mat); let jk2 = joint_k(&mt, p.t_joint, 2);
+    let body_j3 = mt.yield_at(20.0) / st_body.max(1e-12) * jk2 / kc_body; let tz_j3 = mt.yield_at(20.0) / st_tz.max(1e-12) * jk2 / kc_tz;
     // failure-sequence proxy: blade zone = x >= heel.x (sharpened blade), hand zone = x < heel.x - 3 mm
     let zone_pk = |v: &[f64]| { let (mut hb, mut bb) = (0.0f64, 0.0f64); for e in 0..ne { if excl[e] || !v[e].is_finite() { continue; }
         if cen[e].0 >= p.heel.0 { bb = bb.max(v[e]); } else if cen[e].0 < p.heel.0 - 3.0 { hb = hb.max(v[e]); } } (hb, bb) };
@@ -191,19 +217,20 @@ fn run_b(p: &Pheno, max_area: f64, keep: bool, bias_lat: f64, bias_ring: f64) ->
     if ph > 0.0 && pb > 0.0 && pb / ph < seq.0 { seq = (pb / ph, "pry"); }
     let sy20 = m.yield_at(20.0);
     let lat20 = sy20 / sl.max(1e-12); let ring20 = sy20 / ring_pk.0.max(1e-12);
-    let lat_rob = lat20 * joint_k(&m, p.t, 2) / bias_lat;
-    let ring_rob = ring20 * joint_k(&m, p.t, 1) / bias_ring;
-    let twist20 = sy20 / st.max(1e-12); let tw_joint = twist20 * joint_k(&m, p.t, 2) / tw_kc;
+    let lat_rob = lat20 * joint_k(&m, p.t_joint, 2) / bias_lat;
+    let ring_rob = ring20 * joint_k(&m, p.t_joint, 1) / bias_ring;
+    let twist20 = sy20 / st.max(1e-12); let tw_joint = twist20 * joint_k(&m, p.t_joint, 2) / tw_kc;
     let f = Fem { lat20, pry20: sy20 / pry_pk.max(1e-12), twist20_nmm: twist20, ring20, lat_rob, ring_rob,
         couple20_nmm: sy20 / sc.max(1e-12), twist_kc: tw_kc, twist_b_mm: tw_b, twist_t_mm: tw_t, twist_at: cen[et_e],
         twist_joint_nmm: tw_joint, twist_sf: tw_joint / TWIST_FLOOR_NMM, seq_ratio: seq.0, seq_case: seq.1,
-        twist_tipdist: dist(cen[et_e], tp), twist_body_joint_nmm: sy20 / st_body.max(1e-12) * joint_k(&m, p.t, 2),
-        twist_hand_joint_nmm: sy20 / st_hand.max(1e-12) * joint_k(&m, p.t, 2),
+        twist_tipdist: dist(cen[et_e], tp), twist_body_joint_nmm: sy20 / st_body.max(1e-12) * joint_k(&m, p.t_joint, 2),
+        twist_hand_joint_nmm: sy20 / st_hand.max(1e-12) * joint_k(&m, p.t_joint, 2),
+        twist_body_kc: kc_body, twist_body_sf: body_j3 / TWIST_FLOOR_NMM, twist_tipzone_kc: kc_tz, twist_tipzone_joint_nmm: tz_j3, twist_tipzone_sf: tz_j3 / TWIST_FLOOR_NMM,
         sf_hiker: lat_rob / floors::HIKER_LATERAL_N, sf_hunter: lat_rob / floors::HUNTER_LATERAL_N, sf_ring: ring_rob / floors::RING_PULL_N,
         lat_at: cen[el], ring_at: ring_pk.1, nodes: n, tris: ne,
         floors_ok: lat_rob >= floors::HIKER_LATERAL_N && lat_rob >= floors::HUNTER_LATERAL_N && ring_rob >= floors::RING_PULL_N };
     let fields = if keep {
-        let sy100 = m.yield_at(100.0) * ((p.t - 0.1) / p.t).powi(2);
+        let sy100 = m.yield_at(100.0) * ((p.t_joint - 0.1) / p.t_joint).powi(2);
         let ring_c: Vec<f64> = (0..ne).map(|e| if cen[e].0 >= sx0 - 3.0 { 0.0 } else { ring[e] }).collect();
         let env: Vec<f64> = (0..ne).map(|e| if excl[e] { 0.0 } else {
             (lat[e] * floors::HUNTER_LATERAL_N).max(twist[e] * TWIST_FLOOR_NMM * tw_kc).max(pry[e] * floors::HUNTER_LATERAL_N).max(ring_c[e] * floors::RING_PULL_N) }).collect();

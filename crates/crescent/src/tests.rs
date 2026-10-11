@@ -219,3 +219,45 @@ fn strip_peak(l: f64, b: f64, t: f64, th: f64, load_dir: P2, area: f64) -> f64 {
     let h = Genome::from_csv(&f).unwrap();
     assert!(g.v.iter().zip(&h.v).all(|(a, b)| a.to_bits() == b.to_bits()), "genome CSV must round-trip bit-exactly");
 }
+
+// ---------------- D1 P1 continuous-rail layer ----------------
+#[test]
+fn p1_layer_off_for_legacy_and_seed() {
+    let g = Genome::c6_seed(5.7);
+    assert!(!g.p1() || crate::genome::p1_env());
+    if !g.p1() { for k in 0..5 { assert_eq!(g.v[K0 + k], g.v[T]); } assert_eq!(g.t_joint(), g.v[T]); }
+}
+#[test]
+fn p1_clamps_through_features_off_and_knots_set_stock() {
+    let mut g = Genome::c6_seed(5.8);
+    g.v[PERF_D] = 5.0; g.v[PERF_ZL] = 1.0; g.v[PERF_ZH] = 1.0; g.v[WIN_N] = 4.0; g.v[ISO_D] = 1.2; g.v[ISO_ZB] = 1.0; g.v[LAT_D] = 1.0; g.v[LAT_H] = 1.0;
+    g.v[P1_ON] = 1.0; g.v[K_N] = 3.0; g.v[K0] = 5.9; g.v[K0 + 1] = 5.5; g.v[K0 + 2] = 5.4; g.v[POCKET_D] = 0.9; g.v[POCKET_R] = 1.0; g.v[FUL_D] = 1.1;
+    g.clamp();
+    assert!(g.p1());
+    for i in [PERF_D, PERF_ZL, PERF_ZH, WIN_N, ISO_D, ISO_ZB, LAT_D, LAT_H, RELIEF_D, FLUTE, RFL_D, TEX_MODE] { assert_eq!(g.v[i], 0.0, "gene {i}"); }
+    assert!(g.v[POCKET_D] <= P1_POCKET_MAX + 1e-12 && g.v[POCKET_R] >= P1_RUNOUT_MIN - 1e-12 && g.v[FUL_D] <= P1_POCKET_MAX + 1e-12);
+    // thickest knot is lifted to the stock T (5.8); profile shape kept
+    let kmax = (0..3).map(|k| g.v[K0 + k]).fold(0.0, f64::max); assert!((kmax - 5.8).abs() < 1e-9, "kmax {kmax}");
+    assert!((g.t_joint() - 5.4).abs() < 1e-9, "t_joint {}", g.t_joint());
+    let p = crate::pheno::build(&g);
+    assert_eq!(p.n_perf, 0); assert_eq!(p.n_win, 0);
+    assert!((p.t_joint - g.t_joint()).abs() < 1e-12);
+    // no parent SF map in unit tests -> no pockets anywhere (conservative default)
+    if crate::pheno::sfmap().is_none() { assert_eq!(p.pocket_area, 0.0); }
+    // knot field: neck thicker than the mid-handle knot, all >= 5.3 - groove; the field never exceeds the stock
+    // neck band just outside the ring OD: thickest raster cell there sits on the first knot segment (~5.8 -> 5.5)
+    let fd = &p.field; let mut neck = 0.0f64;
+    for j in 0..fd.ny { for i in 0..fd.nx { let v = fd.th[j * fd.nx + i]; if v.is_nan() { continue; }
+        let x = fd.x0 + (i as f64 + 0.5) * fd.g; if x >= p.ring_od / 2.0 + 1.0 && x <= p.ring_od / 2.0 + 4.0 { neck = neck.max(v as f64); } } }
+    assert!(neck > 5.6 && neck <= 5.8 + 1e-6, "neck {neck}");
+    let mx = p.field.th.iter().filter(|v| !v.is_nan()).fold(0.0f32, |a, &b| a.max(b)); assert!(mx as f64 <= 5.8 + 1e-6);
+    // same genome with P1 off keeps the single-stock field (heavier)
+    let mut h = g.clone(); h.v[P1_ON] = 0.0; h.clamp();
+    if !h.p1() { let q = crate::pheno::build(&h); assert!(q.mass_g > p.mass_g, "single stock {:.2} vs knots {:.2}", q.mass_g, p.mass_g); }
+}
+#[test]
+fn p1_genome_csv_roundtrip_is_exact() {
+    let mut g = Genome::c6_seed(5.7); g.v[P1_ON] = 1.0; g.v[K_N] = 4.37; g.v[K0 + 1] = 5.4123456789012345; g.v[RAIL_W] = 4.123456789; g.clamp();
+    let row = g.csv_row(); let f: Vec<&str> = row.split(',').collect();
+    let h = Genome::from_csv(&f).unwrap(); assert_eq!(h.v, g.v);
+}

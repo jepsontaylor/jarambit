@@ -41,7 +41,8 @@ pub fn check(g: &Genome, p: &Pheno) -> Vec<String> {
     for (h, name) in p.holes.iter().zip(&p.hole_names) {
         if !h.iter().all(|&q| point_in_poly(q, &p.outline)) { r.push(format!("Disconnected: {name} breaks the outline")); continue; }
         let lig = min_ring_dist(h, &p.outline);
-        let need = if *name == "ring" { RING_WALL_MIN_MM } else { LIGAMENT_MIN_MM };
+        // D1 P1: through-holes other than the ring / cairn must leave a full rail (RAIL_W) to the outline
+        let need = if *name == "ring" { RING_WALL_MIN_MM } else if g.p1() && *name != "cairn" { g.v[RAIL_W].max(LIGAMENT_MIN_MM) } else { LIGAMENT_MIN_MM };
         if lig < need { r.push(format!("Ligament {name}-outline {lig:.2} < {need} mm")); }
     }
     for i in 0..p.holes.len() { for j in i + 1..p.holes.len() {
@@ -61,6 +62,7 @@ pub fn check(g: &Genome, p: &Pheno) -> Vec<String> {
     let pad_in = p.pad.iter().all(|&q| point_in_poly(q, &p.outline) && !p.holes.iter().any(|h| point_in_poly(q, h)));
     let pad_clear = min_ring_dist(&densify(&p.pad, 0.5, true), &p.outline) >= 1.0 && p.holes.iter().all(|h| min_ring_dist(&densify(&p.pad, 0.5, true), h) >= 1.0);
     if !(pad_in && pad_clear && p.pad_flat) { r.push("BrandPad not on a clear flat".into()); }
+    if g.p1() && (p.n_perf > 0 || p.n_win > 0) { r.push("P1: through-perforation / window present".into()); }
     if !(p.mass_g.is_finite() && p.mass_g > 20.0 && p.mass_g < 200.0) { r.push(format!("crazy mass {:.1}", p.mass_g)); }
     r
 }

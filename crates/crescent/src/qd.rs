@@ -21,7 +21,9 @@ pub struct Rec {
 }
 impl Rec {
     pub fn aesthetic_pass(&self) -> bool { self.aes.pass }
-    pub fn legal(&self) -> bool { self.rejects.is_empty() && self.fem.as_ref().map_or(false, |f| f.floors_ok) }
+    /// LEGAL = gates + floors; with the P1 layer ON also the D1 failure-sequence proxy >= 1.2 (hard).
+    /// With P1 ON also the OWNER-LOCKED twist floor (body AND tip submodel >= 1.82 N*m) at search level.
+    pub fn legal(&self) -> bool { self.rejects.is_empty() && self.fem.as_ref().map_or(false, |f| f.floors_ok && (!self.g.p1() || (f.seq_ratio >= fem::SEQ_TARGET && fem::twist_floor_ok(f.twist_body_sf, f.twist_tipzone_sf)))) }
 }
 
 pub fn descriptor(g: &Genome, p: &Pheno) -> [f64; DESC_N] {
@@ -78,10 +80,18 @@ pub fn fitness(r: &Rec) -> f64 {
     let excess = mass_cap().map_or(0.0, |c| (r.mass_g / c - 1.0).max(0.0));
     match &r.fem { None => -50.0,
         Some(f) if !f.floors_ok => -1.0 - 10.0 * ((1.0 - f.lat_rob / 260.0).max(0.0) + (1.0 - f.ring_rob / 1500.0).max(0.0)) - 10.0 * excess,
+        // D1 P1: failure-sequence proxy is HARD (>= 1.2); graded in (-1, -0.1) so it ranks between floors-fail and legal
+        // OWNER LOCK: seq >= 1.2, twist body AND tip submodel >= 1.82 N*m, and the mass target are all required; one graded
+        // product in (-1, -0.1) so the search trades them smoothly (any floors-OK P1 design missing one ranks here)
+        Some(f) if r.g.p1() && (f.seq_ratio < fem::SEQ_TARGET || !fem::twist_floor_ok(f.twist_body_sf, f.twist_tipzone_sf) || excess > 0.0) => {
+            let q = (f.seq_ratio / fem::SEQ_TARGET).clamp(0.0, 1.0) * f.twist_body_sf.clamp(0.0, 1.0) * f.twist_tipzone_sf.clamp(0.0, 1.0) * (1.0 - 8.0 * excess).clamp(0.0, 1.0);
+            -1.0 + 0.9 * q + 0.001 * r.spg }
         Some(_) if excess > 0.0 || !under_cap(r) => -0.5 - 10.0 * excess,
         // through-lattice experiment lane (JARAMBIT_MIN_THROUGH=N): a legal design with fewer than N machined
         // through-features (pierced-fuller windows + perforations) is ranked below every design that has them
         Some(_) if r.n_win + r.n_perf < min_through() => -0.3 - 0.02 * (min_through() - r.n_win - r.n_perf) as f64 + 0.01 * r.spg,
+        // D1 P1: hunter hard 260, AIM 286 (+10 %): legal designs below the aim lose up to 10 %
+        Some(f) if r.g.p1() => r.spg * r.aes.score * (1.0 + r.novelty) * (0.9 + 0.1 * ((f.lat_rob - 260.0) / 26.0).clamp(0.0, 1.0)),
         Some(_) => r.spg * r.aes.score * (1.0 + r.novelty) }
 }
 

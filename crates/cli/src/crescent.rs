@@ -4,18 +4,24 @@
 use jarambit_crescent::{aesthetic, export, fem, gates, genome::*, pheno, qd};
 use std::fmt::Write as _;
 
+/// Shortest of the three blade measures (tip-to-heel, horizontal reach, sharpened arc), inches; gate needs >= 3.375 (+0.5 mm guard).
+fn blade_min_in(r: &qd::Rec) -> f64 { r.blade.tip_to_heel.min(r.blade.horizontal_reach).min(r.blade.sharpened_arc) / 25.4 }
 fn jarr(v: &[(f64, f64)]) -> String { let s: Vec<String> = v.iter().map(|q| format!("[{:.3},{:.3}]", q.0, q.1)).collect(); format!("[{}]", s.join(",")) }
 fn jnum(v: &[f64]) -> String { let s: Vec<String> = v.iter().map(|x| if x.is_finite() { format!("{x:.4}") } else { "null".into() }).collect(); format!("[{}]", s.join(",")) }
 
 pub fn rec_metrics(r: &qd::Rec) -> String {
     let f = r.fem.clone().unwrap_or_default();
-    format!("{{\"id\":{},\"gen\":{},\"fit\":{:.5},\"spg\":{:.5},\"mass_g\":{:.3},\"blank_g\":{:.3},\"t\":{:.1},\"material\":\"{}\",\"tip_to_heel\":{:.3},\"horizontal_reach\":{:.3},\"arc_in\":{:.3},\"arc_sp\":{:.3},\"grip\":{:.2},\"aes_score\":{:.4},\"aes_pass\":{},\"hausdorff\":{:.3},\"emd\":{:.4},\"straight_mm\":{:.2},\"min_blend_r\":{:.2},\"novelty\":{:.4},\"lat20\":{:.1},\"lat_rob\":{:.1},\"ring20\":{:.1},\"ring_rob\":{:.1},\"pry20\":{:.1},\"twist20_nmm\":{:.1},\"sf_hiker\":{:.3},\"sf_hunter\":{:.3},\"sf_ring\":{:.3},\"floors_ok\":{},\"lat_at\":[{:.2},{:.2}],\"holder_box\":[{:.1},{:.1},{:.1}],\"removed_mm3\":{},\"min_web\":{:.2},\"n_win\":{},\"win_area\":{:.2},\"n_perf\":{},\"perf_area\":{:.2},\"relief_frac\":{:.5},\"rejects\":{:?},\"aes_fails\":{:?},\"legal\":{}}}",
+    format!("{{\"id\":{},\"gen\":{},\"fit\":{:.5},\"spg\":{:.5},\"mass_g\":{:.3},\"blank_g\":{:.3},\"t\":{:.1},\"material\":\"{}\",\"tip_to_heel\":{:.3},\"horizontal_reach\":{:.3},\"arc_in\":{:.3},\"arc_sp\":{:.3},\"grip\":{:.2},\"aes_score\":{:.4},\"aes_pass\":{},\"hausdorff\":{:.3},\"emd\":{:.4},\"straight_mm\":{:.2},\"min_blend_r\":{:.2},\"novelty\":{:.4},\"lat20\":{:.1},\"lat_rob\":{:.1},\"ring20\":{:.1},\"ring_rob\":{:.1},\"pry20\":{:.1},\"twist20_nmm\":{:.1},\"sf_hiker\":{:.3},\"sf_hunter\":{:.3},\"sf_ring\":{:.3},\"floors_ok\":{},\"lat_at\":[{:.2},{:.2}],\"holder_box\":[{:.1},{:.1},{:.1}],\"removed_mm3\":{},\"min_web\":{:.2},\"n_win\":{},\"win_area\":{:.2},\"n_perf\":{},\"perf_area\":{:.2},\"relief_frac\":{:.5},\"rejects\":{:?},\"aes_fails\":{:?},\"legal\":{},\"t_joint\":{:.3},\"p1\":{},\"seq_ratio\":{:.3},\"seq_case\":\"{}\",\"twist_tip_sf\":{:.3},\"twist_tip_joint3d_nmm\":{:.0},\"twist_tip_peak_tipdist\":{:.1},\"twist_body_sf\":{:.3},\"twist_tipzone_sf\":{:.3},\"pry20\":{:.1},\"rail_w\":{:.2},\"neck_l\":{:.2},\"pocket_d\":{:.3},\"pocket_r\":{:.2},\"knots\":{}}}",
         r.id, r.gen, r.fit, r.spg, r.mass_g, r.blank_g, r.t, r.g.mat.name(), r.blade.tip_to_heel, r.blade.horizontal_reach, r.blade.arc_in, r.blade.arc_sp, r.grip,
         r.aes.score, r.aes.pass, r.aes.hausdorff, r.aes.emd, r.aes.straight_mm, r.aes.min_concave_r, r.novelty, f.lat20, f.lat_rob, f.ring20, f.ring_rob, f.pry20, f.twist20_nmm,
-        f.sf_hiker, f.sf_hunter, f.sf_ring, f.floors_ok, f.lat_at.0, f.lat_at.1, r.holder_lw.0, r.holder_lw.1, r.holder_lw.2, jnum(&r.removed), r.min_web, r.n_win, r.win_area, r.n_perf, r.perf_area, qd::relief_frac(r), r.rejects, r.aes.fails, r.legal())
+        f.sf_hiker, f.sf_hunter, f.sf_ring, f.floors_ok, f.lat_at.0, f.lat_at.1, r.holder_lw.0, r.holder_lw.1, r.holder_lw.2, jnum(&r.removed), r.min_web, r.n_win, r.win_area, r.n_perf, r.perf_area, qd::relief_frac(r), r.rejects, r.aes.fails, r.legal(),
+        r.g.t_joint(), r.g.p1(), f.seq_ratio, f.seq_case, f.twist_sf, f.twist_joint_nmm, f.twist_tipdist, f.twist_body_sf, f.twist_tipzone_sf, f.pry20,
+        r.g.v[RAIL_W], r.g.v[NECK_L], r.g.v[POCKET_D], r.g.v[POCKET_R], jnum(&(0..if r.g.p1() { r.g.k_n() } else { 1 }).map(|k| r.g.v[K0 + k]).collect::<Vec<_>>()))
 }
 
-fn plate_json(r: &qd::Rec, label: &str, cert: Option<(fem::Fem, fem::Fields)>) -> Option<String> {
+fn plate_json(r: &qd::Rec, label: &str, cert: Option<(fem::Fem, fem::Fields)>) -> Option<String> { plate_json_x(r, label, cert, "{}") }
+/// Plate JSON with an extra top-level "d1" object (strict 0.0625 numbers, PASS verdicts) for the D1 plates.
+fn plate_json_x(r: &qd::Rec, label: &str, cert: Option<(fem::Fem, fem::Fields)>, d1: &str) -> Option<String> {
     let p = pheno::build(&r.g);
     let (fm, fl) = match cert { Some(c) => c, None => fem::certify(&p)? };
     let fd = &p.field; let step = 2usize; // 0.5 mm thickness raster for the figure
@@ -23,10 +29,10 @@ fn plate_json(r: &qd::Rec, label: &str, cert: Option<(fem::Fem, fem::Fields)>) -
     for j in (0..fd.ny).step_by(step) { for i in (0..fd.nx).step_by(step) { th.push(fd.th[j * fd.nx + i] as f64); } }
     let tris: Vec<String> = fl.tris.iter().map(|t| format!("[{},{},{}]", t[0], t[1], t[2])).collect();
     let mut rr = r.clone(); rr.spg = fm.lat_rob / rr.mass_g; rr.fem = Some(fm.clone()); rr.fit = qd::fitness(&rr);
-    Some(format!("{{\"label\":\"{label}\",\"metrics\":{},\"fine_area\":\"certified min(0.25, 0.125)\",\"outline\":{},\"holes\":[{}],\"hole_names\":{:?},\"pad\":{},\"c4\":{},\"field\":{{\"x0\":{},\"y0\":{},\"g\":{},\"nx\":{},\"ny\":{},\"th\":{}}},\"mesh\":{{\"xy\":{},\"tris\":[{}],\"te\":{},\"env_vm\":{},\"sf\":{},\"lat\":{},\"pry\":{},\"ring\":{},\"twist\":{}}},\"genome_header\":\"{}\",\"genome\":\"{}\"}}",
+    Some(format!("{{\"label\":\"{label}\",\"metrics\":{},\"fine_area\":\"certified min(0.25, 0.125)\",\"outline\":{},\"holes\":[{}],\"hole_names\":{:?},\"pad\":{},\"c4\":{},\"field\":{{\"x0\":{},\"y0\":{},\"g\":{},\"nx\":{},\"ny\":{},\"th\":{}}},\"mesh\":{{\"xy\":{},\"tris\":[{}],\"te\":{},\"env_vm\":{},\"sf\":{},\"lat\":{},\"pry\":{},\"ring\":{},\"twist\":{}}},\"genome_header\":\"{}\",\"genome\":\"{}\",\"d1\":{}}}",
         rec_metrics(&rr), jarr(&p.outline), p.holes.iter().map(|h| jarr(h)).collect::<Vec<_>>().join(","), p.hole_names, jarr(&p.pad), jarr(&jarambit_crescent::c5_ref::EXTERIOR),
         fd.x0, fd.y0, fd.g * step as f64, (fd.nx + step - 1) / step, (fd.ny + step - 1) / step, jnum(&th),
-        jarr(&fl.xy), tris.join(","), jnum(&fl.te), jnum(&fl.env_vm), jnum(&fl.sf), jnum(&fl.lat), jnum(&fl.pry), jnum(&fl.ring), jnum(&fl.twist), Genome::csv_header(), r.g.csv_row()))
+        jarr(&fl.xy), tris.join(","), jnum(&fl.te), jnum(&fl.env_vm), jnum(&fl.sf), jnum(&fl.lat), jnum(&fl.pry), jnum(&fl.ring), jnum(&fl.twist), Genome::csv_header(), r.g.csv_row(), d1))
 }
 
 pub fn smoke(out: &str, pop: usize, gens: usize, threads: usize, seed: u64, t_seed: f64, fem_area: f64, plate_area: f64) -> bool {
@@ -193,7 +199,8 @@ fn write_progress(out: &str, gen: usize, all: &[qd::Rec], archive: &std::collect
 #[allow(clippy::too_many_arguments)]
 pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, threads: usize, seed: u64, fem_area: f64, seeds_csv: &str, seed_top: usize, migrate: usize, kick: f64, n_cert: usize) -> bool {
     std::fs::create_dir_all(out).unwrap();
-    let seeds = { let mut s = load_seeds(seeds_csv, seed_top); s.push(Genome::c6_seed(5.7)); s };
+    // D1 P1 (JARAMBIT_P1=1): seeds are clamped so the continuous-rail layer is ON and every through-feature OFF
+    let seeds = { let mut s = load_seeds(seeds_csv, seed_top); s.push(Genome::c6_seed(5.7)); if p1_env() { for g in s.iter_mut() { g.clamp(); } } s };
     let mut rep = String::new();
     let _ = writeln!(rep, "# {wave} — crescent internal-machining evolve (island GA + QD) — author Jepson Taylor\n\nislands {islands} x pop {pop}, gens {gens}, migrate every {migrate}, threads {threads}, seed {seed}, FEM search area {fem_area} mm^2 (search bias lat/ring {:?}, JARAMBIT_SEARCH_BIAS_* override), certification min(0.25, 0.125 mm^2) no bias, T_MAX {:.1}, mass target {:?} g (JARAMBIT_MASS_CAP; target only, every hard item unchanged), seeds {} (from {seeds_csv} + {}), aesthetic anchor SWITCHBACK Rev {} (C.5 jimping R0.8/0.45 + C.6 two-sided ring-face groove 0.6/face, 1.6 mm rims), machining kick {kick}, min through-features {} (JARAMBIT_MIN_THROUGH)\n", fem::search_bias(), t_max(), qd::mass_cap(), seeds.len(), jarambit_crescent::c6_ref::rev(), jarambit_crescent::c6_ref::rev(), qd::min_through());
     let cfg = qd::IslandCfg { base: qd::RunCfg { pop, gens, threads, seed, fem_area, t_seed: 5.7 }, islands, migrate_every: migrate, migrants: 2, seeds, kick_frac: kick };
@@ -226,9 +233,11 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     for r in light.iter().take(20) { order.push(("light", r)); }
     for r in novel.iter().take(10) { order.push(("novel", r)); }
     let mut picked: Vec<(String, qd::Rec, fem::Fem, fem::Fields)> = Vec::new(); let (mut n_try, mut n_fail) = (0usize, 0usize);
-    let mut seen: Vec<Genome> = Vec::new(); let mut cert_rows = String::from("kind,id,gen,mass_g,t,search_lat_rob,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,twist_sf_1p82_joint3d,floors_ok_cert,spg_cert,aes,novelty,relief_frac,n_win,n_perf,strict_lat_rob_0p0625,strict_ok\n");
+    let mut seen: Vec<Genome> = Vec::new(); let mut cert_rows = String::from("kind,id,gen,mass_g,t,search_lat_rob,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,twist_sf_1p82_joint3d,floors_ok_cert,spg_cert,aes,novelty,relief_frac,n_win,n_perf,strict_lat_rob_0p0625,strict_ok,seq_ratio_cert,seq_case,seq_ok,twist_tip_sf_default_hard,twist_body_sf,twist_tipzone_sf_strict,t_joint,cert_pass_all,twist_floor_ok_body_and_tipsub,mass_band_74_77,blade_min_in,promote_eligible_pending_aesthetic_signoff\n");
     let mut queue: Vec<(&str, &qd::Rec)> = Vec::new();
-    for (kind, r) in order { if queue.len() >= (2 * n_cert).max(12) { break; } if seen.contains(&r.g) || !r.legal() { continue; } seen.push(r.g.clone()); queue.push((kind, r)); }
+    for (kind, r) in order { if queue.len() >= (2 * n_cert).max(12) { break; } // P1: floors-OK designs that miss only the seq>=1.2 proxy are still certified + plated (labelled FAIL), so the wave is documented
+        let floors_only = r.g.p1() && r.rejects.is_empty() && r.aes.pass && r.fem.as_ref().map_or(false, |f| f.floors_ok);
+        if seen.contains(&r.g) || !(r.legal() || floors_only) { continue; } seen.push(r.g.clone()); queue.push((kind, r)); }
     // certify the queue in parallel (each certification is single-threaded: 0.25 + 0.125 mm^2 solves)
     let th = threads.max(1).min(queue.len().max(1));
     // JARAMBIT_CERT_STRICT=1: also solve 0.0625 mm^2 (refinement beyond certification; machined designs
@@ -239,14 +248,23 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
         let mut v: Vec<(usize, Option<(fem::Fem, fem::Fields)>, Option<fem::Fem>)> = hs.into_iter().flat_map(|h| h.join().unwrap()).collect(); v.sort_by_key(|x| x.0); v.into_iter().map(|x| (x.1, x.2)).collect()
     });
     let mut strict_ok_ids: Vec<usize> = Vec::new();
+    let mut strict_info: std::collections::HashMap<usize, String> = std::collections::HashMap::new();
     for ((kind, r), (c, f16)) in queue.into_iter().zip(certs) {
         n_try += 1;
         let Some((cf, fl)) = c else { n_fail += 1; continue; };
-        let (s_lat, s_ok) = match &f16 { Some(f) => { let m = jarambit_physics::material(r.g.mat); let rob = (f.lat20 * fem::joint_k(m, r.t, 2)).min(cf.lat_rob);
+        let (s_lat, s_ok) = match &f16 { Some(f) => { let m = jarambit_physics::material(r.g.mat); let rob = (f.lat20 * fem::joint_k(m, r.g.t_joint(), 2)).min(cf.lat_rob);
             (rob, rob >= jarambit_physics::floors::HUNTER_LATERAL_N) } None => (f64::NAN, !strict) };
-        if s_ok && cf.floors_ok { strict_ok_ids.push(r.id); }
+        // D1 P1: certified PASS also needs the failure-sequence proxy >= 1.2 at certification (hard)
+        let seq_ok = !r.g.p1() || cf.seq_ratio >= fem::SEQ_TARGET;
+        let tz16 = f16.as_ref().map_or(f64::NAN, |f| f.twist_tipzone_sf);
+        let prom = fem::promote_eligible(r.aes.pass, r.rejects.is_empty(), cf.floors_ok, s_lat, cf.seq_ratio, cf.twist_body_sf, tz16, r.mass_g);
+        if s_ok && cf.floors_ok && seq_ok { strict_ok_ids.push(r.id); }
+        strict_info.insert(r.id, format!("{{\"strict_lat_rob_0p0625\":{:.1},\"strict_ok\":{},\"seq_ok\":{},\"twist_tipzone_sf_strict\":{:.3},\"pass_all_828_joint_strict_seq\":{},\"twist_floor_ok\":{},\"promote_eligible\":{}}}",
+            if s_lat.is_finite() { s_lat } else { -1.0 }, s_ok, seq_ok, if tz16.is_finite() { tz16 } else { -1.0 }, s_ok && cf.floors_ok && seq_ok, fem::twist_floor_ok(cf.twist_body_sf, tz16), prom));
         let tw = cf.twist_sf;
-        let _ = writeln!(cert_rows, "{kind},{},{},{:.2},{:.1},{:.1},{:.1},{:.1},{:.3},{:.3},{:.3},{:.3},{},{:.4},{:.4},{:.4},{:.4},{},{},{:.1},{}", r.id, r.gen, r.mass_g, r.t, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob, cf.sf_hiker, cf.sf_hunter, cf.sf_ring, tw, cf.floors_ok, cf.lat_rob / r.mass_g, r.aes.score, r.novelty, qd::relief_frac(r), r.n_win, r.n_perf, s_lat, s_ok && cf.floors_ok);
+        let _ = writeln!(cert_rows, "{kind},{},{},{:.2},{:.1},{:.1},{:.1},{:.1},{:.3},{:.3},{:.3},{:.3},{},{:.4},{:.4},{:.4},{:.4},{},{},{:.1},{},{:.3},{},{},{:.3},{:.3},{:.3},{:.3},{},{},{},{:.3},{}", r.id, r.gen, r.mass_g, r.t, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob, cf.sf_hiker, cf.sf_hunter, cf.sf_ring, tw, cf.floors_ok, cf.lat_rob / r.mass_g, r.aes.score, r.novelty, qd::relief_frac(r), r.n_win, r.n_perf, s_lat, s_ok && cf.floors_ok,
+            cf.seq_ratio, cf.seq_case, seq_ok, cf.twist_sf, cf.twist_body_sf, tz16, r.g.t_joint(), s_ok && cf.floors_ok && seq_ok,
+            fem::twist_floor_ok(cf.twist_body_sf, tz16), r.mass_g >= fem::MASS_BAND.0 && r.mass_g <= fem::MASS_BAND.1, blade_min_in(r), prom);
         if !cf.floors_ok { n_fail += 1; let _ = writeln!(rep, "- certification FAIL id {} ({kind}, {:.1} g): search lat_rob {:.0} -> certified {:.0} N, ring {:.0}", r.id, r.mass_g, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob); continue; }
         if picked.len() >= n_cert { continue; }
         let mut rr = (*r).clone(); rr.spg = cf.lat_rob / rr.mass_g; rr.fem = Some(cf.clone()); rr.fit = qd::fitness(&rr);
@@ -260,7 +278,8 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     for (k, (kind, r, cf, fl)) in picked.into_iter().enumerate() {
         let label = format!("{wave}_c{:02}_{kind}", k + 1);
         let tw = cf.twist_sf;
-        if let Some(j) = plate_json(&r, &label, Some((cf, fl))) { std::fs::write(format!("{out}/{label}.json"), &j).unwrap(); plates.push(label.clone()); }
+        let d1x = strict_info.get(&r.id).cloned().unwrap_or_else(|| "{}".into());
+        if let Some(j) = plate_json_x(&r, &label, Some((cf, fl)), &d1x) { std::fs::write(format!("{out}/{label}.json"), &j).unwrap(); plates.push(label.clone()); }
         let _ = writeln!(rep, "- {label} (strict 0.0625 mm^2 check: {}; chord-torsion SF vs 1.82 N*m joint+3D {tw:.2}, advisory; n_win {}, n_perf {}, relief_frac {:.4}): {}", if strict_ok_ids.contains(&r.id) { "PASS" } else if strict { "FAIL" } else { "not run" }, r.n_win, r.n_perf, qd::relief_frac(&r), rec_metrics(&r));
         let p = pheno::build(&r.g);
         if let Some(s) = export::solid(&p, 1.0) {
@@ -389,42 +408,64 @@ pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
         if path == "C6_STOCK_3P175" { // thin-stock REFERENCE as built (bypasses clamp, like tests::c4_stock_genome)
             let mut g = Genome::c6_seed(5.7); g.v[T] = 3.175; g.v[T_TIP] = 2.6; g.v[TAPER_X0] = 130.0; g.v[SPINE_OFF] = 0.0;
             g.v[EA_IN] = ((3.175 - 0.5) / 2.0 / 6.0f64).atan().to_degrees(); g.v[EA_SP] = ((3.175 - 0.5) / 2.0 / 5.0f64).atan().to_degrees();
+            for k in 0..5 { g.v[K0 + k] = 3.175; }
             gs.push((name.to_string(), g)); continue; }
         if let Some(g) = load_seeds(path, 1).into_iter().next() { gs.push((name.to_string(), g)); } else { eprintln!("d1: no genome in {path}"); }
     }
+    // D1_PLATES=1: also write a D1-rule plate JSON per design (certified fields; plates.txt) for make_d1_plate.py
+    let plates_on = std::env::var("D1_PLATES").map_or(false, |v| v == "1");
     let th = threads.max(1).min(gs.len().max(1));
-    let res: Vec<(usize, qd::Rec, Option<fem::Fem>, Option<fem::Fem>)> = std::thread::scope(|s| {
+    type Row = (usize, qd::Rec, Option<(fem::Fem, fem::Fields)>, Option<fem::Fem>);
+    let res: Vec<Row> = std::thread::scope(|s| {
         let hs: Vec<_> = (0..th).map(|t| { let gs = &gs; s.spawn(move || gs.iter().enumerate().filter(|(i, _)| i % th == t).map(|(i, (_, g))| {
             let r = qd::evaluate(g, i, 0, 2.0); let p = pheno::build(g);
             if std::env::var("D1_DUMP").is_ok() { eprintln!("D1_DUMP {}: holes {:?} outline_n {} mass {:.4}", gs[i].0, p.holes.iter().zip(&p.hole_names).map(|(h, n)| (*n, (h.iter().map(|q| q.0).fold(f64::MAX, f64::min) * 100.0).round() / 100.0, (h.iter().map(|q| q.1).fold(f64::MAX, f64::min) * 100.0).round() / 100.0)).collect::<Vec<_>>(), p.outline.len(), p.mass_g); }
             std::fs::create_dir_all(out).ok(); let _ = std::fs::write(format!("{out}/{}_grind_law.json", gs[i].0.replace(['(', ')', '.'], "_")), export::grind_law_json(&p, g, &gs[i].0));
-            let c = fem::certify(&p).map(|x| x.0); if let Some(c) = &c { eprintln!("D1 {}: lat_at {:?} lat20 {:.1} twist_at {:?}", gs[i].0, c.lat_at, c.lat20, c.twist_at); }
+            let c = fem::certify(&p); if let Some(c) = &c { eprintln!("D1 {}: lat_at {:?} lat20 {:.1} twist_at {:?}", gs[i].0, c.0.lat_at, c.0.lat20, c.0.twist_at); }
             (i, r, c, fem::run_unbiased(&p, 0.0625)) }).collect::<Vec<_>>()) }).collect();
         let mut v: Vec<_> = hs.into_iter().flat_map(|h| h.join().unwrap()).collect(); v.sort_by_key(|x| x.0); v
     });
     let fl = jarambit_physics::floors::HIKER_LATERAL_N; let fh = jarambit_physics::floors::HUNTER_LATERAL_N; let fr = jarambit_physics::floors::RING_PULL_N;
     let k880 = jarambit_physics::TI64_YIELD_TYPICAL_MPA / jarambit_physics::TI_6AL_4V.yield_mpa;
-    let mut csv = String::from("design,mass_g,t,aes_pass,gates_ok,lat20_828,joint_lat_cert,sf_hiker,sf_hunter,joint_ring_cert,sf_ring,strict_joint_lat_0p0625,strict_sf_hunter,pass_828_joint,old_lat_rob_880_min,old_sf_hunter_880_min,twist20_plate_nmm,twist_kc_3d,twist_b_mm,twist_t_mm,twist_joint3d_nmm,twist_sf_1p82,twist_pass,twist_peak_tipdist_mm,twist_body15_joint_nmm,twist_hand_joint_nmm,old_couple20_nmm,old_twist_sf_proxy,seq_ratio,seq_case,seq_pass\n");
-    let mut md = String::from("| design | mass g | t mm | A pass | gates | joint lat N (cert) | SF hiker | SF hunter | joint ring N | SF ring | strict 0.0625 joint lat N (SF hunter) | PASS @828 joint | pre-D1 lat_rob 880/min N (SF hunter) | chord-torsion plate N*mm @20C | 3D k (b/t) | joint+3D N*mm | SF vs 1.82 N*m | twist | peak dist from tip mm | body (>15 mm from tip) joint N*mm | hand-side joint N*mm | pre-D1 couple N*mm (old SF) | seq ratio (case) |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
+    let mut csv = String::from("design,mass_g,t,t_joint,aes_pass,gates_ok,lat20_828,joint_lat_cert,sf_hiker,sf_hunter,joint_ring_cert,sf_ring,strict_joint_lat_0p0625,strict_sf_hunter,pass_828_joint,old_lat_rob_880_min,old_sf_hunter_880_min,twist20_plate_nmm,twist_kc_3d,twist_b_mm,twist_t_mm,twist_joint3d_nmm,twist_tip_sf_1p82_default_hard,twist_tip_pass,twist_peak_tipdist_mm,twist_body15_joint_nmm,twist_body_kc,twist_body_sf_1p82,twist_tipzone_sf_strict,twist_hand_joint_nmm,old_couple20_nmm,old_twist_sf_proxy,seq_ratio,seq_case,seq_pass,hunter_aim_286,pass_all_p1,twist_floor_ok_body_and_tipsub,mass_band_74_77,blade_min_in,promote_eligible_pending_aesthetic_signoff\n");
+    let mut md = String::from("| design | mass g | t (t_joint) mm | A pass | gates | joint lat N (cert) | SF hiker | SF hunter | joint ring N | SF ring | strict 0.0625 joint lat N (SF hunter) | PASS @828 joint | aim 286 | pre-D1 lat_rob 880/min N | **tip-only twist SF (default hard)** | body twist SF (+3D) | tip-submodel SF (4-15 mm, strict) | peak dist from tip mm | seq ratio (case) | P1 PASS (floors+strict+seq) | twist floor (body AND tip-sub) | mass 74-77 | blade min in | **PROMOTE-ELIGIBLE** (pending aesthetic sign-off) |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
+    let mut plates: Vec<String> = Vec::new();
     for (i, r, c, s16) in &res {
         let name = &gs[*i].0; let gates_ok = r.rejects.is_empty(); let m = jarambit_physics::material(r.g.mat);
-        let Some(c) = c else { let _ = writeln!(md, "| {name} | {:.2} | {:.1} | {} | {} | certify failed |", r.mass_g, r.t, r.aes.pass, gates_ok); continue; };
-        let s_j = s16.as_ref().map_or(f64::NAN, |f| f.lat20 * fem::joint_k(m, r.t, 2));
+        let Some((c, fields)) = c else { let _ = writeln!(md, "| {name} | {:.2} | {:.1} | {} | {} | certify failed |", r.mass_g, r.t, r.aes.pass, gates_ok); continue; };
+        let tj = r.g.t_joint();
+        let s_j = s16.as_ref().map_or(f64::NAN, |f| f.lat20 * fem::joint_k(m, tj, 2));
+        let tz = s16.as_ref().map_or(f64::NAN, |f| f.twist_tipzone_sf);
         let pass = c.lat_rob >= fl && c.lat_rob >= fh && c.ring_rob >= fr && s_j >= fh;
         let hot = m.yield_at(100.0) / m.yield_at(20.0); let tk = ((r.t - 0.1) / r.t).powi(2);
         let old = c.lat20 * k880 * tk.min(hot); let old_tw = c.couple20_nmm * k880 * hot / fem::TWIST_DESIGN_NMM;
-        let tw_pass = c.twist_sf >= 1.0; let seq_pass = c.seq_ratio >= fem::SEQ_TARGET;
-        let _ = writeln!(csv, "{name},{:.2},{:.1},{},{},{:.1},{:.1},{:.3},{:.3},{:.0},{:.3},{:.1},{:.3},{},{:.1},{:.3},{:.0},{:.3},{:.2},{:.2},{:.0},{:.3},{},{:.1},{:.0},{:.0},{:.0},{:.3},{:.3},{},{}",
-            r.mass_g, r.t, r.aes.pass, gates_ok, c.lat20, c.lat_rob, c.sf_hiker, c.sf_hunter, c.ring_rob, c.sf_ring, s_j, s_j / fh, pass, old, old / fh,
-            c.twist20_nmm, c.twist_kc, c.twist_b_mm, c.twist_t_mm, c.twist_joint_nmm, c.twist_sf, tw_pass, c.twist_tipdist, c.twist_body_joint_nmm, c.twist_hand_joint_nmm, c.couple20_nmm, old_tw, c.seq_ratio, c.seq_case, seq_pass);
-        let _ = writeln!(md, "| {name} | {:.2} | {:.1} | {} | {} | {:.1} | {:.3} | {:.3} | {:.0} | {:.2} | {:.1} ({:.3}) | {} | {:.1} ({:.3}) | {:.0} | {:.3} ({:.1}) | {:.0} | {:.3} | {} | {:.1} | {:.0} | {:.0} | {:.0} ({:.2}) | {:.2} ({}) |",
-            r.mass_g, r.t, if r.aes.pass { "yes" } else { "NO" }, if gates_ok { "ok" } else { "FAIL" }, c.lat_rob, c.sf_hiker, c.sf_hunter, c.ring_rob, c.sf_ring, s_j, s_j / fh,
-            if pass { "**PASS**" } else { "**FAIL**" }, old, old / fh, c.twist20_nmm, c.twist_kc, c.twist_b_mm / c.twist_t_mm.max(1e-6), c.twist_joint_nmm, c.twist_sf, if tw_pass { "PASS" } else { "FAIL" }, c.twist_tipdist, c.twist_body_joint_nmm, c.twist_hand_joint_nmm,
-            c.couple20_nmm, old_tw, c.seq_ratio, c.seq_case);
+        let tw_pass = c.twist_sf >= 1.0; let seq_pass = c.seq_ratio >= fem::SEQ_TARGET; let aim = c.lat_rob >= 286.0 && s_j >= 286.0;
+        let pass_all = pass && seq_pass && gates_ok && r.aes.pass;
+        let tw_ok = fem::twist_floor_ok(c.twist_body_sf, tz); let band = r.mass_g >= fem::MASS_BAND.0 && r.mass_g <= fem::MASS_BAND.1;
+        let prom = fem::promote_eligible(r.aes.pass, gates_ok, c.floors_ok, s_j, c.seq_ratio, c.twist_body_sf, tz, r.mass_g);
+        let _ = writeln!(csv, "{name},{:.2},{:.1},{:.3},{},{},{:.1},{:.1},{:.3},{:.3},{:.0},{:.3},{:.1},{:.3},{},{:.1},{:.3},{:.0},{:.3},{:.2},{:.2},{:.0},{:.3},{},{:.1},{:.0},{:.3},{:.3},{:.3},{:.0},{:.0},{:.3},{:.3},{},{},{},{},{},{},{:.3},{}",
+            r.mass_g, r.t, tj, r.aes.pass, gates_ok, c.lat20, c.lat_rob, c.sf_hiker, c.sf_hunter, c.ring_rob, c.sf_ring, s_j, s_j / fh, pass, old, old / fh,
+            c.twist20_nmm, c.twist_kc, c.twist_b_mm, c.twist_t_mm, c.twist_joint_nmm, c.twist_sf, tw_pass, c.twist_tipdist, c.twist_body_joint_nmm, c.twist_body_kc, c.twist_body_sf, tz, c.twist_hand_joint_nmm, c.couple20_nmm, old_tw, c.seq_ratio, c.seq_case, seq_pass, aim, pass_all, tw_ok, band, blade_min_in(r), prom);
+        let _ = writeln!(md, "| {name} | {:.2} | {:.1} ({:.2}) | {} | {} | {:.1} | {:.3} | {:.3} | {:.0} | {:.2} | {:.1} ({:.3}) | {} | {} | {:.1} | **{:.2} {}** | {:.2} {} | {:.2} {} | {:.1} | {:.2} ({}) {} | {} | {} | {} | {:.3} | {} |",
+            r.mass_g, r.t, tj, if r.aes.pass { "yes" } else { "NO" }, if gates_ok { "ok" } else { "FAIL" }, c.lat_rob, c.sf_hiker, c.sf_hunter, c.ring_rob, c.sf_ring, s_j, s_j / fh,
+            if pass { "**PASS**" } else { "**FAIL**" }, if aim { "yes" } else { "no" }, old, c.twist_sf, if tw_pass { "PASS" } else { "FAIL" }, c.twist_body_sf, if c.twist_body_sf >= 1.0 { "PASS" } else { "FAIL" },
+            tz, if tz >= 1.0 { "PASS" } else { "FAIL" }, c.twist_tipdist, c.seq_ratio, c.seq_case, if seq_pass { "PASS" } else { "FAIL" }, if pass_all { "**PASS**" } else { "**FAIL**" },
+            if tw_ok { "PASS" } else { "FAIL" }, if band { "yes" } else { "no" }, blade_min_in(r), if prom { "**YES**" } else { "no" });
+        if plates_on {
+            let label = format!("{}_D1", name.replace(['(', ')', '.', ' '], "_"));
+            let d1x = format!("{{\"strict_lat_rob_0p0625\":{:.1},\"strict_ok\":{},\"seq_ok\":{},\"twist_tipzone_sf_strict\":{:.3},\"pass_828_joint_strict\":{},\"pass_all_828_joint_strict_seq\":{},\"old_lat_rob_880_min\":{:.1},\"twist_floor_ok\":{},\"promote_eligible\":{}}}",
+                if s_j.is_finite() { s_j } else { -1.0 }, s_j >= fh, seq_pass, if tz.is_finite() { tz } else { -1.0 }, pass, pass_all, old, tw_ok, prom);
+            let mut rr = r.clone(); rr.fem = Some(c.clone()); rr.spg = c.lat_rob / rr.mass_g;
+            if let Some(j) = plate_json_x(&rr, &label, Some((c.clone(), fem::Fields { xy: fields.xy.clone(), tris: fields.tris.clone(), te: fields.te.clone(), env_vm: fields.env_vm.clone(), sf: fields.sf.clone(), lat: fields.lat.clone(), pry: fields.pry.clone(), ring: fields.ring.clone(), twist: fields.twist.clone() })), &d1x) {
+                std::fs::write(format!("{out}/{label}.json"), j).ok(); plates.push(label);
+                std::fs::write(format!("{out}/{}_genome.csv", name.replace(['(', ')', '.', ' '], "_")), format!("{}\n{}\n", Genome::csv_header(), r.g.csv_row())).ok();
+            }
+        }
     }
-    let hdr = format!("# D1 re-screen — screening yield {:.0} MPa (TIMET min, provisional), JOINT thin+hot, chord-torsion floor {:.2} N*m\n\nCertification min(0.25, 0.125 mm^2) unbiased; strict 0.0625 mm^2 unbiased; joint factor = ((t-0.1)/t)^2 x yield(100C)/yield(20C) (ring: ^1). PASS = hiker 180 / hunter 260 / ring 1500 N at certification AND hunter at strict. Twist = advisory proposed floor (not a gate yet). Seq ratio = hand-zone / blade-zone yield-onset load (min over lateral, chord-torsion, pry), target >= {:.1}.\n\n",
+    let hdr = format!("# D1 re-screen — screening yield {:.0} MPa (TIMET min, provisional), JOINT thin+hot, chord-torsion floor {:.2} N*m\n\nCertification min(0.25, 0.125 mm^2) unbiased; strict 0.0625 mm^2 unbiased; joint factor = ((t_j-0.1)/t_j)^2 x yield(100C)/yield(20C) (ring: ^1), t_j = thinnest knot (P1) else stock. PASS @828 joint = hiker 180 / hunter 260 / ring 1500 N at certification AND hunter at strict. P1 PASS also needs seq ratio >= {:.1}. Twist floor (OWNER LOCK 2026-10-11 14:52 MT): **body AND tip submodel** both >= 1.82 N*m (hard, certification); **tip-only** (1.82 N*m at the 2 mm tip patch, peak outside 4 mm, St-Venant 3D at the peak) ALWAYS reported, not the gate; **body** = same torque, peak > 15 mm from the tip with its own 3D factor; **tip submodel** = peak restricted to the 4-15 mm tip annulus at the strict 0.0625 mesh with its own 3D factor. Seq ratio = hand-zone / blade-zone yield-onset load (min over lateral, chord-torsion, pry). PROMOTE-ELIGIBLE (OWNER LOCK) = C.6 aesthetic + all hard gates (blade >= 3.375 in on all three) + 828 joint floors + strict hunter + seq >= 1.2 + twist body AND tip-sub + mass 74-77 g (< 80 g); hunter aim 286 reported. NOTHING is promoted without human aesthetic sign-off.\n\n",
         jarambit_physics::TI_6AL_4V.yield_mpa, fem::TWIST_FLOOR_NMM / 1000.0, fem::SEQ_TARGET);
     let md = hdr + &md;
     std::fs::create_dir_all(out).ok(); println!("{md}");
+    if plates_on { std::fs::write(format!("{out}/plates.txt"), plates.join("\n") + "\n").ok(); }
     std::fs::write(format!("{out}/d1_rescreen.csv"), csv).is_ok() && std::fs::write(format!("{out}/d1_rescreen.md"), md).is_ok()
 }

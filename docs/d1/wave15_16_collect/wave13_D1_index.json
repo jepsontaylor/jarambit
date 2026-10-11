@@ -1,0 +1,52 @@
+[
+ {
+  "label": "wave13_c01_D1",
+  "file": "wave13_c01_D1FAIL_SPG3p15_wgt74p4g_D1_FEM_metrics.png",
+  "case_sf_100C": {
+   "lateral": 0.9015795984647069,
+   "pry": 2.5697747608413413,
+   "ring": 9.059798451616913,
+   "twist": 0.448
+  },
+  "relief_frac": 0.06773429042921335,
+  "n_win": 0,
+  "d1": {
+   "strict_lat_rob_0p0625": 248.6,
+   "strict_ok": false,
+   "seq_ok": false,
+   "twist_tipzone_sf_strict": 0.461,
+   "pass_828_joint_strict": false,
+   "pass_all_828_joint_strict_seq": false,
+   "old_lat_rob_880_min": 258.3,
+   "twist_floor_ok": false,
+   "promote_eligible": false
+  },
+  "d1_pass": false,
+  "twist_floor_ok": false,
+  "promote_eligible": false,
+  "id": 26,
+  "fit": -1.98415,
+  "spg": 3.15193,
+  "mass_g": 74.371,
+  "aes_score": 0.7627,
+  "hausdorff": 1.276,
+  "emd": 0.0029,
+  "novelty": 0.0,
+  "sf_hiker": 1.302,
+  "sf_hunter": 0.902,
+  "sf_ring": 8.347,
+  "floors_ok": false,
+  "legal": false,
+  "tip_to_heel": 96.889,
+  "horizontal_reach": 87.334,
+  "arc_in": 101.319,
+  "arc_sp": 101.262,
+  "t": 5.6,
+  "lat_rob": 234.4,
+  "ring_rob": 12520.5,
+  "seq_ratio": 0.838,
+  "twist_tip_sf": 0.448,
+  "twist_body_sf": 2.337,
+  "t_joint": 5.6
+ }
+]
