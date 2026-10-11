@@ -18,3 +18,4 @@ YOUR LANES (codex): A geometry (phenotype: true B-rep STEP via truck, earcut cap
 
 
 UPDATE 2026-10-11: read briefs/NEXT_2026-10-11.md FIRST — new hard constraints + strength-per-gram fitness are landed; next priorities listed there.
+UPDATE 2026-10-11 10:25Z: MULTI-HOST compute is live — read briefs/MULTIHOST_2026-10-11.md (xbabe1/xbabe2/xbabe3 partition, thread caps, yield guard).

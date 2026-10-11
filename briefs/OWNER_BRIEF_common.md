@@ -16,3 +16,4 @@ SUCCESS CRITERIA: (1) cargo build --release + cargo test green; (2) genotype→m
 
 
 UPDATE 2026-10-11: read briefs/NEXT_2026-10-11.md FIRST — new hard constraints + strength-per-gram fitness are landed; next priorities listed there.
+UPDATE 2026-10-11 10:25Z: MULTI-HOST compute is live — read briefs/MULTIHOST_2026-10-11.md (xbabe1/xbabe2/xbabe3 partition, thread caps, yield guard).
