@@ -35,3 +35,6 @@ Strength floors FIRM: hiker 180 N / hunter 260 N / ring pull 1500 N. Utility/hik
 
 ## Status 10:24Z
 Host CPU 30s avg (JopeDime guard state): xbabe3 69%, xbabe2 64%, xbabe1 71% — all under 82/88; no pauses. GPUs untouched (0%, 1-9 MiB). ETA: mc10k procs ~25 min for 60 gens; mc50k (xbabe3 2004-2006) ~2 h.
+
+## mh2 (after FEM, do not kill mh1)
+`grokbot/multihost` (a9e62a8: thread cap + mimalloc) is on main. Plate FEM is a Kirchhoff check, not a per-sample solve. mh2 sets `JARAMBIT_FEM=1` on the same launch script: one nominal 20 °C plate solve per candidate, beam-surrogate MC knockdown, floors still 180/260/1500 N. `monte_carlo::run_cols` reuses a process-lifetime worker pool. Launch a host only after that host's mh1 binaries have exited, so the 82% yield guard does not SIGSTOP mh1. Same seed map as mh1. Remote trees were copied without `.git`; update them by rsync of source, then a small release build. Do not restart mh1.

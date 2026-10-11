@@ -8,7 +8,9 @@
 //! still sat at ~7% of beam stress). The plate element is the coarse model
 //! that actually bends. It is a check on a design, not the Monte Carlo loop:
 //! a dense factor of a few hundred dofs is milliseconds, and 10k samples cannot
-//! carry that.
+//! carry that. `JARAMBIT_FEM=1` takes one nominal plate solve per candidate as
+//! the strength level. The sample loop stays the beam surrogate and only
+//! supplies the tolerance and temperature knockdown.
 use jarambit_genotype::limits;
 use jarambit_phenotype::{triangulate, Phenotype};
 use super::Material;

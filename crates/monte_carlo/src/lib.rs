@@ -2,6 +2,8 @@
 //! Parallel via std::thread. Sample `i` is seeded from `(seed, i)`, so the
 //! multiset of samples does not depend on the thread count.
 use jarambit_genotype::{Genotype, Rng};
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::{mpsc, Arc, Mutex, OnceLock};
 
 /// Perturb a genotype by CNC/waterjet tolerances (thickness +-0.05 mm, profile +-0.1 mm).
 /// NOTE: no clamp/repair here except the caller re-quantises nothing — thickness
@@ -110,30 +112,70 @@ pub fn max_threads() -> usize {
     std::env::var("JARAMBIT_MAX_THREADS").ok().and_then(|v| v.parse::<usize>().ok()).unwrap_or(48).clamp(1, hw)
 }
 
+/// Process-lifetime workers. Spawning a fresh set per candidate flattened
+/// wall time above 32 threads (sys time in clone/spawn). Do not call
+/// `run_cols` from inside a sample: that worker would wait on itself.
+struct Pool { tx: Mutex<Vec<mpsc::Sender<Box<dyn FnOnce() + Send>>>> }
+
+fn pool() -> &'static Pool {
+    static POOL: OnceLock<Pool> = OnceLock::new();
+    POOL.get_or_init(|| Pool { tx: Mutex::new(Vec::new()) })
+}
+
+impl Pool {
+    fn ensure(&self, n: usize) {
+        let mut tx = self.tx.lock().unwrap();
+        while tx.len() < n {
+            let (send, recv) = mpsc::channel::<Box<dyn FnOnce() + Send>>();
+            std::thread::Builder::new().name("jarambit-mc".into()).spawn(move || {
+                while let Ok(job) = recv.recv() { job(); }
+            }).expect("mc worker");
+            tx.push(send);
+        }
+    }
+}
+
 /// Evaluate `n` samples across `threads` (capped at `max_threads()`). Each sample returns `K` scalars.
 /// Column tails are independent. Thread count does not change the sample multiset.
+/// Workers are reused for the life of the process.
 pub fn run_cols<const K: usize, F>(g: &Genotype, n: usize, threads: usize, seed: u64, f: F) -> [Tails; K]
-where F: Fn(&Genotype, &mut Rng) -> [f64; K] + Sync {
+where F: Fn(&Genotype, &mut Rng) -> [f64; K] + Sync + Send + 'static {
     let n = n.max(1);
     let threads = threads.max(1).min(max_threads()).min(n);
-    let all: Vec<[f64; K]> = std::thread::scope(|s| {
-        let mut handles = Vec::with_capacity(threads);
-        let mut start = 0usize;
-        for t in 0..threads {
-            let count = n / threads + usize::from(t < n % threads);
-            let i0 = start;
-            start += count;
-            let f = &f;
-            handles.push(s.spawn(move || {
+    let pool = pool();
+    pool.ensure(threads);
+    let (done_tx, done_rx) = mpsc::channel();
+    let f = Arc::new(f);
+    let mut start = 0usize;
+    for t in 0..threads {
+        let count = n / threads + usize::from(t < n % threads);
+        let i0 = start;
+        start += count;
+        let f = Arc::clone(&f);
+        let g = g.clone();
+        let done_tx = done_tx.clone();
+        let job = Box::new(move || {
+            let rows = catch_unwind(AssertUnwindSafe(|| {
                 (0..count).map(|k| {
                     let mut r = Rng(mix_seed(seed, (i0 + k) as u64));
-                    let h = perturb(g, &mut r);
+                    let h = perturb(&g, &mut r);
                     f(&h, &mut r)
                 }).collect::<Vec<_>>()
             }));
+            let _ = done_tx.send((t, rows));
+        });
+        pool.tx.lock().unwrap()[t].send(job).expect("mc worker dead");
+    }
+    drop(done_tx);
+    let mut parts: Vec<Option<Vec<[f64; K]>>> = (0..threads).map(|_| None).collect();
+    for _ in 0..threads {
+        let (t, rows) = done_rx.recv().expect("mc worker dropped");
+        match rows {
+            Ok(v) => parts[t] = Some(v),
+            Err(payload) => std::panic::resume_unwind(payload),
         }
-        handles.into_iter().flat_map(|h| h.join().unwrap()).collect()
-    });
+    }
+    let all: Vec<[f64; K]> = parts.into_iter().flat_map(|p| p.unwrap()).collect();
     debug_assert_eq!(all.len(), n);
     let mut out = [Tails { mean: 0.0, p05: 0.0, p95: 0.0 }; K];
     let mut col = vec![0.0; n];
@@ -148,8 +190,8 @@ where F: Fn(&Genotype, &mut Rng) -> [f64; K] + Sync {
 
 /// Run `n` samples of f(sample, rng) across `threads`; returns (mean, p05).
 pub fn run<F>(g: &Genotype, n: usize, threads: usize, seed: u64, f: F) -> (f64, f64)
-where F: Fn(&Genotype, &mut Rng) -> f64 + Sync {
-    let t = run_cols(g, n, threads, seed, |h, r| [f(h, r)]);
+where F: Fn(&Genotype, &mut Rng) -> f64 + Sync + Send + 'static {
+    let t = run_cols(g, n, threads, seed, move |h, r| [f(h, r)]);
     (t[0].mean, t[0].p05)
 }
 

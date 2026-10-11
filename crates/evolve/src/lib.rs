@@ -1,12 +1,17 @@
 //! NSGA-II with optional island migration.
-//! PRIMARY fitness stays MC-p05 strength-per-gram (N/g) subject to hiker+hunter floors.
+//! PRIMARY fitness stays MC-p05 strength-per-gram (N/g) subject to the firm floors
+//! (hiker 180 N, hunter 260 N, ring pull 1500 N).
 //! Secondary objectives (mass, blade-first cut margin) shape the front; the logged
 //! Pareto view remains nominal strength vs mass. Red-team gate on every candidate
 //! and every MC sample. Checkpoint is one text file, overwritten each generation.
+//!
+//! `Config.fem` (CLI: `JARAMBIT_FEM=1`) sets that nominal strength from one
+//! Kirchhoff plate solve at 20 °C. The sample loop stays the beam surrogate and
+//! supplies the knockdown. A missed plate mesh is infeasible. Floors are unchanged.
 use jarambit_genotype::{Genotype, Rng, TiGrade};
 use jarambit_monte_carlo::{cut_margin, media_sample, run_cols};
 use jarambit_phenotype::Phenotype;
-use jarambit_physics::{evaluate, material, primary_fitness, Eval};
+use jarambit_physics::{evaluate, floors, material, plate_capacities, primary_fitness, Eval};
 
 pub struct Config {
     pub pop: usize,
@@ -21,11 +26,15 @@ pub struct Config {
     /// Overwritten each completed generation. Also the resume source.
     pub checkpoint: Option<String>,
     pub resume: bool,
+    /// Nominal plate strength, with the surrogate Monte Carlo knockdown.
+    /// Do not resume a surrogate checkpoint with this set: the stored scores
+    /// would mix the two models.
+    pub fem: bool,
 }
 
 impl Config {
     pub fn new(pop: usize, gens: usize, mc_samples: usize, threads: usize, seed: u64) -> Self {
-        Self { pop, gens, mc_samples, threads, seed, islands: 1, migrate_every: 5, checkpoint: None, resume: false }
+        Self { pop, gens, mc_samples, threads, seed, islands: 1, migrate_every: 5, checkpoint: None, resume: false, fem: false }
     }
 }
 
@@ -37,15 +46,39 @@ pub fn nominal(g: &Genotype) -> (Phenotype, Result<(), Vec<jarambit_redteam::Rej
     (p, rt, e)
 }
 
-/// One MC sample's objective columns: primary fitness, blade-first cut margin, sharpness.
-fn sample_metrics(h: &Genotype, r: &mut Rng) -> [f64; 3] {
+/// One MC sample's columns: surrogate primary fitness, cut margin, sharpness,
+/// surrogate lateral strength (N), surrogate ring pull (N).
+fn sample_metrics(h: &Genotype, r: &mut Rng) -> [f64; 5] {
     let mut p = Phenotype::from_genotype(h);
-    if jarambit_redteam::check(h, &p).is_err() { return [-1e3, -1.0, 0.0]; }
+    if jarambit_redteam::check(h, &p).is_err() { return [-1e3, -1.0, 0.0, 0.0, 0.0]; }
     p.thickness = jarambit_monte_carlo::thickness_sample(h, r);
     let env = jarambit_monte_carlo::env_sample(r);
     let e = evaluate(&p, h.edge_angle_deg, (h.serr_inner.depth, h.serr_outer.depth), material(h.material), env.temp_c);
     let margin = cut_margin(e.blade_lat_n, e.inplane_n, e.sharpness, e.serration_score, media_sample(r));
-    [primary_fitness(&e), margin, e.sharpness]
+    [primary_fitness(&e), margin, e.sharpness, e.strength_n, e.ring_pull_n]
+}
+
+fn knocked(level: f64, nom: f64, p05: f64) -> f64 { level * (p05 / nom.max(1e-9)) }
+
+/// Nominal plate capacities must clear the firm floors before a candidate is feasible.
+fn plate_nominal_floors(plate_s: f64, plate_ring: f64) -> bool {
+    plate_s >= floors::HIKER_LATERAL_N && plate_s >= floors::HUNTER_LATERAL_N && plate_ring >= floors::RING_PULL_N
+}
+
+/// Robust plate estimate: plate level × (surrogate p05 / surrogate nominal).
+/// The ratio carries tolerance and temperature. It is not a scale factor that
+/// forces the plate to agree with the beam.
+fn robust_plate_eval(e: &Eval, plate_s: f64, plate_ring: f64, s_p05: f64, r_p05: f64) -> Eval {
+    let mut pe = e.clone();
+    let s_hat = knocked(plate_s, e.strength_n, s_p05);
+    let r_hat = knocked(plate_ring, e.ring_pull_n, r_p05);
+    pe.strength_n = s_hat;
+    pe.ring_pull_n = r_hat;
+    pe.hiker_ok = s_hat >= floors::HIKER_LATERAL_N;
+    pe.hunter_ok = s_hat >= floors::HUNTER_LATERAL_N;
+    pe.ring_ok = r_hat >= floors::RING_PULL_N;
+    pe.strength_per_gram = s_hat / pe.mass_g.max(1e-6);
+    pe
 }
 
 /// One MC sample: red-team reject => -1e3 (dominates p05), else primary fitness at sampled temp/thickness.
@@ -198,14 +231,29 @@ fn tournament(pop: &[Indiv], rank: &[usize], crowd: &[f64], r: &mut Rng) -> usiz
 
 struct Island { rng: Rng, pop: Vec<Indiv> }
 
-fn evaluate_one(g: Genotype, sample_seed: u64, mc: usize, threads: usize, q: &mut Vec<(Genotype, String)>) -> Indiv {
-    let (_, rt, e) = nominal(&g);
+fn evaluate_one(g: Genotype, sample_seed: u64, mc: usize, threads: usize, q: &mut Vec<(Genotype, String)>, fem: bool) -> Indiv {
+    let (p, rt, e) = nominal(&g);
     let crazy = !e.mass_g.is_finite() || !(5.0..=250.0).contains(&e.mass_g);
     if let Err(v) = &rt { q.push((g.clone(), format!("{v:?}"))); }
     else if crazy { q.push((g.clone(), format!("crazy phenotype mass {:.2} g", e.mass_g))); }
     let cols = run_cols(&g, mc, threads, sample_seed, sample_metrics);
-    let fit = if rt.is_err() || crazy { -1e3 } else { cols[0].p05 };
-    Indiv { g, fit, mean: cols[0].mean, strength_n: e.strength_n, mass_g: e.mass_g, floors_ok: e.floors_ok() && rt.is_ok() && !crazy, cut_p05: cols[1].p05, sharp_p05: cols[2].p05 }
+    if !fem {
+        let fit = if rt.is_err() || crazy { -1e3 } else { cols[0].p05 };
+        return Indiv { g, fit, mean: cols[0].mean, strength_n: e.strength_n, mass_g: e.mass_g, floors_ok: e.floors_ok() && rt.is_ok() && !crazy, cut_p05: cols[1].p05, sharp_p05: cols[2].p05 };
+    }
+    if rt.is_err() || crazy {
+        return Indiv { g, fit: -1e3, mean: cols[0].mean, strength_n: e.strength_n, mass_g: e.mass_g, floors_ok: false, cut_p05: cols[1].p05, sharp_p05: cols[2].p05 };
+    }
+    let Some(c) = plate_capacities(&p, material(g.material), 20.0, (g.serr_inner.depth, g.serr_outer.depth)) else {
+        q.push((g.clone(), "plate mesh miss".into()));
+        return Indiv { g, fit: -1e3, mean: cols[0].mean, strength_n: 0.0, mass_g: e.mass_g, floors_ok: false, cut_p05: cols[1].p05, sharp_p05: cols[2].p05 };
+    };
+    let ps = c.blade_lat_n.min(c.grip_lat_n);
+    let pe = robust_plate_eval(&e, ps, c.ring_pull_n, cols[3].p05, cols[4].p05);
+    Indiv {
+        g, fit: primary_fitness(&pe), mean: cols[0].mean, strength_n: ps, mass_g: e.mass_g,
+        floors_ok: plate_nominal_floors(ps, c.ring_pull_n), cut_p05: cols[1].p05, sharp_p05: cols[2].p05,
+    }
 }
 
 fn genes_exact(g: &Genotype) -> String {
@@ -315,7 +363,7 @@ pub fn run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> (Indiv, Vec<Indiv>) 
             let pop = (0..pop_n).map(|_| {
                 let g = Genotype::random(&mut rng);
                 let s = rng.next_u64();
-                evaluate_one(g, s, cfg.mc_samples, cfg.threads, &mut q)
+                evaluate_one(g, s, cfg.mc_samples, cfg.threads, &mut q, cfg.fem)
             }).collect();
             Island { rng, pop }
         }).collect();
@@ -350,7 +398,7 @@ pub fn run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> (Indiv, Vec<Indiv>) 
                     isl.pop[ia].g.crossover(&isl.pop[ib].g, &mut isl.rng).mutate(&mut isl.rng, sigma)
                 };
                 let s = isl.rng.next_u64();
-                kids.push(evaluate_one(g, s, cfg.mc_samples, cfg.threads, &mut q));
+                kids.push(evaluate_one(g, s, cfg.mc_samples, cfg.threads, &mut q, cfg.fem));
             }
             archive.extend(kids.iter().cloned());
             let mut both = std::mem::take(&mut isl.pop);
@@ -409,5 +457,52 @@ mod tests {
         let (best2, _) = run(&cfg, |_| {});
         assert!(best2.fit.is_finite());
         let _ = std::fs::remove_file(path);
+    }
+
+    fn eval_at(strength: f64, ring: f64, mass: f64) -> Eval {
+        Eval {
+            mass_g: mass, strength_n: strength, blade_lat_n: strength, grip_lat_n: strength,
+            ring_pull_n: ring, inplane_n: strength, strength_per_gram: strength / mass,
+            hiker_ok: true, hunter_ok: true, ring_ok: true, safety_factor: 1.0,
+            sharpness: 0.5, serration_score: 0.5, ergonomics: 0.5,
+        }
+    }
+
+    #[test]
+    fn fem_knockdown_keeps_firm_floors() {
+        let e = eval_at(800.0, 4000.0, 40.0);
+        let pe = robust_plate_eval(&e, 400.0, 2000.0, 720.0, 3600.0);
+        assert!(pe.floors_ok());
+        let fit = primary_fitness(&pe);
+        assert!((fit - 9.0).abs() < 1e-9, "{fit}");
+        let pe2 = robust_plate_eval(&e, 400.0, 2000.0, 400.0, 2000.0);
+        assert!(!pe2.floors_ok());
+        assert!(primary_fitness(&pe2) < 0.0);
+        assert!(plate_nominal_floors(260.0, 1500.0));
+        assert!(!plate_nominal_floors(180.0, 1500.0));
+        assert!(!plate_nominal_floors(260.0, 1499.0));
+        assert!(!plate_nominal_floors(259.0, 1500.0));
+        assert_eq!(floors::HIKER_LATERAL_N, 180.0);
+        assert_eq!(floors::HUNTER_LATERAL_N, 260.0);
+        assert_eq!(floors::RING_PULL_N, 1500.0);
+    }
+
+    #[test]
+    fn fem_candidate_stores_plate_strength() {
+        let g = Genotype::random(&mut Rng(11));
+        let mut q = Vec::new();
+        let ind = evaluate_one(g.clone(), 3, 8, 2, &mut q, true);
+        let p = Phenotype::from_genotype(&g);
+        match plate_capacities(&p, material(g.material), 20.0, (g.serr_inner.depth, g.serr_outer.depth)) {
+            Some(c) => {
+                let ps = c.blade_lat_n.min(c.grip_lat_n);
+                assert!((ind.strength_n - ps).abs() < 1e-6, "{} vs {ps}", ind.strength_n);
+                assert!(ind.fit.is_finite());
+            }
+            None => {
+                assert_eq!(ind.fit, -1.0e3);
+                assert!(q.iter().any(|(_, w)| w.contains("plate")));
+            }
+        }
     }
 }
