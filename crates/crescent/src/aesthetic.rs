@@ -3,7 +3,7 @@
 //! (min concave radius), thumb seat + guard lobe present, Hausdorff and curvature-histogram
 //! distance to C.4 within bounds, lightening only in C.4 zones, textured / cord-wrap grip,
 //! flat brand pad. A design failing any of these is NOT an aesthetic passer and gets no novelty.
-use crate::c5_ref as c4; // Rev C.5 anchor
+use crate::c6_ref as c4; // Rev C.6 anchor (C.5 outline + ring-face groove)
 use crate::genome::*;
 use crate::geom::*;
 use crate::pheno::*;
@@ -113,6 +113,8 @@ pub fn evaluate(g: &Genome, p: &Pheno) -> Aes {
     if !p.pad_flat { f.push("brand pad not flat".into()); }
     // C.5 thumb-seat jimping is part of the adopted outline: R0.8, depth 0.45 x scale within +/-20 % (0.36-0.54 mm)
     if !(g.v[JIMP] >= JIMP_C5_LO - 1e-9 && g.v[JIMP] <= JIMP_C5_HI + 1e-9) { f.push(format!("jimping depth {:.2} mm outside C.5 0.45 +/-20 %", c4::JIMP_D * g.v[JIMP])); }
+    // C.6 two-sided ring-face racetrack groove is part of the adopted look: must be present with >= 2 mm width
+    if c4::active() && !(p.groove_w >= c4::RING_GROOVE_MIN_W - 1e-9 && p.groove_area > 50.0) { f.push(format!("C.6 ring-face groove absent / narrower than {} mm (w {:.2}, ring wall too thin for 1.6 mm rims)", c4::RING_GROOVE_MIN_W, p.groove_w)); }
     a.score = (-a.hausdorff / 6.0).exp() * (-a.emd / 0.05).exp() * (1.0 - 0.5 * ((a.straight_mm - rf.straight).max(0.0) / STRAIGHT_SLACK_MM).min(1.0));
     a.pass = f.is_empty(); a.fails = f;
     a

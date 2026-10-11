@@ -6,6 +6,7 @@
 //! holder pop-in, floors 180 / 260 / 1500 N on the detailed plate.
 pub mod c4_ref;
 pub mod c5_ref;
+pub mod c6_ref;
 pub mod geom;
 pub mod genome;
 pub mod pheno;

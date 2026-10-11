@@ -128,3 +128,16 @@ fn c4_stock_genome() -> Genome {
     assert_eq!(h.v.len(), NG); assert_eq!(&h.v[NG_LEGACY..], &MACHINING_OFF[..]);
     assert!((build(&h).mass_g - build(&g).mass_g).abs() < 1e-6);
 }
+
+#[test]
+fn c6_groove_on_seed_and_lighter_than_c5() {
+    let g = crate::genome::Genome::c6_seed(5.7);
+    let p = crate::pheno::build(&g);
+    assert!((p.groove_w - 3.1).abs() < 1e-6, "groove width {}", p.groove_w);
+    // C.6 nominal annulus 14.3-17.4 = 308.7 mm^2 per face, minus the part the crescent body does not cover
+    assert!(p.groove_area > 200.0 && p.groove_area < 320.0, "groove area {}", p.groove_area);
+    let a = crate::aesthetic::evaluate(&g, &p);
+    assert!(a.pass, "C.6 seed must pass its own aesthetic floor: {:?}", a.fails);
+    let dm = p.groove_area * 1.2 * 4.43e-3;
+    assert!(dm > 1.0 && dm < 1.7, "groove mass {dm}");
+}

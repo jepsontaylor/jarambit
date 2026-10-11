@@ -1,6 +1,6 @@
 //! Crescent genotype -> silhouette (one C2 spline + ring union + tangent neck fillets, C.4
 //! serrations + thumb-seat jimping) + lightening holes in C.4 zones + 0.25 mm thickness raster.
-use crate::c5_ref as c4; // Rev C.5 anchor (C.4 + R0.8 / uniform 0.45 mm jimping)
+use crate::c6_ref as c4; // Rev C.6 anchor (C.5 + two-sided ring-face racetrack groove; C.5 = C.4 + R0.8/0.45 jimping)
 use crate::genome::*;
 use crate::geom::*;
 use jarambit_genotype::TiGrade;
@@ -62,6 +62,8 @@ pub struct Pheno {
     /// Perforation-lattice through-holes: count and planform area (mm^2).
     pub n_perf: usize, pub perf_area: f64,
     pub land_full_mm2: f64, pub pad_flat: bool,
+    /// Rev C.6 ring-face groove: radial width (mm, 0 = absent) and planform area per face (mm^2).
+    pub groove_w: f64, pub groove_area: f64,
     pub fails: Vec<String>,
 }
 
@@ -248,7 +250,7 @@ pub fn build(g: &Genome) -> Pheno {
     let mut p = Pheno { cp, outline, macro_outline, curve: c, cidx, holes, hole_names, t: g.v[T], mat: g.mat, tip, heel, dx,
         edge_in, edge_sp, blade, grip_len, ring_od, ring_id, pad, teeth_in, teeth_sp, ripple_in, ripple_sp,
         field: Field { x0: 0.0, y0: 0.0, g: GRID, nx: 0, ny: 0, th: vec![], base: vec![] }, mass_g: 0.0, blank_g: 0.0, area_mm2: 0.0,
-        removed: [0.0; NREM], n_win, win_area, n_perf, perf_area, web_clamped: 0, min_web: 0.0, land_full_mm2: 0.0, pad_flat: false, fails };
+        removed: [0.0; NREM], n_win, win_area, n_perf, perf_area, web_clamped: 0, min_web: 0.0, land_full_mm2: 0.0, pad_flat: false, groove_w: 0.0, groove_area: 0.0, fails };
     thickness_field(g, &mut p);
     p
 }
@@ -339,6 +341,10 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
         let run = ((rfa - da) / 8f64.to_radians()).clamp(0.0, 1.0);
         rfd * run * (1.0 - (dr / rhw).powi(2))
     };
+    // ---- Rev C.6 ring-face racetrack groove (two-sided annulus, rims to bore + OD; part of the anchor) ----
+    let (g_r0, g_r1) = (r_id + c4::RING_GROOVE_RIM, r_od - c4::RING_GROOVE_RIM);
+    let groove_on = c4::active() && g_r1 - g_r0 >= c4::RING_GROOVE_MIN_W - 1e-9;
+    let mut groove_area = 0.0f64;
     let mut land_full = 0.0; let mut pad_flat = true; let mut area = 0.0;
     for j in 0..ny {
         let y = y0 + (j as f64 + 0.5) * gsz;
@@ -354,7 +360,10 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
                 let base = t - (t - t_tip) * ((q.0 - tx0) / (maxx - tx0)).clamp(0.0, 1.0);
                 let gi = et + 2.0 * nn_in.nearest(q, 14.0).min(1e3) * tan_in;
                 let gs = et + 2.0 * nn_sp.nearest(q, 14.0).min(1e3) * tan_sp;
-                let th0 = base.min(gi).min(gs); let grind = th0 < base - 1e-9;
+                let th_g = base.min(gi).min(gs); let grind = th_g < base - 1e-9;
+                let rq_ = q.0.hypot(q.1);
+                let in_groove = groove_on && !grind && rq_ >= g_r0 && rq_ <= g_r1;
+                let th0 = if in_groove { groove_area += gsz * gsz; th_g - 2.0 * c4::RING_GROOVE_D } else { th_g };
                 let prot = in_pad(q, 1.0) || land(q);
                 let db = nn_b.nearest(q, 12.0);
                 let mut rem = [0.0f64; NREM];
@@ -399,5 +408,6 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
     p.mass_g = vol * rho / 1000.0; p.blank_g = area * t * rho / 1000.0; p.area_mm2 = area;
     p.removed = removed; p.web_clamped = clamped; p.min_web = if min_web == f64::MAX { t } else { min_web };
     p.land_full_mm2 = land_full; p.pad_flat = pad_flat;
+    p.groove_w = if groove_on { g_r1 - g_r0 } else { 0.0 }; p.groove_area = groove_area;
     p.field = Field { x0, y0, g: gsz, nx, ny, th, base: base_v };
 }

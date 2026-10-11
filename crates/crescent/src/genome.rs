@@ -108,6 +108,9 @@ impl Genome {
     /// SWITCHBACK Rev C.5 seed: same genome as C.4 (C.5 changes only the jimping, which the
     /// phenotype now draws as R0.8 / uniform 0.45 mm at jimp_scale 1.0).
     pub fn c5_seed(t: f64) -> Self { Self::c4_seed(t) }
+    /// SWITCHBACK Rev C.6 seed: same genome as C.5 (the ring-face groove is drawn by the phenotype
+    /// from the ring wall genes: rims 1.6 mm to bore and OD, 0.6 mm per face).
+    pub fn c6_seed(t: f64) -> Self { Self::c4_seed(t) }
     pub fn get(&self, i: usize) -> f64 { self.v[i] }
     pub fn clamp(&mut self) {
         let b = bounds();

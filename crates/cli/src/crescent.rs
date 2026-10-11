@@ -193,9 +193,9 @@ fn write_progress(out: &str, gen: usize, all: &[qd::Rec], archive: &std::collect
 #[allow(clippy::too_many_arguments)]
 pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, threads: usize, seed: u64, fem_area: f64, seeds_csv: &str, seed_top: usize, migrate: usize, kick: f64, n_cert: usize) -> bool {
     std::fs::create_dir_all(out).unwrap();
-    let seeds = { let mut s = load_seeds(seeds_csv, seed_top); s.push(Genome::c5_seed(5.7)); s };
+    let seeds = { let mut s = load_seeds(seeds_csv, seed_top); s.push(Genome::c6_seed(5.7)); s };
     let mut rep = String::new();
-    let _ = writeln!(rep, "# {wave} — crescent internal-machining evolve (island GA + QD) — author Jepson Taylor\n\nislands {islands} x pop {pop}, gens {gens}, migrate every {migrate}, threads {threads}, seed {seed}, FEM search area {fem_area} mm^2 (bias 1.11/1.08), certification min(0.25, 0.125 mm^2) no bias, T_MAX {:.1}, mass target {:?} g (JARAMBIT_MASS_CAP; target only, every hard item unchanged), seeds {} (from {seeds_csv} + C.5), aesthetic anchor SWITCHBACK Rev C.5 (jimping R0.8/0.45), machining kick {kick}, min through-features {} (JARAMBIT_MIN_THROUGH)\n", t_max(), qd::mass_cap(), seeds.len(), qd::min_through());
+    let _ = writeln!(rep, "# {wave} — crescent internal-machining evolve (island GA + QD) — author Jepson Taylor\n\nislands {islands} x pop {pop}, gens {gens}, migrate every {migrate}, threads {threads}, seed {seed}, FEM search area {fem_area} mm^2 (search bias lat/ring {:?}, JARAMBIT_SEARCH_BIAS_* override), certification min(0.25, 0.125 mm^2) no bias, T_MAX {:.1}, mass target {:?} g (JARAMBIT_MASS_CAP; target only, every hard item unchanged), seeds {} (from {seeds_csv} + {}), aesthetic anchor SWITCHBACK Rev {} (C.5 jimping R0.8/0.45 + C.6 two-sided ring-face groove 0.6/face, 1.6 mm rims), machining kick {kick}, min through-features {} (JARAMBIT_MIN_THROUGH)\n", fem::search_bias(), t_max(), qd::mass_cap(), seeds.len(), jarambit_crescent::c6_ref::rev(), jarambit_crescent::c6_ref::rev(), qd::min_through());
     let cfg = qd::IslandCfg { base: qd::RunCfg { pop, gens, threads, seed, fem_area, t_seed: 5.7 }, islands, migrate_every: migrate, migrants: 2, seeds, kick_frac: kick };
     let t0 = std::time::Instant::now();
     let mut hist_f = String::new();
@@ -337,7 +337,7 @@ pub fn rescore(csvs: &str, top: usize, threads: usize, out: &str) -> bool {
         let tag = path.rsplit('/').next().unwrap_or(path).replace("_genome.csv", "").replace(".csv", "");
         for (k, mut g) in load_seeds(path, top).into_iter().enumerate() { g.clamp(); if !gs.iter().any(|x| x.1 == g) { gs.push((format!("{tag}#{k}"), g)); } }
     }
-    gs.push(("C.5_seed_t5.7".into(), Genome::c5_seed(5.7)));
+    gs.push((format!("{}_seed_t5.7", jarambit_crescent::c6_ref::rev()), Genome::c6_seed(5.7)));
     let th = threads.max(1).min(gs.len().max(1));
     let res: Vec<(usize, qd::Rec, Option<fem::Fem>, Option<fem::Fem>)> = std::thread::scope(|s| {
         let hs: Vec<_> = (0..th).map(|t| { let gs = &gs; s.spawn(move || gs.iter().enumerate().filter(|(i, _)| i % th == t).map(|(i, (_, g))| {
@@ -348,8 +348,9 @@ pub fn rescore(csvs: &str, top: usize, threads: usize, out: &str) -> bool {
             (i, r, c, s16) }).collect::<Vec<_>>()) }).collect();
         let mut v: Vec<_> = hs.into_iter().flat_map(|h| h.join().unwrap()).collect(); v.sort_by_key(|x| x.0); v
     });
+    let rev_tag = jarambit_crescent::c6_ref::rev();
     let mut csv = String::from("design,mass_g,t,aes_pass_c5,aes_score_c5,hausdorff_c5,emd,jimp_depth_mm,gates_ok,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,cert_floors_ok,strict_lat_rob_0p0625,strict_sf_hunter,strict_ok,spg_cert,all_pass,fails\n");
-    let mut md = String::from("# Re-score vs SWITCHBACK Rev C.5 (jimping R0.8 / 0.45 mm)\n\nEvery design rebuilt with the C.5 phenotype; certification = min(0.25, 0.125 mm^2) unbiased; strict = 0.0625 mm^2 unbiased (robust factors applied).\n\n| design | mass g | t | A(C.5) | H mm | gates | cert lat_rob N | SF hiker | SF hunter | SF ring | strict lat_rob @0.0625 | SPG cert | ALL PASS | fails |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
+    let mut md = format!("# Re-score vs SWITCHBACK Rev {rev_tag} (C.5 jimping R0.8 / 0.45 mm; C.6 adds the two-sided ring-face groove)\n\nEvery design rebuilt with the {rev_tag} phenotype; certification = min(0.25, 0.125 mm^2) unbiased; strict = 0.0625 mm^2 unbiased (robust factors applied).\n\n| design | mass g | t | A({rev_tag}) | H mm | gates | cert lat_rob N | SF hiker | SF hunter | SF ring | strict lat_rob @0.0625 | SPG cert | ALL PASS | fails |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
     let mut pass_rows = format!("{}\n", Genome::csv_header()); let mut n_pass = 0;
     for (i, r, c, s16) in &res {
         let name = &gs[*i].0; let gates_ok = r.rejects.is_empty();
@@ -364,8 +365,8 @@ pub fn rescore(csvs: &str, top: usize, threads: usize, out: &str) -> bool {
         let _ = writeln!(md, "| {name} | {:.2} | {:.1} | {:.3}{} | {:.2} | {} | {:.1} | {:.3} | {:.3} | {:.2} | {:.1}{} | {:.3} | {} | {} |", r.mass_g, r.t, r.aes.score, if r.aes.pass { "" } else { " FAIL" }, r.aes.hausdorff, if gates_ok { "ok" } else { "FAIL" }, cl, sh, su, sr, s_rob, if s_ok { "" } else { " (<260)" }, cl / r.mass_g, if all { "**YES**" } else { "no" }, fails.join("; "));
         if all { n_pass += 1; let _ = writeln!(pass_rows, "{}", r.g.csv_row()); }
     }
-    let _ = writeln!(md, "\n{n_pass} of {} designs pass C.5 aesthetic + all gates + certified floors + < 80 g.", res.len());
+    let _ = writeln!(md, "\n{n_pass} of {} designs pass {rev_tag} aesthetic + all gates + certified floors + < 80 g.", res.len());
     std::fs::create_dir_all(out).ok();
     println!("{md}");
-    std::fs::write(format!("{out}/rescore.csv"), csv).is_ok() && std::fs::write(format!("{out}/rescore.md"), md).is_ok() && std::fs::write(format!("{out}/c5_pass_genomes.csv"), pass_rows).is_ok()
+    std::fs::write(format!("{out}/rescore.csv"), csv).is_ok() && std::fs::write(format!("{out}/rescore.md"), md).is_ok() && std::fs::write(format!("{out}/{}_pass_genomes.csv", rev_tag.replace('.', "").to_lowercase()), pass_rows).is_ok()
 }
