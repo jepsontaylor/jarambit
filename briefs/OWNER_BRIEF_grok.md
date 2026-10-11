@@ -15,3 +15,6 @@ RULES:
 SUCCESS CRITERIA: (1) cargo build --release + cargo test green; (2) genotype→mesh (watertight STL with caps) + real STEP (B-rep, e.g. `truck` crates) export; (3) MC at ≥10k samples/candidate multithreaded; (4) ≥20-gen evolve run with history.csv + best.stl/step + redteam=Ok; (5) docs/WHITEPAPER.md grown toward IEEE 6–8 pp with real results/figures; (6) README current.
 
 YOUR LANES (grok): C MC/evolve (scale MC to ≥10k samples, NSGA-II multi-objective, checkpointing, optional xbabe3 offload) and D redteam/docs (harder adversarial redteam rules + tests, WHITEPAPER.md toward IEEE 6–8 pp, README). Leave A/B to codex unless COORD.md says otherwise.
+
+
+UPDATE 2026-10-11: read briefs/NEXT_2026-10-11.md FIRST — new hard constraints + strength-per-gram fitness are landed; next priorities listed there.

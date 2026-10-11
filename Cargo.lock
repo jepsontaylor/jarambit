@@ -52,6 +52,7 @@ dependencies = [
 name = "jarambit-physics"
 version = "0.1.0"
 dependencies = [
+ "jarambit-genotype",
  "jarambit-phenotype",
 ]
 

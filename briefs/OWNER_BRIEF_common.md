@@ -13,3 +13,6 @@ RULES:
 - Red-team mindset: every design emitted must pass crates/redteam; add adversarial tests for any new geometry. Reject anything not recognizable as a karambit, not connected, not double-serrated curved, or that looks unsafe for human approval.
 
 SUCCESS CRITERIA: (1) cargo build --release + cargo test green; (2) genotype→mesh (watertight STL with caps) + real STEP (B-rep, e.g. `truck` crates) export; (3) MC at ≥10k samples/candidate multithreaded; (4) ≥20-gen evolve run with history.csv + best.stl/step + redteam=Ok; (5) docs/WHITEPAPER.md grown toward IEEE 6–8 pp with real results/figures; (6) README current.
+
+
+UPDATE 2026-10-11: read briefs/NEXT_2026-10-11.md FIRST — new hard constraints + strength-per-gram fitness are landed; next priorities listed there.

@@ -2,7 +2,9 @@
 
 Rust workspace for intelligence-designed + Monte Carlo evolution of **SWITCHBACK-class titanium hiking/utility karambits**.
 
-Invariants (red-team enforced): fixed blade · finger ring · curved blade · double-edged, both edges serrated · 0.1 mm thickness precision · flat brand pad · single connected solid.
+Invariants (red-team enforced, see docs/WHITEPAPER.md §III-A): blade **< 3.375 in on tip-to-heel AND horizontal reach AND sharpened-edge arc** · grip ≥ 60 mm (60–80) · finger ring 25.4 mm ID · curved blade · double-edged, both edges serrated · single connected solid · flat brand pad · 0.1 mm thickness precision · titanium only · sheath/holder pop-in interface (docs/HOLDER_ENVELOPE.md).
+
+**Fitness = MC-p05 strength-per-gram (N/g) subject to hiker + hunter strength floors** — not strength alone.
 
 ## Crates
 | crate | role |
@@ -22,6 +24,6 @@ cargo build --release
 ./target/release/jarambit --gens 20 --pop 64 --mc 512 --threads 32 --out out/run1
 cargo test --release
 ```
-Outputs: `history.csv`, `best.stl`, `best.step`, `results.md`.
+Outputs: `history.csv`, `pareto.csv/svg`, `diversity.svg`, `fitness.svg`, `quarantine.csv`, `best.stl/step/svg`, `best_report.md`, `results.md`.
 
 Coordination: see `COORD.md`. Paper: `docs/WHITEPAPER.md`.

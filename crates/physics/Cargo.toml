@@ -6,3 +6,4 @@ license.workspace = true
 
 [dependencies]
 jarambit-phenotype = { path = "../phenotype" }
+jarambit-genotype = { path = "../genotype" }
