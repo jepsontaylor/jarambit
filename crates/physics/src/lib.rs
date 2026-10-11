@@ -14,7 +14,8 @@ impl Material {
     pub fn yield_at(&self, temp_c: f64) -> f64 { self.yield_mpa * (1.0 + self.dyield_dt * (temp_c - 20.0)) }
 }
 
-/// Strength floors (capacity at yield, N, lateral load at tip). Both must hold. Assumptions in WHITEPAPER §III-B.
+/// Strength floors (capacity at yield, N, lateral load at tip). Both must hold.
+/// CONFIRMED by Jepson 2026-10-11 (firm, not placeholder): hiker 180 N, hunter 260 N, ring pull 1500 N. Rationale in WHITEPAPER §III-B.
 pub mod floors {
     /// Hiker: 90 N lateral working load at tip x SF 2.0 (cord/branch/packaging, twisting cut).
     pub const HIKER_LATERAL_N: f64 = 180.0;
