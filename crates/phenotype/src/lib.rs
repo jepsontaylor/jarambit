@@ -1,9 +1,11 @@
-//! Genotype -> 2D outline polygon (mm) -> extruded triangle mesh (STL) + STEP stub.
+//! Genotype -> 2D outline polygon (mm) -> watertight extrusion (STL + faceted STEP).
 //! Frame: blade arc centre at origin; blade heel at angle PI (x = -r), blade sweeps up/over;
 //! ricasso (holder thickness lands) below y = 0, shoulders step in to the grip, grip runs
 //! down -y to the ring neck, finger ring below.
 use jarambit_genotype::{limits, Genotype};
 use std::f64::consts::PI;
+mod mesh;
+pub use mesh::{edge_census, triangulate, SolidMesh};
 
 pub type P2 = (f64, f64);
 
@@ -132,35 +134,14 @@ impl Phenotype {
     pub fn area_mm2(&self) -> f64 { shoelace(&self.outline).abs() - shoelace(&self.ring_hole).abs() }
     pub fn mass_g(&self, density_g_cm3: f64) -> f64 { self.area_mm2() * self.thickness * density_g_cm3 / 1000.0 }
 
-    /// Extruded side-wall STL (caps TODO: codex lane A earcut caps + watertight check).
-    pub fn to_ascii_stl(&self, name: &str) -> String {
-        let mut s = format!("solid {name}\n");
-        let t = self.thickness;
-        let mut wall = |poly: &[P2]| {
-            for i in 0..poly.len() {
-                let a = poly[i]; let b = poly[(i + 1) % poly.len()];
-                for tri in [[(a.0, a.1, 0.0), (b.0, b.1, 0.0), (b.0, b.1, t)], [(a.0, a.1, 0.0), (b.0, b.1, t), (a.0, a.1, t)]] {
-                    s.push_str("facet normal 0 0 0\n outer loop\n");
-                    for v in tri { s.push_str(&format!("  vertex {:.4} {:.4} {:.4}\n", v.0, v.1, v.2)); }
-                    s.push_str(" endloop\nendfacet\n");
-                }
-            }
-        };
-        wall(&self.outline); wall(&self.ring_hole);
-        s.push_str(&format!("endsolid {name}\n")); s
-    }
+    /// Watertight extrusion: ear-cut caps plus side walls. See `mesh`.
+    pub fn to_ascii_stl(&self, name: &str) -> String { mesh::stl_string(self, name) }
 
-    /// Minimal ISO-10303-21 header + polyline outline (stub; real B-rep TODO via truck).
-    pub fn to_step_stub(&self, name: &str) -> String {
-        let mut s = String::from("ISO-10303-21;\nHEADER;\nFILE_DESCRIPTION(('jarambit SWITCHBACK stub outline'),'2;1');\n");
-        s.push_str(&format!("FILE_NAME('{name}.step','2026-10-11',(''),(''),'jarambit','jarambit','');\nFILE_SCHEMA(('AUTOMOTIVE_DESIGN'));\nENDSEC;\nDATA;\n"));
-        let mut id = 1;
-        let mut pts = vec![];
-        for p in &self.outline { s.push_str(&format!("#{id}=CARTESIAN_POINT('',({:.4},{:.4},0.));\n", p.0, p.1)); pts.push(id); id += 1; }
-        let refs: Vec<String> = pts.iter().map(|i| format!("#{i}")).collect();
-        s.push_str(&format!("#{id}=POLYLINE('outline',({}));\n", refs.join(",")));
-        s.push_str(&format!("/* extrude thickness {:.1} mm */\nENDSEC;\nEND-ISO-10303-21;\n", self.thickness)); s
-    }
+    /// Closed faceted MANIFOLD_SOLID_BREP (AP214 planar faces), same mesh as the STL.
+    pub fn to_step(&self, name: &str) -> String { mesh::step_string(self, name) }
+
+    /// Historical name. Emits the B-rep solid, not a polyline stub.
+    pub fn to_step_stub(&self, name: &str) -> String { self.to_step(name) }
 
     /// Outline as SVG path (for docs figures).
     pub fn to_svg(&self) -> String {
