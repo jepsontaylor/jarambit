@@ -68,6 +68,11 @@ fn main() {
         g.thickness = 4.5; g.neck_flare = 4.0; g.neck_flare_len = 20.0; g.neck_fillet_r = 8.0; g.clamp();
         cfg.seeds.push(g);
     }
+    // --seed-thick T (repeatable): also seed a copy of every seed at stock T mm (clamped to the
+    // process ceiling, see JARAMBIT_T_MAX), so a thicker-stock search starts next to known designs.
+    let thick: Vec<f64> = a.iter().enumerate().filter(|(_, x)| *x == "--seed-thick").filter_map(|(i, _)| a.get(i + 1)?.parse().ok()).collect();
+    let base = cfg.seeds.clone();
+    for t in thick { for g in &base { let mut h = g.clone(); h.thickness = t; h.clamp(); cfg.seeds.push(h); } }
     let hist_path = format!("{out}/history.csv");
     let q_path = format!("{out}/quarantine.csv");
     let mut rows = vec![];

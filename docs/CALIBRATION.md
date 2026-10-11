@@ -109,8 +109,26 @@ Run: `jarambit --fine --seed-ref --seed-ckpt <legal checkpoint> ...`.
 Floors 180/260/1500 N are hard on the robust FEM level. The blade must be
 >= 3.375 in on tip-heel, reach and arc length, and that is still a rejection
 rule. Front members are re-verified at A = 0.25 by `verify_front`, which
-writes `calibrated_pareto.md` and the STL/STEP/SVG files. Results are in
-`docs/calibration/calibrated_pareto.md`.
+writes `calibrated_pareto.md` and the STL/STEP/SVG files.
+
+* **t <= 4.5 mm (the default bound): 0 LEGAL.** Four runs of 50 generations
+  each plateaued at a robust lateral of 191-202 N, all pinned at 4.5 mm. The
+  hiker floor clears; the 260 N floor does not. With the neck reinforced, the
+  peak sits in the grip body, ricasso or blade root. That leaves t^2 as the
+  only remaining lever, because the holder fixes the handle width and the
+  blade floor fixes the lever arm.
+* **Exploratory ceiling `JARAMBIT_T_MAX=6.0`.** The 6.0 mm cap is the most
+  the holder stack allows (t + 2*1.2 + 0.4 <= 9.0 mm). The default bounds are
+  unchanged. Four runs gave 62 LEGAL front members, starting at t = 5.3 mm.
+  Lightest: 56.0 g, t 5.3 mm, SPG robust 4.68 N/g, SF hunter 1.08 at 100 C.
+  Best SPG: 64.6 g, t 6.0 mm, SPG robust 5.42 N/g, SF hunter 1.46 at 100 C.
+  The merged front is in `docs/calibration/calibrated_pareto.md`.
+* For comparison, the uncalibrated wave5 "7.04 N/g" becomes about 2.25 N/g (121 N x 0.91 / 48.9 g) on
+  the verification mesh at 100 C. The honest figure for a hunter-legal design
+  is 4.7-5.4 N/g at 56-65 g.
+
+Raising the 4.5 mm stock bound is an owner decision. Until that decision is
+made, the t > 4.5 front is labelled exploratory.
 
 ## Reproduce
 
@@ -118,4 +136,6 @@ writes `calibrated_pareto.md` and the STL/STEP/SVG files. Results are in
 cargo build --release
 ./target/release/jarambit fem-verify --out out/fem_verify   # theory + 6-level convergence
 ./target/release/jarambit calib --out out/calib              # factor table
+./target/release/jarambit diag --ckpt out/cal1/s12/checkpoint.txt  # verify-mesh capacity + peak of a checkpoint best
+JARAMBIT_T_MAX=6.0 ./target/release/jarambit --fine --seed-ref --seed-ckpt out/cal1/s12/checkpoint.txt --seed-thick 5.6 --pop 48 --gens 40 --mc 1000 --islands 2 --threads 12 --seed 24 --out out/cal_t6/s24
 ```
