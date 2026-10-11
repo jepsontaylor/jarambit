@@ -61,5 +61,6 @@ name = "jarambit-redteam"
 version = "0.1.0"
 dependencies = [
  "jarambit-genotype",
+ "jarambit-monte-carlo",
  "jarambit-phenotype",
 ]

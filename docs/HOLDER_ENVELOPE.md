@@ -16,4 +16,4 @@ These are **design assumptions** baked into `crates/genotype` (bounds), `crates/
 | Drain | holder tip-pocket drain hole Ø 3–6 mm (gene `drain_d`) at the lowest point of the blade pocket | redteam (min) |
 | Brand pad | flat pad on grip face, below the detent, never under the friction zone's nub | redteam `BrandPad` |
 
-Pop-in check (current): geometric/kinematic rules above. Planned (grok lane D): explicit insertion-force proxy (nub interference × shell stiffness) and draw-force window (e.g. 5–25 N), checked under MC tolerances.
+Pop-in force proxy (`redteam::holder_forces`): Kydex-like shell, E = 2.2 GPa, nub tab 12 mm wide, snap length 10 mm, so `F_ins = 6.6 · wall³ · detent` (N, mm). Draw is the return stroke, 0.55× insertion. Window: insertion 3–80 N, draw 1.5–45 N. Checked on the nominal design and on every MC sample (wall and detent are tolerance-perturbed). The window covers the legal gene box; shells outside it are rejected.
