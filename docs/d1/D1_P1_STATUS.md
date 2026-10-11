@@ -103,3 +103,14 @@ CPU only, nice 19. Flywheel GPUs not touched. **Nothing is promoted.** Every pla
 2. **seq ≥ 1.2 + 74–77 g may conflict.** In v0, seq-legal designs were all ≥ 84.7 g. If wave17 ends with 0 seq-legal designs, the floors-OK/seq-fail certified designs are plated and labelled FAIL, and the knot/rail genes are reported.
 3. 828 MPa stays provisional until the lot MTR value is available.
 4. The pre-D1 records (waves 7–16) use 4-decimal genomes. Do not cite them without a `crescent-d1` re-screen.
+
+## Post-run recipe for wave17 (not yet done; matplotlib is broken on xbabe3, so plate on xbabe2)
+1. Wait for `EXIT` in xbabe3 `~/jarambit_d1p1/out/wave17_p1.log`.
+2. Pipe `out/wave17_p1` (excluding `*.stl` if size matters) from xbabe3 to the xbabe2 worktree `out/wave17_p1`: `ssh xbabe3 'tar c' | ssh xbabe2 'tar x'`.
+3. On xbabe2, render the plates: `EVALS=out/wave17_p1/all_evals.json python3 ops/wave_figures/make_d1_plate.py out/wave17_p1 out/wave17_p1/heatmaps wave17 77`.
+4. Copy the plates to box `/workspace/jarambit_heatmaps/wave17_*`. Commit `certification.csv`, `report.md`, genomes and the index to `docs/d1/wave17_p1/`, then push exec/d1.
+5. Report each finalist from `certification.csv`:
+   - `promote_eligible_pending_aesthetic_signoff`, `twist_floor_ok_body_and_tipsub`;
+   - tip-only SF (`twist_tip_sf_default_hard`, reported), body SF and tip-submodel SF;
+   - seq, strict lateral and mass.
+6. Do not promote anything without human aesthetic sign-off.
