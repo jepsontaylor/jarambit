@@ -265,10 +265,11 @@ fn genes_exact(g: &Genotype) -> String {
 
 fn parse_genes(csv: &str) -> Result<Genotype, String> {
     let cols: Vec<&str> = csv.split(',').collect();
-    if cols.len() != 21 { return Err(format!("gene columns {}", cols.len())); }
-    let mut v = [0.0; 20];
-    for i in 0..20 { v[i] = cols[i].parse().map_err(|_| format!("gene {i}"))?; }
-    let mat = match cols[20] {
+    // 22 = current (blade_angle_deg at index 20); 21 = legacy pre-knob checkpoint (un-raked blade).
+    let n = match cols.len() { 21 => 20, 22 => 21, k => return Err(format!("gene columns {k}")) };
+    let mut v = vec![0.0; n];
+    for i in 0..n { v[i] = cols[i].parse().map_err(|_| format!("gene {i}"))?; }
+    let mat = match cols[n] {
         "Ti-3Al-2.5V" => TiGrade::Ti3Al2_5V,
         "Ti-6Al-4V" => TiGrade::Ti6Al4V,
         other => return Err(format!("material {other}")),
@@ -459,7 +460,7 @@ mod tests {
         }
         let loaded = load_ckpt(path).unwrap();
         let best_g = checkpoint_best(path).unwrap();
-        assert_eq!(best_g.to_vec().len(), 20);
+        assert_eq!(best_g.to_vec().len(), 21);
         assert_eq!(loaded.next_gen, 2);
         assert_eq!(loaded.islands.len(), 2);
         assert!(!loaded.islands[0].pop.is_empty());

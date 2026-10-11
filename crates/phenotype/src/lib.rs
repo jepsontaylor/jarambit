@@ -23,6 +23,12 @@ pub struct BladeMetrics {
     /// Vertical rise of blade above the guard line (logged, not limited).
     pub vertical_rise: f64,
     pub sweep_deg: f64,
+    /// Heel->tip chord elevation above the horizontal after rake (deg). The blade-angle knob.
+    pub chord_angle_deg: f64,
+    /// Forward rake actually applied about the inner heel (deg, >= 0).
+    pub rake_deg: f64,
+    /// Blade tip point (global frame, mm).
+    pub tip: (f64, f64),
 }
 impl BladeMetrics {
     pub fn max_measure(&self) -> f64 { self.tip_to_heel.max(self.horizontal_reach).max(self.sharpened_arc) }
@@ -51,6 +57,10 @@ pub struct Phenotype {
     pub detent: (f64, f64),
     /// Bounding box (min, max).
     pub bbox: (P2, P2),
+    /// Blade rake: the blade (arc centred on the origin in its local frame) is rotated by
+    /// `blade_rot` rad (CCW +, so forward rake is negative) about `blade_pivot` (the inner heel).
+    pub blade_pivot: P2,
+    pub blade_rot: f64,
 }
 
 fn serrated_arc(r: f64, a0: f64, a1: f64, pitch: f64, depth: f64, inward: bool) -> (Vec<P2>, usize) {
@@ -77,23 +87,39 @@ impl Phenotype {
         let a0 = PI; let a1 = PI - sweep;
         let (outer, to) = serrated_arc(r_out, a0, a1, g.serr_outer.pitch, g.serr_outer.depth, false);
         let (inner, ti) = serrated_arc(r_in, a0, a1, g.serr_inner.pitch, g.serr_inner.depth, true);
-        let tip = (r_mid * a1.cos() + 6.0 * a1.sin(), r_mid * a1.sin() - 6.0 * a1.cos());
+        let tip0 = (r_mid * a1.cos() + 6.0 * a1.sin(), r_mid * a1.sin() - 6.0 * a1.cos());
+
+        // --- blade angle knob: rake the whole blade FORWARD about the inner heel so the
+        // heel->tip chord sits at g.blade_angle_deg above the guard line. Never rakes backward
+        // (that would fold the outer heel into the ricasso), so legacy genomes are unchanged.
+        let pivot = (-r_in, 0.0);
+        let chord0 = (tip0.1).atan2(tip0.0 + r_out);
+        let rot = (g.blade_angle_deg.to_radians() - chord0).min(0.0);
+        let (cr, sr) = (rot.cos(), rot.sin());
+        let rt = |q: P2| { let (x, y) = (q.0 - pivot.0, q.1 - pivot.1); (pivot.0 + cr * x - sr * y, pivot.1 + sr * x + cr * y) };
+        let outer: Vec<P2> = outer.into_iter().map(rt).collect();
+        let inner: Vec<P2> = inner.into_iter().map(rt).collect();
+        let tip = rt(tip0);
 
         // --- blade metrics (unserrated centreline of each sharpened edge) ---
-        let heel_o = (-r_out, 0.0); let heel_i = (-r_in, 0.0);
-        let end_o = (r_out * a1.cos(), r_out * a1.sin()); let end_i = (r_in * a1.cos(), r_in * a1.sin());
+        let heel_o = rt((-r_out, 0.0)); let heel_i = (-r_in, 0.0);
+        let end_o = rt((r_out * a1.cos(), r_out * a1.sin())); let end_i = rt((r_in * a1.cos(), r_in * a1.sin()));
         let arc_o = r_out * sweep + dist(end_o, tip);
         let arc_i = r_in * sweep + dist(end_i, tip);
         let mut xs: Vec<f64> = vec![tip.0];
         let mut ys: Vec<f64> = vec![tip.1];
-        for i in 0..=256 { let a = a0 + (a1 - a0) * i as f64 / 256.0; xs.push(r_out * a.cos()); ys.push(r_out * a.sin()); }
+        for i in 0..=256 { let a = a0 + (a1 - a0) * i as f64 / 256.0;
+            for r in [r_out, r_in] { let q = rt((r * a.cos(), r * a.sin())); xs.push(q.0); ys.push(q.1); } }
         let xmax = xs.iter().cloned().fold(f64::MIN, f64::max);
         let ymax = ys.iter().cloned().fold(f64::MIN, f64::max);
         let blade = BladeMetrics {
             tip_to_heel: dist(tip, heel_o).max(dist(tip, heel_i)),
+            // measured from the spine/ricasso line at the heel (x = -r_out), as before the knob
             horizontal_reach: xmax - (-r_out),
             sharpened_arc: arc_o.max(arc_i), sharpened_arc_outer: arc_o, sharpened_arc_inner: arc_i,
             vertical_rise: ymax.max(0.0), sweep_deg: sweep.to_degrees(),
+            chord_angle_deg: (tip.1 - heel_o.1).atan2(tip.0 - heel_o.0).to_degrees(),
+            rake_deg: -rot.to_degrees(), tip,
         };
 
         // --- ricasso / shoulders / grip / detent / ring ---
@@ -128,7 +154,21 @@ impl Phenotype {
         for p in &outline { lo.0 = lo.0.min(p.0); lo.1 = lo.1.min(p.1); hi.0 = hi.0.max(p.0); hi.1 = hi.1.max(p.1); }
         Phenotype { outline, ring_hole, thickness: g.thickness, brand_pad, inner_teeth: ti, outer_teeth: to,
             ring_center: ring_c, ring_outer_r: ring_r_out, ring_id: g.ring_id, blade, grip_len: y_sh - y_neck,
-            handle_w: hw, ricasso_len: h.ricasso_len, shoulder_w: h.shoulder_w, detent: (y_det, dd), bbox: (lo, hi) }
+            handle_w: hw, ricasso_len: h.ricasso_len, shoulder_w: h.shoulder_w, detent: (y_det, dd), bbox: (lo, hi),
+            blade_pivot: pivot, blade_rot: rot }
+    }
+
+    /// Map a global point into the un-raked blade frame (arc centred on the origin).
+    pub fn to_blade_local(&self, q: P2) -> P2 {
+        let (c, s) = (self.blade_rot.cos(), self.blade_rot.sin());
+        let (x, y) = (q.0 - self.blade_pivot.0, q.1 - self.blade_pivot.1);
+        (self.blade_pivot.0 + c * x + s * y, self.blade_pivot.1 - s * x + c * y)
+    }
+    /// Inverse of `to_blade_local`.
+    pub fn from_blade_local(&self, q: P2) -> P2 {
+        let (c, s) = (self.blade_rot.cos(), self.blade_rot.sin());
+        let (x, y) = (q.0 - self.blade_pivot.0, q.1 - self.blade_pivot.1);
+        (self.blade_pivot.0 + c * x - s * y, self.blade_pivot.1 + s * x + c * y)
     }
 
     pub fn area_mm2(&self) -> f64 { shoelace(&self.outline).abs() - shoelace(&self.ring_hole).abs() }

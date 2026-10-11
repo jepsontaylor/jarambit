@@ -137,10 +137,13 @@ pub fn is_blade_len(x: &Reject) -> bool { matches!(x, Reject::BladeTooShort { ..
 fn hypot(p: (f64, f64)) -> f64 { p.0.hypot(p.1) }
 
 /// Radial std-dev (mm) of outline points on the inner and outer sharpened edges.
+/// Measured in the un-raked blade frame (`Phenotype::to_blade_local`) so the blade-angle knob
+/// does not hide or fake serrations; grip/ricasso points land below y = -2 there and are skipped.
 fn edge_ripple(g: &Genotype, p: &Phenotype) -> (f64, f64) {
     let mid = g.curve_radius;
-    let inner = band_ripple(&p.outline, g.r_in() - 0.3, mid - 0.4);
-    let outer = band_ripple(&p.outline, mid + 0.4, g.r_out() + 0.3);
+    let local: Vec<(f64, f64)> = p.outline.iter().map(|&q| p.to_blade_local(q)).collect();
+    let inner = band_ripple(&local, g.r_in() - 0.3, mid - 0.4);
+    let outer = band_ripple(&local, mid + 0.4, g.r_out() + 0.3);
     (inner, outer)
 }
 
@@ -183,11 +186,12 @@ mod tests {
     use jarambit_genotype::{Rng, TiGrade};
     fn has(g: &Genotype, f: impl Fn(&Reject) -> bool) -> bool { let p = Phenotype::from_genotype(g); check(g, &p).err().map(|v| v.iter().any(|x| f(x))).unwrap_or(false) }
     #[test] fn random_designs_pass_every_non_blade_gate() {
-        // Every repaired random design must pass all gates except (for now) the blade-length floor:
-        // see current_phenotype_cannot_reach_horizontal_floor.
+        // Every repaired random design must pass all gates except the blade-length floor and the
+        // holder envelope width (a long raked blade can overrun the frozen 100 mm holder; that is a
+        // real reject the search must steer around, not a repair bug).
         let mut r = Rng(7); let mut bad = 0;
         for _ in 0..2000 { let g = Genotype::random(&mut r); let p = Phenotype::from_genotype(&g);
-            if let Err(e) = check(&g, &p) { let e: Vec<_> = e.into_iter().filter(|x| !is_blade_len(x)).collect();
+            if let Err(e) = check(&g, &p) { let e: Vec<_> = e.into_iter().filter(|x| !is_blade_len(x) && !matches!(x, Reject::Holder(s) if s.starts_with("outside holder envelope"))).collect();
                 if !e.is_empty() { bad += 1; if bad < 5 { eprintln!("{e:?}"); } } } }
         assert_eq!(bad, 0, "repaired random designs should pass every non-blade gate");
     }
@@ -198,7 +202,7 @@ mod tests {
             assert!(a >= limits::BLADE_FLOOR_MM && a <= limits::BLADE_EDGE_MAX_MM, "arc {a}"); }
     }
     fn metrics(tth: f64, reach: f64, arc: f64) -> jarambit_phenotype::BladeMetrics {
-        jarambit_phenotype::BladeMetrics { tip_to_heel: tth, horizontal_reach: reach, sharpened_arc: arc, sharpened_arc_outer: arc, sharpened_arc_inner: arc - 10.0, vertical_rise: 40.0, sweep_deg: 90.0 }
+        jarambit_phenotype::BladeMetrics { tip_to_heel: tth, horizontal_reach: reach, sharpened_arc: arc, sharpened_arc_outer: arc, sharpened_arc_inner: arc - 10.0, vertical_rise: 40.0, sweep_deg: 90.0, ..Default::default() }
     }
     const IN: f64 = 25.4;
     #[test] fn switchback_381in_blade_passes() {
@@ -206,7 +210,7 @@ mod tests {
         let b = metrics(3.50 * IN, 3.40 * IN, 3.81 * IN);
         assert!(blade_length_rejects(&b).is_empty(), "{:?}", blade_length_rejects(&b));
         // and through the full gate: blade metrics are the ONLY thing that changes vs a non-blade-clean design
-        let g = Genotype::random(&mut Rng(9)); let mut p = Phenotype::from_genotype(&g); p.blade = b;
+        let g = switchback_genome(); let mut p = Phenotype::from_genotype(&g); p.blade = b;
         assert_eq!(check(&g, &p), Ok(()));
     }
     #[test] fn stub_44mm_blade_fails_all_three() {
@@ -244,19 +248,55 @@ mod tests {
         assert!((limits::BLADE_FLOOR_MM - 86.225).abs() < 1e-9);
         assert!((limits::BLADE_EDGE_MAX_MM - 101.6).abs() < 1e-9);
     }
-    #[test] fn current_phenotype_cannot_reach_horizontal_floor() {
-        // KNOWN GAP (flagged 2026-10-11): the current phenotype starts the blade arc with its tangent
-        // parallel to the grip axis, so horizontal_reach <= ~68 mm whenever the edge arc <= 101.6 mm.
-        // All-three >= 86.225 mm therefore needs a geometry change (e.g. a blade rake/cant gene).
-        // When that lands this canary should be replaced by a test that real designs pass the floor.
-        let mut best = 0.0f64;
-        for i in 0..=60 { for j in 0..=40 {
-            let mut g = Genotype::random(&mut Rng(51)); g.curve_radius = 20.0 + 2.0 * i as f64; g.sweep_override_deg = None;
-            g.blade_arc_len = 60.0 + 1.0 * j as f64;
+    /// SWITCHBACK-like genome found with the blade-angle + hawkbill-sweep knobs (3.81 in class edge).
+    pub(crate) fn switchback_genome() -> Genotype {
+        let mut g = Genotype::random(&mut Rng(9));
+        g.blade_arc_len = SB_ARC; g.curve_radius = SB_RADIUS; g.blade_angle_deg = SB_ANGLE; g.ring_wall = 4.5;
+        g.clamp(); g
+    }
+    // arc gene 87.55 -> 96.77 mm (3.81 in) sharpened edge; radius clamps to the 56 deg sweep limit.
+    const SB_ARC: f64 = 87.55; const SB_RADIUS: f64 = 90.0; const SB_ANGLE: f64 = 13.0;
+    #[test] fn switchback_genotype_passes_all_three_and_full_gate() {
+        // Real phenotype (not injected metrics): ~3.81 in sharpened edge, tip-heel and horizontal
+        // reach both >= 86.225 mm simultaneously, edge <= 101.6 mm, and every other gate passes.
+        let g = switchback_genome(); let p = Phenotype::from_genotype(&g); let b = &p.blade;
+        eprintln!("switchback genome: {b:?} bbox {:?}", p.bbox);
+        assert!(b.horizontal_reach >= limits::BLADE_FLOOR_MM, "reach {}", b.horizontal_reach);
+        assert!(b.sharpened_arc >= limits::BLADE_FLOOR_MM && b.sharpened_arc <= limits::BLADE_EDGE_MAX_MM, "arc {}", b.sharpened_arc);
+        assert!(b.tip_to_heel >= limits::BLADE_FLOOR_MM, "tip-heel {}", b.tip_to_heel);
+        assert!((b.sharpened_arc / IN - 3.81).abs() < 0.08, "3.81 in class edge, got {:.3} in", b.sharpened_arc / IN);
+        assert!(b.sweep_deg >= limits::MIN_SWEEP_DEG && b.rake_deg > 0.0);
+        assert_eq!(check(&g, &p), Ok(()));
+    }
+    #[test] fn stub_44mm_genotype_fails_all_three_even_with_knob() {
+        // mh1-era 44 mm stub through the real phenotype at every blade angle: always rejected on all three.
+        for a in [-5.0, 0.0, 10.0, 25.0] {
+            let mut g = Genotype::random(&mut Rng(13)); g.blade_arc_len = 45.0; g.curve_radius = 30.0; g.blade_angle_deg = a;
+            let p = Phenotype::from_genotype(&g); assert!(p.blade.tip_to_heel < 50.0, "{:?}", p.blade);
+            let e = check(&g, &p).unwrap_err();
+            assert_eq!(e.iter().filter(|x| matches!(x, Reject::BladeTooShort { .. })).count(), 3, "angle {a}: {e:?}");
+        }
+    }
+    #[test] fn knob_makes_all_three_floor_reachable() {
+        // Replaces the old canary: with the blade-angle knob the phenotype CAN put all three measures
+        // over the floor with the edge <= 4.0 in, and some of those designs clear every gate.
+        let (mut all3, mut legal) = (0, 0);
+        for i in 0..=30 { for j in 0..=12 { for k in 0..=6 {
+            let mut g = Genotype::random(&mut Rng(51)); g.ring_wall = 4.2;
+            g.curve_radius = 45.0 + i as f64; g.blade_arc_len = 86.0 + 0.5 * j as f64; g.blade_angle_deg = -5.0 + 5.0 * k as f64;
+            g.clamp();
             let p = Phenotype::from_genotype(&g);
-            if p.blade.sharpened_arc <= limits::BLADE_EDGE_MAX_MM { best = best.max(p.blade.horizontal_reach); }
-        } }
-        assert!(best < limits::BLADE_FLOOR_MM, "phenotype can now reach {best} mm: replace this canary");
+            if blade_length_rejects(&p.blade).is_empty() { all3 += 1; if check(&g, &p).is_ok() { legal += 1; } }
+        } } }
+        assert!(all3 > 0 && legal > 0, "all-three {all3} fully legal {legal}");
+    }
+    #[test] fn legacy_unraked_genome_is_unchanged() {
+        // The knob only rakes forward: a legacy genome (angle = LEGACY) gets zero rake.
+        let mut g = Genotype::random(&mut Rng(5)); g.blade_angle_deg = jarambit_genotype::LEGACY_BLADE_ANGLE_DEG;
+        let p = Phenotype::from_genotype(&g);
+        assert!(p.blade.rake_deg.abs() < 1e-12 && p.blade_rot == 0.0);
+        let q = (12.3, -4.5); let r = p.from_blade_local(p.to_blade_local(q));
+        assert!((q.0 - r.0).abs() < 1e-9 && (q.1 - r.1).abs() < 1e-9);
     }
     #[test] fn rejects_straight() { let mut g = Genotype::random(&mut Rng(9)); g.sweep_override_deg = Some(10.0); assert!(has(&g, |x| *x == Reject::NotCurved)); }
     #[test] fn rejects_single_serrated() { let mut g = Genotype::random(&mut Rng(9)); g.serr_outer.depth = 0.0; assert!(has(&g, |x| *x == Reject::NotDoubleSerrated)); }
@@ -278,9 +318,11 @@ mod tests {
         let g = Genotype::random(&mut Rng(31));
         let mut p = Phenotype::from_genotype(&g);
         let mid = g.curve_radius;
+        let pc = p.clone();
         for q in p.outline.iter_mut() {
-            let r = hypot(*q);
-            if q.1 > -1.0 && r > mid + 0.4 && r < g.r_out() + 0.5 { *q = (g.r_out() * q.0 / r, g.r_out() * q.1 / r); }
+            let l = pc.to_blade_local(*q);
+            let r = hypot(l);
+            if l.1 > -1.0 && r > mid + 0.4 && r < g.r_out() + 0.5 { *q = pc.from_blade_local((g.r_out() * l.0 / r, g.r_out() * l.1 / r)); }
         }
         let e = check(&g, &p).unwrap_err();
         assert!(e.iter().any(|x| *x == Reject::NotDoubleSerrated), "{e:?}");
@@ -362,3 +404,4 @@ mod tests {
         assert!(rate < 0.01, "new gates rejected {novel}/{n} ({rate}) tolerance samples");
     }
 }
+

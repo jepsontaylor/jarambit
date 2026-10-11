@@ -64,7 +64,17 @@ pub mod bounds {
     /// sharpened_arc = gene + 9.22 spans ~86.3..101.5 mm: inside [BLADE_FLOOR_MM, BLADE_EDGE_MAX_MM].
     /// (Old 45..72 mm cap removed 2026-10-11: it made every design < 3.375 in.)
     pub const BLADE_ARC_LEN: (f64, f64) = (77.1, 92.3);
-    pub const CURVE_RADIUS: (f64, f64) = (28.0, 45.0);      // mid-blade radius, mm (curved)
+    /// Mid-blade radius, mm. Upper bound raised 45 -> 90 (2026-10-11, hawkbill sweep knob): at
+    /// 45 mm the sweep is forced >= ~101 deg and tip-to-heel tops out near 79 mm, so the
+    /// all-three 86.225 mm floor was unreachable. "Curved" is still enforced by the sweep
+    /// repair (sweep >= MIN_SWEEP_DEG + 1) and the red-team NotCurved gate (>= 55 deg).
+    pub const CURVE_RADIUS: (f64, f64) = (28.0, 90.0);
+    /// Blade angle knob (deg): elevation of the heel->tip chord above the horizontal
+    /// (perpendicular to the grip axis) after the blade is raked forward about the inner heel.
+    /// 0 = chord level with the guard line (max horizontal reach), + = tip raised,
+    /// - = hawkbill droop. The phenotype only rakes FORWARD: if the natural chord is already
+    /// flatter than this, the blade is left un-raked.
+    pub const BLADE_ANGLE_DEG: (f64, f64) = (-5.0, 25.0);
     pub const THICKNESS: (f64, f64) = (2.5, 4.5);           // stock, mm, 0.1 mm quantum
     pub const EDGE_ANGLE_DEG: (f64, f64) = (14.0, 22.0);    // per side; Ti practical
     pub const SERR_PITCH: (f64, f64) = (2.5, 6.0);          // mm
@@ -125,9 +135,15 @@ pub struct Genotype {
     pub brand_pad_l: f64,
     pub holder: HolderIface,
     pub material: TiGrade,
+    /// Blade angle knob (deg), see `bounds::BLADE_ANGLE_DEG`. Gene index 20.
+    pub blade_angle_deg: f64,
     /// Raw sweep override for adversarial tests; None = derived from arc/radius.
     pub sweep_override_deg: Option<f64>,
 }
+
+/// Legacy (pre-knob) genomes have no blade angle; 90 deg is never below the natural chord, so
+/// the phenotype leaves them un-raked exactly as before.
+pub const LEGACY_BLADE_ANGLE_DEG: f64 = 90.0;
 
 fn h_repair(h: &mut HolderIface, grip: f64) {
     let fmax = (grip - 30.0).min(bounds::FRICTION_LEN.1);
@@ -168,6 +184,7 @@ impl Genotype {
                 holder_wall: r.range(HOLDER_WALL.0, HOLDER_WALL.1),
             },
             material: if r.f64() < 0.5 { TiGrade::Ti6Al4V } else { TiGrade::Ti3Al2_5V },
+            blade_angle_deg: r.range(BLADE_ANGLE_DEG.0, BLADE_ANGLE_DEG.1),
             sweep_override_deg: None,
         };
         g.clamp(); g
@@ -178,6 +195,7 @@ impl Genotype {
         use bounds::*;
         let c = |v: &mut f64, b: (f64, f64)| *v = if v.is_finite() { v.clamp(b.0, b.1) } else { b.0 };
         c(&mut self.blade_arc_len, BLADE_ARC_LEN); c(&mut self.curve_radius, CURVE_RADIUS);
+        c(&mut self.blade_angle_deg, BLADE_ANGLE_DEG);
         // curvature repair: sweep must be >= MIN_SWEEP => r_out <= arc / min_sweep
         let r_out_max = self.blade_arc_len / (limits::MIN_SWEEP_DEG + 1.0).to_radians(); // 1 deg margin for tolerance MC
         let r_out_min = self.blade_arc_len / limits::MAX_SWEEP_DEG.to_radians();
@@ -220,6 +238,7 @@ impl Genotype {
         m(&mut g.holder.ricasso_len, 10.0); m(&mut g.holder.shoulder_w, 1.7);
         m(&mut g.holder.detent_depth, 0.8); m(&mut g.holder.detent_pos, 0.35);
         m(&mut g.holder.friction_len, 22.0); m(&mut g.holder.drain_d, 3.0); m(&mut g.holder.holder_wall, 0.8);
+        m(&mut g.blade_angle_deg, 30.0);
         if r.f64() < sigma * 0.5 { g.material = if g.material == TiGrade::Ti6Al4V { TiGrade::Ti3Al2_5V } else { TiGrade::Ti6Al4V }; }
         g.clamp(); g
     }
@@ -237,15 +256,18 @@ impl Genotype {
         vec![self.blade_arc_len, self.curve_radius, self.thickness, self.edge_angle_deg,
              self.serr_inner.pitch, self.serr_inner.depth, self.serr_outer.pitch, self.serr_outer.depth,
              self.ring_id, self.ring_wall, self.grip_len, self.brand_pad_w, self.brand_pad_l,
-             h.ricasso_len, h.shoulder_w, h.detent_depth, h.detent_pos, h.friction_len, h.drain_d, h.holder_wall]
+             h.ricasso_len, h.shoulder_w, h.detent_depth, h.detent_pos, h.friction_len, h.drain_d, h.holder_wall,
+             self.blade_angle_deg]
     }
+    /// Accepts the legacy 20-gene vector (pre blade-angle knob): blade_angle_deg then defaults to
+    /// the top of its range, i.e. the old un-raked (tangent-parallel-to-grip) blade.
     pub fn from_vec(v: &[f64], material: TiGrade) -> Self {
         Genotype {
             blade_arc_len: v[0], curve_radius: v[1], thickness: v[2], edge_angle_deg: v[3],
             serr_inner: Serration { pitch: v[4], depth: v[5] }, serr_outer: Serration { pitch: v[6], depth: v[7] },
             ring_id: v[8], ring_wall: v[9], grip_len: v[10], brand_pad_w: v[11], brand_pad_l: v[12],
             holder: HolderIface { ricasso_len: v[13], shoulder_w: v[14], detent_depth: v[15], detent_pos: v[16], friction_len: v[17], drain_d: v[18], holder_wall: v[19] },
-            material, sweep_override_deg: None,
+            material, blade_angle_deg: v.get(20).copied().unwrap_or(LEGACY_BLADE_ANGLE_DEG), sweep_override_deg: None,
         }
     }
     /// Span of each gene's bounds (same order as to_vec), for normalised distances.
@@ -253,7 +275,7 @@ impl Genotype {
         use bounds::*;
         [BLADE_ARC_LEN, CURVE_RADIUS, THICKNESS, EDGE_ANGLE_DEG, SERR_PITCH, SERR_DEPTH, SERR_PITCH, SERR_DEPTH,
          RING_ID, RING_WALL, GRIP_LEN, BRAND_PAD_W, BRAND_PAD_L, RICASSO_LEN, SHOULDER_W, DETENT_DEPTH, DETENT_POS,
-         FRICTION_LEN, HOLDER_DRAIN_D, HOLDER_WALL].iter().map(|b| b.1 - b.0).collect()
+         FRICTION_LEN, HOLDER_DRAIN_D, HOLDER_WALL, BLADE_ANGLE_DEG].iter().map(|b| b.1 - b.0).collect()
     }
     pub fn distance(&self, o: &Self) -> f64 {
         let s = Self::spans();
@@ -267,7 +289,7 @@ impl Genotype {
         s.push(self.material.name().into());
         s.join(",")
     }
-    pub const CSV_HEADER: &'static str = "blade_arc_len,curve_radius,thickness,edge_angle_deg,serr_in_pitch,serr_in_depth,serr_out_pitch,serr_out_depth,ring_id,ring_wall,grip_len,brand_pad_w,brand_pad_l,ricasso_len,shoulder_w,detent_depth,detent_pos,friction_len,holder_drain_d,holder_wall,material";
+    pub const CSV_HEADER: &'static str = "blade_arc_len,curve_radius,thickness,edge_angle_deg,serr_in_pitch,serr_in_depth,serr_out_pitch,serr_out_depth,ring_id,ring_wall,grip_len,brand_pad_w,brand_pad_l,ricasso_len,shoulder_w,detent_depth,detent_pos,friction_len,holder_drain_d,holder_wall,blade_angle_deg,material";
 }
 
 #[cfg(test)]
