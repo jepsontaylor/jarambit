@@ -9,10 +9,10 @@ fn jnum(v: &[f64]) -> String { let s: Vec<String> = v.iter().map(|x| if x.is_fin
 
 pub fn rec_metrics(r: &qd::Rec) -> String {
     let f = r.fem.clone().unwrap_or_default();
-    format!("{{\"id\":{},\"gen\":{},\"fit\":{:.5},\"spg\":{:.5},\"mass_g\":{:.3},\"blank_g\":{:.3},\"t\":{:.1},\"material\":\"{}\",\"tip_to_heel\":{:.3},\"horizontal_reach\":{:.3},\"arc_in\":{:.3},\"arc_sp\":{:.3},\"grip\":{:.2},\"aes_score\":{:.4},\"aes_pass\":{},\"hausdorff\":{:.3},\"emd\":{:.4},\"straight_mm\":{:.2},\"min_blend_r\":{:.2},\"novelty\":{:.4},\"lat20\":{:.1},\"lat_rob\":{:.1},\"ring20\":{:.1},\"ring_rob\":{:.1},\"pry20\":{:.1},\"twist20_nmm\":{:.1},\"sf_hiker\":{:.3},\"sf_hunter\":{:.3},\"sf_ring\":{:.3},\"floors_ok\":{},\"lat_at\":[{:.2},{:.2}],\"holder_box\":[{:.1},{:.1},{:.1}],\"removed_mm3\":{},\"min_web\":{:.2},\"rejects\":{:?},\"aes_fails\":{:?},\"legal\":{}}}",
+    format!("{{\"id\":{},\"gen\":{},\"fit\":{:.5},\"spg\":{:.5},\"mass_g\":{:.3},\"blank_g\":{:.3},\"t\":{:.1},\"material\":\"{}\",\"tip_to_heel\":{:.3},\"horizontal_reach\":{:.3},\"arc_in\":{:.3},\"arc_sp\":{:.3},\"grip\":{:.2},\"aes_score\":{:.4},\"aes_pass\":{},\"hausdorff\":{:.3},\"emd\":{:.4},\"straight_mm\":{:.2},\"min_blend_r\":{:.2},\"novelty\":{:.4},\"lat20\":{:.1},\"lat_rob\":{:.1},\"ring20\":{:.1},\"ring_rob\":{:.1},\"pry20\":{:.1},\"twist20_nmm\":{:.1},\"sf_hiker\":{:.3},\"sf_hunter\":{:.3},\"sf_ring\":{:.3},\"floors_ok\":{},\"lat_at\":[{:.2},{:.2}],\"holder_box\":[{:.1},{:.1},{:.1}],\"removed_mm3\":{},\"min_web\":{:.2},\"n_win\":{},\"win_area\":{:.2},\"n_perf\":{},\"perf_area\":{:.2},\"relief_frac\":{:.5},\"rejects\":{:?},\"aes_fails\":{:?},\"legal\":{}}}",
         r.id, r.gen, r.fit, r.spg, r.mass_g, r.blank_g, r.t, r.g.mat.name(), r.blade.tip_to_heel, r.blade.horizontal_reach, r.blade.arc_in, r.blade.arc_sp, r.grip,
         r.aes.score, r.aes.pass, r.aes.hausdorff, r.aes.emd, r.aes.straight_mm, r.aes.min_concave_r, r.novelty, f.lat20, f.lat_rob, f.ring20, f.ring_rob, f.pry20, f.twist20_nmm,
-        f.sf_hiker, f.sf_hunter, f.sf_ring, f.floors_ok, f.lat_at.0, f.lat_at.1, r.holder_lw.0, r.holder_lw.1, r.holder_lw.2, jnum(&r.removed), r.min_web, r.rejects, r.aes.fails, r.legal())
+        f.sf_hiker, f.sf_hunter, f.sf_ring, f.floors_ok, f.lat_at.0, f.lat_at.1, r.holder_lw.0, r.holder_lw.1, r.holder_lw.2, jnum(&r.removed), r.min_web, r.n_win, r.win_area, r.n_perf, r.perf_area, qd::relief_frac(r), r.rejects, r.aes.fails, r.legal())
 }
 
 fn plate_json(r: &qd::Rec, label: &str, cert: Option<(fem::Fem, fem::Fields)>) -> Option<String> {
@@ -122,12 +122,16 @@ pub fn probe(fem_area: f64) {
 pub fn conv(evals_csv: &str, n: usize, threads: usize, out: &str) -> bool {
     let txt = match std::fs::read_to_string(evals_csv) { Ok(t) => t, Err(e) => { eprintln!("{evals_csv}: {e}"); return false; } };
     let mut gs: Vec<(String, Genome)> = vec![("c4_seed".into(), Genome::c4_seed(5.7))];
-    let rows: Vec<Vec<&str>> = txt.lines().skip(1).map(|l| l.split(',').collect()).filter(|f: &Vec<&str>| f.len() > 15 && f[5] == "true").collect();
+    let hdr: Vec<&str> = txt.lines().next().unwrap_or("").split(',').collect();
+    let off = hdr.iter().position(|h| *h == "cp00").unwrap_or(15);
+    let col = |n: &str, d: usize| hdr.iter().position(|h| *h == n).unwrap_or(d);
+    let (c_aes, c_fit, c_leg) = (col("aes_pass", 5), col("fit", 2), col("legal", 13));
+    let rows: Vec<Vec<&str>> = txt.lines().skip(1).map(|l| l.split(',').collect()).filter(|f: &Vec<&str>| f.len() > off && f[c_aes] == "true").collect();
     // legal first (highest fitness), then a stride through the remaining aesthetic passers
-    let mut legal: Vec<&Vec<&str>> = rows.iter().filter(|f| f[13] == "true").collect();
-    legal.sort_by(|a, b| b[2].parse::<f64>().unwrap_or(-9.0).partial_cmp(&a[2].parse::<f64>().unwrap_or(-9.0)).unwrap());
+    let mut legal: Vec<&Vec<&str>> = rows.iter().filter(|f| f[c_leg] == "true").collect();
+    legal.sort_by(|a, b| b[c_fit].parse::<f64>().unwrap_or(-9.0).partial_cmp(&a[c_fit].parse::<f64>().unwrap_or(-9.0)).unwrap());
     let mut seen = std::collections::HashSet::new();
-    let mut add = |gs: &mut Vec<(String, Genome)>, f: &Vec<&str>| { if seen.insert(f[15..].join(",")) { if let Some(g) = Genome::from_csv(&f[15..]) { gs.push((format!("id{}", f[0]), g)); } } };
+    let mut add = |gs: &mut Vec<(String, Genome)>, f: &Vec<&str>| { if seen.insert(f[off..].join(",")) { if let Some(g) = Genome::from_csv(&f[off..]) { gs.push((format!("id{}", f[0]), g)); } } };
     for f in legal.iter() { if gs.len() > n / 2 { break; } add(&mut gs, f); }
     let stride = (rows.len() / (n - n / 2).max(1)).max(1);
     for f in rows.iter().step_by(stride) { if gs.len() > n { break; } add(&mut gs, f); }
@@ -222,14 +226,22 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     for r in light.iter().take(20) { order.push(("light", r)); }
     for r in novel.iter().take(10) { order.push(("novel", r)); }
     let mut picked: Vec<(String, qd::Rec, fem::Fem, fem::Fields)> = Vec::new(); let (mut n_try, mut n_fail) = (0usize, 0usize);
-    let mut seen: Vec<Genome> = Vec::new(); let mut cert_rows = String::from("kind,id,gen,mass_g,t,search_lat_rob,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,twist_sf_proxy,floors_ok_cert,spg_cert,aes,novelty,relief_frac,n_win\n");
-    for (kind, r) in order { if picked.len() >= n_cert || n_try >= 60 { break; }
-        if seen.contains(&r.g) || !r.legal() { continue; } seen.push(r.g.clone()); n_try += 1;
-        let p = pheno::build(&r.g);
-        let Some((cf, fl)) = fem::certify(&p) else { n_fail += 1; continue; };
+    let mut seen: Vec<Genome> = Vec::new(); let mut cert_rows = String::from("kind,id,gen,mass_g,t,search_lat_rob,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,twist_sf_proxy,floors_ok_cert,spg_cert,aes,novelty,relief_frac,n_win,n_perf\n");
+    let mut queue: Vec<(&str, &qd::Rec)> = Vec::new();
+    for (kind, r) in order { if queue.len() >= (2 * n_cert).max(12) { break; } if seen.contains(&r.g) || !r.legal() { continue; } seen.push(r.g.clone()); queue.push((kind, r)); }
+    // certify the queue in parallel (each certification is single-threaded: 0.25 + 0.125 mm^2 solves)
+    let th = threads.max(1).min(queue.len().max(1));
+    let certs: Vec<Option<(fem::Fem, fem::Fields)>> = std::thread::scope(|s| {
+        let hs: Vec<_> = (0..th).map(|t| { let q = &queue; s.spawn(move || q.iter().enumerate().filter(|(i, _)| i % th == t).map(|(i, (_, r))| (i, fem::certify(&pheno::build(&r.g)))).collect::<Vec<_>>()) }).collect();
+        let mut v: Vec<(usize, Option<(fem::Fem, fem::Fields)>)> = hs.into_iter().flat_map(|h| h.join().unwrap()).collect(); v.sort_by_key(|x| x.0); v.into_iter().map(|x| x.1).collect()
+    });
+    for ((kind, r), c) in queue.into_iter().zip(certs) {
+        n_try += 1;
+        let Some((cf, fl)) = c else { n_fail += 1; continue; };
         let tw = cf.twist20_nmm * jarambit_physics::material(r.g.mat).yield_at(100.0) / jarambit_physics::material(r.g.mat).yield_at(20.0) / fem::TWIST_DESIGN_NMM;
-        let _ = writeln!(cert_rows, "{kind},{},{},{:.2},{:.1},{:.1},{:.1},{:.1},{:.3},{:.3},{:.3},{:.3},{},{:.4},{:.4},{:.4},{:.4},{}", r.id, r.gen, r.mass_g, r.t, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob, cf.sf_hiker, cf.sf_hunter, cf.sf_ring, tw, cf.floors_ok, cf.lat_rob / r.mass_g, r.aes.score, r.novelty, qd::relief_frac(r), r.n_win);
+        let _ = writeln!(cert_rows, "{kind},{},{},{:.2},{:.1},{:.1},{:.1},{:.1},{:.3},{:.3},{:.3},{:.3},{},{:.4},{:.4},{:.4},{:.4},{},{}", r.id, r.gen, r.mass_g, r.t, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob, cf.sf_hiker, cf.sf_hunter, cf.sf_ring, tw, cf.floors_ok, cf.lat_rob / r.mass_g, r.aes.score, r.novelty, qd::relief_frac(r), r.n_win, r.n_perf);
         if !cf.floors_ok { n_fail += 1; let _ = writeln!(rep, "- certification FAIL id {} ({kind}, {:.1} g): search lat_rob {:.0} -> certified {:.0} N, ring {:.0}", r.id, r.mass_g, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob); continue; }
+        if picked.len() >= n_cert { continue; }
         let mut rr = (*r).clone(); rr.spg = cf.lat_rob / rr.mass_g; rr.fem = Some(cf.clone()); rr.fit = qd::fitness(&rr);
         picked.push((kind.to_string(), rr, cf, fl));
     }
@@ -269,6 +281,8 @@ pub fn mprobe(genome_csv: &str, fem_area: f64) {
     g.v[RFL_D] = 1.0; g.v[RFL_ARC] = 220.0; vars.push(("+ring flute".into(), g.clone()));
     let mut g2 = g0.clone(); g2.v[T] = 6.0; g2.v[ISO_D] = 1.4; g2.v[ISO_ZL] = 1.0; g2.v[ISO_ZB] = 1.0; g2.v[ISO_XB] = 0.5; g2.v[ISO_RIM] = 2.0; g2.v[RING_WALL] = 4.8; g2.v[RFL_D] = 1.0; g2.v[RFL_ARC] = 220.0; g2.clamp(); vars.push(("t6 land+blade iso, ring wall 4.8, flute".into(), g2.clone()));
     g2.v[ISO_ZH] = 1.0; g2.v[ISO_XH] = 0.6; g2.v[ISO_GR] = -0.8; vars.push(("+handle iso (far 40%, graded)".into(), g2.clone()));
+    let mut g3 = g0.clone(); g3.v[T] = 6.0; g3.v[PERF_D] = 4.5; g3.v[PERF_GAP] = 3.5; g3.v[PERF_ZL] = 1.0; g3.clamp(); vars.push(("t6 perf land d4.5".into(), g3.clone()));
+    g3.v[PERF_ZH] = 1.0; g3.v[PERF_XH] = 0.4; g3.v[PERF_E] = 1.8; vars.push(("t6 perf land+handle(far 60%) e1.8".into(), g3.clone()));
     for (name, g) in vars {
         let p = pheno::build(&g);
         { let fd = &p.field; let rho = jarambit_physics::material(g.mat).density / 1000.0; let mut z = [0.0f64; 4];
@@ -276,7 +290,31 @@ pub fn mprobe(genome_csv: &str, fem_area: f64) {
             let k = if x < p.ring_od / 2.0 { 0 } else if x < 78.0 + p.dx { 1 } else if x < 100.0 + p.dx { 2 } else { 3 }; z[k] += v as f64 * fd.g * fd.g * rho; } }
           println!("  mass by zone (g): ring {:.1} handle {:.1} land {:.1} blade {:.1}; land_full {:.0} mm2", z[0], z[1], z[2], z[3], p.land_full_mm2); } let a = aesthetic::evaluate(&g, &p); let r = gates::check(&g, &p);
         let f = fem::run(&p, fem_area, false).map(|x| x.0);
-        println!("{name}: mass {:.2} t {:.1} removed {:?} win {} aes {} rejects {:?}\n  lat_rob {:.0} ring_rob {:.0} lat_at {:?} floors {}", p.mass_g, p.t, p.removed.map(|x| x.round()), p.n_win, a.pass, r,
+        println!("{name}: perf {} mass {:.2} t {:.1} removed {:?} win {} aes {} rejects {:?}\n  lat_rob {:.0} ring_rob {:.0} lat_at {:?} floors {}", p.n_perf, p.mass_g, p.t, p.removed.map(|x| x.round()), p.n_win, a.pass, r,
             f.as_ref().map_or(0.0, |f| f.lat_rob), f.as_ref().map_or(0.0, |f| f.ring_rob), f.as_ref().map(|f| f.lat_at), f.as_ref().map_or(false, |f| f.floors_ok));
     }
+}
+
+/// Refinement study beyond certification: unbiased lateral / ring capacities at 0.25, 0.125, 0.0625 mm^2
+/// for every genome row of the given CSVs (certified winners), in parallel.
+pub fn refine(csvs: &str, threads: usize, out: &str) -> bool {
+    let mut gs: Vec<(String, Genome)> = Vec::new();
+    for path in csvs.split(',').filter(|s| !s.is_empty()) { for g in load_seeds(path, 1) { gs.push((path.rsplit('/').next().unwrap_or(path).replace("_genome.csv", ""), g)); } }
+    const LV: [f64; 3] = [0.25, 0.125, 0.0625];
+    let th = threads.max(1).min(gs.len().max(1) * LV.len());
+    let jobs: Vec<(usize, usize)> = (0..gs.len()).flat_map(|i| (0..LV.len()).map(move |l| (i, l))).collect();
+    let res: Vec<((usize, usize), Option<fem::Fem>)> = std::thread::scope(|s| {
+        let hs: Vec<_> = (0..th).map(|t| { let (jobs, gs) = (&jobs, &gs); s.spawn(move || jobs.iter().enumerate().filter(|(k, _)| k % th == t).map(|(_, &(i, l))| ((i, l), fem::run_unbiased(&pheno::build(&gs[i].1), LV[l]))).collect::<Vec<_>>()) }).collect();
+        hs.into_iter().flat_map(|h| h.join().unwrap()).collect()
+    });
+    let mut md = String::from("# Refinement beyond certification (unbiased, 20 C capacities)\n\n| design | mass g | lat20 @0.25 | @0.125 | @0.0625 | 0.0625/min(0.25,0.125) | ring20 @0.25 | @0.125 | @0.0625 | lat_at @0.0625 | robust lat @0.0625 | hunter SF @0.0625 |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n");
+    for (i, (k, g)) in gs.iter().enumerate() {
+        let f: Vec<Option<&fem::Fem>> = (0..LV.len()).map(|l| res.iter().find(|x| x.0 == (i, l)).and_then(|x| x.1.as_ref())).collect();
+        if f.iter().any(|x| x.is_none()) { let _ = writeln!(md, "| {k} | mesh failed |||||||||||"); continue; }
+        let f: Vec<&fem::Fem> = f.into_iter().map(|x| x.unwrap()).collect(); let p = pheno::build(g);
+        let m = jarambit_physics::material(g.mat); let hot = m.yield_at(100.0) / m.yield_at(20.0); let tk = ((p.t - 0.1) / p.t).powi(2);
+        let rob = (f[2].lat20 * tk).min(f[2].lat20 * hot);
+        let _ = writeln!(md, "| {k} | {:.2} | {:.1} | {:.1} | {:.1} | {:.3} | {:.0} | {:.0} | {:.0} | ({:.1}, {:.1}) | {:.1} | {:.3} |", p.mass_g, f[0].lat20, f[1].lat20, f[2].lat20, f[2].lat20 / f[0].lat20.min(f[1].lat20), f[0].ring20, f[1].ring20, f[2].ring20, f[2].lat_at.0, f[2].lat_at.1, rob, rob / 260.0);
+    }
+    println!("{md}"); std::fs::create_dir_all(out).ok(); std::fs::write(format!("{out}/refine.md"), md).is_ok()
 }

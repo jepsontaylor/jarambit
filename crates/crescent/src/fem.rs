@@ -31,7 +31,19 @@ pub const SEARCH_BIAS_RING: f64 = 1.08;
 /// Certification levels: capacity = MIN over these two converged levels (no bias applied).
 pub const CERT_AREAS: [f64; 2] = [0.25, 0.125];
 
-pub fn run(p: &Pheno, max_area: f64, keep: bool) -> Option<(Fem, Option<Fields>)> { run_b(p, max_area, keep, SEARCH_BIAS_LAT, SEARCH_BIAS_RING) }
+pub fn run(p: &Pheno, max_area: f64, keep: bool) -> Option<(Fem, Option<Fields>)> { run_b(p, max_area, keep, search_bias().0, search_bias().1) }
+
+/// Search-mesh bias actually applied: crescent default (1.11 / 1.08) unless JARAMBIT_SEARCH_BIAS_LAT /
+/// _RING override it (machined-lattice calibration, out/wave7_conv: lateral 2.0/ref up to 1.28).
+pub fn search_bias() -> (f64, f64) {
+    static B: std::sync::OnceLock<(f64, f64)> = std::sync::OnceLock::new();
+    *B.get_or_init(|| {
+        let e = |k: &str, d: f64| std::env::var(k).ok().and_then(|v| v.parse::<f64>().ok()).filter(|x| *x >= 1.0).unwrap_or(d);
+        (e("JARAMBIT_SEARCH_BIAS_LAT", SEARCH_BIAS_LAT), e("JARAMBIT_SEARCH_BIAS_RING", SEARCH_BIAS_RING)) })
+}
+
+/// Unbiased capacities at one mesh level (refinement studies beyond certification).
+pub fn run_unbiased(p: &Pheno, max_area: f64) -> Option<Fem> { run_b(p, max_area, false, 1.0, 1.0).map(|x| x.0) }
 
 /// Certified capacities: min over CERT_AREAS of the 20 C capacities, robust factors applied, no
 /// mesh bias (these are the reference levels). Fields (for plates) come from the 0.25 mm^2 level.

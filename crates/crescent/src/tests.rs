@@ -63,7 +63,7 @@ fn c4_stock_genome() -> Genome {
 #[test] fn envelope_is_expressive_but_bounded() {
     let mut r = Rng(77); let (mut pass, mut n) = (0, 0); let mut hs = Vec::new(); let mut ds = Vec::new();
     let seed = Genome::c4_seed(5.7);
-    for _ in 0..60 { let mut g = seed.clone(); for _ in 0..5 { g = g.mutate(&mut r, 0.15); }
+    for _ in 0..120 { let mut g = seed.clone(); for _ in 0..5 { g = g.mutate(&mut r, 0.15); }
         let p = build(&g); let a = aesthetic::evaluate(&g, &p);
         n += 1; if a.pass { pass += 1; hs.push(a.hausdorff); ds.push(crate::qd::descriptor(&g, &p)); } }
     let spread = ds.iter().flat_map(|a| ds.iter().map(move |b| a.iter().zip(b).map(|(x, y)| (x - y).powi(2)).sum::<f64>().sqrt())).fold(0.0, f64::max);
@@ -104,4 +104,27 @@ fn c4_stock_genome() -> Genome {
     let (f, _) = crate::fem::run(&p, 4.0, false).expect("fem");
     eprintln!("seed FEM (coarse 4 mm2): {f:?} mass {:.1} g", p.mass_g);
     assert!(f.lat20 > 0.0 && f.ring20 > 0.0);
+}
+
+#[test] fn machining_layer_keeps_web_floor_and_is_watertight() {
+    let mut g = Genome::c4_seed(6.0);
+    g.v[ISO_D] = 1.6; g.v[ISO_ZB] = 1.0; g.v[ISO_ZL] = 1.0; g.v[ISO_XB] = 0.6; g.v[RFL_D] = 2.0; g.v[RFL_W] = 0.7; g.v[RFL_ARC] = 240.0;
+    g.v[PERF_D] = 4.0; g.v[PERF_ZL] = 1.0; g.v[WIN_N] = 5.0; g.v[EA_IN] = 22.0; g.v[EA_SP] = 22.0; g.clamp();
+    let p = build(&g);
+    assert!(p.removed[5] > 50.0 && p.removed[6] > 50.0, "isogrid / ring flute inactive: {:?}", p.removed);
+    assert!(p.min_web >= (0.3 * p.t).max(1.5) - 1e-6, "web floor violated: {}", p.min_web);
+    let s = crate::export::solid(&p, 2.0).expect("solid");
+    let (once, more, _) = crate::export::census(&s.tris);
+    assert_eq!((once, more), (0, 0), "not watertight");
+    let mut go = g.clone(); go.v[ISO_D] = 0.0; go.v[RFL_D] = 0.0; go.v[PERF_D] = 0.0; go.v[WIN_N] = 0.0; let off = build(&go);
+    assert!(p.mass_g < off.mass_g - 1.0, "machining removed no mass");
+}
+
+#[test] fn legacy_rows_load_with_machining_off() {
+    let g = Genome::c4_seed(5.7);
+    let mut row: Vec<String> = g.v[..NG_LEGACY].iter().map(|x| format!("{x:.4}")).collect(); row.push("Ti-6Al-4V".into());
+    let f: Vec<&str> = row.iter().map(|s| s.as_str()).collect();
+    let h = Genome::from_csv(&f).expect("legacy row");
+    assert_eq!(h.v.len(), NG); assert_eq!(&h.v[NG_LEGACY..], &MACHINING_OFF[..]);
+    assert!((build(&h).mass_g - build(&g).mass_g).abs() < 1e-6);
 }

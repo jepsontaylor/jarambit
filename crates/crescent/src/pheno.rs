@@ -59,6 +59,8 @@ pub struct Pheno {
     pub removed: [f64; NREM], pub web_clamped: usize, pub min_web: f64,
     /// Pierced-fuller through-windows: count and planform area (mm^2).
     pub n_win: usize, pub win_area: f64,
+    /// Perforation-lattice through-holes: count and planform area (mm^2).
+    pub n_perf: usize, pub perf_area: f64,
     pub land_full_mm2: f64, pub pad_flat: bool,
     pub fails: Vec<String>,
 }
@@ -212,6 +214,32 @@ pub fn build(g: &Genome) -> Pheno {
         }
     }
     let (pw, pl) = (g.v[PAD_W], g.v[PAD_L]); let pc = (g.v[PAD_X] + dx, g.v[PAD_Y]);
+    // ---- perforation lattice (through-holes, guard/land band and/or handle) ----
+    let (mut n_perf, mut perf_area) = (0usize, 0.0f64);
+    let pd = g.v[PERF_D];
+    if pd >= 3.0 && (g.v[PERF_ZL] > 0.5 || g.v[PERF_ZH] > 0.5) {
+        let (gap, pa, pe) = (g.v[PERF_GAP], g.v[PERF_A].to_radians(), g.v[PERF_E]);
+        let pitch = pd + gap; let (ca, sa) = (pa.cos(), pa.sin());
+        let r_od = (g.v[RING_ID] + 2.0 * g.v[RING_WALL]) / 2.0;
+        let h0 = (r_od + 3.0).max(18.0); let hx1 = 74.0 + dx; let hx0 = h0 + g.v[PERF_XH] * (hx1 - h0);
+        let mut bpts = densify(&outline, 0.25, true); for h in &holes { bpts.extend(densify(h, 0.25, true)); }
+        let nn = Nn::new(&bpts, 2.0);
+        let padbox = |q: P2, m: f64| q.0 >= pc.0 - pw / 2.0 - m && q.0 <= pc.0 + pw / 2.0 + m && q.1 >= pc.1 - pl / 2.0 - m && q.1 <= pc.1 + pl / 2.0 + m;
+        let (a_maj, b_min) = (pe * pd / 2.0, pd / 2.0);
+        let cen = (60.0 + dx, 0.0);
+        for j in -12i64..=12 { for i in -16i64..=16 {
+            let u = (i as f64 + if j.rem_euclid(2) == 1 { 0.5 } else { 0.0 }) * pitch * pe; let v = j as f64 * pitch * 0.866;
+            let q = (cen.0 + ca * u - sa * v, cen.1 + sa * u + ca * v);
+            let inl = g.v[PERF_ZL] > 0.5 && q.0 >= 78.0 + dx && q.0 <= 100.0 + dx;
+            let inh = g.v[PERF_ZH] > 0.5 && q.0 >= hx0 && q.0 <= hx1;
+            if !(inl || inh) { continue; }
+            if !point_in_poly(q, &outline) || holes.iter().any(|h| point_in_poly(q, h)) { continue; }
+            if nn.nearest(q, 40.0) < a_maj + 3.2 || padbox(q, a_maj + 1.2) { continue; }
+            let e: Vec<P2> = (0..40).map(|k| { let th = -2.0 * PI * k as f64 / 40.0; let (x, y) = (a_maj * th.cos(), b_min * th.sin()); (q.0 + ca * x - sa * y, q.1 + sa * x + ca * y) }).collect();
+            if e.iter().any(|&z| !point_in_poly(z, &outline)) { continue; }
+            perf_area += signed_area(&e).abs(); n_perf += 1; holes.push(e); hole_names.push("perf");
+        } }
+    }
     let pad = [(pc.0 - pw / 2.0, pc.1 - pl / 2.0), (pc.0 + pw / 2.0, pc.1 - pl / 2.0), (pc.0 + pw / 2.0, pc.1 + pl / 2.0), (pc.0 - pw / 2.0, pc.1 + pl / 2.0)];
     let neck_x = ring_od / 2.0 - 3.0;
     let grip_len = cp[13].0 - neck_x;
@@ -219,7 +247,7 @@ pub fn build(g: &Genome) -> Pheno {
     let mut p = Pheno { cp, outline, macro_outline, curve: c, cidx, holes, hole_names, t: g.v[T], mat: g.mat, tip, heel, dx,
         edge_in, edge_sp, blade, grip_len, ring_od, ring_id, pad, teeth_in, teeth_sp, ripple_in, ripple_sp,
         field: Field { x0: 0.0, y0: 0.0, g: GRID, nx: 0, ny: 0, th: vec![], base: vec![] }, mass_g: 0.0, blank_g: 0.0, area_mm2: 0.0,
-        removed: [0.0; NREM], n_win, win_area, web_clamped: 0, min_web: 0.0, land_full_mm2: 0.0, pad_flat: false, fails };
+        removed: [0.0; NREM], n_win, win_area, n_perf, perf_area, web_clamped: 0, min_web: 0.0, land_full_mm2: 0.0, pad_flat: false, fails };
     thickness_field(g, &mut p);
     p
 }

@@ -9,7 +9,7 @@ use crate::genome::*;
 use crate::pheno::*;
 use jarambit_genotype::Rng;
 
-pub const DESC_N: usize = 15;
+pub const DESC_N: usize = 16;
 
 #[derive(Clone, Debug)]
 pub struct Rec {
@@ -17,7 +17,7 @@ pub struct Rec {
     pub mass_g: f64, pub blank_g: f64, pub t: f64, pub blade: Blade, pub grip: f64,
     pub aes: Aes, pub rejects: Vec<String>, pub fem: Option<Fem>,
     pub spg: f64, pub novelty: f64, pub fit: f64, pub desc: [f64; DESC_N], pub holder_lw: (f64, f64, f64),
-    pub removed: [f64; NREM], pub min_web: f64, pub n_win: usize, pub win_area: f64,
+    pub removed: [f64; NREM], pub min_web: f64, pub n_win: usize, pub win_area: f64, pub n_perf: usize, pub perf_area: f64,
 }
 impl Rec {
     pub fn aesthetic_pass(&self) -> bool { self.aes.pass }
@@ -36,7 +36,7 @@ pub fn descriptor(g: &Genome, p: &Pheno) -> [f64; DESC_N] {
      (holes_area / p.area_mm2.max(1.0) * 5.0).min(1.0), zone(1..=7), zone(9..=13), zone(14..=18), zone(30..=35),
      (cv * 2.0).min(1.0), (g.v[DROP] + 4.0) / 8.0,
      // internal machining layer (wave7+): isogrid pockets, pierced-fuller windows, ring flute
-     (p.removed[5] / blank * 8.0).min(1.0), (p.win_area / p.area_mm2.max(1.0) * 12.0).min(1.0), (p.removed[6] / blank * 25.0).min(1.0)]
+     (p.removed[5] / blank * 8.0).min(1.0), (p.win_area / p.area_mm2.max(1.0) * 12.0).min(1.0), (p.removed[6] / blank * 25.0).min(1.0), (p.perf_area / p.area_mm2.max(1.0) * 12.0).min(1.0)]
 }
 
 pub fn evaluate(g: &Genome, id: usize, gen: usize, fem_area: f64) -> Rec {
@@ -48,7 +48,7 @@ pub fn evaluate(g: &Genome, id: usize, gen: usize, fem_area: f64) -> Rec {
     let fem = if aes.pass && rejects.is_empty() { fem::run(&p, fem_area, false).map(|x| x.0) } else { None };
     let spg = fem.as_ref().map_or(0.0, |f| f.lat_rob / p.mass_g);
     Rec { id, gen, g: g.clone(), mass_g: p.mass_g, blank_g: p.blank_g, t: p.t, blade: p.blade.clone(), grip: p.grip_len, aes, rejects, fem,
-        spg, novelty: 0.0, fit: 0.0, desc, holder_lw: (l, w, ang), removed: p.removed, min_web: p.min_web, n_win: p.n_win, win_area: p.win_area }
+        spg, novelty: 0.0, fit: 0.0, desc, holder_lw: (l, w, ang), removed: p.removed, min_web: p.min_web, n_win: p.n_win, win_area: p.win_area, n_perf: p.n_perf, perf_area: p.perf_area }
 }
 
 fn d2(a: &[f64; DESC_N], b: &[f64; DESC_N]) -> f64 { a.iter().zip(b).map(|(x, y)| (x - y).powi(2)).sum::<f64>().sqrt() }
@@ -83,7 +83,7 @@ pub fn fitness(r: &Rec) -> f64 {
 /// Total machined volume removed / blank volume: 3-D relief + lattice + fuller + flutes + texture +
 /// isogrid + ring flute + pierced-fuller windows (window area x stock).
 pub fn relief_frac(r: &Rec) -> f64 { let blank = (r.blank_g / jarambit_physics::material(r.g.mat).density * 1000.0).max(1.0);
-    (r.removed.iter().sum::<f64>() + r.win_area * r.t) / blank }
+    (r.removed.iter().sum::<f64>() + (r.win_area + r.perf_area) * r.t) / blank }
 /// MAP-Elites cell: (3-D relief volume fraction bin, Hausdorff-to-C.4 bin). Relief bins are
 /// graded for the measured range (0.5-6.5 % of the blank) so the 3-D axis actually resolves.
 /// wave7+: archive cell = (machined-removal fraction bin, finished-mass bin of 2 g from 72 to 90 g).
