@@ -54,6 +54,8 @@ pub struct RecJson {
     pub holder_box: [Option<f64>; 3], pub removed_mm3: Vec<Option<f64>>, pub min_web: Option<f64>, pub n_win: usize, pub win_area: Option<f64>, pub n_perf: usize, pub perf_area: Option<f64>,
     pub relief_frac: Option<f64>, pub rejects: Vec<String>, pub aes_fails: Vec<String>, pub legal: bool, pub t_joint: Option<f64>, pub p1: bool,
     pub rail_w: Option<f64>, pub neck_l: Option<f64>, pub pocket_d: Option<f64>, pub pocket_r: Option<f64>, pub knots: Vec<Option<f64>>,
+    /// PR-0.29.1 lineage
+    pub parents: Vec<usize>, pub op: String, pub op_version: u32,
 }
 
 /// FEM metrics flattened into the record; every field null when there is no FEM result.
@@ -95,6 +97,7 @@ impl RecJson {
             rejects: r.rejects.clone(), aes_fails: r.aes.fails.clone(), legal: r.legal(), t_joint: fin(r.g.t_joint(), 3), p1: r.g.p1(),
             rail_w: fin(r.g.v[RAIL_W], 2), neck_l: fin(r.g.v[NECK_L], 2), pocket_d: fin(r.g.v[POCKET_D], 3), pocket_r: fin(r.g.v[POCKET_R], 2),
             knots: (0..if r.g.p1() { r.g.k_n() } else { 1 }).map(|k| fin(r.g.v[K0 + k], 4)).collect(),
+            parents: r.parents.clone(), op: r.op.to_string(), op_version: r.op_version,
         }
     }
 }

@@ -8,6 +8,7 @@ use crate::gates;
 use crate::genome::*;
 use crate::pheno::*;
 use jarambit_genotype::Rng;
+use jarambit_evidence::{Event, Sink, NullSink, OP_VERSION};
 
 pub const DESC_N: usize = 16;
 
@@ -18,6 +19,8 @@ pub struct Rec {
     pub aes: Aes, pub rejects: Vec<String>, pub fem: Option<Fem>,
     pub spg: f64, pub novelty: f64, pub fit: f64, pub desc: [f64; DESC_N], pub holder_lw: (f64, f64, f64),
     pub removed: [f64; NREM], pub min_web: f64, pub n_win: usize, pub win_area: f64, pub n_perf: usize, pub perf_area: f64,
+    /// PR-0.29.1 lineage: parent ids, variation operator, operator-semantics version.
+    pub parents: Vec<usize>, pub op: &'static str, pub op_version: u32,
 }
 impl Rec {
     pub fn aesthetic_pass(&self) -> bool { self.aes.pass }
@@ -50,7 +53,8 @@ pub fn evaluate(g: &Genome, id: usize, gen: usize, fem_area: f64) -> Rec {
     let fem = if aes.pass && rejects.is_empty() { fem::run(&p, fem_area, false).map(|x| x.0) } else { None };
     let spg = fem.as_ref().map_or(0.0, |f| f.lat_rob / p.mass_g);
     Rec { id, gen, g: g.clone(), mass_g: p.mass_g, blank_g: p.blank_g, t: p.t, blade: p.blade.clone(), grip: p.grip_len, aes, rejects, fem,
-        spg, novelty: 0.0, fit: 0.0, desc, holder_lw: (l, w, ang), removed: p.removed, min_web: p.min_web, n_win: p.n_win, win_area: p.win_area, n_perf: p.n_perf, perf_area: p.perf_area }
+        spg, novelty: 0.0, fit: 0.0, desc, holder_lw: (l, w, ang), removed: p.removed, min_web: p.min_web, n_win: p.n_win, win_area: p.win_area, n_perf: p.n_perf, perf_area: p.perf_area,
+        parents: Vec::new(), op: "eval", op_version: OP_VERSION }
 }
 
 fn d2(a: &[f64; DESC_N], b: &[f64; DESC_N]) -> f64 { a.iter().zip(b).map(|(x, y)| (x - y).powi(2)).sum::<f64>().sqrt() }
@@ -114,29 +118,55 @@ pub struct RunCfg { pub pop: usize, pub gens: usize, pub threads: usize, pub see
 /// Island GA + MAP-Elites/novelty for the internal-machining lane.
 pub struct IslandCfg { pub base: RunCfg, pub islands: usize, pub migrate_every: usize, pub migrants: usize, pub seeds: Vec<Genome>, pub kick_frac: f64 }
 
-pub fn eval_batch(gs: Vec<(Genome, usize)>, gen: usize, cfg: &RunCfg) -> Vec<Rec> {
-    let n = gs.len(); let th = cfg.threads.max(1).min(n.max(1));
-    let chunks: Vec<Vec<(Genome, usize)>> = (0..th).map(|t| gs.iter().enumerate().filter(|(i, _)| i % th == t).map(|(_, x)| x.clone()).collect()).collect();
+/// A newborn genome awaiting evaluation: id, parent ids, variation operator.
+#[derive(Clone)]
+pub struct Birth { pub g: Genome, pub id: usize, pub parents: Vec<usize>, pub op: &'static str, pub island: usize }
+fn birth(g: Genome, next_id: &mut usize, parents: Vec<usize>, op: &'static str, island: usize) -> Birth { *next_id += 1; Birth { g, id: *next_id - 1, parents, op, island } }
+
+/// Evaluator: (genome, id, gen, fem_area) -> record. `evaluate` in production; a synthetic one in tests.
+pub type EvalFn = dyn Fn(&Genome, usize, usize, f64) -> Rec + Sync;
+
+/// Run counters: fresh evaluations (births) vs appearances (population slots per generation, incl. elites/migrants).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Counters { pub fresh_evals: u64, pub appearances: u64 }
+
+pub fn eval_batch_with(bs: Vec<Birth>, gen: usize, cfg: &RunCfg, ev: &EvalFn) -> Vec<Rec> {
+    let n = bs.len(); let th = cfg.threads.max(1).min(n.max(1));
+    let chunks: Vec<Vec<Birth>> = (0..th).map(|t| bs.iter().enumerate().filter(|(i, _)| i % th == t).map(|(_, x)| x.clone()).collect()).collect();
     let mut out: Vec<Rec> = std::thread::scope(|s| {
-        let hs: Vec<_> = chunks.into_iter().map(|c| s.spawn(move || c.into_iter().map(|(g, id)| evaluate(&g, id, gen, cfg.fem_area)).collect::<Vec<_>>())).collect();
+        let hs: Vec<_> = chunks.into_iter().map(|c| s.spawn(move || c.into_iter().map(|b| { let mut r = ev(&b.g, b.id, gen, cfg.fem_area); r.parents = b.parents; r.op = b.op; r.op_version = OP_VERSION; r }).collect::<Vec<_>>())).collect();
         hs.into_iter().flat_map(|h| h.join().unwrap()).collect()
     });
     out.sort_by_key(|r| r.id); out
 }
+pub fn eval_batch(gs: Vec<(Genome, usize)>, gen: usize, cfg: &RunCfg) -> Vec<Rec> {
+    eval_batch_with(gs.into_iter().map(|(g, id)| Birth { g, id, parents: Vec::new(), op: "eval", island: 0 }).collect(), gen, cfg, &evaluate)
+}
 
-pub struct RunOut { pub all: Vec<Rec>, pub archive: std::collections::BTreeMap<(usize, usize), Rec>, pub history: Vec<String> }
+fn eval_event(r: &Rec, island: usize) -> Event {
+    let f = |x: f64| if x.is_finite() { Some(x) } else { None };
+    Event::Eval { gen: r.gen, island, id: r.id as u64, parents: r.parents.iter().map(|&p| p as u64).collect(), op: r.op.to_string(), op_version: r.op_version,
+        fit: f(r.fit), aes_pass: r.aes.pass, legal: r.legal(), mass_g: f(r.mass_g), fem_status: format!("{:?}", crate::record::fem_status(r)).to_lowercase() }
+}
 
-pub fn run(cfg: &RunCfg, mut log: impl FnMut(&str)) -> RunOut {
+pub struct RunOut { pub all: Vec<Rec>, pub archive: std::collections::BTreeMap<(usize, usize), Rec>, pub history: Vec<String>, pub counters: Counters }
+
+pub fn run(cfg: &RunCfg, log: impl FnMut(&str)) -> RunOut { run_with(cfg, &evaluate, log, &mut NullSink) }
+
+/// Single-population GA + MAP-Elites with lineage + evidence events (PR-0.29.1).
+pub fn run_with(cfg: &RunCfg, ev: &EvalFn, mut log: impl FnMut(&str), sink: &mut dyn Sink) -> RunOut {
     let mut rng = Rng(cfg.seed);
     let seed = Genome::c4_seed(cfg.t_seed);
-    let mut next_id = 0usize;
-    let mut init = vec![(seed.clone(), { next_id += 1; next_id - 1 })];
-    while init.len() < cfg.pop { let s = if init.len() % 4 == 0 { 0.25 } else { 0.08 }; init.push((seed.mutate(&mut rng, s), { next_id += 1; next_id - 1 })); }
-    let mut pop = eval_batch(init, 0, cfg);
+    let mut next_id = 0usize; let mut cnt = Counters::default();
+    let mut init = vec![birth(seed.clone(), &mut next_id, vec![], "seed", 0)];
+    while init.len() < cfg.pop { let s = if init.len() % 4 == 0 { 0.25 } else { 0.08 }; let g = seed.mutate(&mut rng, s); init.push(birth(g, &mut next_id, vec![0], "init_mutate", 0)); }
+    cnt.fresh_evals += init.len() as u64;
+    let mut pop = eval_batch_with(init, 0, cfg, ev);
     let mut all: Vec<Rec> = Vec::new();
     let mut nov_mem: Vec<[f64; DESC_N]> = Vec::new();
     let mut archive: std::collections::BTreeMap<(usize, usize), Rec> = std::collections::BTreeMap::new();
     let mut history = vec!["gen,evals,aesthetic_pass,legal,best_fit,best_spg,best_mass_g,best_aes,best_nov,archive_cells,mean_hausdorff_pass".to_string()];
+    let mut fresh_ids: std::collections::HashSet<usize> = pop.iter().map(|r| r.id).collect();
     for gen in 0..=cfg.gens {
         // novelty among aesthetic passers only (archive memory + current passers)
         let pass_desc: Vec<[f64; DESC_N]> = pop.iter().filter(|r| r.aes.pass).map(|r| r.desc).collect();
@@ -146,60 +176,79 @@ pub fn run(cfg: &RunCfg, mut log: impl FnMut(&str)) -> RunOut {
             if r.legal() { let c = qd_cell(r); if archive.get(&c).map_or(true, |e| r.fit > e.fit) { archive.insert(c, r.clone()); } } }
         if nov_mem.len() > 4000 { let k = nov_mem.len() - 4000; nov_mem.drain(..k); }
         all.extend(pop.iter().cloned());
+        cnt.appearances += pop.len() as u64;
+        for r in pop.iter() { if fresh_ids.contains(&r.id) { sink.event(eval_event(r, 0)); } else { sink.event(Event::Elite { gen, island: 0, id: r.id as u64 }); } }
         let np = pop.iter().filter(|r| r.aes.pass).count(); let nl = pop.iter().filter(|r| r.legal()).count();
         let best = pop.iter().max_by(|a, b| a.fit.partial_cmp(&b.fit).unwrap()).unwrap();
         let mh = { let v: Vec<f64> = pop.iter().filter(|r| r.aes.pass).map(|r| r.aes.hausdorff).collect(); v.iter().sum::<f64>() / v.len().max(1) as f64 };
         let line = format!("{gen},{},{np},{nl},{:.4},{:.4},{:.2},{:.3},{:.3},{},{:.2}", pop.len(), best.fit, best.spg, best.mass_g, best.aes.score, best.novelty, archive.len(), mh);
+        sink.event(Event::GenEnd { gen, fresh_evals: cnt.fresh_evals, appearances: cnt.appearances, archive_cells: archive.len(), best_id: Some(best.id as u64), best_fit: best.fit.is_finite().then_some(best.fit) });
+        sink.end_gen();
         log(&line); history.push(line);
         if gen == cfg.gens { break; }
         // ---- next generation: elitism + tournament + crossover + envelope mutation + archive draws ----
         let mut sorted = pop.clone(); sorted.sort_by(|a, b| b.fit.partial_cmp(&a.fit).unwrap());
-        let mut kids: Vec<(Genome, usize)> = Vec::new();
-        let elites: Vec<Genome> = sorted.iter().take(4).map(|r| r.g.clone()).collect();
-        let arch: Vec<Genome> = archive.values().map(|r| r.g.clone()).collect();
-        let tour = |rng: &mut Rng| { let a = &sorted[(rng.f64() * sorted.len() as f64) as usize]; let b = &sorted[(rng.f64() * sorted.len() as f64) as usize]; if a.fit >= b.fit { a.g.clone() } else { b.g.clone() } };
-        while kids.len() < cfg.pop - elites.len() {
-            let pa = if !arch.is_empty() && rng.f64() < 0.25 { arch[(rng.f64() * arch.len() as f64) as usize].clone() } else { tour(&mut rng) };
-            let child = if rng.f64() < 0.5 { let pb = tour(&mut rng); pa.crossover(&pb, &mut rng).mutate(&mut rng, 0.06) } else { pa.mutate(&mut rng, 0.1) };
-            kids.push((child, { next_id += 1; next_id - 1 }));
+        let mut kids: Vec<Birth> = Vec::new();
+        let n_el = 4usize.min(sorted.len());
+        let arch: Vec<(Genome, usize)> = archive.values().map(|r| (r.g.clone(), r.id)).collect();
+        let tour = |rng: &mut Rng| { let a = &sorted[(rng.f64() * sorted.len() as f64) as usize]; let b = &sorted[(rng.f64() * sorted.len() as f64) as usize]; if a.fit >= b.fit { (a.g.clone(), a.id) } else { (b.g.clone(), b.id) } };
+        while kids.len() < cfg.pop - n_el {
+            let (pa, ia, from_arch) = if !arch.is_empty() && rng.f64() < 0.25 { let x = &arch[(rng.f64() * arch.len() as f64) as usize]; (x.0.clone(), x.1, true) } else { let (g, i) = tour(&mut rng); (g, i, false) };
+            let b = if rng.f64() < 0.5 { let (pb, ib) = tour(&mut rng); birth(pa.crossover(&pb, &mut rng).mutate(&mut rng, 0.06), &mut next_id, vec![ia, ib], if from_arch { "archive_crossover_mutate" } else { "crossover_mutate" }, 0) }
+                    else { birth(pa.mutate(&mut rng, 0.1), &mut next_id, vec![ia], if from_arch { "archive_mutate" } else { "mutate" }, 0) };
+            kids.push(b);
         }
-        let mut newpop: Vec<Rec> = sorted.into_iter().take(elites.len()).map(|mut r| { r.gen = gen + 1; r }).collect();
-        newpop.extend(eval_batch(kids, gen + 1, cfg));
+        cnt.fresh_evals += kids.len() as u64;
+        let mut newpop: Vec<Rec> = sorted.into_iter().take(n_el).map(|mut r| { r.gen = gen + 1; r }).collect();
+        let born = eval_batch_with(kids, gen + 1, cfg, ev);
+        fresh_ids = born.iter().map(|r| r.id).collect();
+        newpop.extend(born);
         pop = newpop;
     }
-    RunOut { all, archive, history }
+    sink.event(Event::RunEnd { fresh_evals: cnt.fresh_evals, appearances: cnt.appearances }); sink.end_gen();
+    RunOut { all, archive, history, counters: cnt }
 }
 
 
 /// Island GA (ring migration) with a SHARED novelty memory and MAP-Elites archive. Islands differ in
 /// mutation pressure (exploit .. explore). Seeds: certified crescents + C.4; a `kick_frac` share of
 /// each initial island gets the internal-machining layer switched on at random.
-pub fn run_islands(cfg: &IslandCfg, mut log: impl FnMut(&str), mut snap: impl FnMut(usize, &[Rec], &std::collections::BTreeMap<(usize, usize), Rec>)) -> RunOut {
+pub fn run_islands(cfg: &IslandCfg, log: impl FnMut(&str), snap: impl FnMut(usize, &[Rec], &std::collections::BTreeMap<(usize, usize), Rec>)) -> RunOut {
+    run_islands_with(cfg, &evaluate, log, snap, &mut NullSink)
+}
+
+pub fn run_islands_with(cfg: &IslandCfg, ev: &EvalFn, mut log: impl FnMut(&str), mut snap: impl FnMut(usize, &[Rec], &std::collections::BTreeMap<(usize, usize), Rec>), sink: &mut dyn Sink) -> RunOut {
     let b = &cfg.base; let k = cfg.islands.max(1);
     let mut rng = Rng(b.seed);
     let mut seeds = cfg.seeds.clone(); if seeds.is_empty() { seeds.push(Genome::c4_seed(b.t_seed)); }
-    let mut next_id = 0usize;
-    let mut init: Vec<(Genome, usize)> = Vec::new();
+    let mut next_id = 0usize; let mut cnt = Counters::default();
+    let mut init: Vec<Birth> = Vec::new();
     for isl in 0..k { for j in 0..b.pop {
         let s = &seeds[(isl + j) % seeds.len()];
-        let g = if j < seeds.len().min(4) { s.clone() } else if rng.f64() < cfg.kick_frac { s.machining_kick(&mut rng).mutate(&mut rng, 0.05) } else { s.mutate(&mut rng, if j % 4 == 0 { 0.2 } else { 0.08 }) };
-        init.push((g, next_id)); next_id += 1; } }
-    let ev = eval_batch(init, 0, b);
-    let mut pops: Vec<Vec<Rec>> = ev.chunks(b.pop).map(|c| c.to_vec()).collect();
+        let (g, op) = if j < seeds.len().min(4) { (s.clone(), "seed") } else if rng.f64() < cfg.kick_frac { (s.machining_kick(&mut rng).mutate(&mut rng, 0.05), "seed_kick_mutate") } else { (s.mutate(&mut rng, if j % 4 == 0 { 0.2 } else { 0.08 }), "seed_mutate") };
+        init.push(birth(g, &mut next_id, vec![], op, isl)); } }
+    cnt.fresh_evals += init.len() as u64;
+    let ev0 = eval_batch_with(init, 0, b, ev);
+    let mut pops: Vec<Vec<Rec>> = ev0.chunks(b.pop).map(|c| c.to_vec()).collect();
     let sig: Vec<f64> = (0..k).map(|i| 0.05 + 0.12 * i as f64 / (k.max(2) - 1) as f64).collect();
     let mut all: Vec<Rec> = Vec::new();
     let mut nov_mem: Vec<[f64; DESC_N]> = Vec::new();
     let mut archive: std::collections::BTreeMap<(usize, usize), Rec> = std::collections::BTreeMap::new();
     let mut history = vec!["gen,island,evals,aesthetic_pass,legal,legal_under_cap,best_fit,best_spg,best_mass_g,best_aes,best_nov,archive_cells,min_legal_mass_g,mean_relief_frac_pass".to_string()];
+    let mut fresh_ids: std::collections::HashSet<usize> = pops.iter().flatten().map(|r| r.id).collect();
     for gen in 0..=b.gens {
         let mut ctx = nov_mem.clone();
         for p in &pops { ctx.extend(p.iter().filter(|r| r.aes.pass).map(|r| r.desc)); }
         for p in pops.iter_mut() { for r in p.iter_mut() { r.novelty = if r.aes.pass { novelty(&r.desc, &ctx, 5) } else { 0.0 }; r.fit = fitness(r); } }
+        let mut gbest: Option<(usize, f64)> = None;
         for (isl, p) in pops.iter().enumerate() {
+            cnt.appearances += p.len() as u64;
             for r in p.iter() { if r.gen == gen || gen == 0 { if r.aes.pass { nov_mem.push(r.desc); } all.push(r.clone()); }
+                if fresh_ids.contains(&r.id) { sink.event(eval_event(r, isl)); } else { sink.event(Event::Elite { gen, island: isl, id: r.id as u64 }); }
                 if r.legal() { let c = qd_cell(r); if archive.get(&c).map_or(true, |e| r.fit > e.fit) { archive.insert(c, r.clone()); } } }
             let np = p.iter().filter(|r| r.aes.pass).count(); let nl = p.iter().filter(|r| r.legal()).count(); let nu = p.iter().filter(|r| r.legal() && under_cap(r)).count();
             let best = p.iter().max_by(|a, b| a.fit.partial_cmp(&b.fit).unwrap()).unwrap();
+            if gbest.map_or(true, |(_, f)| best.fit > f) { gbest = Some((best.id, best.fit)); }
             let mlm = p.iter().filter(|r| r.legal()).map(|r| r.mass_g).fold(f64::NAN, f64::min);
             let mrf = { let v: Vec<f64> = p.iter().filter(|r| r.aes.pass).map(relief_frac).collect(); v.iter().sum::<f64>() / v.len().max(1) as f64 };
             let line = format!("{gen},{isl},{},{np},{nl},{nu},{:.4},{:.4},{:.2},{:.3},{:.3},{},{:.2},{:.4}", p.len(), best.fit, best.spg, best.mass_g, best.aes.score, best.novelty, archive.len(), mlm, mrf);
@@ -207,30 +256,41 @@ pub fn run_islands(cfg: &IslandCfg, mut log: impl FnMut(&str), mut snap: impl Fn
         }
         if nov_mem.len() > 6000 { let d = nov_mem.len() - 6000; nov_mem.drain(..d); }
         snap(gen, &all, &archive);
-        if gen == b.gens { break; }
+        if gen == b.gens {
+            sink.event(Event::GenEnd { gen, fresh_evals: cnt.fresh_evals, appearances: cnt.appearances, archive_cells: archive.len(), best_id: gbest.map(|x| x.0 as u64), best_fit: gbest.and_then(|x| x.1.is_finite().then_some(x.1)) });
+            sink.end_gen(); break;
+        }
         // ---- migration (ring): best `migrants` of island i replace the worst of island i+1 ----
         if k > 1 && cfg.migrate_every > 0 && gen > 0 && gen % cfg.migrate_every == 0 {
             let best: Vec<Vec<Rec>> = pops.iter().map(|p| { let mut s = p.clone(); s.sort_by(|a, b| b.fit.partial_cmp(&a.fit).unwrap()); s.into_iter().take(cfg.migrants).collect() }).collect();
             for i in 0..k { let to = (i + 1) % k; let p = &mut pops[to]; p.sort_by(|a, b| b.fit.partial_cmp(&a.fit).unwrap());
-                let n = p.len(); for (j, m) in best[i].iter().enumerate() { if j < n { p[n - 1 - j] = m.clone(); } } }
+                let n = p.len(); let mut moved = Vec::new(); for (j, m) in best[i].iter().enumerate() { if j < n { p[n - 1 - j] = m.clone(); moved.push(m.id as u64); } }
+                sink.event(Event::Migration { gen, from: i, to, ids: moved }); }
         }
-        let arch: Vec<Genome> = archive.values().map(|r| r.g.clone()).collect();
-        let mut kids: Vec<(Genome, usize)> = Vec::new(); let mut keep: Vec<Vec<Rec>> = Vec::new();
+        sink.event(Event::GenEnd { gen, fresh_evals: cnt.fresh_evals, appearances: cnt.appearances, archive_cells: archive.len(), best_id: gbest.map(|x| x.0 as u64), best_fit: gbest.and_then(|x| x.1.is_finite().then_some(x.1)) });
+        sink.end_gen();
+        let arch: Vec<(Genome, usize)> = archive.values().map(|r| (r.g.clone(), r.id)).collect();
+        let mut kids: Vec<Birth> = Vec::new(); let mut keep: Vec<Vec<Rec>> = Vec::new();
         for (isl, p) in pops.iter().enumerate() {
             let mut sorted = p.clone(); sorted.sort_by(|a, b| b.fit.partial_cmp(&a.fit).unwrap());
             let ne = 3usize.min(sorted.len());
             keep.push(sorted.iter().take(ne).cloned().collect());
-            let tour = |rng: &mut Rng| { let a = &sorted[(rng.f64() * sorted.len() as f64) as usize]; let c = &sorted[(rng.f64() * sorted.len() as f64) as usize]; if a.fit >= c.fit { a.g.clone() } else { c.g.clone() } };
+            let tour = |rng: &mut Rng| { let a = &sorted[(rng.f64() * sorted.len() as f64) as usize]; let c = &sorted[(rng.f64() * sorted.len() as f64) as usize]; if a.fit >= c.fit { (a.g.clone(), a.id) } else { (c.g.clone(), c.id) } };
             for _ in 0..b.pop - ne {
-                let pa = if !arch.is_empty() && rng.f64() < 0.3 { arch[(rng.f64() * arch.len() as f64) as usize].clone() } else { tour(&mut rng) };
-                let mut child = if rng.f64() < 0.5 { let pb = tour(&mut rng); pa.crossover(&pb, &mut rng).mutate(&mut rng, sig[isl] * 0.6) } else { pa.mutate(&mut rng, sig[isl]) };
-                if rng.f64() < 0.04 { child = child.machining_kick(&mut rng); }
-                kids.push((child, next_id)); next_id += 1;
+                let (pa, ia, from_arch) = if !arch.is_empty() && rng.f64() < 0.3 { let x = &arch[(rng.f64() * arch.len() as f64) as usize]; (x.0.clone(), x.1, true) } else { let (g, i) = tour(&mut rng); (g, i, false) };
+                let (mut child, mut parents, mut op) = if rng.f64() < 0.5 { let (pb, ib) = tour(&mut rng); (pa.crossover(&pb, &mut rng).mutate(&mut rng, sig[isl] * 0.6), vec![ia, ib], if from_arch { "archive_crossover_mutate" } else { "crossover_mutate" }) }
+                    else { (pa.mutate(&mut rng, sig[isl]), vec![ia], if from_arch { "archive_mutate" } else { "mutate" }) };
+                if rng.f64() < 0.04 { child = child.machining_kick(&mut rng); op = match op { "crossover_mutate" => "crossover_mutate_kick", "archive_crossover_mutate" => "archive_crossover_mutate_kick", "archive_mutate" => "archive_mutate_kick", _ => "mutate_kick" }; }
+                parents.dedup();
+                kids.push(birth(child, &mut next_id, std::mem::take(&mut parents), op, isl));
             }
         }
-        let ev = eval_batch(kids, gen + 1, b);
-        let mut it = ev.into_iter();
+        cnt.fresh_evals += kids.len() as u64;
+        let born = eval_batch_with(kids, gen + 1, b, ev);
+        fresh_ids = born.iter().map(|r| r.id).collect();
+        let mut it = born.into_iter();
         for (isl, p) in pops.iter_mut().enumerate() { let mut np = keep[isl].clone(); while np.len() < b.pop { if let Some(r) = it.next() { np.push(r); } else { break; } } *p = np; }
     }
-    RunOut { all, archive, history }
+    sink.event(Event::RunEnd { fresh_evals: cnt.fresh_evals, appearances: cnt.appearances }); sink.end_gen();
+    RunOut { all, archive, history, counters: cnt }
 }

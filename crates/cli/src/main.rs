@@ -42,6 +42,14 @@ fn main() {
             narg("--seed", 7) as u64, farg("--t", 5.7), farg("--area", 4.0), farg("--plate-area", 1.0));
         std::process::exit(if ok { 0 } else { 1 });
     }
+    if a.iter().any(|s| s == "evidence-cat") {
+        // PR-0.29.1: dump an evidence log (*.jevl) as JSON Lines; a torn tail (crash) is reported on stderr
+        let path = sarg("--log", "out/evidence.jevl");
+        match jarambit_evidence::read_log(&path) {
+            Ok(r) => { for e in &r.events { println!("{}", serde_json::to_string(e).unwrap()); } eprintln!("{path}: {} frames, {} events{}", r.frames, r.events.len(), if r.torn_tail { ", TORN TAIL dropped" } else { "" }); std::process::exit(0); }
+            Err(e) => { eprintln!("{e}"); std::process::exit(1); }
+        }
+    }
     if a.iter().any(|s| s == "fem-verify") {
         let ok = calib::fem_verify(&sarg("--out", "out/fem_verify"), &sarg("--mh1", "out/mh1"), narg("--threads", 16).min(jarambit_monte_carlo::max_threads()));
         std::process::exit(if ok { 0 } else { 1 });
