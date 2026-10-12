@@ -3,7 +3,7 @@
 **Author:** Jepson Taylor  
 **Spec version:** 1.0-draft (2026-10-12)  
 **Baseline audited:** public `main` = `727b28b9690704924d94bed8b5094b4c43fc3f67` ("Release/v0.27.0 (#7)"), `docs/VERSION` = `0.27.0`.  
-xbabe2 `/home/ubuntu/jarambit` local `main` is **2 commits behind** its origin and on `67fe83c`; the commit `17b14875` named in the brief exists on xbabe2 `origin/main` ("release v0.27.0: wave27 pack … (#6)") but is **not** on public GitHub, where the release landed as squash-merge `727b28b` (#7). All path:line citations below are against `727b28b`.  
+xbabe2 `/home/ubuntu/jarambit` local `main` is **2 commits behind** its origin and on `67fe83c`; the commit `17b14875` (#6) named in the brief is an **ancestor** of public `727b28b` (#7) with an **identical tree** (`git diff 17b14875 727b28b` is empty), so the two are reconciled; public GitHub is the source of truth. All path:line citations below are against `727b28b`.  
 **Companion files:** `jarambit_v1_roadmap.json` (machine-readable PR plan), `FEEDBACK_SYNTHESIS.md` (keep/reject/defer per idea).
 
 **Scope statement (owner-locked).** "Strength" in this spec means *structural break resistance of a hiker/runner utility tool* under utility loads: chord twist 1.82 N·m, lateral 260 N (hunter) / 180 N (hiker), pry, ring pull 1500 N with SF ≥ 2, tip load, fatigue, −10…100 °C, tolerance/thin-part effects, wood/baton/pry utility work. The spec does **not** design or optimize penetration or strike effectiveness into flesh or bone. The existing gel/muscle/bone "cut media" Monte Carlo (`crates/monte_carlo/src/lib.rs:42-75`) is **retired**. It is replaced by adversarial / rare-event *load-case discovery* (§8).
