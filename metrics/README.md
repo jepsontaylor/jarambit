@@ -11,6 +11,8 @@
 ## G (locked, version G1)
 `G = 0.35·min(SF_tip,2) + 0.35·SPG/4.0 + 0.20·aes − 0.05·max(0,m−77)/10 − 0.05·max(0,1.2−seq)/1.2`
 
+Incomplete inputs (missing/null/NaN/bool/out-of-range) → `G = None`, status `INCOMPLETE` (never 0). Tests: `python3 -m unittest discover -s metrics/tests -t .`
+
 `G*` (asterisk) = solid tip submodel missing, plate tip-submodel screen SF used instead (provisional).
 
 ```bash

@@ -2,6 +2,10 @@
 
 Policy: major wave N ⇒ `0.N.0`, git tag `v0.N.0`, entry here, WHITEPAPER header bump. Sub-experiments (Wave N.1, N.2 …) ⇒ `docs/WAVE_LOG.md` only (no bump, no tag). `-dev` while a wave is flying; the tag is cut only when that wave's pack (plates + solids) lands.
 
+## Unreleased (v0.28 milestone: truthful status + typed metrics — docs/v1/jarambit_v1_roadmap.json)
+- PR-0.28.1: G1 completeness contract. `metrics/global_metric.py` no longer maps missing/null/NaN/inf/bool/malformed/out-of-range inputs to 0: the record is `INCOMPLETE`, `global_G` returns `G=None`, `title_tag` prints `G INCOMPLETE` (never raises). `provisional` (G*) is now only "tip from a screen"; completeness is `terms['status']`. Arithmetic for complete records is unchanged (42 wave27 index records equal the v0.27.0 formula to 1e-9). Tests: `metrics/tests/` (wired into version-check CI). v1 plan docs added under `docs/v1/`.
+- Policy note: the v0.28.0 tag is now cut at the close of the v0.28 roadmap milestone (evidence/reporting), superseding the wave-gated rule below.
+
 ## v0.27.0 — 2026-10-12 (tagged; wave27 major)
 - Wave27 pack landed: tip outline × t_stock 5.8/6.0 × t_tip +0/+0.3 on g3_neckrail + a0_c02fit_ref (24 arms) plus b–e sub-arms. Plates `docs/wave27_diversity/plates/` (+ `plates_e/`), tables `w27_sf.md`/`w27e_sf.md`, solids pointers `docs/wave27_diversity/SOLIDS.md`.
 - **Engineering provisional RETITLED → `g3_tip+00_t60_tt3`**: G1 0.9805, solid tip SF 1.534, SPG 4.147, tip×SPG 6.362, 84.80 g, ring 25.46 mm, HARD PASS. Previous `g3_tip+00_t60_tt0` (g3_neckrail, 6.340 @ 84.59 g) is history. **Not promoted to manufacturing.**
