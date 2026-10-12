@@ -1,0 +1,54 @@
+{
+ "schema": 1,
+ "pr": "PR-0.30.2",
+ "container": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0 (dolfinx 0.9.0, gmsh 4.13.1) + scipy 1.18.1",
+ "host": "xbabe3",
+ "analytic": [
+  {
+   "case": "saint_venant_square_torsion",
+   "h": 2.0,
+   "rate": 1.6710263938599815e-05,
+   "exact": 1.675244732314832e-05,
+   "rel_err": 0.0025180431094515843,
+   "n_dof": 27111,
+   "ksp_its": 37,
+   "ksp_reason": 2,
+   "assemble_s": 2.6,
+   "solve_s": 2.23
+  },
+  {
+   "case": "kirsch_3d_heywood",
+   "h_hole": 0.6,
+   "kt_fem": 3.054386797146898,
+   "kt_ref": 3.0322222222222224,
+   "rel_err": 0.007309680260977558,
+   "n_dof": 22947,
+   "ksp_its": 144,
+   "ksp_reason": 2,
+   "assemble_s": 0.64,
+   "solve_s": 3.16
+  }
+ ],
+ "cross_check_skfem": {
+  "design": "g3_tip+00_t60_tt3",
+  "n_dof": 422955,
+  "ksp_its": 68,
+  "SF_nodal_max": 1.5341,
+  "ref_SF_nodal_max": 1.534,
+  "SF_nodal_avg": 1.6501,
+  "ref_SF_nodal_avg": 1.65,
+  "rel_err_nodal_max": 6.5e-05,
+  "rel_err_nodal_avg": 6.1e-05,
+  "note": "same submodel mesh (tip_solid.py DUMP_MESH), same clamp/load/recovery; solver equivalence"
+ },
+ "whole_part_mesh": {
+  "source": "evidence/wave27/g3_tip+00_t60_tt3.stl",
+  "h_mm": 2.0,
+  "n_tet10": 35972,
+  "n_dof": 195312,
+  "volume_mm3": 19154.9,
+  "mass_g_at_4.43": 84.86,
+  "ref_mass_g": 84.8,
+  "note": "the faceted STEP imports as an unsewable OCC shell (TopoDS::Solid error), so the whole-part mesher reads the faceted STL twin"
+ }
+}

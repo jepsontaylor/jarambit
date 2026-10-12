@@ -126,6 +126,9 @@ ed = mesh.edges; both = np.isin(ed[0], fixed_v) & np.isin(ed[1], fixed_v)
 fixdofs |= set(ib.edge_dofs[:, np.where(both)[0]].ravel().tolist())
 fixdofs = np.array(sorted(fixdofs)); free = np.setdiff1d(np.arange(ib.N), fixdofs)
 print(f"clamp: {len(fixed_v)} vertices on cut (R_CUT {RC} mm), {len(fixdofs)} dofs", flush=True)
+if __import__("os").environ.get("DUMP_MESH"):  # PR-0.30.2: hand the exact submodel to fem_solid/cross_check.py (dolfinx)
+    np.savez_compressed(__import__("os").environ["DUMP_MESH"], pts=pv, tets=mesh.t.T, fixed_v=fixed_v, edges_fixed=ed[:, both].T, pat=pat, Fz=Fz, tipo=tipo,
+                        cutxy=cutxy, sallow=SALLOW, E=E, nu=NU)
 Kff = K[free][:, free]; t1 = time.time()
 u = np.zeros(ib.N)
 try:
