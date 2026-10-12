@@ -3,3 +3,4 @@
 *.stl
 *.step
 /target_*
+__pycache__/
