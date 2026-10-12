@@ -2,7 +2,7 @@
 
 **Jepson Taylor**
 
-**Version 0.27.0-dev — 2026-10-12** (living document; version from `docs/VERSION`, checked by CI `ops/ci/version_check.py`). Frozen companion: `docs/WHITEPAPER_g3_neckrail.md` (v0.1.0-g3neckrail, branch `release/v0.1.0`). Target: IEEE-style, 6–10 pp; completeness over page count. Wave27 is in flight — wave26/27 callouts carry placeholders until their packs land. **No design is promoted** (g3_neckrail not promoted; 828 MPa screening yield provisional; human aesthetic sign-off pending).
+**Version 0.27.0 — 2026-10-12** (living document; version from `docs/VERSION`, checked by CI `ops/ci/version_check.py`). Frozen companion: `docs/WHITEPAPER_g3_neckrail.md` (v0.1.0-g3neckrail, branch `release/v0.1.0`). Target: IEEE-style, 6–10 pp; completeness over page count. Wave27 pack landed (tag `v0.27.0`); engineering provisional is **g3_tip+00_t60_tt3** (G1 0.9805, tip×SPG 6.362 @ 84.80 g). Wave26 plates remain a placeholder. **No design is promoted** (g3_neckrail not promoted; 828 MPa screening yield provisional; human aesthetic sign-off pending).
 
 **Abstract** — *jarambit* is a Rust-native pipeline that evolves fixed-blade titanium hiking/utility karambits (SWITCHBACK class) under hard manufacturability and safety constraints, verified by a plate FEM screen plus a solid tip submodel, made robust by Monte Carlo over tolerances, temperature (−10…100 °C) and cut media, and ranked across waves by a single GLOBAL metric **G** that combines solid-tip safety factor, strength-per-gram, aesthetics, mass and failure sequence. Hard limits are rejections, never penalties; G never overrides a gate.
 
@@ -113,16 +113,19 @@ NSGA-II islands with migration; MAP-Elites/QD (machining fraction × mass); nove
 ### III-G. GLOBAL metric G + versioned wave plates (metrics/)
 G (Methods §II-B) printed in every new plate title with mass and version; ranks plated designs per wave.
 
-**(a) 3D CAD/STEP** — *(a) PLACEHOLDER — wave27 STEP render lands with the wave27 pack (`v0.27.0`).*
+**(a) 3D CAD/STEP** — ![wave27 g3_tip+00_t60_tt3 3D CAD](figures/whitepaper/wave27_g3_tip+00_t60_tt3_STEP_3D.png) *(extruded phenotype solid from `out/wave27/g3_tip+00_t60_tt3_D1.json`, t = 6.0 mm; render script `ops/wave_figures/render_step3d_w27.py`)*
 
-**(b) FEM colormap/mesh** — ![wave27e plate (provisional, wave in flight)](figures/whitepaper/wave27e_g3t58_S05_rw-05_W27HARDPASS_SPG3p86_wgt81p8g_D1_FEM_metrics.png)
+**(b) FEM colormap/mesh** — ![wave27 g3_tip+00_t60_tt3 D1 FEM plate](figures/whitepaper/wave27_g3_tip+00_t60_tt3_W27HARDPASS_SPG4p15_wgt84p8g_D1_FEM_metrics.png)
 
 **(c) Metrics**
 | design | G | SF_tip | SPG N/g | aes | mass g | seq (soft) | hard gates |
 |---|---|---|---|---|---|---|---|
-| wave27e g3t58_S05_rw-05_D1 | **0.977** | 1.594 | 3.859 | 0.593 | 81.8 | 0.888 | PASS |
+| wave27 g3_tip+00_t60_tt3_D1 | **0.980** | 1.534 | 4.147 | 0.649 | 84.8 | 0.959 | PASS |
+| wave27e g3t58_S05_rw-05_D1 (prior w27 provisional) | 0.977 | 1.594 | 3.859 | 0.593 | 81.8 | 0.888 | PASS |
 
-**(d) Introduced in:** v0.27.0-dev (this reorganisation)
+tip×SPG = 1.534 × 4.147 = **6.362**; ring ID 25.46 mm; seq soft. Engineering provisional (not promoted); `g3_tip+00_t60_tt0` (= g3_neckrail, 6.340 @ 84.59 g, G 0.979) is history.
+
+**(d) Introduced in:** v0.27.0
 
 ## IV. Results — waves 20–27 (best G per wave, hard-PASS designs)
 | design | G | SF_tip | SPG N/g | aes | mass g | seq (soft) | hard gates |
@@ -134,12 +137,15 @@ G (Methods §II-B) printed in every new plate title with mass and version; ranks
 | wave24 c02_fit_D1 | **0.966** | 1.527 | 4.070 | 0.645 | 85.6 | 0.952 | PASS |
 | wave25 c01_fit_D1 | **0.952** | 1.527 | 3.726 | 0.648 | 82.0 | 0.879 | PASS |
 | wave26 ctl_g3_ref (solid table; plates PENDING — `jarambit_w26_resume` live) | pending | 1.525 | 4.158 | — | 84.6 | 0.959 | PASS (table) |
-| wave27e g3t58_S05_rw-05_D1 | **0.977** | 1.594 | 3.859 | 0.593 | 81.8 | 0.888 | PASS |
+| wave27 g3_tip+00_t60_tt3_D1 | **0.980** | 1.534 | 4.147 | 0.649 | 84.8 | 0.959 | PASS |
+| wave27e g3t58_S05_rw-05_D1 | 0.977 | 1.594 | 3.859 | 0.593 | 81.8 | 0.888 | PASS |
 | wave27b a0_S08_dr+05_D1 | **0.979*** | screen 1.636 | 3.747 | 0.591 | 81.9 | 0.842 | FAIL |
 
 **Trend.** Solid tip SF rose from 1.16 (wave20) to 1.53–1.59 (waves24–27) while SPG held near 3.7–4.1 N/g; G rose 0.85 → 0.97. No design reaches seq ≥ 1.2 or the 74–77 g band yet. Those two gaps stop promotion.
 
-*Wave26 figure: PLACEHOLDER (plates pending). Wave27 figures: PLACEHOLDER for final pack; the provisional wave27e plate is shown in III-G.*
+*Wave26 figure: PLACEHOLDER (plates pending). Wave27 figures: final pack in `docs/wave27_diversity/plates/` + `plates_e/`; the engineering provisional g3_tip+00_t60_tt3 is shown in III-G.*
+
+**Pareto note (v0.27.0).** No wave27 tip arm reaches a HARD PASS at ≤ 82 g with tip×SPG ≥ 6 (the ≤ 82 g, ≥ 6 points a0_tip+10_t58_tt3/tt0 are HARD FAIL). The mass king remains the a0_c02fit_ref class (~81.4 g, tip×SPG ~5.58). seq is still soft (< 1.2 everywhere). The next major wave (v0.28.0) starts only after a hard-PASS design beats G1 0.9805, or reaches ≤ 82 g at tip×SPG ≥ 6 with a hard PASS.
 
 ## V. Limitations and ethics
 828 MPa is a provisional screening yield; seq is soft; the aesthetic score does not replace human sign-off; no design is promoted. The tool covers utility/hiking use only.
