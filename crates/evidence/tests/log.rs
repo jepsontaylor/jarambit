@@ -76,7 +76,14 @@ fn kill_dash_9_leaves_valid_prefix_100_trials() {
         let mut c = std::process::Command::new(&exe).args(["--exact", "kill_child_writer", "--nocapture", "--test-threads=1"]).env("JEV_KILL_CHILD", &p)
             .stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().unwrap();
         x ^= x << 13; x ^= x >> 7; x ^= x << 17;
-        std::thread::sleep(std::time::Duration::from_millis(5 + x % 40));
+        // Wait (bounded, 10 s) until the child has written at least 2 frames, then kill after a random 0-40 ms, so the
+        // kill lands mid-log even on a heavily loaded CI host (fixed sleeps were flaky under load: fsync latency).
+        let t0 = std::time::Instant::now();
+        while t0.elapsed() < std::time::Duration::from_secs(10) {
+            if let Ok(b) = std::fs::read(&p) { if read_bytes(&b).map_or(false, |r| r.frames >= 2) { break; } }
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(x % 40));
         c.kill().unwrap(); c.wait().unwrap(); // Child::kill = SIGKILL on unix
         if let Ok(b) = std::fs::read(&p) { let r = read_bytes(&b).unwrap(); assert_valid_prefix(&r); if r.frames > 1 { nonempty += 1; } }
     }
