@@ -4,6 +4,7 @@ Policy: major wave N ⇒ `0.N.0`, git tag `v0.N.0`, entry here, WHITEPAPER heade
 
 ## Unreleased
 - PR-0.30.0c: CI moved from the shared `neverhuman-lan` pool (#20, which queued for capacity) to dedicated self-hosted runners `jarambit-xbabe2` / `jarambit-xbabe3` (labels `self-hosted, linux, x64, xbabe, jarambit`; systemd services; per-runner CARGO_HOME/RUSTUP_HOME so CI never touches the hosts' toolchains). Canonical repo: `neverhuman/jarambit`.
+- PR-0.30.0b: `ops/multihost/` — `crescent_wave.sh` (one nice'd crescent-evolve per `host:threads:seed:mass_cap` spec over ssh, distinct seeds, soft mass cap, evidence lineage), `wave27.env` (wave27 search env), `collect_cert.py` (gathers certification.csv across hosts; ranks only designs passing all hard gates; mass soft). Early piece of the v0.35 multi-host runner. Test: `ops/ci/tests/test_collect_cert.py`.
 - PR-0.30.0a: `ops/wave_reports/make_wave_report.py` no longer gates on mass (74–77 g band / < 80 g cap removed from OVERALL); mass is reported as a SOFT status (target < 80 g, stretch < 70 g, G penalty), matching PR-0.28.3b. Test: `ops/ci/tests/test_wave_report_mass_soft.py`.
 
 ## v0.29.0 — 2026-10-12 (v0.29 milestone: evidence layer + honest logs — docs/v1/jarambit_v1_roadmap.json)
