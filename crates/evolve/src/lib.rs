@@ -121,7 +121,19 @@ pub struct GenStats<'a> {
     pub diversity: f64,
     pub rejected: usize,
     pub quarantine: Vec<(Genotype, String)>,
+    /// PR-0.29.3: true for the terminal snapshot (final populations after the last generation).
+    pub terminal: bool,
 }
+
+/// Mean primary fitness over `feasible()` individuals only; None if there are none (PR-0.29.3; the CLI used a
+/// `fit > -100` filter, which counted graded infeasible designs).
+pub fn feasible_mean(pop: &[Indiv]) -> Option<f64> {
+    let v: Vec<f64> = pop.iter().filter(|i| i.feasible()).map(|i| i.fit).collect();
+    if v.is_empty() { None } else { Some(v.iter().sum::<f64>() / v.len() as f64) }
+}
+
+/// Stable 16-hex-digit identity of a genotype (SHA-256 of its exact f64 bits + material), for quarantine / logs.
+pub fn genotype_hash(g: &Genotype) -> String { jarambit_evidence::hex(&sha2_256(genes_hex(g).as_bytes())[..8]) }
 
 pub fn diversity(pop: &[Indiv]) -> f64 {
     let n = pop.len(); if n < 2 { return 0.0; }
@@ -525,11 +537,12 @@ pub fn try_run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> Result<(Indiv, V
         }).collect();
         archive.extend(islands.iter().flat_map(|isl| isl.pop.iter().cloned()));
     }
+    let mut stopped = false;
     for gen in start..cfg.gens {
         let mut combined: Vec<Indiv> = islands.iter().flat_map(|isl| isl.pop.iter().cloned()).collect();
         combined.sort_by(|a, b| b.fit.partial_cmp(&a.fit).unwrap_or(std::cmp::Ordering::Equal));
         let rejected = q.len();
-        log(&GenStats { gen, pop: &combined, diversity: diversity(&combined), rejected, quarantine: std::mem::take(&mut q) });
+        log(&GenStats { gen, pop: &combined, diversity: diversity(&combined), rejected, quarantine: std::mem::take(&mut q), terminal: false });
         if n_islands > 1 && cfg.migrate_every > 0 && gen > 0 && gen % cfg.migrate_every == 0 {
             let migrants: Vec<Indiv> = islands.iter().map(|isl| {
                 isl.pop.iter().max_by(|a, b| a.fit.partial_cmp(&b.fit).unwrap_or(std::cmp::Ordering::Equal)).unwrap().clone()
@@ -564,7 +577,13 @@ pub fn try_run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> Result<(Indiv, V
             isl.pop = truncate(both, keep);
         }
         if let Some(path) = &cfg.checkpoint { save_ckpt(path, gen + 1, &man, &islands, &archive); }
-        if cfg.stop_after == Some(gen + 1) { break; }
+        if cfg.stop_after == Some(gen + 1) { stopped = true; break; }
+    }
+    // terminal snapshot: the final populations (the returned best is always in it); not emitted when interrupted
+    if !stopped {
+    let mut combined: Vec<Indiv> = islands.iter().flat_map(|isl| isl.pop.iter().cloned()).collect();
+    combined.sort_by(|a, b| b.fit.partial_cmp(&a.fit).unwrap_or(std::cmp::Ordering::Equal));
+    log(&GenStats { gen: cfg.gens, pop: &combined, diversity: diversity(&combined), rejected: q.len(), quarantine: std::mem::take(&mut q), terminal: true });
     }
     let best = islands.iter().flat_map(|isl| isl.pop.iter()).max_by(|a, b| a.fit.partial_cmp(&b.fit).unwrap_or(std::cmp::Ordering::Equal)).unwrap().clone();
     Ok((best, pareto(&archive)))

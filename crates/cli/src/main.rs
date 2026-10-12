@@ -109,19 +109,27 @@ fn main() {
     let hist_path = format!("{out}/history.csv");
     let q_path = format!("{out}/quarantine.csv");
     let mut rows = vec![];
-    let mut csv = if (cfg.resume || cfg.fork) && std::path::Path::new(&hist_path).exists() { std::fs::read_to_string(&hist_path).unwrap() }
-        else { format!("gen,best_p05_spg,pop_mean_p05,diversity,rejected_in_gen,best_strength_n,best_mass_g,best_cut_p05,best_sharp_p05,{}\n", Genotype::CSV_HEADER) };
-    let mut qcsv = if (cfg.resume || cfg.fork) && std::path::Path::new(&q_path).exists() { std::fs::read_to_string(&q_path).unwrap() } else { String::from("gen,reasons\n") };
+    // PR-0.29.3: history / quarantine are STREAMED (appended + flushed every generation), so an interrupted run
+    // keeps its log; the mean is over feasible() designs only; quarantine rows carry the genotype hash.
+    let resuming = (cfg.resume || cfg.fork) && std::path::Path::new(&hist_path).exists();
+    if !resuming {
+        std::fs::write(&hist_path, format!("gen,terminal,best_p05_spg,feasible_mean_p05,n_feasible,diversity,rejected_in_gen,best_strength_n,best_mass_g,best_cut_p05,best_sharp_p05,best_genotype_hash,{}\n", Genotype::CSV_HEADER)).unwrap();
+        std::fs::write(&q_path, "gen,genotype_hash,reasons\n").unwrap();
+    }
+    let open_app = |p: &str| std::fs::OpenOptions::new().append(true).open(p).unwrap_or_else(|e| panic!("{p}: {e}"));
+    let (mut hf_w, mut qf_w) = (open_app(&hist_path), open_app(&q_path));
     let mut raw: Vec<(f64, f64)> = vec![];
     let res = jarambit_evolve::try_run(&cfg, |s| {
         let b = &s.pop[0];
-        let feas: Vec<f64> = s.pop.iter().map(|i| i.fit).filter(|f| *f > -1e2).collect();
-        let mean = if feas.is_empty() { f64::NAN } else { feas.iter().sum::<f64>() / feas.len() as f64 };
-        for i in s.pop { raw.push((s.gen as f64, i.fit.max(-20.0))); }
-        println!("gen {:3}  best p05 spg {:.3} N/g  cut {:.3}  sharp {:.2}  S={:.0}N m={:.1}g  div={:.3}  rejected={}  islands={}  t={:.1}mm grip={:.1}", s.gen, b.fit, b.cut_p05, b.sharp_p05, b.strength_n, b.mass_g, s.diversity, s.rejected, cfg.islands, b.g.thickness, b.g.grip_len);
-        rows.push((s.gen, b.fit, mean, s.diversity));
-        let _ = writeln!(csv, "{},{:.5},{:.5},{:.4},{},{:.1},{:.2},{:.4},{:.4},{}", s.gen, b.fit, mean, s.diversity, s.rejected, b.strength_n, b.mass_g, b.cut_p05, b.sharp_p05, b.g.to_csv_row());
-        for (_, why) in &s.quarantine { let _ = writeln!(qcsv, "{},\"{}\"", s.gen, why.replace('"', "'")); }
+        let mean = jarambit_evolve::feasible_mean(s.pop);
+        let n_feas = s.pop.iter().filter(|i| i.feasible()).count();
+        if !s.terminal { for i in s.pop { raw.push((s.gen as f64, i.fit.max(-20.0))); } }
+        println!("gen {:3}{}  best p05 spg {:.3} N/g  cut {:.3}  sharp {:.2}  S={:.0}N m={:.1}g  div={:.3}  rejected={}  islands={}  t={:.1}mm grip={:.1}", s.gen, if s.terminal { " (final)" } else { "" }, b.fit, b.cut_p05, b.sharp_p05, b.strength_n, b.mass_g, s.diversity, s.rejected, cfg.islands, b.g.thickness, b.g.grip_len);
+        if !s.terminal { rows.push((s.gen, b.fit, mean.unwrap_or(f64::NAN), s.diversity)); }
+        let line = format!("{},{},{:.5},{},{},{:.4},{},{:.1},{:.2},{:.4},{:.4},{},{}\n", s.gen, s.terminal, b.fit, mean.map_or(String::new(), |m| format!("{m:.5}")), n_feas, s.diversity, s.rejected, b.strength_n, b.mass_g, b.cut_p05, b.sharp_p05, jarambit_evolve::genotype_hash(&b.g), b.g.to_csv_row());
+        let mut q = String::new();
+        for (g, why) in &s.quarantine { let _ = writeln!(q, "{},{},\"{}\"", s.gen, jarambit_evolve::genotype_hash(g), why.replace('"', "'")); }
+        { use std::io::Write as _; hf_w.write_all(line.as_bytes()).and_then(|_| hf_w.flush()).expect("history.csv append"); qf_w.write_all(q.as_bytes()).and_then(|_| qf_w.flush()).expect("quarantine.csv append"); }
     });
     let (best, front) = match res { Ok(x) => x, Err(e) => { eprintln!("evolve: {e}"); std::process::exit(2); } };
     let (p, rt, e) = nominal(&best.g);
@@ -132,7 +140,6 @@ fn main() {
     println!("final p05 spg {:.3} N/g  cut {:.3}  redteam={:?}  floors_ok={}  mass={:.1}g  S={:.0}N  plate={:.0}N  insert/draw {:.1}/{:.1} N  blade tip-heel/reach/arc = {:.1}/{:.1}/{:.1} mm (limit {:.3})",
         best.fit, best.cut_p05, rt, best.floors_ok, e.mass_g, logged_s, plate_s, hf.insertion_n, hf.draw_n, p.blade.tip_to_heel, p.blade.horizontal_reach, p.blade.sharpened_arc, limits::BLADE_LIMIT_MM);
     let w = |f: &str, s: String| std::fs::write(format!("{out}/{f}"), s).unwrap();
-    w("history.csv", csv); w("quarantine.csv", qcsv);
     let mut pc = format!("strength_n,mass_g,spg,p05_spg,{}\n", Genotype::CSV_HEADER);
     let mut fr: Vec<&Indiv> = front.iter().collect(); fr.sort_by(|a, b| a.mass_g.partial_cmp(&b.mass_g).unwrap());
     for i in &fr { let _ = writeln!(pc, "{:.1},{:.2},{:.3},{:.3},{}", i.strength_n, i.mass_g, i.strength_n / i.mass_g, i.fit, i.g.to_csv_row()); }
