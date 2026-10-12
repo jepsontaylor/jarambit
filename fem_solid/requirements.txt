@@ -1,0 +1,6 @@
+# Pinned environment for fem_solid/ (PR-0.30.1). The pre-import runs used a vendored copy of scikit-fem 12.0.2
+# that is byte-identical to the PyPI wheel (checked with diff -r), plus pyamg 5.3.0, numpy 1.26.4, scipy 1.16.3, Python 3.12.
+scikit-fem==12.0.2
+pyamg==5.3.0
+numpy==1.26.4
+scipy==1.16.3
