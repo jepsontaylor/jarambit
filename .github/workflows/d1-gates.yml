@@ -24,13 +24,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # master; toolchain pinned via rust-toolchain.toml
         with:
+          toolchain: 1.85.1
           components: clippy
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - name: cargo test --release (all crates, incl. D1 owner-lock gate tests)
         run: cargo test --release --workspace
       - name: Clippy - no Option::unwrap_or_default in the CLI (missing FEM must be null + status, PR-0.28.3)
@@ -47,7 +48,7 @@ jobs:
           python3 ops/ci/check_json_strict.py out/ci_d1
       - name: Upload D1 smoke report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: d1-smoke
           path: out/ci_d1/d1_rescreen.*

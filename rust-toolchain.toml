@@ -1,0 +1,5 @@
+# PR-0.28.5: pinned toolchain (CI and local rustup use the same compiler).
+[toolchain]
+channel = "1.85.1"
+components = ["clippy"]
+profile = "minimal"
