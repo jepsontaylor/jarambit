@@ -21,9 +21,7 @@ env:
 jobs:
   test:
     name: cargo test --release + D1 gate smoke
-    runs-on:
-      group: neverhuman-lan
-      labels: [self-hosted, linux, x64, lan-ci, ubuntu24]
+    runs-on: [self-hosted, linux, x64, jarambit]  # dedicated jarambit-xbabe2 / jarambit-xbabe3 runners (PR-0.30.0c); the shared neverhuman-lan pool queued for capacity
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
