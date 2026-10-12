@@ -177,3 +177,79 @@ mod tests {
         }
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// PR-0.28.4: fail-closed theory gate against an expected-check manifest (verify/expected.toml).
+
+/// Expected-check manifest. Parsed from the small TOML subset used by `verify/expected.toml`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Expected { pub id: String, pub max_err_pct: f64, pub levels: Vec<f64>, pub gate_levels: Vec<f64>, pub checks: Vec<String> }
+
+/// One observed check result (name, mesh level, model/theory ratio).
+#[derive(Clone, Debug)]
+pub struct Obs { pub name: String, pub max_area: f64, pub ratio: f64 }
+
+/// The manifest compiled into the binary.
+pub const EXPECTED_TOML: &str = include_str!("../../../verify/expected.toml");
+
+fn strip_comment(l: &str) -> &str { let mut q = false; for (i, c) in l.char_indices() { if c == '"' { q = !q; } if c == '#' && !q { return &l[..i]; } } l }
+
+/// Parse the manifest; any malformed / missing key is an error (and therefore a theory FAIL).
+pub fn parse_expected(src: &str) -> Result<Expected, String> {
+    let mut kv: Vec<(String, String)> = Vec::new(); let mut cur: Option<(String, String, i32)> = None;
+    for raw in src.lines() {
+        let l = strip_comment(raw).trim(); if l.is_empty() { continue; }
+        if let Some((k, mut v, depth)) = cur.take() {
+            v.push(' '); v.push_str(l); let d = depth + l.matches('[').count() as i32 - l.matches(']').count() as i32;
+            if d > 0 { cur = Some((k, v, d)); } else { kv.push((k, v)); } continue;
+        }
+        let (k, v) = l.split_once('=').ok_or_else(|| format!("manifest: bad line {l:?}"))?;
+        let (k, v) = (k.trim().to_string(), v.trim().to_string());
+        let d = v.matches('[').count() as i32 - v.matches(']').count() as i32;
+        if d > 0 { cur = Some((k, v, d)); } else { kv.push((k, v)); }
+    }
+    if cur.is_some() { return Err("manifest: unterminated array".into()); }
+    let mut seen = std::collections::HashSet::new();
+    for (k, _) in &kv { if !seen.insert(k.clone()) { return Err(format!("manifest: duplicate key {k}")); } }
+    let get = |k: &str| kv.iter().find(|x| x.0 == k).map(|x| x.1.clone()).ok_or_else(|| format!("manifest: missing key {k}"));
+    let num = |s: &str| -> Result<f64, String> { let x: f64 = s.trim().parse().map_err(|_| format!("manifest: bad number {s:?}"))?; if x.is_finite() { Ok(x) } else { Err(format!("manifest: non-finite {s}")) } };
+    let arr = |s: String| -> Result<Vec<String>, String> { let s = s.trim(); if !s.starts_with('[') || !s.ends_with(']') { return Err(format!("manifest: not an array {s:?}")); }
+        Ok(s[1..s.len() - 1].split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect()) };
+    let unq = |s: &str| -> Result<String, String> { let s = s.trim(); if s.len() >= 2 && s.starts_with('"') && s.ends_with('"') && !s[1..s.len() - 1].contains('"') { Ok(s[1..s.len() - 1].to_string()) } else { Err(format!("manifest: bad string {s:?}")) } };
+    // checks: an array of quoted strings (names contain commas, so scan quotes rather than split)
+    let checks_src = get("checks")?; let t = checks_src.trim();
+    if !t.starts_with('[') || !t.ends_with(']') { return Err("manifest: checks not an array".into()); }
+    let (mut checks, mut inq, mut buf) = (Vec::new(), false, String::new());
+    for c in t[1..t.len() - 1].chars() {
+        if inq { if c == '"' { checks.push(std::mem::take(&mut buf)); inq = false; } else { buf.push(c); } }
+        else if c == '"' { inq = true; } else if !(c == ',' || c.is_whitespace()) { return Err(format!("manifest: junk {c:?} in checks")); }
+    }
+    if inq { return Err("manifest: unterminated string in checks".into()); }
+    let e = Expected { id: unq(&get("id")?)?, max_err_pct: num(&get("max_err_pct")?)?,
+        levels: arr(get("levels")?)?.iter().map(|x| num(x)).collect::<Result<_, _>>()?, gate_levels: arr(get("gate_levels")?)?.iter().map(|x| num(x)).collect::<Result<_, _>>()?, checks };
+    if e.checks.is_empty() || e.levels.is_empty() || e.gate_levels.is_empty() { return Err("manifest: empty checks/levels/gate_levels".into()); }
+    let mut s = std::collections::HashSet::new(); for c in &e.checks { if !s.insert(c) { return Err(format!("manifest: duplicate check {c:?}")); } }
+    for g in &e.gate_levels { if !e.levels.iter().any(|l| (l - g).abs() < 1e-9) { return Err(format!("manifest: gate level {g} not in levels")); } }
+    Ok(e)
+}
+
+/// Fail-closed theory gate: Ok(()) only if every expected (check, level) is present exactly once with a
+/// finite ratio, nothing unexpected is present, and every gate-level error is < max_err_pct. Otherwise
+/// Err(reasons) listing every problem found.
+pub fn theory_gate(exp: &Expected, obs: &[Obs]) -> Result<(), Vec<String>> {
+    let mut why = Vec::new();
+    if obs.is_empty() { why.push("no theory checks ran (all missing)".to_string()); }
+    let lvl = |a: f64| exp.levels.iter().position(|l| (l - a).abs() < 1e-9);
+    let mut count: std::collections::HashMap<(String, usize), usize> = std::collections::HashMap::new();
+    for o in obs {
+        let Some(li) = lvl(o.max_area) else { why.push(format!("unexpected level {} for {:?}", o.max_area, o.name)); continue; };
+        if !exp.checks.contains(&o.name) { why.push(format!("unexpected check {:?} at {}", o.name, o.max_area)); continue; }
+        *count.entry((o.name.clone(), li)).or_default() += 1;
+        if !o.ratio.is_finite() { why.push(format!("non-finite ratio for {:?} at {}", o.name, o.max_area)); continue; }
+        let err = (o.ratio - 1.0).abs() * 100.0;
+        if exp.gate_levels.iter().any(|g| (g - o.max_area).abs() < 1e-9) && err >= exp.max_err_pct { why.push(format!("{:?} at {} err {:.2} % >= {} %", o.name, o.max_area, err, exp.max_err_pct)); }
+    }
+    for c in &exp.checks { for (li, l) in exp.levels.iter().enumerate() { match count.get(&(c.clone(), li)).copied().unwrap_or(0) {
+        0 => why.push(format!("missing check {c:?} at {l}")), 1 => {}, n => why.push(format!("duplicate check {c:?} at {l} (x{n})")) } } }
+    if why.is_empty() { Ok(()) } else { Err(why) }
+}

@@ -1,0 +1,19 @@
+# PR-0.28.4: expected-check manifest for `jarambit fem-verify` (theory gate, fail-closed).
+# The theory gate PASSes only if EVERY check below is present exactly once at EVERY level, every
+# model/theory ratio is finite, and at every gate level |ratio - 1| < max_err_pct %.
+# Missing, duplicate, unexpected or non-finite checks (or no checks at all) FAIL with a reason.
+id = "fem-verify-theory-v1"
+max_err_pct = 5.0
+levels = [4.0, 2.0, 1.0, 0.5, 0.25]
+gate_levels = [0.25]
+checks = [
+  "cantilever tip deflection",
+  "cantilever mid-span stress",
+  "cantilever tip deflection (mesh rotated 33 deg)",
+  "cantilever mid-span stress (mesh rotated 33 deg)",
+  "clamped plate point-load deflection",
+  "clamped plate uniform-load deflection",
+  "clamped plate edge von Mises (uniform)",
+  "curved bar inner-fibre stress (Golovin, T6)",
+  "hole Kt_gross (Heywood, d/W=0.2, T6)",
+]

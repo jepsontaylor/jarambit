@@ -66,8 +66,11 @@ pub fn fem_verify(out: &str, mh1: &str, threads: usize) -> bool {
     std::fs::create_dir_all(out).unwrap();
     let mut md = String::from("# Detailed plate FEM verification (jarambit fem-verify)\n\nElement: numerically-built Batoz DKT (bending) + CST (membrane), spade CDT mesh (min angle 25 deg), RCM + skyline Cholesky. Bending stress is the corner value of the linear DKT curvature field; membrane peaks at holes are area-weighted nodal averages.\n\n## 1. Closed-form checks (ratio = model / theory)\n\n| check | max area mm^2 | nodes | model | theory | ratio | err % |\n|---|---|---|---|---|---|---|\n");
     let mut csv = String::from("check,max_area,nodes,model,theory,ratio\n");
-    let mut theory_ok = true;
-    for &a in &LEVELS[..5] {
+    // PR-0.28.4: fail-closed theory gate against verify/expected.toml (compiled in)
+    let exp = verify::parse_expected(verify::EXPECTED_TOML);
+    let levels: Vec<f64> = exp.as_ref().map(|e| e.levels.clone()).unwrap_or_else(|_| LEVELS[..5].to_vec());
+    let mut obs: Vec<verify::Obs> = Vec::new();
+    for &a in &levels {
         let mut v: Vec<verify::Check> = Vec::new();
         if let Some(c) = verify::cantilever(a, 0.0) { v.extend(c); }
         if let Some(c) = verify::cantilever(a, 33.0) { for mut k in c { k.name = if k.name.contains("deflection") { "cantilever tip deflection (mesh rotated 33 deg)" } else { "cantilever mid-span stress (mesh rotated 33 deg)" }; v.push(k); } }
@@ -76,12 +79,16 @@ pub fn fem_verify(out: &str, mh1: &str, threads: usize) -> bool {
         if let Some(c) = verify::hole_kt(a) { v.push(c); }
         for c in &v {
             let err = (c.ratio() - 1.0).abs() * 100.0;
-            if a <= 0.25 + 1e-9 && err >= 5.0 { theory_ok = false; }
+            obs.push(verify::Obs { name: c.name.to_string(), max_area: a, ratio: c.ratio() });
             let _ = writeln!(md, "| {} | {:.3} | {} | {:.5e} | {:.5e} | {:.4} | {:.2} |", c.name, a, c.nodes, c.model, c.theory, c.ratio(), err);
             let _ = writeln!(csv, "\"{}\",{},{},{:.6e},{:.6e},{:.5}", c.name, a, c.nodes, c.model, c.theory, c.ratio());
         }
     }
-    let _ = writeln!(md, "\nTheory gate (finest level, every check < 5 % error): **{}**\n", if theory_ok { "PASS" } else { "FAIL" });
+    let gate = match &exp { Err(e) => Err(vec![e.clone()]), Ok(e) => verify::theory_gate(e, &obs) };
+    let theory_ok = gate.is_ok();
+    let man = exp.as_ref().map_or("<manifest error>".to_string(), |e| format!("`verify/expected.toml` ({}, {} checks x {} levels, gate levels {:?}, < {} %)", e.id, e.checks.len(), e.levels.len(), e.gate_levels, e.max_err_pct));
+    let _ = writeln!(md, "\nTheory gate (fail-closed vs {man}): **{}**\n", if theory_ok { "PASS" } else { "FAIL" });
+    if let Err(why) = &gate { for w in why { let _ = writeln!(md, "- FAIL reason: {w}"); eprintln!("theory gate FAIL: {w}"); } let _ = writeln!(md); }
     std::fs::write(format!("{out}/theory_checks.csv"), csv).unwrap();
 
     // ---- knife mesh convergence ----
@@ -98,7 +105,7 @@ pub fn fem_verify(out: &str, mh1: &str, threads: usize) -> bool {
         designs.push(("wave5_with_neck_fillet6_flare3".into(), w5f));
     }
     let _ = writeln!(md, "## 2. Knife mesh convergence (20 C capacities, N; levels halve the max triangle area)\n\nSix levels (max triangle area 4 -> 0.125 mm^2). f_ref = mean of the two finest levels; err = |f - f_ref| / f_ref. Gate per case: every one of the 4 finest levels within 5 % of f_ref AND the search level (A = {} mm^2) within 5 %. Richardson extrapolation (h ratio sqrt 2) is shown when the three finest levels are monotone. Lateral and ring pull are floor cases and must pass; pry is reported only.\n", fine::SEARCH_AREA);
-    let mut kcsv = String::from("design,case,max_area,nodes,tris,value_n,err_vs_extrap\n");
+    let mut kcsv = String::from("design,case,max_area,nodes,tris,value_n,err_vs_two_finest_mean\n");
     let jobs: Vec<(usize, f64)> = (0..designs.len()).flat_map(|d| LEVELS.iter().map(move |&a| (d, a))).collect();
     let res = par_map(&jobs, threads, |&(d, a)| {
         let g = &designs[d].1;

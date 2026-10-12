@@ -150,3 +150,13 @@ JARAMBIT_T_MAX=6.0 ./target/release/jarambit --fine --seed-ref --seed-ckpt out/c
 - **Proposed floor:** 1.82 N*m (`fem::TWIST_FLOOR_NMM`), advisory until the owner fixes the fixture.
 - **Genome CSV precision:** `{:.4}` -> round-trip. The 4-decimal wave13_c01 genome re-certifies at 258 N vs a recorded 292 N.
 - Re-screen tool: `jarambit crescent-d1`. Results: `docs/d1/`.
+
+## fem-verify theory gate and column rename (v0.28, PR-0.28.4)
+
+- The theory gate is **fail-closed** against the expected-check manifest `verify/expected.toml` (9 checks x 5 levels,
+  gate level 0.25 mm^2, < 5 %). Missing, duplicate, unexpected or non-finite checks, or no checks at all, make it
+  FAIL with a listed reason. Before this, a missing check or a NaN error silently passed (`NaN >= 5.0` is false).
+  Tests: `crates/physics/tests/fem_verify_failclosed.rs` (the committed `docs/calibration/theory_checks.csv` still PASSes).
+- `knife_convergence.csv` column `err_vs_extrap` is renamed **`err_vs_two_finest_mean`**: it always was
+  |f - f_ref| / f_ref with f_ref = mean of the two finest levels, not an error vs the Richardson extrapolation.
+  The committed `docs/calibration/knife_convergence.csv` header was migrated in place (values unchanged).

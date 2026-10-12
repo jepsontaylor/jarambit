@@ -1,4 +1,4 @@
-design,case,max_area,nodes,tris,value_n,err_vs_extrap
+design,case,max_area,nodes,tris,value_n,err_vs_two_finest_mean
 wave5_smoke_legal_blade,lateral,4,1819,2894,119.956,0.00881
 wave5_smoke_legal_blade,lateral,2,2089,3423,123.789,0.02285
 wave5_smoke_legal_blade,lateral,1,2832,4866,122.243,0.01008
