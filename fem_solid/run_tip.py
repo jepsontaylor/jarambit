@@ -20,8 +20,12 @@ def versions():
     return out
 
 def main(a):
+    if len(a) < 2: print(__doc__, file=sys.stderr); return 2
     d1, out = a[0], a[1]; rc, nl, nsub, patch = (a[2:3] or ['30'])[0], (a[3:4] or ['4'])[0], (a[4:5] or ['1'])[0], (a[5:6] or ['2.0'])[0]
     gl = d1.replace('_D1.json', '_grind_law.json'); script = os.path.join(HERE, 'tip_solid.py')
+    for need in (d1, gl):  # fail before solving, with a clear message (PR-0.30.1b)
+        if not d1.endswith('_D1.json') or not os.path.isfile(need):
+            print(f'run_tip: missing input {need!r} (need <design>_D1.json from crescent-d1 D1_PLATES=1 and <design>_grind_law.json beside it)', file=sys.stderr); return 2
     t0 = time.time()
     rc_ = subprocess.call([sys.executable, script, d1, rc, nl, nsub, out], env={**os.environ, 'PATCH': patch})
     wall = time.time() - t0

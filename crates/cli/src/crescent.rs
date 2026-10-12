@@ -409,10 +409,20 @@ pub fn rescore(csvs: &str, top: usize, threads: usize, out: &str) -> bool {
 /// yield with the JOINT thin+hot factor; chord-torsion fixture vs the 1.82 N*m floor (plate + St-Venant 3D);
 /// the pre-D1 numbers (880 MPa, min(thin, hot), bending-couple "twist") are reported alongside for the record.
 /// `name=path` entries label rows; `ref:` prefix marks thin-stock REFERENCE rows (never ranked with evolved parts).
+/// `name=path` or a bare path. A bare path is named by its file stem without `.csv` / `_genome` (PR-0.30.1b):
+/// before, the whole path (with '/') became the name, so the D1 plate JSON and grind-law file were written to
+/// non-existent directories and silently dropped, which broke the D1 -> fem_solid pipeline.
+pub fn design_entry(ent: &str) -> (String, &str) {
+    if let Some((n, p)) = ent.split_once('=') { return (n.to_string(), p); }
+    let stem = std::path::Path::new(ent).file_name().and_then(|s| s.to_str()).unwrap_or(ent);
+    let stem = stem.strip_suffix(".csv").unwrap_or(stem); let stem = stem.strip_suffix("_genome").unwrap_or(stem);
+    (stem.to_string(), ent)
+}
+
 pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
     let mut gs: Vec<(String, Genome)> = Vec::new();
     for ent in csvs.split(',').filter(|s| !s.is_empty()) {
-        let (name, path) = ent.split_once('=').unwrap_or((ent, ent));
+        let (name, path) = design_entry(ent);
         if path == "C6_SEED_T5.7" { gs.push((name.to_string(), Genome::c6_seed(5.7))); continue; }
         if path == "C6_STOCK_3P175" { // thin-stock REFERENCE as built (bypasses clamp, like tests::c4_stock_genome)
             let mut g = Genome::c6_seed(5.7); g.v[T] = 3.175; g.v[T_TIP] = 2.6; g.v[TAPER_X0] = 130.0; g.v[SPINE_OFF] = 0.0;
@@ -429,7 +439,7 @@ pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
         let hs: Vec<_> = (0..th).map(|t| { let gs = &gs; s.spawn(move || gs.iter().enumerate().filter(|(i, _)| i % th == t).map(|(i, (_, g))| {
             let r = qd::evaluate(g, i, 0, 2.0); let p = pheno::build(g);
             if std::env::var("D1_DUMP").is_ok() { eprintln!("D1_DUMP {}: holes {:?} outline_n {} mass {:.4}", gs[i].0, p.holes.iter().zip(&p.hole_names).map(|(h, n)| (*n, (h.iter().map(|q| q.0).fold(f64::MAX, f64::min) * 100.0).round() / 100.0, (h.iter().map(|q| q.1).fold(f64::MAX, f64::min) * 100.0).round() / 100.0)).collect::<Vec<_>>(), p.outline.len(), p.mass_g); }
-            std::fs::create_dir_all(out).ok(); let _ = std::fs::write(format!("{out}/{}_grind_law.json", gs[i].0.replace(['(', ')', '.'], "_")), export::grind_law_json(&p, g, &gs[i].0));
+            std::fs::create_dir_all(out).ok(); let gp = format!("{out}/{}_grind_law.json", gs[i].0.replace(['(', ')', '.'], "_")); if let Err(e) = std::fs::write(&gp, export::grind_law_json(&p, g, &gs[i].0)) { eprintln!("d1: cannot write {gp}: {e}"); }
             let c = fem::certify(&p); if let Some(c) = &c { eprintln!("D1 {}: lat_at {:?} lat20 {:.1} twist_at {:?}", gs[i].0, c.0.lat_at, c.0.lat20, c.0.twist_at); }
             (i, r, c, fem::run_unbiased(&p, 0.0625)) }).collect::<Vec<_>>()) }).collect();
         let mut v: Vec<_> = hs.into_iter().flat_map(|h| h.join().unwrap()).collect(); v.sort_by_key(|x| x.0); v
@@ -466,7 +476,8 @@ pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
                 "pass_828_joint_strict": pass, "pass_all_828_joint_strict_seq": pass_all, "old_lat_rob_880_min": record::fin(old, 1), "twist_floor_ok": tw_ok, "promote_eligible": prom}).to_string();
             let mut rr = r.clone(); rr.fem = Some(c.clone()); rr.spg = c.lat_rob / rr.mass_g;
             if let Some(j) = plate_json_x(&rr, &label, Some((c.clone(), fem::Fields { xy: fields.xy.clone(), tris: fields.tris.clone(), te: fields.te.clone(), env_vm: fields.env_vm.clone(), sf: fields.sf.clone(), lat: fields.lat.clone(), pry: fields.pry.clone(), ring: fields.ring.clone(), twist: fields.twist.clone() })), &d1x) {
-                std::fs::write(format!("{out}/{label}.json"), j).ok(); plates.push(label);
+                let jp = format!("{out}/{label}.json");
+                match std::fs::write(&jp, j) { Ok(()) => plates.push(label), Err(e) => eprintln!("d1: cannot write plate JSON {jp}: {e}") }
                 std::fs::write(format!("{out}/{}_genome.csv", name.replace(['(', ')', '.', ' '], "_")), format!("{}\n{}\n", Genome::csv_header(), r.g.csv_row())).ok();
             }
         }
@@ -477,4 +488,16 @@ pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
     std::fs::create_dir_all(out).ok(); println!("{md}");
     if plates_on { std::fs::write(format!("{out}/plates.txt"), plates.join("\n") + "\n").ok(); }
     std::fs::write(format!("{out}/d1_rescreen.csv"), csv).is_ok() && std::fs::write(format!("{out}/d1_rescreen.md"), md).is_ok()
+}
+
+#[cfg(test)]
+mod design_entry_tests {
+    use super::design_entry;
+    #[test]
+    fn bare_path_is_named_by_stem() {
+        assert_eq!(design_entry("out/x/w271b_11772.csv"), ("w271b_11772".to_string(), "out/x/w271b_11772.csv"));
+        assert_eq!(design_entry("out/wave27/g3_tip+00_t60_tt3_genome.csv").0, "g3_tip+00_t60_tt3");
+        assert_eq!(design_entry("g3=out/a.csv"), ("g3".to_string(), "out/a.csv"));
+        assert_eq!(design_entry("C6_SEED_T5.7").0, "C6_SEED_T5.7");
+    }
 }
