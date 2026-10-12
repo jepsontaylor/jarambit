@@ -48,7 +48,7 @@ Invariants (red-team enforced, see docs/WHITEPAPER.md §III-A): blade **≥ 3.37
 
 **Fitness = MC-p05 strength-per-gram (N/g) subject to hiker + hunter strength floors** — not strength alone.
 
-**Version:** see `docs/VERSION` (0.27.0). **Map:** `TECHNOLOGY_MAP.md`. **Global metric:** `docs/GLOBAL_METRIC.md`. **Status:** `STATUS.md`.
+**Version:** see `docs/VERSION` (0.28.0). **Map:** `TECHNOLOGY_MAP.md`. **Global metric:** `docs/GLOBAL_METRIC.md`. **Status:** `STATUS.md`.
 
 ## Crates
 | crate | role |
@@ -60,6 +60,7 @@ Invariants (red-team enforced, see docs/WHITEPAPER.md §III-A): blade **≥ 3.37
 | `evolve` | NSGA-II with islands, migration, checkpoint/resume; primary objective is p05 strength-per-gram |
 | `redteam` | hooked planform, double serrations, connected solid, holder insertion/draw, blade limits |
 | `docs` | report tables for `docs/WHITEPAPER.md` |
+| `crescent` | **current design lane**: 128-gene crescent genotype (`genome.rs`), phenotype + thickness field, gates, aesthetic floor (C.6), DKT+CST plate FEM certification, D1 gates, island GA + MAP-Elites (`qd.rs`), serde-typed records (`record.rs`) |
 | `cli` | `jarambit` binary |
 
 ## Run

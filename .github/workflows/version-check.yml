@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - run: python3 ops/ci/version_check.py
@@ -25,3 +25,5 @@ jobs:
         run: python3 -m unittest discover -s metrics/tests -t . -v
       - name: Claim checker — scoped PASS, RS verdict blocks, default evaluator (PR-0.28.2)
         run: python3 ops/ci/check_claims.py
+      - name: STATUS.md is generated and current (PR-0.28.5)
+        run: python3 ops/ci/gen_status.py --check
