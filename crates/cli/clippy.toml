@@ -1,0 +1,4 @@
+# PR-0.28.3: a missing FEM result must never become Fem::default() zeros in an emitted record.
+disallowed-methods = [
+  { path = "core::option::Option::unwrap_or_default", reason = "missing FEM/metric must be null + status (jarambit_crescent::record), not a default zero" },
+]

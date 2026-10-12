@@ -99,7 +99,7 @@ for lab in labels:
     # ---- Pareto inset: mass vs robust lateral (search level) over LEGAL designs ----
     ax5 = fig.add_subplot(gs[1, 1:])
     mx = np.array([e['mass_g'] for e in legal]); ly = np.array([e['lat_rob'] for e in legal]); nv = np.array([e['novelty'] for e in legal])
-    ax5.scatter([e['mass_g'] for e in P_all if not e['legal'] and e['lat_rob'] > 0][:4000], [e['lat_rob'] for e in P_all if not e['legal'] and e['lat_rob'] > 0][:4000], s=3, c='#ccc', label='aesthetic passers, floors/gates FAIL')
+    ax5.scatter([e['mass_g'] for e in P_all if not e['legal'] and (e['lat_rob'] or 0) > 0][:4000], [e['lat_rob'] for e in P_all if not e['legal'] and (e['lat_rob'] or 0) > 0][:4000], s=3, c='#ccc', label='aesthetic passers, floors/gates FAIL')
     sc = ax5.scatter(mx, ly, s=6, c=nv, cmap='viridis', label='LEGAL (search level), colour = novelty')
     # non-dominated front: min mass, max lateral
     o = np.argsort(mx); best = -1; fr = []

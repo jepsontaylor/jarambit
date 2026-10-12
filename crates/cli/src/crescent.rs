@@ -1,7 +1,7 @@
 //! `jarambit crescent-smoke`: first aesthetic + novelty smoke run of the C.4-anchored crescent
 //! genotype (crates/crescent). Writes history / all-evals / QD archive CSVs, plate JSON for
 //! aesthetic-passing designs only, watertight STL + faceted STEP of the top design, report.md.
-use jarambit_crescent::{aesthetic, export, fem, gates, genome::*, pheno, qd};
+use jarambit_crescent::{aesthetic, export, fem, gates, genome::*, pheno, qd, record};
 use std::fmt::Write as _;
 
 /// Shortest of the three blade measures (tip-to-heel, horizontal reach, sharpened arc), inches; gate needs >= 3.375 (+0.5 mm guard).
@@ -9,15 +9,9 @@ fn blade_min_in(r: &qd::Rec) -> f64 { r.blade.tip_to_heel.min(r.blade.horizontal
 fn jarr(v: &[(f64, f64)]) -> String { let s: Vec<String> = v.iter().map(|q| format!("[{:.3},{:.3}]", q.0, q.1)).collect(); format!("[{}]", s.join(",")) }
 fn jnum(v: &[f64]) -> String { let s: Vec<String> = v.iter().map(|x| if x.is_finite() { format!("{x:.4}") } else { "null".into() }).collect(); format!("[{}]", s.join(",")) }
 
-pub fn rec_metrics(r: &qd::Rec) -> String {
-    let f = r.fem.clone().unwrap_or_default();
-    format!("{{\"id\":{},\"gen\":{},\"fit\":{:.5},\"spg\":{:.5},\"mass_g\":{:.3},\"blank_g\":{:.3},\"t\":{:.1},\"material\":\"{}\",\"tip_to_heel\":{:.3},\"horizontal_reach\":{:.3},\"arc_in\":{:.3},\"arc_sp\":{:.3},\"grip\":{:.2},\"aes_score\":{:.4},\"aes_pass\":{},\"hausdorff\":{:.3},\"emd\":{:.4},\"straight_mm\":{:.2},\"min_blend_r\":{:.2},\"novelty\":{:.4},\"lat20\":{:.1},\"lat_rob\":{:.1},\"ring20\":{:.1},\"ring_rob\":{:.1},\"pry20\":{:.1},\"twist20_nmm\":{:.1},\"sf_hiker\":{:.3},\"sf_hunter\":{:.3},\"sf_ring\":{:.3},\"floors_ok\":{},\"lat_at\":[{:.2},{:.2}],\"holder_box\":[{:.1},{:.1},{:.1}],\"removed_mm3\":{},\"min_web\":{:.2},\"n_win\":{},\"win_area\":{:.2},\"n_perf\":{},\"perf_area\":{:.2},\"relief_frac\":{:.5},\"rejects\":{:?},\"aes_fails\":{:?},\"legal\":{},\"t_joint\":{:.3},\"p1\":{},\"seq_ratio\":{:.3},\"seq_case\":\"{}\",\"twist_tip_sf\":{:.3},\"twist_tip_joint3d_nmm\":{:.0},\"twist_tip_peak_tipdist\":{:.1},\"twist_body_sf\":{:.3},\"twist_tipzone_sf\":{:.3},\"pry20\":{:.1},\"rail_w\":{:.2},\"neck_l\":{:.2},\"pocket_d\":{:.3},\"pocket_r\":{:.2},\"knots\":{}}}",
-        r.id, r.gen, r.fit, r.spg, r.mass_g, r.blank_g, r.t, r.g.mat.name(), r.blade.tip_to_heel, r.blade.horizontal_reach, r.blade.arc_in, r.blade.arc_sp, r.grip,
-        r.aes.score, r.aes.pass, r.aes.hausdorff, r.aes.emd, r.aes.straight_mm, r.aes.min_concave_r, r.novelty, f.lat20, f.lat_rob, f.ring20, f.ring_rob, f.pry20, f.twist20_nmm,
-        f.sf_hiker, f.sf_hunter, f.sf_ring, f.floors_ok, f.lat_at.0, f.lat_at.1, r.holder_lw.0, r.holder_lw.1, r.holder_lw.2, jnum(&r.removed), r.min_web, r.n_win, r.win_area, r.n_perf, r.perf_area, qd::relief_frac(r), r.rejects, r.aes.fails, r.legal(),
-        r.g.t_joint(), r.g.p1(), f.seq_ratio, f.seq_case, f.twist_sf, f.twist_joint_nmm, f.twist_tipdist, f.twist_body_sf, f.twist_tipzone_sf, f.pry20,
-        r.g.v[RAIL_W], r.g.v[NECK_L], r.g.v[POCKET_D], r.g.v[POCKET_R], jnum(&(0..if r.g.p1() { r.g.k_n() } else { 1 }).map(|k| r.g.v[K0 + k]).collect::<Vec<_>>()))
-}
+/// Strict, serde-typed record JSON (PR-0.28.3): missing FEM -> null metrics + `fem_status`, unique keys.
+pub fn rec_metrics(r: &qd::Rec) -> String { record::rec_json(r) }
+fn fo(r: &qd::Rec, get: impl Fn(&fem::Fem) -> f64, d: usize) -> String { record::csv_opt(r.fem.as_ref(), get, d) }
 
 fn plate_json(r: &qd::Rec, label: &str, cert: Option<(fem::Fem, fem::Fields)>) -> Option<String> { plate_json_x(r, label, cert, "{}") }
 /// Plate JSON with an extra top-level "d1" object (strict 0.0625 numbers, PASS verdicts) for the D1 plates.
@@ -29,10 +23,10 @@ fn plate_json_x(r: &qd::Rec, label: &str, cert: Option<(fem::Fem, fem::Fields)>,
     for j in (0..fd.ny).step_by(step) { for i in (0..fd.nx).step_by(step) { th.push(fd.th[j * fd.nx + i] as f64); } }
     let tris: Vec<String> = fl.tris.iter().map(|t| format!("[{},{},{}]", t[0], t[1], t[2])).collect();
     let mut rr = r.clone(); rr.spg = fm.lat_rob / rr.mass_g; rr.fem = Some(fm.clone()); rr.fit = qd::fitness(&rr);
-    Some(format!("{{\"label\":\"{label}\",\"metrics\":{},\"fine_area\":\"certified min(0.25, 0.125)\",\"outline\":{},\"holes\":[{}],\"hole_names\":{:?},\"pad\":{},\"c4\":{},\"field\":{{\"x0\":{},\"y0\":{},\"g\":{},\"nx\":{},\"ny\":{},\"th\":{}}},\"mesh\":{{\"xy\":{},\"tris\":[{}],\"te\":{},\"env_vm\":{},\"sf\":{},\"lat\":{},\"pry\":{},\"ring\":{},\"twist\":{}}},\"genome_header\":\"{}\",\"genome\":\"{}\",\"d1\":{}}}",
-        rec_metrics(&rr), jarr(&p.outline), p.holes.iter().map(|h| jarr(h)).collect::<Vec<_>>().join(","), p.hole_names, jarr(&p.pad), jarr(&jarambit_crescent::c5_ref::EXTERIOR),
+    Some(format!("{{\"label\":{},\"metrics\":{},\"fine_area\":\"certified min(0.25, 0.125)\",\"outline\":{},\"holes\":[{}],\"hole_names\":{},\"pad\":{},\"c4\":{},\"field\":{{\"x0\":{},\"y0\":{},\"g\":{},\"nx\":{},\"ny\":{},\"th\":{}}},\"mesh\":{{\"xy\":{},\"tris\":[{}],\"te\":{},\"env_vm\":{},\"sf\":{},\"lat\":{},\"pry\":{},\"ring\":{},\"twist\":{}}},\"genome_header\":{},\"genome\":{},\"d1\":{}}}",
+        serde_json::to_string(label).unwrap(), rec_metrics(&rr), jarr(&p.outline), p.holes.iter().map(|h| jarr(h)).collect::<Vec<_>>().join(","), serde_json::to_string(&p.hole_names).unwrap(), jarr(&p.pad), jarr(&jarambit_crescent::c5_ref::EXTERIOR),
         fd.x0, fd.y0, fd.g * step as f64, (fd.nx + step - 1) / step, (fd.ny + step - 1) / step, jnum(&th),
-        jarr(&fl.xy), tris.join(","), jnum(&fl.te), jnum(&fl.env_vm), jnum(&fl.sf), jnum(&fl.lat), jnum(&fl.pry), jnum(&fl.ring), jnum(&fl.twist), Genome::csv_header(), r.g.csv_row(), d1))
+        jarr(&fl.xy), tris.join(","), jnum(&fl.te), jnum(&fl.env_vm), jnum(&fl.sf), jnum(&fl.lat), jnum(&fl.pry), jnum(&fl.ring), jnum(&fl.twist), serde_json::to_string(&Genome::csv_header()).unwrap(), serde_json::to_string(&r.g.csv_row()).unwrap(), d1))
 }
 
 pub fn smoke(out: &str, pop: usize, gens: usize, threads: usize, seed: u64, t_seed: f64, fem_area: f64, plate_area: f64) -> bool {
@@ -51,13 +45,12 @@ pub fn smoke(out: &str, pop: usize, gens: usize, threads: usize, seed: u64, t_se
     std::fs::write(format!("{out}/history.csv"), ro.history.join("\n") + "\n").unwrap();
     let mut all = String::from("[\n"); let mut csv = format!("id,gen,fit,spg,mass_g,aes_pass,aes_score,hausdorff,emd,novelty,lat_rob,ring_rob,sf_hunter,legal,n_rejects,{}\n", Genome::csv_header());
     for (i, r) in ro.all.iter().enumerate() {
-        let f = r.fem.clone().unwrap_or_default();
-        let _ = writeln!(csv, "{},{},{:.4},{:.4},{:.2},{},{:.4},{:.3},{:.4},{:.4},{:.1},{:.1},{:.3},{},{},{}", r.id, r.gen, r.fit, r.spg, r.mass_g, r.aes.pass, r.aes.score, r.aes.hausdorff, r.aes.emd, r.novelty, f.lat_rob, f.ring_rob, f.sf_hunter, r.legal(), r.rejects.len(), r.g.csv_row());
+        let _ = writeln!(csv, "{},{},{:.4},{:.4},{:.2},{},{:.4},{:.3},{:.4},{:.4},{},{},{},{},{},{}", r.id, r.gen, r.fit, r.spg, r.mass_g, r.aes.pass, r.aes.score, r.aes.hausdorff, r.aes.emd, r.novelty, fo(r, |f| f.lat_rob, 1), fo(r, |f| f.ring_rob, 1), fo(r, |f| f.sf_hunter, 3), r.legal(), r.rejects.len(), r.g.csv_row());
         all.push_str(&rec_metrics(r)); all.push_str(if i + 1 < ro.all.len() { ",\n" } else { "\n" });
     }
     all.push(']'); std::fs::write(format!("{out}/all_evals.json"), all).unwrap(); std::fs::write(format!("{out}/all_evals.csv"), csv).unwrap();
-    let mut ac = String::from("cell_relief,cell_hausdorff,id,gen,fit,spg,mass_g,aes_score,novelty,sf_hunter\n");
-    for ((a, b), r) in &ro.archive { let _ = writeln!(ac, "{a},{b},{},{},{:.4},{:.4},{:.2},{:.4},{:.4},{:.3}", r.id, r.gen, r.fit, r.spg, r.mass_g, r.aes.score, r.novelty, r.fem.as_ref().map_or(0.0, |f| f.sf_hunter)); }
+    let mut ac = String::from("cell_removal,cell_mass_bin,id,gen,fit,spg,mass_g,aes_score,novelty,sf_hunter\n");
+    for ((a, b), r) in &ro.archive { let _ = writeln!(ac, "{a},{b},{},{},{:.4},{:.4},{:.2},{:.4},{:.4},{}", r.id, r.gen, r.fit, r.spg, r.mass_g, r.aes.score, r.novelty, fo(r, |f| f.sf_hunter, 3)); }
     std::fs::write(format!("{out}/qd_archive.csv"), ac).unwrap();
     // ---- reject census ----
     let mut cnt: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
@@ -182,8 +175,8 @@ pub fn load_seeds(paths: &str, top: usize) -> Vec<Genome> {
 }
 
 fn write_progress(out: &str, gen: usize, all: &[qd::Rec], archive: &std::collections::BTreeMap<(usize, usize), qd::Rec>) {
-    let mut ac = String::from("cell_removal,cell_mass,id,gen,fit,spg,mass_g,aes_score,novelty,relief_frac,sf_hunter,n_win\n");
-    for ((a, b), r) in archive { let _ = writeln!(ac, "{a},{b},{},{},{:.4},{:.4},{:.2},{:.4},{:.4},{:.4},{:.3},{}", r.id, r.gen, r.fit, r.spg, r.mass_g, r.aes.score, r.novelty, qd::relief_frac(r), r.fem.as_ref().map_or(0.0, |f| f.sf_hunter), r.n_win); }
+    let mut ac = String::from("cell_removal,cell_mass_bin,id,gen,fit,spg,mass_g,aes_score,novelty,relief_frac,sf_hunter,n_win\n");
+    for ((a, b), r) in archive { let _ = writeln!(ac, "{a},{b},{},{},{:.4},{:.4},{:.2},{:.4},{:.4},{:.4},{},{}", r.id, r.gen, r.fit, r.spg, r.mass_g, r.aes.score, r.novelty, qd::relief_frac(r), fo(r, |f| f.sf_hunter, 3), r.n_win); }
     std::fs::write(format!("{out}/qd_archive.csv"), ac).ok();
     let mut leg: Vec<&qd::Rec> = all.iter().filter(|r| r.legal()).collect();
     leg.sort_by(|a, b| a.mass_g.partial_cmp(&b.mass_g).unwrap());
@@ -212,8 +205,7 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     write_progress(out, gens, &ro.all, &ro.archive);
     let mut all = String::from("[\n"); let mut csv = format!("id,gen,fit,spg,mass_g,aes_pass,aes_score,hausdorff,emd,novelty,lat_rob,ring_rob,sf_hunter,legal,n_rejects,relief_frac,n_win,{}\n", Genome::csv_header());
     for (i, r) in ro.all.iter().enumerate() {
-        let f = r.fem.clone().unwrap_or_default();
-        let _ = writeln!(csv, "{},{},{:.4},{:.4},{:.2},{},{:.4},{:.3},{:.4},{:.4},{:.1},{:.1},{:.3},{},{},{:.4},{},{}", r.id, r.gen, r.fit, r.spg, r.mass_g, r.aes.pass, r.aes.score, r.aes.hausdorff, r.aes.emd, r.novelty, f.lat_rob, f.ring_rob, f.sf_hunter, r.legal(), r.rejects.len(), qd::relief_frac(r), r.n_win, r.g.csv_row());
+        let _ = writeln!(csv, "{},{},{:.4},{:.4},{:.2},{},{:.4},{:.3},{:.4},{:.4},{},{},{},{},{},{:.4},{},{}", r.id, r.gen, r.fit, r.spg, r.mass_g, r.aes.pass, r.aes.score, r.aes.hausdorff, r.aes.emd, r.novelty, fo(r, |f| f.lat_rob, 1), fo(r, |f| f.ring_rob, 1), fo(r, |f| f.sf_hunter, 3), r.legal(), r.rejects.len(), qd::relief_frac(r), r.n_win, r.g.csv_row());
         all.push_str(&rec_metrics(r)); all.push_str(if i + 1 < ro.all.len() { ",\n" } else { "\n" });
     }
     all.push(']'); std::fs::write(format!("{out}/all_evals.json"), all).unwrap(); std::fs::write(format!("{out}/all_evals.csv"), csv).unwrap();
@@ -259,8 +251,8 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
         let tz16 = f16.as_ref().map_or(f64::NAN, |f| f.twist_tipzone_sf);
         let prom = fem::promote_eligible(r.aes.pass, r.rejects.is_empty(), cf.floors_ok, s_lat, cf.seq_ratio, cf.twist_body_sf, tz16, r.mass_g);
         if s_ok && cf.floors_ok && seq_ok { strict_ok_ids.push(r.id); }
-        strict_info.insert(r.id, format!("{{\"strict_lat_rob_0p0625\":{:.1},\"strict_ok\":{},\"seq_ok\":{},\"twist_tipzone_sf_strict\":{:.3},\"pass_all_828_joint_strict_seq\":{},\"twist_floor_ok\":{},\"promote_eligible\":{}}}",
-            if s_lat.is_finite() { s_lat } else { -1.0 }, s_ok, seq_ok, if tz16.is_finite() { tz16 } else { -1.0 }, s_ok && cf.floors_ok && seq_ok, fem::twist_floor_ok(cf.twist_body_sf, tz16), prom));
+        strict_info.insert(r.id, serde_json::json!({"strict_lat_rob_0p0625": record::fin(s_lat, 1), "strict_ok": s_ok, "seq_ok": seq_ok, "twist_tipzone_sf_strict": record::fin(tz16, 3),
+            "pass_all_828_joint_strict_seq": s_ok && cf.floors_ok && seq_ok, "twist_floor_ok": fem::twist_floor_ok(cf.twist_body_sf, tz16), "promote_eligible": prom}).to_string());
         let tw = cf.twist_sf;
         let _ = writeln!(cert_rows, "{kind},{},{},{:.2},{:.1},{:.1},{:.1},{:.1},{:.3},{:.3},{:.3},{:.3},{},{:.4},{:.4},{:.4},{:.4},{},{},{:.1},{},{:.3},{},{},{:.3},{:.3},{:.3},{:.3},{},{},{},{:.3},{}", r.id, r.gen, r.mass_g, r.t, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, cf.ring_rob, cf.sf_hiker, cf.sf_hunter, cf.sf_ring, tw, cf.floors_ok, cf.lat_rob / r.mass_g, r.aes.score, r.novelty, qd::relief_frac(r), r.n_win, r.n_perf, s_lat, s_ok && cf.floors_ok,
             cf.seq_ratio, cf.seq_case, seq_ok, cf.twist_sf, cf.twist_body_sf, tz16, r.g.t_joint(), s_ok && cf.floors_ok && seq_ok,
@@ -453,8 +445,8 @@ pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
             if tw_ok { "PASS" } else { "FAIL" }, if band { "yes" } else { "no" }, blade_min_in(r), if prom { "**YES**" } else { "no" });
         if plates_on {
             let label = format!("{}_D1", name.replace(['(', ')', '.', ' '], "_"));
-            let d1x = format!("{{\"strict_lat_rob_0p0625\":{:.1},\"strict_ok\":{},\"seq_ok\":{},\"twist_tipzone_sf_strict\":{:.3},\"pass_828_joint_strict\":{},\"pass_all_828_joint_strict_seq\":{},\"old_lat_rob_880_min\":{:.1},\"twist_floor_ok\":{},\"promote_eligible\":{}}}",
-                if s_j.is_finite() { s_j } else { -1.0 }, s_j >= fh, seq_pass, if tz.is_finite() { tz } else { -1.0 }, pass, pass_all, old, tw_ok, prom);
+            let d1x = serde_json::json!({"strict_lat_rob_0p0625": record::fin(s_j, 1), "strict_ok": s_j >= fh, "seq_ok": seq_pass, "twist_tipzone_sf_strict": record::fin(tz, 3),
+                "pass_828_joint_strict": pass, "pass_all_828_joint_strict_seq": pass_all, "old_lat_rob_880_min": record::fin(old, 1), "twist_floor_ok": tw_ok, "promote_eligible": prom}).to_string();
             let mut rr = r.clone(); rr.fem = Some(c.clone()); rr.spg = c.lat_rob / rr.mass_g;
             if let Some(j) = plate_json_x(&rr, &label, Some((c.clone(), fem::Fields { xy: fields.xy.clone(), tris: fields.tris.clone(), te: fields.te.clone(), env_vm: fields.env_vm.clone(), sf: fields.sf.clone(), lat: fields.lat.clone(), pry: fields.pry.clone(), ring: fields.ring.clone(), twist: fields.twist.clone() })), &d1x) {
                 std::fs::write(format!("{out}/{label}.json"), j).ok(); plates.push(label);
