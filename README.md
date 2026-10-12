@@ -6,6 +6,8 @@ Invariants (red-team enforced, see docs/WHITEPAPER.md §III-A): blade **≥ 3.37
 
 **Fitness = MC-p05 strength-per-gram (N/g) subject to hiker + hunter strength floors** — not strength alone.
 
+**Version:** see `docs/VERSION` (0.27.0-dev). **Map:** `TECHNOLOGY_MAP.md`. **Global metric:** `docs/GLOBAL_METRIC.md`. **Status:** `STATUS.md`.
+
 ## Crates
 | crate | role |
 |---|---|

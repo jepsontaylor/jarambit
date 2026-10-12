@@ -5,6 +5,9 @@ Renders plate JSONs written by `jarambit crescent-d1` (D1_PLATES=1) or `crescent
 usage: python3 make_d1_plate.py <json_dir> <heatmap_dir> <wave_tag> [mass_target_g=80]
 env EVALS=<all_evals.json> for the Pareto/QD insets (search level of the ORIGINAL run); ANCHOR_REV (C.6)."""
 import sys, os, json, numpy as np
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from metrics.global_metric import global_G, title_tag, read_version  # GLOBAL metric G hook (docs/GLOBAL_METRIC.md)
+VERSION = read_version(os.path.dirname(os.path.abspath(__file__)))
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt, matplotlib.tri as mtri
 from matplotlib.patches import Polygon as MPoly
@@ -59,6 +62,8 @@ for lab in labels:
     band = 74.0 <= m['mass_g'] <= 77.0
     prom = pall and tw_ok and band and m['mass_g'] < 80
     title = f"{WAVE.replace('wave', 'Wave ')} [{lab}] — D1 RULES (828 MPa joint) — {'PROMOTE-ELIGIBLE' if prom else 'NOT ELIGIBLE'} (828+strict+seq {'PASS' if pall else 'FAIL'}, twist {'PASS' if tw_ok else 'FAIL'}, 74–77 g {'yes' if band else 'no'}) | SPG(cert) {m['spg']:.3f} N/g | {m['mass_g']:.1f} g | NOT PROMOTED: needs human aesthetic sign-off"
+    g_rec = {**m, 'twist_tipzone_sf_strict': tzs}; G_val, G_terms = global_G(g_rec)
+    title += "\n" + title_tag(g_rec, VERSION)  # every wave FEM plate: G + mass g + version
     fig.suptitle(title, fontsize=9.5, fontweight='bold', y=0.985)
     fig.text(0.5, 0.952, "Detailed plate FEM (physics::fine DKT bending + T6 membrane), per-element thickness (taper, grinds, isogrid pockets, ring flute, relief, flutes); through-windows meshed as holes. "
              "Ti-6Al-4V screening yield 828 MPa (provisional). CERTIFIED = min over 0.25 / 0.125 mm², no bias; robust = JOINT (t−0.1)² × σy(100 °C)/σy(20 °C); strict check 0.0625 mm²", ha='center', fontsize=8.2)
@@ -143,7 +148,7 @@ for lab in labels:
     tag = ("D1ELIGIBLE" if prom else "D1FAIL") + f"_SPG{m['spg']:.2f}"
     base = os.path.join(OUT, f"{WAVE}_{lab.replace(WAVE + '_', '').replace('_D1', '')}_{tag}_wgt{m['mass_g']:.1f}g".replace('.', 'p') + "_D1_FEM_metrics")
     fig.savefig(base + '.png', dpi=220); fig.savefig(base + '.pdf'); plt.close(fig)
-    index.append(dict(label=lab, file=os.path.basename(base) + '.png', case_sf_100C=m['_case_sf'], relief_frac=relief(m), n_win=nwin, d1=x, d1_pass=pall, twist_floor_ok=tw_ok, promote_eligible=prom,
+    index.append(dict(label=lab, file=os.path.basename(base) + '.png', G=G_val, G_terms=G_terms, version=VERSION, case_sf_100C=m['_case_sf'], relief_frac=relief(m), n_win=nwin, d1=x, d1_pass=pall, twist_floor_ok=tw_ok, promote_eligible=prom,
                       **{k: m[k] for k in ('id', 'fit', 'spg', 'mass_g', 'aes_score', 'hausdorff', 'emd', 'novelty', 'sf_hiker', 'sf_hunter', 'sf_ring', 'floors_ok', 'legal', 'tip_to_heel', 'horizontal_reach', 'arc_in', 'arc_sp', 't', 'lat_rob', 'ring_rob', 'seq_ratio', 'twist_tip_sf', 'twist_body_sf', 't_joint')}))
     print('wrote', base + '.png')
 json.dump(index, open(os.path.join(OUT, f'{WAVE}_D1_index.json'), 'w'), indent=1)
