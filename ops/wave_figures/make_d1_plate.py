@@ -6,6 +6,8 @@ usage: python3 make_d1_plate.py <json_dir> <heatmap_dir> <wave_tag> [mass_target
 env EVALS=<all_evals.json> for the Pareto/QD insets (search level of the ORIGINAL run); ANCHOR_REV (C.6)."""
 import sys, os, json, numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from figlib import aes_badge, write_manifest, NORMS  # PR-0.29.4 derived badges + declared norms + manifests
 from metrics.global_metric import global_G, title_tag, read_version  # GLOBAL metric G hook (docs/GLOBAL_METRIC.md)
 VERSION = read_version(os.path.dirname(os.path.abspath(__file__)))
 import matplotlib; matplotlib.use('Agg')
@@ -27,6 +29,12 @@ if os.path.exists(cp):
     import csv
     for r in csv.DictReader(open(cp)): cert[int(r['id'])] = r
 index = []
+
+
+def _inputs(lab):
+    return [os.path.join(RUN, lab + '.json'), cp, EV]
+
+
 RHO = {'Ti-6Al-4V': 4.43, 'Ti-3Al-2.5V': 4.48}
 NAMES = ['relief', 'lattice', 'fuller', 'flutes', 'texture', 'isogrid', 'ring flute']
 
@@ -59,16 +67,15 @@ for lab in labels:
     seq_ok = m['seq_ratio'] >= 1.2; p828 = m['floors_ok'] and s_ok
     pall = p828 and seq_ok and m['aes_pass'] and not m['rejects']
     tzs = x.get('twist_tipzone_sf_strict', float('nan')); tw_ok = m['twist_body_sf'] >= 1 and tzs >= 1
-    band = 74.0 <= m['mass_g'] <= 77.0
-    prom = pall and tw_ok and band and m['mass_g'] < 80
-    title = f"{WAVE.replace('wave', 'Wave ')} [{lab}] — D1 RULES (828 MPa joint) — {'PROMOTE-ELIGIBLE' if prom else 'NOT ELIGIBLE'} (828+strict+seq {'PASS' if pall else 'FAIL'}, twist {'PASS' if tw_ok else 'FAIL'}, 74–77 g {'yes' if band else 'no'}) | SPG(cert) {m['spg']:.3f} N/g | {m['mass_g']:.1f} g | NOT PROMOTED: needs human aesthetic sign-off"
+    prom = pall and tw_ok  # mass is a SOFT G penalty (PR-0.28.3b), not a promotion gate
+    title = f"{WAVE.replace('wave', 'Wave ')} [{lab}] — D1 RULES (828 MPa joint) — {'PROMOTE-ELIGIBLE' if prom else 'NOT ELIGIBLE'} (828+strict+seq {'PASS' if pall else 'FAIL'}, twist {'PASS' if tw_ok else 'FAIL'}, mass {m['mass_g']:.1f} g vs {CAP:.0f} g target: {'met' if under else 'G penalty'}) | SPG(cert) {m['spg']:.3f} N/g | {m['mass_g']:.1f} g | NOT PROMOTED: needs human aesthetic sign-off"
     g_rec = {**m, 'twist_tipzone_sf_strict': tzs}; G_val, G_terms = global_G(g_rec)
     title += "\n" + title_tag(g_rec, VERSION)  # every wave FEM plate: G + mass g + version
     fig.suptitle(title, fontsize=9.5, fontweight='bold', y=0.985)
     fig.text(0.5, 0.952, "Detailed plate FEM (physics::fine DKT bending + T6 membrane), per-element thickness (taper, grinds, isogrid pockets, ring flute, relief, flutes); through-windows meshed as holes. "
              "Ti-6Al-4V screening yield 828 MPa (provisional). CERTIFIED = min over 0.25 / 0.125 mm², no bias; robust = JOINT (t−0.1)² × σy(100 °C)/σy(20 °C); strict check 0.0625 mm²", ha='center', fontsize=8.2)
     bl = min(m['tip_to_heel'], m['horizontal_reach'], max(m['arc_in'], m['arc_sp']))
-    badges = [("AESTHETIC FLOOR (" + REV + "): PASS\nH %.2f mm · EMD %.3f · A %.3f" % (m['hausdorff'], m['emd'], m['aes_score']), '#2a7'),
+    badges = [aes_badge(m, REV),
               ("BLADE ≥ 3.375 in all three: %s\nmin %.3f in" % ('PASS' if bl >= 86.225 else 'FAIL', bl / IN), '#2a7' if bl >= 86.225 else '#c22'),
               ("HARD GATES + MFG: %s" % ('PASS' if not m['rejects'] else 'FAIL\n' + '; '.join(m['rejects'])[:60]), '#2a7' if not m['rejects'] else '#c22'),
               ("828 JOINT 180/260/1500 + strict: %s\ncert lat %.0f · strict %.0f · ring %.0f N" % ('PASS' if p828 else 'FAIL', m['lat_rob'], strict, m['ring_rob']), '#2a7' if p828 else '#c22'),
@@ -76,12 +83,12 @@ for lab in labels:
               ("TWIST 1.82 N·m body AND tip-sub (LOCKED): %s\nbody %.2f · tip-sub %.2f · tip-only %.2f" % ('PASS' if tw_ok else 'FAIL', m['twist_body_sf'], tzs, m['twist_tip_sf']), '#2a7' if tw_ok else '#c22')]
     for i, (t, c) in enumerate(badges):
         fig.text(0.02 + i * 0.163 + 0.078, 0.912, t, fontsize=7, color='white', ha='center', va='center', bbox=dict(boxstyle='round,pad=0.35', fc=c, ec='none'))
-    ax1 = fig.add_subplot(gs[0, 0]); vmax = np.nanpercentile(env[env > 0], 99.5) if (env > 0).any() else 1
-    tp = ax1.tripcolor(T, facecolors=env, cmap='turbo', vmin=0, vmax=vmax, rasterized=True); outline(ax1, d)
+    ax1 = fig.add_subplot(gs[0, 0]); VM = NORMS['von_mises_mpa']; vmax = VM['vmax']
+    tp = ax1.tripcolor(T, facecolors=env, cmap=VM['cmap'], vmin=VM['vmin'], vmax=vmax, rasterized=True); outline(ax1, d)
     fig.colorbar(tp, ax=ax1, fraction=0.025, pad=0.005, label='σvm envelope at design loads (MPa)')
     ax1.set_title('von Mises envelope at design loads (828 MPa rules): lateral 260 N, pry 260 N, chord torsion 1.82 N·m × St-Venant 3D, ring pull 1500 N (4 mm tip-load zone excluded)', fontsize=9); ax1.legend(loc='lower left', fontsize=7)
     ax2 = fig.add_subplot(gs[1, 0])
-    tp2 = ax2.tripcolor(T, facecolors=np.clip(sf, 0, 4), cmap='RdYlGn', vmin=0, vmax=4, rasterized=True); outline(ax2, d, c4=False)
+    tp2 = ax2.tripcolor(T, facecolors=np.clip(sf, 0, NORMS['safety_factor']['vmax']), cmap=NORMS['safety_factor']['cmap'], vmin=0, vmax=NORMS['safety_factor']['vmax'], rasterized=True); outline(ax2, d, c4=False)
     k = int(np.argmin(sf)); c = xy[tri[k]].mean(0); ax2.plot(*c, 'kx', ms=10, mew=2)
     fig.colorbar(tp2, ax=ax2, fraction=0.025, pad=0.005, label='SF = σy(100 °C) / σvm envelope')
     sy100 = np.where(env > 0, sf * env, np.nan); sy100 = np.nanmedian(sy100) if np.isfinite(sy100).any() else 0
@@ -147,7 +154,8 @@ for lab in labels:
     fig.text(0.5, 0.008, f"source {RUN} | author Jepson Taylor | generator ops/wave_figures/make_d1_plate.py (D1 rules) | utility / hiking karambit only", ha='center', fontsize=7)
     tag = ("D1ELIGIBLE" if prom else "D1FAIL") + f"_SPG{m['spg']:.2f}"
     base = os.path.join(OUT, f"{WAVE}_{lab.replace(WAVE + '_', '').replace('_D1', '')}_{tag}_wgt{m['mass_g']:.1f}g".replace('.', 'p') + "_D1_FEM_metrics")
-    fig.savefig(base + '.png', dpi=220); fig.savefig(base + '.pdf'); plt.close(fig)
+    fig.savefig(base + '.png', dpi=220, metadata={'Software': None}); fig.savefig(base + '.pdf'); plt.close(fig)
+    write_manifest(base + '.png', [q for q in _inputs(lab) if os.path.exists(q)], __file__, norms=['von_mises_mpa', 'safety_factor'], extra={'label': lab, 'promote_eligible': prom})
     index.append(dict(label=lab, file=os.path.basename(base) + '.png', G=G_val, G_terms=G_terms, version=VERSION, case_sf_100C=m['_case_sf'], relief_frac=relief(m), n_win=nwin, d1=x, d1_pass=pall, twist_floor_ok=tw_ok, promote_eligible=prom,
                       **{k: m[k] for k in ('id', 'fit', 'spg', 'mass_g', 'aes_score', 'hausdorff', 'emd', 'novelty', 'sf_hiker', 'sf_hunter', 'sf_ring', 'floors_ok', 'legal', 'tip_to_heel', 'horizontal_reach', 'arc_in', 'arc_sp', 't', 'lat_rob', 'ring_rob', 'seq_ratio', 'twist_tip_sf', 'twist_body_sf', 't_joint')}))
     print('wrote', base + '.png')

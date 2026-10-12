@@ -1,0 +1,1 @@
+docs/figures/whitepaper/wave27_g3_tip+00_t60_tt3_STEP_3D.png  # hero render (PR-0.29.4)
