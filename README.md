@@ -13,10 +13,10 @@
 **Provisional `g3_tip+00_t60_tt3` — G1 0.9804 · 84.80 g · tip SF 1.534 × SPG 4.147 = 6.362 · ring 25.46 mm · Ti-6Al-4V 6.0 mm**
 
 <!-- RS:BEGIN docs/wave27_diversity/plates/wave27_D1_index.json g3_tip+00_t60_tt3_D1 -->
-RS-karambit-v1: screen PASS · promotion FAIL (mass 84.80 g >= 80 g cap; mass not in 74-77 g band; seq 0.959 < 1.2) · human aesthetic sign-off pending · not promoted
+RS-karambit-v1: screen PASS · promotion FAIL (seq 0.959 < 1.2) · soft: mass 84.80 g over 80 g target (G penalty) · human aesthetic sign-off pending · not promoted
 <!-- RS:END -->
 
-Verdicts are scoped to a requirement set (`requirements/RS-karambit-v1.toml`): *screen* = geometry + aesthetic floor + 828 MPa joint floors + twist + solid tip; *promotion* adds strict hunter lateral, seq ≥ 1.2, mass 74–77 g and < 80 g.
+Verdicts are scoped to a requirement set (`requirements/RS-karambit-v1.toml`): *screen* = geometry + aesthetic floor + 828 MPa joint floors + twist + solid tip; *promotion* adds strict hunter lateral and seq ≥ 1.2. Mass is **soft** (Jepson, 2026-10-12): a strong penalty in G and a search target (< 80 g first, then < 70 g), never a promotion gate.
 
 📄 [White paper](docs/WHITEPAPER.md) · ⚖️ [Patent draft (not filed)](docs/PATENT_DRAFT.md) · 📦 [Release v0.27.0](https://github.com/jepsontaylor/jarambit/releases/tag/v0.27.0) · 🗺️ [Technology map](TECHNOLOGY_MAP.md)
 

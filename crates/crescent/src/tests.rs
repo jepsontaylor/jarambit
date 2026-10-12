@@ -306,12 +306,12 @@ fn p1_genome_csv_roundtrip_is_exact() {
     use crate::fem::*;
     assert_eq!(TWIST_FLOOR_NMM, 1820.0, "twist floor must stay 1.82 N*m");
     assert_eq!(SEQ_TARGET, 1.2);
-    assert_eq!(MASS_BAND, (74.0, 77.0)); assert_eq!(MASS_CAP_HARD, 80.0);
+    assert_eq!(MASS_BAND, (74.0, 77.0)); assert_eq!(MASS_TARGET_G, 80.0); assert_eq!(MASS_STRETCH_G, 70.0);
     assert!(twist_floor_ok(1.0, 1.0));
     assert!(!twist_floor_ok(0.999, 5.0), "body twist alone must gate");
     assert!(!twist_floor_ok(5.0, 0.999), "tip submodel alone must gate");
     // all-pass reference
-    let ok = |a: bool, gt: bool, fl: bool, sl: f64, sq: f64, b: f64, tz: f64, m: f64| promote_eligible(a, gt, fl, sl, sq, b, tz, m);
+    let ok = |a: bool, gt: bool, fl: bool, sl: f64, sq: f64, b: f64, tz: f64, _m: f64| promote_eligible(a, gt, fl, sl, sq, b, tz);
     assert!(ok(true, true, true, 260.0, 1.2, 1.0, 1.0, 75.5));
     assert!(!ok(false, true, true, 300.0, 2.0, 2.0, 2.0, 75.5), "aesthetic (C.6)");
     assert!(!ok(true, false, true, 300.0, 2.0, 2.0, 2.0, 75.5), "hard gates (blade 3.375 all three, ...)");
@@ -320,6 +320,7 @@ fn p1_genome_csv_roundtrip_is_exact() {
     assert!(!ok(true, true, true, 300.0, 1.19, 2.0, 2.0, 75.5), "seq 1.2");
     assert!(!ok(true, true, true, 300.0, 2.0, 0.99, 2.0, 75.5), "twist body");
     assert!(!ok(true, true, true, 300.0, 2.0, 2.0, 0.99, 75.5), "twist tip submodel");
-    assert!(!ok(true, true, true, 300.0, 2.0, 2.0, 2.0, 73.9), "mass band low");
-    assert!(!ok(true, true, true, 300.0, 2.0, 2.0, 2.0, 77.1), "mass band high");
+    // mass is SOFT (Jepson 2026-10-12): never a promotion gate
+    assert!(ok(true, true, true, 300.0, 2.0, 2.0, 2.0, 73.9), "mass below band must not gate");
+    assert!(ok(true, true, true, 300.0, 2.0, 2.0, 2.0, 84.8), "mass over 80 g must not gate");
 }

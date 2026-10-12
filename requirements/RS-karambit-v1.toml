@@ -4,13 +4,13 @@
 # Groups:
 #   screen    = the W20+ "hard screen" a plate reports as w20_hard_pass (geometry + aesthetic floor + 828 joint floors
 #               + twist floor + solid tip). It does NOT include mass or the failure sequence.
-#   promotion = owner-locked promote-eligibility (crates/crescent/src/fem.rs::promote_eligible); still needs human
-#               aesthetic sign-off; nothing is ever auto-promoted.
+#   promotion = promote-eligibility (crates/crescent/src/fem.rs::promote_eligible); still needs human aesthetic
+#               sign-off; nothing is ever auto-promoted. Mass is SOFT (v2): a G penalty / target, never a gate.
 #   search    = crescent qd::Rec::legal() with the P1 layer on (seq is HARD here, unlike the old "soft" wording).
 
 id = "RS-karambit-v1"
-version = 1
-status = "as-implemented v0.27.0"
+version = 2
+status = "v0.28: mass soft (Jepson decision 2026-10-12); v1 = as-implemented v0.27.0 with mass hard in promotion"
 
 [constants]
 ring_id_min_mm = 25.4
@@ -23,8 +23,9 @@ hunter_lateral_n = 260.0
 ring_pull_n = 1500.0
 twist_floor_nmm = 1820.0
 seq_target = 1.2
-mass_band_g = [74.0, 77.0]
-mass_cap_hard_g = 80.0
+mass_band_g = [74.0, 77.0]       # reported only
+mass_target_g = 80.0             # SOFT: strong G penalty / ranking target (first milestone)
+mass_stretch_g = 70.0            # SOFT: stretch target
 solid_tip_sf_min = 1.0
 screening_yield_mpa = 828.0
 
@@ -33,8 +34,10 @@ criteria = ["aesthetic_floor_C6", "geometric_gates", "blade_three_measures", "fl
 record_field = "w20_hard_pass"
 
 [groups.promotion]
-criteria = ["screen", "strict_hunter_lateral", "seq_ratio", "twist_floor_body_and_tipsub", "mass_band", "mass_cap"]
+criteria = ["screen", "strict_hunter_lateral", "seq_ratio", "twist_floor_body_and_tipsub"]
 record_field = "promote_eligible"
+soft = ["mass_target_g (G penalty, not a gate)", "mass_stretch_g"]
+note = "mass is never a promotion gate (Jepson 2026-10-12); robust global fitness first, keep pushing < 80 g then < 70 g"
 
 [groups.search]
 criteria = ["geometric_gates", "floors_828_joint", "seq_ratio (P1)", "twist_floor_body_and_tipsub (P1)"]

@@ -3,7 +3,7 @@
 **Current (v0.27.0, 2026-10-12): `g3_tip+00_t60_tt3`** — not promoted to manufacturing; research only.
 
 <!-- RS:BEGIN docs/wave27_diversity/plates/wave27_D1_index.json g3_tip+00_t60_tt3_D1 -->
-RS-karambit-v1: screen PASS · promotion FAIL (mass 84.80 g >= 80 g cap; mass not in 74-77 g band; seq 0.959 < 1.2) · human aesthetic sign-off pending · not promoted
+RS-karambit-v1: screen PASS · promotion FAIL (seq 0.959 < 1.2) · soft: mass 84.80 g over 80 g target (G penalty) · human aesthetic sign-off pending · not promoted
 <!-- RS:END -->
 
 | design | G1 | tip SF (solid) | SPG N/g | tip×SPG | mass g | ring ID mm | seq | RS-karambit-v1 screen |

@@ -22,14 +22,15 @@ def load_rs(rs_id='RS-karambit-v1'):
 def verdict(rec, rs):
     c = rs['constants']
     m, seq = rec.get('mass_g'), rec.get('seq_ratio')
-    fails = []
-    if not isinstance(m, (int, float)) or isinstance(m, bool):
-        fails.append('mass missing')
+    fails, soft = [], []
+    # mass is SOFT since RS v2 (Jepson 2026-10-12): reported as a target, never a promotion failure
+    if isinstance(m, (int, float)) and not isinstance(m, bool):
+        if m >= c['mass_target_g']:
+            soft.append(f"mass {m:.2f} g over {c['mass_target_g']:.0f} g target")
+        elif m >= c['mass_stretch_g']:
+            soft.append(f"mass {m:.2f} g; stretch target {c['mass_stretch_g']:.0f} g")
     else:
-        if m >= c['mass_cap_hard_g']:
-            fails.append(f"mass {m:.2f} g >= {c['mass_cap_hard_g']:.0f} g cap")
-        if not (c['mass_band_g'][0] <= m <= c['mass_band_g'][1]):
-            fails.append(f"mass not in {c['mass_band_g'][0]:.0f}-{c['mass_band_g'][1]:.0f} g band")
+        soft.append('mass missing')
     if not isinstance(seq, (int, float)) or isinstance(seq, bool):
         fails.append('seq missing')
     elif seq < c['seq_target']:
@@ -46,8 +47,14 @@ def verdict(rec, rs):
     if prom is True and fails:
         raise SystemExit(f"inconsistent record: promote_eligible true but {fails}")
     prom_s = 'PASS' if (prom is True and not fails) else 'FAIL'
-    why = f" ({'; '.join(fails)})" if prom_s == 'FAIL' and fails else ''
-    return f"{rs['id']}: screen {screen_s} · promotion {prom_s}{why} · human aesthetic sign-off pending · not promoted"
+    if fails:
+        why = f" ({'; '.join(fails)})"
+    elif prom_s == 'FAIL':
+        why = ' (record promote_eligible not true; recompute under RS v2)'
+    else:
+        why = ''
+    soft_s = f" · soft: {'; '.join(soft)} (G penalty)" if soft else ''
+    return f"{rs['id']}: screen {screen_s} · promotion {prom_s}{why}{soft_s} · human aesthetic sign-off pending · not promoted"
 
 
 def main():

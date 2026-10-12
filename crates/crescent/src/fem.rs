@@ -55,15 +55,17 @@ pub const SEQ_TARGET: f64 = 1.2;
 pub fn twist_floor_ok(body_sf: f64, tipzone_sf_strict: f64) -> bool { body_sf >= 1.0 && tipzone_sf_strict >= 1.0 }
 /// Requirement set these constants implement (requirements/RS-karambit-v1.toml). Every published verdict names it.
 pub const REQUIREMENT_SET_ID: &str = "RS-karambit-v1";
-/// OWNER LOCK promote mass band (g) and hard cap.
-pub const MASS_BAND: (f64, f64) = (74.0, 77.0); pub const MASS_CAP_HARD: f64 = 80.0;
+/// Mass is SOFT (Jepson decision 2026-10-12, supersedes the 2026-10-11 owner lock): not a promotion gate. It is a
+/// strong penalty in G / a ranking target: first get under MASS_TARGET_G, then toward MASS_STRETCH_G. The 74-77 g band
+/// is still reported for continuity.
+pub const MASS_BAND: (f64, f64) = (74.0, 77.0); pub const MASS_TARGET_G: f64 = 80.0; pub const MASS_STRETCH_G: f64 = 70.0;
 /// OWNER LOCK promote-eligibility (still needs human aesthetic sign-off; never auto-promoted):
 /// aesthetic C.6 + every hard gate (blade >= 3.375 in on all three measures, ...) + 828 joint floors at certification
 /// + hunter >= 260 at strict 0.0625 + seq >= 1.2 + twist body AND tip submodel >= 1.82 N*m + mass in 74-77 g and < 80 g.
 #[allow(clippy::too_many_arguments)]
-pub fn promote_eligible(aes_pass: bool, gates_ok: bool, floors_ok: bool, strict_lat: f64, seq: f64, body_sf: f64, tipzone_sf: f64, mass_g: f64) -> bool {
+/// Promote-eligible (structural + aesthetic floor; mass is soft and NOT part of it). Human aesthetic sign-off still required.
+pub fn promote_eligible(aes_pass: bool, gates_ok: bool, floors_ok: bool, strict_lat: f64, seq: f64, body_sf: f64, tipzone_sf: f64) -> bool {
     aes_pass && gates_ok && floors_ok && strict_lat >= floors::HUNTER_LATERAL_N && seq >= SEQ_TARGET && twist_floor_ok(body_sf, tipzone_sf)
-        && mass_g >= MASS_BAND.0 && mass_g <= MASS_BAND.1 && mass_g < MASS_CAP_HARD
 }
 
 /// D1 JOINT robustness factor: (stock -0.1 mm)^p x yield(100 C)/yield(20 C), both at once
@@ -267,7 +269,7 @@ mod rs_karambit_v1 {
         assert_eq!(val("id"), format!("\"{REQUIREMENT_SET_ID}\""));
         assert_eq!(num("seq_target"), SEQ_TARGET);
         assert_eq!(num("twist_floor_nmm"), TWIST_FLOOR_NMM);
-        assert_eq!(num("mass_cap_hard_g"), MASS_CAP_HARD);
+        assert_eq!(num("mass_target_g"), MASS_TARGET_G); assert_eq!(num("mass_stretch_g"), MASS_STRETCH_G);
         assert_eq!(pair("mass_band_g"), MASS_BAND);
         assert_eq!(num("hiker_lateral_n"), floors::HIKER_LATERAL_N);
         assert_eq!(num("hunter_lateral_n"), floors::HUNTER_LATERAL_N);
