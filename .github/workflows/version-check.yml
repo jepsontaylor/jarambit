@@ -1,0 +1,23 @@
+name: version-check
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'release/**']
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: VERSION == tag == WHITEPAPER header
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 ops/ci/version_check.py
+      - run: python3 -c "import sys; sys.path.insert(0,'metrics'); import global_metric as g; v,_=g.global_G(dict(solid_tip_sf_nodal_max=1.5,spg=4.0,aes_score=0.6,mass_g=80,seq_ratio=0.9)); assert abs(v-0.9675)<1e-9, v; print('G smoke ok', v)"

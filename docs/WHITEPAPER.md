@@ -2,6 +2,153 @@
 
 **Jepson Taylor**
 
+**Version 0.27.0-dev — 2026-10-12** (living document; version from `docs/VERSION`, checked by CI `ops/ci/version_check.py`). Frozen companion: `docs/WHITEPAPER_g3_neckrail.md` (v0.1.0-g3neckrail, branch `release/v0.1.0`). Target: IEEE-style, 6–10 pp; completeness over page count. Wave27 is in flight — wave26/27 callouts carry placeholders until their packs land. **No design is promoted** (g3_neckrail not promoted; 828 MPa screening yield provisional; human aesthetic sign-off pending).
+
+**Abstract** — *jarambit* is a Rust-native pipeline that evolves fixed-blade titanium hiking/utility karambits (SWITCHBACK class) under hard manufacturability and safety constraints, verified by a plate FEM screen plus a solid tip submodel, made robust by Monte Carlo over tolerances, temperature (−10…100 °C) and cut media, and ranked across waves by a single GLOBAL metric **G** that combines solid-tip safety factor, strength-per-gram, aesthetics, mass and failure sequence. Hard limits are rejections, never penalties; G never overrides a gate.
+
+## I. Introduction
+Utility cutting (cord, webbing, packaging) with a ring-retained hooked blade. Contributions: (1) constrained genotype with validators; (2) watertight CAD phenotype; (3) two-level FEM (plate screen + solid tip submodel); (4) MC robustness; (5) island/novelty evolution; (6) a locked global metric and versioned, figure-backed wave reporting. Code map: `TECHNOLOGY_MAP.md`.
+
+## II. Methods
+### II-A. Pipeline
+genotype (validate/reject) → phenotype (outline, STEP, mass) → Monte Carlo × FEM (capacities, SF, SPG, seq) → evolve → plates → G → this paper + `docs/WAVE_LOG.md`.
+
+### II-B. GLOBAL metric G (definition, locked G1 — `docs/GLOBAL_METRIC.md`)
+$$G = 0.35\,\min(SF_{tip},2) + 0.35\,\frac{SPG}{4.0} + 0.20\,aes - 0.05\,\frac{\max(0,m-77)}{10} - 0.05\,\frac{\max(0,1.2-seq)}{1.2}$$
+SF_tip = solid tip submodel SF at the max-stress node (828 MPa); SPG = certified strength-per-gram (N/g); aes = C.6 automated aesthetic score (0…1); m = finished mass (g); seq = hand/blade failure-sequence ratio, soft until ≥ 1.2. `G*` marks a provisional value where the solid submodel is missing and the plate tip-submodel screen SF is substituted. Every wave FEM plate title shows G, mass (g) and the software version.
+
+### II-C. Hard gates (unchanged)
+Ring ID 25.4 ± 0.5 mm; blade ≥ 3.375 in on tip-to-heel, horizontal reach and sharpened arc; sharpened edge ≤ 4.0 in; grip 60–80 mm; connected solid; Ti only; 0.1 mm stock; 828 MPa joint thin+hot (provisional); hiker 180 N / hunter 260 N; ring pull 1500 N; chord torsion 1.82 N·m (both modes); solid tip SF ≥ 1.0; mass < 80 g cap (74–77 g band target); seq ≥ 1.2 soft.
+
+### II-D. Versioning
+Major wave N ⇒ version 0.N.0 + tag `v0.N.0` + `docs/RELEASES.md` entry + this header. Sub-experiments (Wave N.1, …) ⇒ `docs/WAVE_LOG.md` only. Earlier versions in the callouts are retro-assigned by wave (wave N ↔ 0.N.0); only `v0.1.0-g3neckrail` exists as a tag before v0.27.0.
+
+## III. Core technologies (callouts)
+Each callout: (a) 3D CAD/STEP figure, (b) FEM colormap/mesh figure, (c) metrics table including G, (d) version that introduced it. Figures are the best-G hard-PASS design of the cited wave (`docs/figures/whitepaper/`).
+
+### III-A. Constrained genotype + validators (genotype/)
+20-gene + Ti grade genotype; red-team rejects (never penalises) ring ID 25.4 ± 0.5 mm, blade ≥ 3.375 in on all three measures, edge ≤ 4.0 in, grip 60–80 mm, connected solid, double serrated.
+
+**(a) 3D CAD/STEP** — ![wave20 c11 3D CAD](figures/whitepaper/wave20_c11_STEP_3D.png)
+
+**(b) FEM colormap/mesh** — ![wave20 c11 FEM plate](figures/whitepaper/wave20_c11_fit_W20HARDPASS_SPG3p99_wgt83p4g_D1_FEM_metrics.png)
+
+**(c) Metrics**
+| design | G | SF_tip | SPG N/g | aes | mass g | seq (soft) | hard gates |
+|---|---|---|---|---|---|---|---|
+| wave20 c11_fit_D1 | **0.848** | 1.164 | 3.994 | 0.673 | 83.4 | 0.926 | PASS |
+
+**(d) Introduced in:** v0.1.0 (wave1); crescent C.4/C.6 anchor v0.6.0→v0.13.0 (no stick-figure priors)
+
+### III-B. Phenotype → watertight STEP/CAD, grinds, tip outline/stock (phenotype/)
+Outline → watertight extrusion → faceted MANIFOLD_SOLID_BREP STEP + STL; 0.1 mm stock; grind law per edge; holder envelope +1 mm.
+
+**(a) 3D CAD/STEP** — ![wave25 c01 3D CAD](figures/whitepaper/wave25_c01_STEP_3D.png)
+
+**(b) FEM colormap/mesh** — ![wave25 c01 FEM plate](figures/whitepaper/wave25_c01_fit_W25HARDPASS_SPG3p73_wgt82p0g_D1_FEM_metrics.png)
+
+**(c) Metrics**
+| design | G | SF_tip | SPG N/g | aes | mass g | seq (soft) | hard gates |
+|---|---|---|---|---|---|---|---|
+| wave25 c01_fit_D1 | **0.952** | 1.527 | 3.726 | 0.648 | 82.0 | 0.879 | PASS |
+
+**(d) Introduced in:** v0.1.0 (STEP/STL); grind law + tip outline v0.26.0 (wave26 grind_law)
+
+### III-C. Plate FEM screen, D1 rules: 828 MPa joint thin+hot, lateral/pry/ring, chord torsion 1.82 N·m (fem/)
+DKT + membrane plate on the outline; certification min(0.25,0.125 mm²) + strict 0.0625 mm²; twist both modes; 4 mm tip-load zone excluded on the plate and handed to the solid submodel.
+
+**(a) 3D CAD/STEP** — ![wave22 c03 3D CAD](figures/whitepaper/wave22_c03_STEP_3D.png)
+
+**(b) FEM colormap/mesh** — ![wave22 c03 FEM plate](figures/whitepaper/wave22_c03_fit_W22HARDPASS_SPG3p85_wgt83p9g_D1_FEM_metrics.png)
+
+**(c) Metrics**
+| design | G | SF_tip | SPG N/g | aes | mass g | seq (soft) | hard gates |
+|---|---|---|---|---|---|---|---|
+| wave22 c03_fit_D1 | **0.885** | 1.345 | 3.853 | 0.636 | 83.9 | 0.831 | PASS |
+
+**(d) Introduced in:** v0.13.0 (D1 rules; CI d1-gates)
+
+### III-D. Solid tip submodel (fem/)
+C3D solid submodel of the tip region at 828 MPa; nodal max/avg SF; hard gate SF ≥ 1.0. Supplies the tip term of G.
+
+**(a) 3D CAD/STEP** — ![wave24 c02 3D CAD](figures/whitepaper/wave24_c02_STEP_3D.png)
+
+**(b) FEM colormap/mesh** — ![wave24 c02 FEM plate](figures/whitepaper/wave24_c02_fit_W24HARDPASS_SPG4p07_wgt85p6g_D1_FEM_metrics.png)
+
+**(c) Metrics**
+| design | G | SF_tip | SPG N/g | aes | mass g | seq (soft) | hard gates |
+|---|---|---|---|---|---|---|---|
+| wave24 c02_fit_D1 | **0.966** | 1.527 | 4.070 | 0.645 | 85.6 | 0.952 | PASS |
+
+**(d) Introduced in:** v0.20.0 (W20 lock: SOLID tip gate, seq soft, holder +1 mm)
+
+### III-E. Monte Carlo over tolerances, −10…100 °C, heterogeneous media (monte_carlo/)
+Exact-n tolerance cloud, thread-stable seeds, cut-media mix; SF maps at 100 °C yield; SPG = p05 (search) / certified (plate).
+
+**(a) 3D CAD/STEP** — ![wave23 c02 3D CAD](figures/whitepaper/wave23_c02_STEP_3D.png)
+
+**(b) FEM colormap/mesh** — ![wave23 c02 FEM plate](figures/whitepaper/wave23_c02_fit_W23HARDPASS_SPG4p00_wgt84p6g_D1_FEM_metrics.png)
+
+**(c) Metrics**
+| design | G | SF_tip | SPG N/g | aes | mass g | seq (soft) | hard gates |
+|---|---|---|---|---|---|---|---|
+| wave23 c02_fit_D1 | **0.925** | 1.425 | 3.996 | 0.629 | 84.6 | 0.916 | PASS |
+
+**(d) Introduced in:** v0.1.0
+
+### III-F. Evolution: islands, fitness, novelty, diversity (evolve/)
+NSGA-II islands with migration; MAP-Elites/QD (machining fraction × mass); novelty arms (wave25 c*_novel).
+
+**(a) 3D CAD/STEP** — ![wave21 c08 3D CAD](figures/whitepaper/wave21_c08_STEP_3D.png)
+
+**(b) FEM colormap/mesh** — ![wave21 c08 FEM plate](figures/whitepaper/wave21_c08_fit_W21HARDPASS_SPG3p84_wgt85p9g_D1_FEM_metrics.png)
+
+**(c) Metrics**
+| design | G | SF_tip | SPG N/g | aes | mass g | seq (soft) | hard gates |
+|---|---|---|---|---|---|---|---|
+| wave21 c08_fit_D1 | **0.808** | 1.107 | 3.839 | 0.710 | 85.9 | 0.891 | PASS |
+
+**(d) Introduced in:** v0.1.0 NSGA-II islands; novelty/QD v0.6.0; novelty lane v0.25.0
+
+### III-G. GLOBAL metric G + versioned wave plates (metrics/)
+G (Methods §II-B) printed in every new plate title with mass and version; ranks plated designs per wave.
+
+**(a) 3D CAD/STEP** — *(a) PLACEHOLDER — wave27 STEP render lands with the wave27 pack (`v0.27.0`).*
+
+**(b) FEM colormap/mesh** — ![wave27e plate (provisional, wave in flight)](figures/whitepaper/wave27e_g3t58_S05_rw-05_W27HARDPASS_SPG3p86_wgt81p8g_D1_FEM_metrics.png)
+
+**(c) Metrics**
+| design | G | SF_tip | SPG N/g | aes | mass g | seq (soft) | hard gates |
+|---|---|---|---|---|---|---|---|
+| wave27e g3t58_S05_rw-05_D1 | **0.977** | 1.594 | 3.859 | 0.593 | 81.8 | 0.888 | PASS |
+
+**(d) Introduced in:** v0.27.0-dev (this reorganisation)
+
+## IV. Results — waves 20–27 (best G per wave, hard-PASS designs)
+| design | G | SF_tip | SPG N/g | aes | mass g | seq (soft) | hard gates |
+|---|---|---|---|---|---|---|---|
+| wave20 c11_fit_D1 | **0.848** | 1.164 | 3.994 | 0.673 | 83.4 | 0.926 | PASS |
+| wave21 c08_fit_D1 | **0.808** | 1.107 | 3.839 | 0.710 | 85.9 | 0.891 | PASS |
+| wave22 c03_fit_D1 | **0.885** | 1.345 | 3.853 | 0.636 | 83.9 | 0.831 | PASS |
+| wave23 c02_fit_D1 | **0.925** | 1.425 | 3.996 | 0.629 | 84.6 | 0.916 | PASS |
+| wave24 c02_fit_D1 | **0.966** | 1.527 | 4.070 | 0.645 | 85.6 | 0.952 | PASS |
+| wave25 c01_fit_D1 | **0.952** | 1.527 | 3.726 | 0.648 | 82.0 | 0.879 | PASS |
+| wave26 ctl_g3_ref (solid table; plates PENDING — `jarambit_w26_resume` live) | pending | 1.525 | 4.158 | — | 84.6 | 0.959 | PASS (table) |
+| wave27e g3t58_S05_rw-05_D1 | **0.977** | 1.594 | 3.859 | 0.593 | 81.8 | 0.888 | PASS |
+| wave27b a0_S08_dr+05_D1 | **0.979*** | screen 1.636 | 3.747 | 0.591 | 81.9 | 0.842 | FAIL |
+
+**Trend.** Solid tip SF rose from 1.16 (wave20) to 1.53–1.59 (waves24–27) while SPG held near 3.7–4.1 N/g; G rose 0.85 → 0.97. No design reaches seq ≥ 1.2 or the 74–77 g band yet. Those two gaps stop promotion.
+
+*Wave26 figure: PLACEHOLDER (plates pending). Wave27 figures: PLACEHOLDER for final pack; the provisional wave27e plate is shown in III-G.*
+
+## V. Limitations and ethics
+828 MPa is a provisional screening yield; seq is soft; the aesthetic score does not replace human sign-off; no design is promoted. The tool covers utility/hiking use only.
+
+---
+## Appendix A — prior draft v0.3 body (retained verbatim for traceability)
+
+**Jepson Taylor**
+
 *Draft v0.3 — target IEEE conference format, 6–8 pages. Search snapshot is mh1 in progress, not a finished optimum.*
 
 **Abstract** — We present *jarambit*, a Rust-native pipeline that evolves fixed-blade titanium hiking/utility karambit geometries (SWITCHBACK class) under hard manufacturability and safety constraints. A 20-gene continuous genotype (+ titanium grade) is decoded into a connected genus-1 planar profile with a 25.4 mm finger ring, a ≥60 mm grip, a curved double-edged blade with serrations on both edges, a sheath/holder interface (shoulders, thickness lands, retention detent), 0.1 mm-precision stock thickness and a flat brand pad. The primary fitness is **strength-per-gram** (governing lateral capacity / mass, N/g) at the 5th percentile of a Monte Carlo over CNC/waterjet tolerances and −10…100 °C, subject to hiker and hunter strength floors — not strength alone. Hard limits (blade **≥ 3.375 in on all three measures**, sharpened edge ≤ 4.0 in) are enforced as rejections, never penalties. A red-team gate rejects any candidate that is not a recognisable, connected, double-serrated curved karambit.
@@ -140,3 +287,4 @@ The beam surrogate and the coarse plate both miss the grip-ring neck. On the wav
 [1] K. Deb, A. Pratap, S. Agarwal, and T. Meyarivan, "A fast and elitist multiobjective genetic algorithm: NSGA-II," IEEE Trans. Evol. Comput., vol. 6, no. 2, pp. 182–197, 2002.
 
 [2] J.-L. Batoz, K.-J. Bathe, and L.-W. Ho, "A study of three-node triangular plate bending elements," Int. J. Numer. Methods Eng., vol. 15, no. 12, pp. 1771–1812, 1980. doi:10.1002/nme.1620151205.
+
