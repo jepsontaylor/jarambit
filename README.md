@@ -1,4 +1,40 @@
-# jarambit
+<div align="center">
+
+# 🗡️ jarambit
+
+### Intelligence-designed titanium utility karambits — evolved, FEM-verified, Monte-Carlo-robust
+
+[![version](https://img.shields.io/badge/version-v0.27.0-ff6f00?style=for-the-badge)](https://github.com/jepsontaylor/jarambit/releases/tag/v0.27.0)
+[![G1](https://img.shields.io/badge/G1-0.9805-7b1fa2?style=for-the-badge)](docs/GLOBAL_METRIC.md)
+[![mass](https://img.shields.io/badge/mass-84.80%20g-00897b?style=for-the-badge)](docs/PROVISIONAL.md)
+[![tip×SPG](https://img.shields.io/badge/tip%C3%97SPG-6.362-1565c0?style=for-the-badge)](docs/WHITEPAPER.md)
+[![status](https://img.shields.io/badge/status-engineering%20provisional%20%C2%B7%20not%20promoted-c62828?style=for-the-badge)](docs/PROVISIONAL.md)
+
+**Provisional `g3_tip+00_t60_tt3` — G1 0.9805 · 84.80 g · tip SF 1.534 × SPG 4.147 = 6.362 · ring 25.46 mm · Ti-6Al-4V 6.0 mm · all hard gates PASS**
+
+📄 [White paper](docs/WHITEPAPER.md) · ⚖️ [Patent draft (not filed)](docs/PATENT_DRAFT.md) · 📦 [Release v0.27.0](https://github.com/jepsontaylor/jarambit/releases/tag/v0.27.0) · 🗺️ [Technology map](TECHNOLOGY_MAP.md)
+
+<img src="docs/figures/whitepaper/wave27_g3_tip+00_t60_tt3_STEP_3D.png" width="88%" alt="3D CAD render of g3_tip+00_t60_tt3 (watertight STEP)"/>
+
+<img src="docs/figures/whitepaper/wave27_g3_tip+00_t60_tt3_W27HARDPASS_SPG4p15_wgt84p8g_D1_FEM_metrics.png" width="88%" alt="wave27 D1 FEM colormap + metrics plate for g3_tip+00_t60_tt3"/>
+
+*Top: watertight STEP solid (colour = position along the blade). Bottom: D1 plate-FEM stress colormap + metrics, solid-tip submodel SF 1.534.*
+
+</div>
+
+---
+
+| | |
+|---|---|
+| 🧬 **Genotype** | 40 outline control points + ~100 feature genes (stock/tip law, rails, ring channels), red-team validators reject — never penalise |
+| 🧊 **Phenotype** | outline + thickness field → watertight STL + `MANIFOLD_SOLID_BREP` STEP |
+| 🔥 **FEM** | DKT plate screen (828 MPa joint, thin+hot) + 92k-tet solid tip submodel |
+| 🎲 **Monte Carlo** | tolerances × −10…100 °C × cut media, p05 strength-per-gram |
+| 🧭 **Evolution** | NSGA-II islands, novelty, graft arms; one locked GLOBAL metric **G1** across waves |
+
+> No design is promoted to manufacturing. 828 MPa is a provisional screening yield; seq ≥ 1.2 is still soft; human aesthetic sign-off pending.
+
+## Engine
 
 Rust workspace for intelligence-designed + Monte Carlo evolution of **SWITCHBACK-class titanium hiking/utility karambits**.
 
@@ -6,7 +42,7 @@ Invariants (red-team enforced, see docs/WHITEPAPER.md §III-A): blade **≥ 3.37
 
 **Fitness = MC-p05 strength-per-gram (N/g) subject to hiker + hunter strength floors** — not strength alone.
 
-**Version:** see `docs/VERSION` (0.27.0-dev). **Map:** `TECHNOLOGY_MAP.md`. **Global metric:** `docs/GLOBAL_METRIC.md`. **Status:** `STATUS.md`.
+**Version:** see `docs/VERSION` (0.27.0). **Map:** `TECHNOLOGY_MAP.md`. **Global metric:** `docs/GLOBAL_METRIC.md`. **Status:** `STATUS.md`.
 
 ## Crates
 | crate | role |

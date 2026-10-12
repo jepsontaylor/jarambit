@@ -6,8 +6,15 @@
 
 **Abstract** — *jarambit* is a Rust-native pipeline that evolves fixed-blade titanium hiking/utility karambits (SWITCHBACK class) under hard manufacturability and safety constraints, verified by a plate FEM screen plus a solid tip submodel, made robust by Monte Carlo over tolerances, temperature (−10…100 °C) and cut media, and ranked across waves by a single GLOBAL metric **G** that combines solid-tip safety factor, strength-per-gram, aesthetics, mass and failure sequence. Hard limits are rejections, never penalties; G never overrides a gate.
 
+*Index Terms* — evolutionary design, finite element analysis, Monte Carlo robustness, titanium, karambit, NSGA-II, design-for-manufacture.
+
+**Hero figures.** 3D CAD (watertight STEP): ![g3_tip+00_t60_tt3 3D](figures/whitepaper/wave27_g3_tip+00_t60_tt3_STEP_3D.png) — FEM plate: see §III-G.
+
 ## I. Introduction
 Utility cutting (cord, webbing, packaging) with a ring-retained hooked blade. Contributions: (1) constrained genotype with validators; (2) watertight CAD phenotype; (3) two-level FEM (plate screen + solid tip submodel); (4) MC robustness; (5) island/novelty evolution; (6) a locked global metric and versioned, figure-backed wave reporting. Code map: `TECHNOLOGY_MAP.md`.
+
+## I-A. Related work
+Multi-objective evolutionary design (NSGA-II [1]), DKT plate elements [2], topology/shape optimisation, robust design under tolerance, and knife-edge mechanics in Ti alloys. jarambit differs by treating legal/manufacturing limits as hard rejections and by ranking across waves with one locked metric.
 
 ## II. Methods
 ### II-A. Pipeline
@@ -149,6 +156,9 @@ tip×SPG = 1.534 × 4.147 = **6.362**; ring ID 25.46 mm; seq soft. Engineering p
 
 ## V. Limitations and ethics
 828 MPa is a provisional screening yield; seq is soft; the aesthetic score does not replace human sign-off; no design is promoted. The tool covers utility/hiking use only.
+
+## VI. Conclusion
+Wave27 (v0.27.0) set the engineering provisional to **g3_tip+00_t60_tt3** (G1 0.9805, tip×SPG 6.362 @ 84.80 g, ring 25.46 mm, all hard gates PASS). A +0.3 mm tip-stock law beat the g3_neckrail baseline at +0.21 g; tip-outline shifts of ±1 mm failed hard gates. Open gaps: seq ≥ 1.2, the 74–77 g band, and human aesthetic sign-off. Artefacts: watertight STEP (release asset `g3_tip+00_t60_tt3.step`, generator `crates/crescent/examples/export_step.rs`), FEM plate, pack. Patent draft (not filed): `docs/PATENT_DRAFT.md`.
 
 ---
 ## Appendix A — prior draft v0.3 body (retained verbatim for traceability)

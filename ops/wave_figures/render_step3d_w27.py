@@ -1,28 +1,12 @@
-import json,numpy as np,matplotlib;matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+import numpy as np,re,matplotlib;matplotlib.use('Agg');import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from matplotlib.path import Path
-d=json.load(open('g3_tip+00_t60_tt3_D1.json'));t=d['metrics']['t']
-loops=[np.array(d['outline'])]+[np.array(h) for h in d['holes']]
-fig=plt.figure(figsize=(9,5.2));ax=fig.add_subplot(111,projection='3d')
-# side walls
-for L in loops:
-    L=L[::max(1,len(L)//600)]
-    q=[[ (L[i,0],L[i,1],0),(L[i+1,0],L[i+1,1],0),(L[i+1,0],L[i+1,1],t),(L[i,0],L[i,1],t)] for i in range(len(L)-1)]
-    ax.add_collection3d(Poly3DCollection(q,facecolor='#8a9bb0',edgecolor='none',alpha=1))
-# top face via triangulated grid fill (point-in-polygon)
-o=Path(loops[0]);hs=[Path(h) for h in loops[1:]]
-xs=np.linspace(loops[0][:,0].min(),loops[0][:,0].max(),260);ys=np.linspace(loops[0][:,1].min(),loops[0][:,1].max(),140)
-X,Y=np.meshgrid(xs,ys);P=np.c_[X.ravel(),Y.ravel()]
-m=o.contains_points(P)
-for h in hs:m&=~h.contains_points(P)
-M=m.reshape(X.shape);dx=xs[1]-xs[0];dy=ys[1]-ys[0];q=[]
-for i,j in zip(*np.nonzero(M)):
-    x,y=X[i,j],Y[i,j];q.append([(x-dx/2,y-dy/2,t),(x+dx/2,y-dy/2,t),(x+dx/2,y+dy/2,t),(x-dx/2,y+dy/2,t)])
-ax.add_collection3d(Poly3DCollection(q,facecolor='#c9d3df',edgecolor='none'))
-for L in loops: ax.plot(L[:,0],L[:,1],t,color='k',lw=.5); ax.plot(L[:,0],L[:,1],0,color='#333',lw=.3)
-ax.set_xlim(xs.min(),xs.max());ax.set_ylim(ys.min(),ys.max());ax.set_zlim(-20,26)
-ax.set_box_aspect((np.ptp(xs),np.ptp(ys),46));ax.view_init(38,-60);ax.set_axis_off()
-mt=d['metrics']
-ax.set_title(f"wave27 g3_tip+00_t60_tt3 — 3D CAD (phenotype solid, t={t:.1f} mm Ti-6Al-4V)\nG 0.980 | {mt['mass_g']:.1f} g | ring 25.46 mm | jarambit v0.27.0",fontsize=10)
-plt.savefig('wave27_g3_tip+00_t60_tt3_STEP_3D.png',dpi=110,bbox_inches='tight')
+v=np.array(re.findall(r'vertex\s+(\S+)\s+(\S+)\s+(\S+)',open('g3_tip+00_t60_tt3.stl').read()),float).reshape(-1,3,3)
+n=np.cross(v[:,1]-v[:,0],v[:,2]-v[:,0]);n/=np.linalg.norm(n,axis=1)[:,None]+1e-12
+L=np.array([-.4,-.5,.77]);sh=np.clip(np.abs(n@L),0,1)
+cx=v[:,:,0].mean(1);c=plt.cm.plasma((cx-cx.min())/np.ptp(cx));c[:,:3]*=(.35+.65*sh)[:,None]
+fig=plt.figure(figsize=(12,6),facecolor='#0d1117');ax=fig.add_subplot(111,projection='3d',facecolor='#0d1117')
+ax.add_collection3d(Poly3DCollection(v,facecolors=c,edgecolor='none'))
+mn,mx=v.reshape(-1,3).min(0),v.reshape(-1,3).max(0);ax.set_xlim(mn[0],mx[0]);ax.set_ylim(mn[1],mx[1]);ax.set_zlim(mn[2]-15,mx[2]+15)
+ax.set_box_aspect((mx[0]-mn[0],mx[1]-mn[1],36));ax.view_init(40,-62);ax.set_axis_off()
+ax.set_title('jarambit v0.27.0 — g3_tip+00_t60_tt3 (watertight STEP, Ti-6Al-4V 6.0 mm)\nG1 0.9805 · tip×SPG 6.362 · 84.80 g · ring 25.46 mm',color='w',fontsize=13)
+plt.savefig('wave27_g3_tip+00_t60_tt3_STEP_3D.png',dpi=120,bbox_inches='tight',facecolor='#0d1117')
