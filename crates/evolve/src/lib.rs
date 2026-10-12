@@ -38,11 +38,16 @@ pub struct Config {
     /// Legal starting genomes. Each island's initial population gets these plus mutants of them
     /// (up to half the population); the rest stay random. Not promoted: they are re-scored.
     pub seeds: Vec<Genotype>,
+    /// PR-0.29.2: resume from a checkpoint written under a DIFFERENT manifest (explicit fork; the new manifest
+    /// records the parent manifest sha). Without it a manifest mismatch refuses to resume.
+    pub fork: bool,
+    /// Stop after this many completed generations (checkpoint written), as if interrupted. Test / ops hook.
+    pub stop_after: Option<usize>,
 }
 
 impl Config {
     pub fn new(pop: usize, gens: usize, mc_samples: usize, threads: usize, seed: u64) -> Self {
-        Self { pop, gens, mc_samples, threads, seed, islands: 1, migrate_every: 5, checkpoint: None, resume: false, fem: false, fine: false, seeds: Vec::new() }
+        Self { pop, gens, mc_samples, threads, seed, islands: 1, migrate_every: 5, checkpoint: None, resume: false, fem: false, fine: false, seeds: Vec::new(), fork: false, stop_after: None }
     }
 }
 
@@ -336,13 +341,6 @@ fn eval_batch(items: Vec<(Genotype, u64)>, cfg: &Config, q: &mut Vec<(Genotype, 
     items.into_iter().zip(caps).map(|((g, s), c)| evaluate_fine(g, s, cfg.mc_samples, cfg.threads, q, c.into_inner().unwrap())).collect()
 }
 
-fn genes_exact(g: &Genotype) -> String {
-    let v = g.to_vec();
-    let mut s: Vec<String> = v.iter().enumerate().map(|(i, x)| if i == 2 { format!("{x:.1}") } else { format!("{x:.8}") }).collect();
-    s.push(g.material.name().into());
-    s.join(",")
-}
-
 fn parse_genes(csv: &str) -> Result<Genotype, String> {
     let cols: Vec<&str> = csv.split(',').collect();
     // 22 = current (blade_angle_deg at index 20); 21 = legacy pre-knob checkpoint (un-raked blade).
@@ -356,11 +354,6 @@ fn parse_genes(csv: &str) -> Result<Genotype, String> {
         other => return Err(format!("material {other}")),
     };
     Ok(Genotype::from_vec(&v, mat))
-}
-
-fn indiv_line(ind: &Indiv) -> String {
-    format!("{:.6} {:.6} {:.4} {:.4} {} {:.6} {:.6} {}",
-        ind.fit, ind.mean, ind.strength_n, ind.mass_g, if ind.floors_ok { 1 } else { 0 }, ind.cut_p05, ind.sharp_p05, genes_exact(&ind.g))
 }
 
 fn parse_indiv(line: &str) -> Result<Indiv, String> {
@@ -377,76 +370,143 @@ fn parse_indiv(line: &str) -> Result<Indiv, String> {
     Ok(Indiv { g, fit, mean, strength_n, mass_g, floors_ok, cut_p05, sharp_p05 })
 }
 
-fn save_ckpt(path: &str, next_gen: usize, cfg: &Config, islands: &[Island], archive: &[Indiv]) {
+// ---- PR-0.29.2: lossless checkpoint (every f64 as its IEEE-754 bits in hex) bound to the run manifest ----
+
+/// The run manifest of the legacy NSGA-II search. Every field that changes the trajectory is in it; `threads`
+/// is not (results are thread-count stable). Resume refuses a checkpoint whose manifest sha differs.
+pub fn manifest(cfg: &Config) -> jarambit_evidence::RunManifest {
+    let seeds: Vec<String> = cfg.seeds.iter().map(genes_hex).collect();
+    use jarambit_evidence::RunManifest;
+    RunManifest::new("evolve", cfg.seed, "legacy-floors-180-260-1500")
+        .param("pop", cfg.pop).param("gens", cfg.gens).param("mc_samples", cfg.mc_samples).param("islands", cfg.islands.max(1))
+        .param("migrate_every", cfg.migrate_every).param("fem", cfg.fem).param("fine", cfg.fine)
+        .param("seeds_sha256", jarambit_evidence::hex(&sha2_256(seeds.join("\n").as_bytes())))
+        .param("floors_n", format!("{}/{}/{}", floors::HIKER_LATERAL_N, floors::HUNTER_LATERAL_N, floors::RING_PULL_N))
+        .param("calib_mesh_bias", format!("{}/{}", calib::MESH_BIAS_LAT_MAX, calib::MESH_BIAS_RING_MAX))
+        .param("search_area", fine::SEARCH_AREA)
+}
+fn sha2_256(b: &[u8]) -> Vec<u8> { use sha2::Digest; sha2::Sha256::digest(b).to_vec() }
+
+fn hx(x: f64) -> String { format!("{:016x}", x.to_bits()) }
+fn unhx(s: &str) -> Result<f64, String> { u64::from_str_radix(s, 16).map(f64::from_bits).map_err(|_| format!("bad f64 bits {s:?}")) }
+fn genes_hex(g: &Genotype) -> String { let mut v: Vec<String> = g.to_vec().iter().map(|x| hx(*x)).collect(); v.push(g.material.name().into()); v.join(",") }
+fn parse_genes_hex(s: &str) -> Result<Genotype, String> {
+    let cols: Vec<&str> = s.split(',').collect(); let n = cols.len().checked_sub(1).ok_or("genes")?;
+    let v: Vec<f64> = cols[..n].iter().map(|c| unhx(c)).collect::<Result<_, _>>()?;
+    let mat = match cols[n] { "Ti-3Al-2.5V" => TiGrade::Ti3Al2_5V, "Ti-6Al-4V" => TiGrade::Ti6Al4V, o => return Err(format!("material {o}")) };
+    let g = Genotype::from_vec(&v, mat);
+    if g.to_vec().iter().map(|x| x.to_bits()).ne(v.iter().map(|x| x.to_bits())) { return Err("genome does not round-trip bit-exactly".into()); }
+    Ok(g)
+}
+fn indiv_hex(i: &Indiv) -> String {
+    format!("{} {} {} {} {} {} {} {}", hx(i.fit), hx(i.mean), hx(i.strength_n), hx(i.mass_g), if i.floors_ok { 1 } else { 0 }, hx(i.cut_p05), hx(i.sharp_p05), genes_hex(&i.g))
+}
+fn parse_indiv_hex(line: &str) -> Result<Indiv, String> {
+    let f: Vec<&str> = line.splitn(8, ' ').collect(); if f.len() != 8 { return Err(format!("indiv fields {}", f.len())); }
+    Ok(Indiv { fit: unhx(f[0])?, mean: unhx(f[1])?, strength_n: unhx(f[2])?, mass_g: unhx(f[3])?, floors_ok: match f[4] { "1" => true, "0" => false, o => return Err(format!("floors {o}")) },
+        cut_p05: unhx(f[5])?, sharp_p05: unhx(f[6])?, g: parse_genes_hex(f[7])? })
+}
+
+fn save_ckpt(path: &str, next_gen: usize, man: &jarambit_evidence::RunManifest, islands: &[Island], archive: &[Indiv]) {
     let mut s = String::new();
-    s.push_str("jarambit-ckpt 1\n");
+    s.push_str("jarambit-ckpt 2\n");
+    s.push_str(&format!("manifest_sha256 {}\n", man.sha256()));
+    s.push_str(&format!("manifest {}\n", man.canonical_json()));
     s.push_str(&format!("next_gen {next_gen}\n"));
     s.push_str(&format!("islands {}\n", islands.len()));
-    s.push_str(&format!("seed {}\n", cfg.seed));
-    s.push_str(&format!("migrate_every {}\n", cfg.migrate_every));
     for (i, isl) in islands.iter().enumerate() {
-        s.push_str(&format!("island {i} rng {} n {}\n", isl.rng.0, isl.pop.len()));
-        for ind in &isl.pop { s.push_str(&indiv_line(ind)); s.push('\n'); }
+        s.push_str(&format!("island {i} rng {:016x} n {}\n", isl.rng.0, isl.pop.len()));
+        for ind in &isl.pop { s.push_str(&indiv_hex(ind)); s.push('\n'); }
     }
     s.push_str(&format!("archive {}\n", archive.len()));
-    for ind in archive { s.push_str(&indiv_line(ind)); s.push('\n'); }
+    for ind in archive { s.push_str(&indiv_hex(ind)); s.push('\n'); }
+    s.push_str("end\n");
     if let Some(dir) = std::path::Path::new(path).parent() { let _ = std::fs::create_dir_all(dir); }
     let tmp = format!("{path}.tmp");
-    std::fs::write(&tmp, &s).unwrap_or_else(|e| panic!("checkpoint write {tmp}: {e}"));
+    { use std::io::Write; let mut f = std::fs::File::create(&tmp).unwrap_or_else(|e| panic!("checkpoint write {tmp}: {e}"));
+      f.write_all(s.as_bytes()).and_then(|_| f.sync_all()).unwrap_or_else(|e| panic!("checkpoint write {tmp}: {e}")); }
     std::fs::rename(&tmp, path).unwrap_or_else(|e| panic!("checkpoint rename {path}: {e}"));
 }
 
-struct Loaded { next_gen: usize, islands: Vec<Island>, archive: Vec<Indiv> }
+struct Loaded { next_gen: usize, manifest_sha: String, manifest_json: String, islands: Vec<Island>, archive: Vec<Indiv> }
+
+fn kv<'a>(l: Option<&'a str>, key: &str) -> Result<&'a str, String> {
+    let l = l.ok_or_else(|| format!("missing {key}"))?; l.strip_prefix(key).and_then(|r| r.strip_prefix(' ')).ok_or_else(|| format!("expected {key}, got {l:?}"))
+}
 
 fn load_ckpt(path: &str) -> Result<Loaded, String> {
-    let text = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
-    let mut lines = text.lines().filter(|l| !l.is_empty());
-    let magic = lines.next().ok_or("empty checkpoint")?;
-    if magic != "jarambit-ckpt 1" { return Err(format!("bad magic {magic}")); }
-    let next_gen: usize = lines.next().ok_or("next_gen")?.split_whitespace().nth(1).ok_or("next_gen")?.parse().map_err(|_| "next_gen")?;
-    let nisl: usize = lines.next().ok_or("islands")?.split_whitespace().nth(1).ok_or("islands")?.parse().map_err(|_| "islands")?;
-    let _seed = lines.next();
-    let _mig = lines.next();
+    let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
+    let mut lines = text.lines();
+    match lines.next() { Some("jarambit-ckpt 2") => {}, Some("jarambit-ckpt 1") => return Err("checkpoint format 1 is lossy (rounded decimals) and has no manifest; resume refused (use --fork to start from its best genomes via --seed-ckpt)".into()), m => return Err(format!("bad magic {m:?}")) }
+    let manifest_sha = kv(lines.next(), "manifest_sha256")?.to_string();
+    let manifest_json = kv(lines.next(), "manifest")?.to_string();
+    let next_gen: usize = kv(lines.next(), "next_gen")?.parse().map_err(|_| "next_gen")?;
+    let nisl: usize = kv(lines.next(), "islands")?.parse().map_err(|_| "islands")?;
     let mut islands = Vec::with_capacity(nisl);
-    for _ in 0..nisl {
+    for i in 0..nisl {
         let hdr = lines.next().ok_or("island header")?;
-        let p: Vec<&str> = hdr.split_whitespace().collect();
-        if p.len() != 6 || p[0] != "island" || p[2] != "rng" || p[4] != "n" { return Err(format!("island header {hdr}")); }
-        let rng = Rng(p[3].parse().map_err(|_| "rng")?);
+        let p: Vec<&str> = hdr.split(' ').collect();
+        if p.len() != 6 || p[0] != "island" || p[1] != i.to_string() || p[2] != "rng" || p[4] != "n" { return Err(format!("island header {hdr}")); }
+        let rng = Rng(u64::from_str_radix(p[3], 16).map_err(|_| "rng")?);
         let n: usize = p[5].parse().map_err(|_| "pop n")?;
         let mut pop = Vec::with_capacity(n);
-        for _ in 0..n { pop.push(parse_indiv(lines.next().ok_or("truncated population")?)?); }
+        for _ in 0..n { pop.push(parse_indiv_hex(lines.next().ok_or("truncated population")?)?); }
         islands.push(Island { rng, pop });
     }
-    let an: usize = lines.next().ok_or("archive")?.split_whitespace().nth(1).ok_or("archive n")?.parse().map_err(|_| "archive n")?;
+    let an: usize = kv(lines.next(), "archive")?.parse().map_err(|_| "archive n")?;
     let mut archive = Vec::with_capacity(an);
-    for _ in 0..an { archive.push(parse_indiv(lines.next().ok_or("truncated archive")?)?); }
-    Ok(Loaded { next_gen, islands, archive })
+    for _ in 0..an { archive.push(parse_indiv_hex(lines.next().ok_or("truncated archive")?)?); }
+    if lines.next() != Some("end") { return Err("checkpoint not terminated (torn write?)".into()); }
+    Ok(Loaded { next_gen, manifest_sha, manifest_json, islands, archive })
 }
 
-/// Highest-fitness genotype in the saved island populations.
+/// Highest-fitness genotype in the saved island populations (format 2, or the legacy lossy format 1).
 pub fn checkpoint_best(path: &str) -> Result<Genotype, String> {
-    let loaded = load_ckpt(path)?;
-    loaded.islands.iter().flat_map(|isl| isl.pop.iter())
-        .max_by(|a, b| a.fit.partial_cmp(&b.fit).unwrap_or(std::cmp::Ordering::Equal))
-        .map(|i| i.g.clone())
-        .ok_or_else(|| "empty checkpoint".into())
+    let pop: Vec<Indiv> = match load_ckpt(path) {
+        Ok(l) => l.islands.into_iter().flat_map(|i| i.pop).collect(),
+        Err(e) if e.contains("format 1") => load_ckpt_v1_pop(path)?,
+        Err(e) => return Err(e),
+    };
+    pop.iter().max_by(|a, b| a.fit.partial_cmp(&b.fit).unwrap_or(std::cmp::Ordering::Equal)).map(|i| i.g.clone()).ok_or_else(|| "empty checkpoint".into())
 }
 
-pub fn run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> (Indiv, Vec<Indiv>) {
+/// Legacy format-1 reader: populations only (for seeding / best-genome extraction, never for resume).
+fn load_ckpt_v1_pop(path: &str) -> Result<Vec<Indiv>, String> {
+    let text = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let mut lines = text.lines().filter(|l| !l.is_empty()).skip(1);
+    let _next = lines.next(); let nisl: usize = lines.next().ok_or("islands")?.split_whitespace().nth(1).ok_or("islands")?.parse().map_err(|_| "islands")?;
+    let _seed = lines.next(); let _mig = lines.next();
+    let mut out = Vec::new();
+    for _ in 0..nisl { let hdr = lines.next().ok_or("island header")?; let n: usize = hdr.split_whitespace().nth(5).ok_or("n")?.parse().map_err(|_| "n")?;
+        for _ in 0..n { out.push(parse_indiv(lines.next().ok_or("truncated population")?)?); } }
+    Ok(out)
+}
+
+/// Run the search; panics on a refused resume (see [`try_run`]).
+pub fn run(cfg: &Config, log: impl FnMut(&GenStats)) -> (Indiv, Vec<Indiv>) { try_run(cfg, log).unwrap_or_else(|e| panic!("{e}")) }
+
+/// Run the search. Resume (PR-0.29.2) is lossless and manifest-bound: `resume` with no checkpoint, a torn or
+/// legacy checkpoint, or a manifest mismatch (without `fork`) is an error, never a silent fresh start.
+pub fn try_run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> Result<(Indiv, Vec<Indiv>), String> {
     let n_islands = cfg.islands.max(1);
     let pop_n = cfg.pop.max(2);
+    let mut man = manifest(cfg);
     let mut q = Vec::new();
     let mut archive: Vec<Indiv> = Vec::new();
     let mut start = 0usize;
-    let mut islands: Vec<Island> = if cfg.resume {
-        if let Some(path) = cfg.checkpoint.as_deref().filter(|p| std::path::Path::new(p).exists()) {
-            let loaded = load_ckpt(path).unwrap_or_else(|e| panic!("resume {path}: {e}"));
-            if loaded.islands.len() != n_islands { panic!("checkpoint has {} islands, config asks for {n_islands}", loaded.islands.len()); }
-            if loaded.next_gen > start { start = loaded.next_gen; }
-            archive = loaded.archive;
-            loaded.islands
-        } else { Vec::new() }
+    let mut islands: Vec<Island> = if cfg.resume || cfg.fork {
+        let path = cfg.checkpoint.as_deref().ok_or("resume requested but no checkpoint path configured")?;
+        if !std::path::Path::new(path).exists() { return Err(format!("resume requested but checkpoint {path} does not exist")); }
+        let loaded = load_ckpt(path).map_err(|e| format!("resume {path}: {e}"))?;
+        if loaded.manifest_sha != man.sha256() {
+            if !cfg.fork { return Err(format!("resume {path}: manifest mismatch (checkpoint {} != run {}); refusing. Checkpoint manifest: {}; this run: {}. Use --fork to branch deliberately.",
+                &loaded.manifest_sha[..12], &man.sha256()[..12], loaded.manifest_json, man.canonical_json())); }
+            man = man.param("forked_from_manifest_sha256", loaded.manifest_sha.clone()).param("forked_at_gen", loaded.next_gen);
+        }
+        if loaded.islands.len() != n_islands { return Err(format!("checkpoint has {} islands, config asks for {n_islands}", loaded.islands.len())); }
+        start = loaded.next_gen;
+        archive = loaded.archive;
+        loaded.islands
     } else { Vec::new() };
     if islands.is_empty() {
         islands = (0..n_islands).map(|i| {
@@ -503,10 +563,11 @@ pub fn run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> (Indiv, Vec<Indiv>) 
             let keep = pop_n.min(both.len()).max(2);
             isl.pop = truncate(both, keep);
         }
-        if let Some(path) = &cfg.checkpoint { save_ckpt(path, gen + 1, cfg, &islands, &archive); }
+        if let Some(path) = &cfg.checkpoint { save_ckpt(path, gen + 1, &man, &islands, &archive); }
+        if cfg.stop_after == Some(gen + 1) { break; }
     }
     let best = islands.iter().flat_map(|isl| isl.pop.iter()).max_by(|a, b| a.fit.partial_cmp(&b.fit).unwrap_or(std::cmp::Ordering::Equal)).unwrap().clone();
-    (best, pareto(&archive))
+    Ok((best, pareto(&archive)))
 }
 
 #[cfg(test)]
@@ -553,6 +614,8 @@ mod tests {
         assert!(!loaded.islands[0].pop.is_empty());
         cfg.gens = 3;
         cfg.resume = true;
+        assert!(try_run(&cfg, |_| {}).unwrap_err().contains("manifest mismatch"), "changing gens must refuse a plain resume");
+        cfg.fork = true;
         let (best2, _) = run(&cfg, |_| {});
         assert!(best2.fit.is_finite());
         let _ = std::fs::remove_file(path);

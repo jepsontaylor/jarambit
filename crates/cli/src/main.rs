@@ -1,7 +1,7 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc; // per-thread heaps: glibc malloc spent ~75% in kernel at >8 MC threads
 
-use jarambit_evolve::{nominal, run, Config, Indiv};
+use jarambit_evolve::{nominal, Config, Indiv};
 use jarambit_genotype::{limits, Genotype};
 use jarambit_physics::{material, plate_capacities};
 use std::fmt::Write;
@@ -87,6 +87,7 @@ fn main() {
     cfg.migrate_every = arg("--migrate", 5);
     cfg.checkpoint = Some(format!("{out}/checkpoint.txt"));
     cfg.resume = a.iter().any(|x| x == "--resume");
+    cfg.fork = a.iter().any(|x| x == "--fork"); // PR-0.29.2: resume across a manifest change, deliberately (recorded in the checkpoint manifest)
     cfg.fem = std::env::var("JARAMBIT_FEM").ok().as_deref() == Some("1");
     cfg.fine = a.iter().any(|x| x == "--fine") || std::env::var("JARAMBIT_FINE").ok().as_deref() == Some("1");
     // --seed-ckpt PATH (repeatable): best genome of each checkpoint seeds the initial islands
@@ -108,11 +109,11 @@ fn main() {
     let hist_path = format!("{out}/history.csv");
     let q_path = format!("{out}/quarantine.csv");
     let mut rows = vec![];
-    let mut csv = if cfg.resume && std::path::Path::new(&hist_path).exists() { std::fs::read_to_string(&hist_path).unwrap() }
+    let mut csv = if (cfg.resume || cfg.fork) && std::path::Path::new(&hist_path).exists() { std::fs::read_to_string(&hist_path).unwrap() }
         else { format!("gen,best_p05_spg,pop_mean_p05,diversity,rejected_in_gen,best_strength_n,best_mass_g,best_cut_p05,best_sharp_p05,{}\n", Genotype::CSV_HEADER) };
-    let mut qcsv = if cfg.resume && std::path::Path::new(&q_path).exists() { std::fs::read_to_string(&q_path).unwrap() } else { String::from("gen,reasons\n") };
+    let mut qcsv = if (cfg.resume || cfg.fork) && std::path::Path::new(&q_path).exists() { std::fs::read_to_string(&q_path).unwrap() } else { String::from("gen,reasons\n") };
     let mut raw: Vec<(f64, f64)> = vec![];
-    let (best, front) = run(&cfg, |s| {
+    let res = jarambit_evolve::try_run(&cfg, |s| {
         let b = &s.pop[0];
         let feas: Vec<f64> = s.pop.iter().map(|i| i.fit).filter(|f| *f > -1e2).collect();
         let mean = if feas.is_empty() { f64::NAN } else { feas.iter().sum::<f64>() / feas.len() as f64 };
@@ -122,6 +123,7 @@ fn main() {
         let _ = writeln!(csv, "{},{:.5},{:.5},{:.4},{},{:.1},{:.2},{:.4},{:.4},{}", s.gen, b.fit, mean, s.diversity, s.rejected, b.strength_n, b.mass_g, b.cut_p05, b.sharp_p05, b.g.to_csv_row());
         for (_, why) in &s.quarantine { let _ = writeln!(qcsv, "{},\"{}\"", s.gen, why.replace('"', "'")); }
     });
+    let (best, front) = match res { Ok(x) => x, Err(e) => { eprintln!("evolve: {e}"); std::process::exit(2); } };
     let (p, rt, e) = nominal(&best.g);
     let hf = jarambit_redteam::holder_forces(best.g.holder.holder_wall, best.g.holder.detent_depth);
     let plate = plate_capacities(&p, material(best.g.material), 20.0, (best.g.serr_inner.depth, best.g.serr_outer.depth));

@@ -174,11 +174,14 @@ dependencies = [
 name = "jarambit-evolve"
 version = "0.1.0"
 dependencies = [
+ "jarambit-evidence",
  "jarambit-genotype",
  "jarambit-monte-carlo",
  "jarambit-phenotype",
  "jarambit-physics",
  "jarambit-redteam",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
