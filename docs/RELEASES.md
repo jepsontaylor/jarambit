@@ -4,6 +4,7 @@ Policy: major wave N ⇒ `0.N.0`, git tag `v0.N.0`, entry here, WHITEPAPER heade
 
 ## Unreleased (v0.28 milestone: truthful status + typed metrics — docs/v1/jarambit_v1_roadmap.json)
 - PR-0.28.1: G1 completeness contract. `metrics/global_metric.py` no longer maps missing/null/NaN/inf/bool/malformed/out-of-range inputs to 0: the record is `INCOMPLETE`, `global_G` returns `G=None`, `title_tag` prints `G INCOMPLETE` (never raises). `provisional` (G*) is now only "tip from a screen"; completeness is `terms['status']`. Arithmetic for complete records is unchanged (42 wave27 index records equal the v0.27.0 formula to 1e-9). Tests: `metrics/tests/` (wired into version-check CI). v1 plan docs added under `docs/v1/`.
+- PR-0.28.2: Requirement sets. `requirements/RS-karambit-v1.toml` defines `screen` / `promotion` / `search` groups (constants pinned against `crates/crescent/src/fem.rs` by a Rust test). `ops/ci/rs_verdicts.py` generates scoped verdicts; `ops/ci/check_claims.py` (CI) rejects unscoped PASS claims, stale RS verdict blocks and a mis-stated default evaluator. Provisional design now reads: screen PASS · promotion FAIL (mass 84.80 g >= 80 g cap; outside 74-77 g band; seq 0.959 < 1.2). Doc fix: published G1 0.9805 → 0.9804 (recomputes to 0.98042).
 - Policy note: the v0.28.0 tag is now cut at the close of the v0.28 roadmap milestone (evidence/reporting), superseding the wave-gated rule below.
 
 ## v0.27.0 — 2026-10-12 (tagged; wave27 major)

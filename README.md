@@ -5,12 +5,18 @@
 ### Intelligence-designed titanium utility karambits — evolved, FEM-verified, Monte-Carlo-robust
 
 [![version](https://img.shields.io/badge/version-v0.27.0-ff6f00?style=for-the-badge)](https://github.com/jepsontaylor/jarambit/releases/tag/v0.27.0)
-[![G1](https://img.shields.io/badge/G1-0.9805-7b1fa2?style=for-the-badge)](docs/GLOBAL_METRIC.md)
+[![G1](https://img.shields.io/badge/G1-0.9804-7b1fa2?style=for-the-badge)](docs/GLOBAL_METRIC.md)
 [![mass](https://img.shields.io/badge/mass-84.80%20g-00897b?style=for-the-badge)](docs/PROVISIONAL.md)
 [![tip×SPG](https://img.shields.io/badge/tip%C3%97SPG-6.362-1565c0?style=for-the-badge)](docs/WHITEPAPER.md)
 [![status](https://img.shields.io/badge/status-engineering%20provisional%20%C2%B7%20not%20promoted-c62828?style=for-the-badge)](docs/PROVISIONAL.md)
 
-**Provisional `g3_tip+00_t60_tt3` — G1 0.9805 · 84.80 g · tip SF 1.534 × SPG 4.147 = 6.362 · ring 25.46 mm · Ti-6Al-4V 6.0 mm · all hard gates PASS**
+**Provisional `g3_tip+00_t60_tt3` — G1 0.9804 · 84.80 g · tip SF 1.534 × SPG 4.147 = 6.362 · ring 25.46 mm · Ti-6Al-4V 6.0 mm**
+
+<!-- RS:BEGIN docs/wave27_diversity/plates/wave27_D1_index.json g3_tip+00_t60_tt3_D1 -->
+RS-karambit-v1: screen PASS · promotion FAIL (mass 84.80 g >= 80 g cap; mass not in 74-77 g band; seq 0.959 < 1.2) · human aesthetic sign-off pending · not promoted
+<!-- RS:END -->
+
+Verdicts are scoped to a requirement set (`requirements/RS-karambit-v1.toml`): *screen* = geometry + aesthetic floor + 828 MPa joint floors + twist + solid tip; *promotion* adds strict hunter lateral, seq ≥ 1.2, mass 74–77 g and < 80 g.
 
 📄 [White paper](docs/WHITEPAPER.md) · ⚖️ [Patent draft (not filed)](docs/PATENT_DRAFT.md) · 📦 [Release v0.27.0](https://github.com/jepsontaylor/jarambit/releases/tag/v0.27.0) · 🗺️ [Technology map](TECHNOLOGY_MAP.md)
 
@@ -26,11 +32,11 @@
 
 | | |
 |---|---|
-| 🧬 **Genotype** | 40 outline control points + ~100 feature genes (stock/tip law, rails, ring channels), red-team validators reject — never penalise |
+| 🧬 **Genotype** | 40 outline control points + ~100 feature genes (stock/tip law, rails, ring channels), red-team validators reject; during search, infeasible designs are ranked below feasible ones with graded negative scores (never eligible for promotion) |
 | 🧊 **Phenotype** | outline + thickness field → watertight STL + `MANIFOLD_SOLID_BREP` STEP |
 | 🔥 **FEM** | DKT plate screen (828 MPa joint, thin+hot) + 92k-tet solid tip submodel |
 | 🎲 **Monte Carlo** | tolerances × −10…100 °C × cut media, p05 strength-per-gram |
-| 🧭 **Evolution** | NSGA-II islands, novelty, graft arms; one locked GLOBAL metric **G1** across waves |
+| 🧭 **Evolution** | two engines: legacy NSGA-II islands (`crates/evolve`) and the crescent island GA + novelty + MAP-Elites archive (`crates/crescent/src/qd.rs`, used for all recent waves); one locked GLOBAL metric **G1** across waves |
 
 > No design is promoted to manufacturing. 828 MPa is a provisional screening yield; seq ≥ 1.2 is still soft; human aesthetic sign-off pending.
 
@@ -47,7 +53,7 @@ Invariants (red-team enforced, see docs/WHITEPAPER.md §III-A): blade **≥ 3.37
 ## Crates
 | crate | role |
 |---|---|
-| `genotype` | 20-gene vector + titanium grade, bounds, mutate/crossover, deterministic RNG |
+| `genotype` | legacy 20-gene vector (the crescent lane uses 128 genes, `crates/crescent/src/genome.rs`) + titanium grade, bounds, mutate/crossover, deterministic RNG |
 | `phenotype` | outline and ring → watertight STL and faceted `MANIFOLD_SOLID_BREP` STEP |
 | `physics` | beam surrogate for Monte Carlo; Kirchhoff plate (DKT + membrane) as a separate check |
 | `monte_carlo` | exact-n tolerance cloud, thread-stable seeds, cut-media mix, p05 |
@@ -64,7 +70,7 @@ cargo test --release
 ```
 `--threads` is capped by `JARAMBIT_MAX_THREADS` (default 48). `--pop` is per island. `--resume` continues from `{out}/checkpoint.txt`.
 
-Outputs: `history.csv`, `pareto.csv/svg`, `diversity.svg`, `fitness.svg`, `quarantine.csv`, `best.stl/step/svg`, `best_report.md`, `results.md`, `checkpoint.txt`. The report's strength is the beam surrogate; `plate FEM` is one 20 °C solve of the winner. The search uses that plate level by default (`JARAMBIT_FEM=0` keeps the uncalibrated beam surrogate). The sample loop stays the beam model and only supplies the knockdown. Do not `--resume` a surrogate checkpoint with plate fitness, or the reverse.
+Outputs: `history.csv`, `pareto.csv/svg`, `diversity.svg`, `fitness.svg`, `quarantine.csv`, `best.stl/step/svg`, `best_report.md`, `results.md`, `checkpoint.txt`. The report's strength is the beam surrogate; `plate FEM` is one 20 °C solve of the winner. By default the search uses the uncalibrated beam surrogate; set `JARAMBIT_FEM=1` to search with that plate level (`--fine` / `JARAMBIT_FINE=1` selects the fine plate). The sample loop stays the beam model and only supplies the knockdown. Do not `--resume` a surrogate checkpoint with plate fitness, or the reverse.
 
 A 60-generation multi-host search (`mh1`, 20 island pairs, 10k or 50k samples) was started on 2026-10-11. See `briefs/MULTIHOST_2026-10-11.md` and `COORD.md` before launching another large run on the same hosts.
 

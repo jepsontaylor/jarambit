@@ -53,6 +53,8 @@ pub const SEQ_TARGET: f64 = 1.2;
 /// OWNER LOCK (Jepson, 2026-10-11 14:52 MT): twist floor = BODY torsion AND TIP SUBMODEL, both at 1.82 N*m chord
 /// torsion (joint thin+hot, 828, St-Venant 3D), SF >= 1 each. Tip-only SF is always reported alongside (not the gate).
 pub fn twist_floor_ok(body_sf: f64, tipzone_sf_strict: f64) -> bool { body_sf >= 1.0 && tipzone_sf_strict >= 1.0 }
+/// Requirement set these constants implement (requirements/RS-karambit-v1.toml). Every published verdict names it.
+pub const REQUIREMENT_SET_ID: &str = "RS-karambit-v1";
 /// OWNER LOCK promote mass band (g) and hard cap.
 pub const MASS_BAND: (f64, f64) = (74.0, 77.0); pub const MASS_CAP_HARD: f64 = 80.0;
 /// OWNER LOCK promote-eligibility (still needs human aesthetic sign-off; never auto-promoted):
@@ -245,4 +247,31 @@ fn seg_on_ring(t6: &fine::T6, i: usize, ring_node: &[bool]) -> bool {
     for t in &t6.tris { for (a, b, m) in [(t[0], t[1], t[3]), (t[1], t[2], t[4]), (t[2], t[0], t[5])] {
         if m == i { return ring_node[a] && ring_node[b]; } } }
     false
+}
+
+#[cfg(test)]
+mod rs_karambit_v1 {
+    use super::*;
+    const RS: &str = include_str!("../../../requirements/RS-karambit-v1.toml");
+    fn val(key: &str) -> String {
+        RS.lines().map(|l| l.split('#').next().unwrap().trim()).find(|l| l.starts_with(&format!("{key} ")) || l.starts_with(&format!("{key}=")))
+            .unwrap_or_else(|| panic!("{key} missing in RS toml")).split_once('=').unwrap().1.trim().to_string()
+    }
+    fn num(key: &str) -> f64 { val(key).parse().unwrap_or_else(|_| panic!("{key} not a number")) }
+    fn pair(key: &str) -> (f64, f64) {
+        let v = val(key); let v = v.trim_matches(|c| c == '[' || c == ']');
+        let mut it = v.split(',').map(|x| x.trim().parse::<f64>().unwrap()); (it.next().unwrap(), it.next().unwrap())
+    }
+    #[test]
+    fn rs_karambit_v1_matches_code() {
+        assert_eq!(val("id"), format!("\"{REQUIREMENT_SET_ID}\""));
+        assert_eq!(num("seq_target"), SEQ_TARGET);
+        assert_eq!(num("twist_floor_nmm"), TWIST_FLOOR_NMM);
+        assert_eq!(num("mass_cap_hard_g"), MASS_CAP_HARD);
+        assert_eq!(pair("mass_band_g"), MASS_BAND);
+        assert_eq!(num("hiker_lateral_n"), floors::HIKER_LATERAL_N);
+        assert_eq!(num("hunter_lateral_n"), floors::HUNTER_LATERAL_N);
+        assert_eq!(num("ring_pull_n"), floors::RING_PULL_N);
+        assert!((num("blade_limit_mm") - jarambit_genotype::limits::BLADE_LIMIT_MM).abs() < 1e-9);
+    }
 }

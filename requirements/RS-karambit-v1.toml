@@ -1,0 +1,41 @@
+# RS-karambit-v1 — requirement set as-implemented at v0.27.0 (727b28b). Author: Jepson Taylor.
+# Every PASS/FAIL published by jarambit must name a requirement set id and a group from this file.
+# Values here are checked against the Rust constants by crates/crescent (test rs_karambit_v1_matches_code).
+# Groups:
+#   screen    = the W20+ "hard screen" a plate reports as w20_hard_pass (geometry + aesthetic floor + 828 joint floors
+#               + twist floor + solid tip). It does NOT include mass or the failure sequence.
+#   promotion = owner-locked promote-eligibility (crates/crescent/src/fem.rs::promote_eligible); still needs human
+#               aesthetic sign-off; nothing is ever auto-promoted.
+#   search    = crescent qd::Rec::legal() with the P1 layer on (seq is HARD here, unlike the old "soft" wording).
+
+id = "RS-karambit-v1"
+version = 1
+status = "as-implemented v0.27.0"
+
+[constants]
+ring_id_min_mm = 25.4
+ring_id_tol_mm = 0.5
+blade_limit_mm = 85.725          # 3.375 in on tip-to-heel, horizontal reach, sharpened arc
+sharpened_edge_max_in = 4.0
+grip_mm = [60.0, 80.0]
+hiker_lateral_n = 180.0
+hunter_lateral_n = 260.0
+ring_pull_n = 1500.0
+twist_floor_nmm = 1820.0
+seq_target = 1.2
+mass_band_g = [74.0, 77.0]
+mass_cap_hard_g = 80.0
+solid_tip_sf_min = 1.0
+screening_yield_mpa = 828.0
+
+[groups.screen]
+criteria = ["aesthetic_floor_C6", "geometric_gates", "blade_three_measures", "floors_828_joint", "twist_floor_body_and_tipsub", "solid_tip_sf"]
+record_field = "w20_hard_pass"
+
+[groups.promotion]
+criteria = ["screen", "strict_hunter_lateral", "seq_ratio", "twist_floor_body_and_tipsub", "mass_band", "mass_cap"]
+record_field = "promote_eligible"
+
+[groups.search]
+criteria = ["geometric_gates", "floors_828_joint", "seq_ratio (P1)", "twist_floor_body_and_tipsub (P1)"]
+note = "mass cap is a ranking target in search, not a legality condition"
