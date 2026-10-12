@@ -7,7 +7,7 @@ wave{N}_paper_data.csv (one row per D1-screened design) and wave{N}_paper_data.j
 Rules (CURRENT D1, owner Jepson Taylor): Ti-6Al-4V screening yield 828 MPa, JOINT thin+hot robust factor;
 hiker 180 / hunter 260 (aim 286) / ring 1500 N at certification min(0.25, 0.125 mm^2) AND hunter at strict 0.0625 mm^2;
 chord torsion 1.82 N*m BOTH modes (tip-only AND body+tip = min(body >15 mm, tip-submodel strict));
-hand/blade yield-onset ratio >= 1.2; mass band 74-77 g, cap < 80 g; blade >= 3.375 in on all three;
+hand/blade yield-onset ratio >= 1.2; mass SOFT (G penalty; target < 80 g, stretch < 70 g — not a gate, PR-0.28.3b); blade >= 3.375 in on all three;
 C.6 aesthetic floor (automated) + HUMAN aesthetic sign-off (never auto-PASS). No promotion from this tool.
 
 Badges are three-state. A value that is missing is NOT VERIFIED (grey) and can never render green.
@@ -64,6 +64,15 @@ def gate(val, thr, ge=True):
     v = fnum(val)
     if v is None: return NV
     return PASS if (v >= thr if ge else v < thr) else FAIL
+
+MASS_TARGET_G, MASS_STRETCH_G = 80.0, 70.0
+
+
+def mass_soft(m):
+    """Soft mass status (not a gate): 'stretch met' / 'target met' / 'over target (G penalty)' / NOT VERIFIED."""
+    if m is None: return NV
+    return 'stretch met (<70 g)' if m < MASS_STRETCH_G else 'target met (<80 g)' if m < MASS_TARGET_G else 'over 80 g target (G penalty)'
+
 
 def all_of(*bs):
     if any(b == FAIL for b in bs): return FAIL
@@ -223,8 +232,8 @@ def build(r, pre):
     bts = [gate(d['twist_body_sf'], 1.0), gate(d['twist_tipsub_sf_strict'], 1.0)]
     G['twist_body+tip_SF>=1 @1.82'] = all_of(*bts)
     G['hand/blade_ratio>=1.2'] = gate(d['hand_blade_ratio'], 1.2)
-    G['mass_band_74-77'] = NV if d['mass_g'] is None else (PASS if 74.0 <= d['mass_g'] <= 77.0 else FAIL)
-    G['mass_cap_<80'] = gate(d['mass_g'], 80.0, ge=False)
+    # mass is a SOFT G penalty (PR-0.28.3b), never part of OVERALL: target < 80 g, stretch < 70 g
+    d['mass_soft'] = mass_soft(d['mass_g'])
     G['blade>=3.375in_all_three'] = gate(d['blade_min_mm'], LEGAL_BLADE)
     G['C.6_aesthetic_floor (automated)'] = NV if d['aes_floor_pass'] is None else (PASS if d['aes_floor_pass'] and not d['aes_fails'] else FAIL)
     G['hard_gates/redteam'] = NV if d['rejects'] is None else (PASS if not d['rejects'] else FAIL)
@@ -413,7 +422,7 @@ def main():
                   ('TWIST BODY+TIP @1.82', G['twist_body+tip_SF>=1 @1.82'], f"SF {fmt(hd['twist_body_plus_tip_sf'])}"),
                   ('RING PULL ≥1500', G['ring_pull_1500 (joint)'], f"{fmt(hd['ring_joint_N'],'{:.0f}')} N"),
                   ('HAND/BLADE ≥1.2', G['hand/blade_ratio>=1.2'], f"{fmt(hd['hand_blade_ratio'])}"),
-                  ('MASS 74–77 / <80', all_of(G['mass_band_74-77'], G['mass_cap_<80']), f"{fmt(hd['mass_g'],'{:.2f}')} g"),
+                  ('MASS (SOFT, G penalty)', 'INFO', f"{fmt(hd['mass_g'],'{:.2f}')} g · {hd['mass_soft']}"),
                   ('BLADE ≥3.375 in ×3', G['blade>=3.375in_all_three'], f"min {fmt(hd['blade_min_mm'] and hd['blade_min_mm']/IN,'{:.3f}')} in"),
                   ('C.6 AESTHETIC (auto)', G['C.6_aesthetic_floor (automated)'], f"A {fmt(hd['aes_A'],'{:.3f}')} H {fmt(hd['aes_H_mm'])}"),
                   ('AESTHETIC SIGN-OFF', G['aesthetic_signoff (human)'], 'Jepson required')]
@@ -511,7 +520,7 @@ def main():
         L.append(f"| Hand/blade yield-onset ratio | {fmt(hd['hand_blade_ratio'],'{:.3f}')} ({hd['hand_blade_case'] or 'NOT VERIFIED'}) | ≥1.2 | {B(G['hand/blade_ratio>=1.2'])} |")
         L.append(f"| Aesthetic A / H (C.6 floor, automated) | A {fmt(hd['aes_A'],'{:.3f}')} / H {fmt(hd['aes_H_mm'],'{:.3f}')} mm / EMD {fmt(hd['aes_emd'],'{:.4f}')} | C.6 floor | {B(G['C.6_aesthetic_floor (automated)'])} |")
         L.append(f"| Aesthetic sign-off (human) | — | Jepson | {B(G['aesthetic_signoff (human)'])} |")
-        L.append(f"| Mass bare / carry | {fmt(hd['mass_g'],'{:.2f}')} g / {fmt(hd['mass_carry_g'])} | band 74–77 · cap <80 | band {B(G['mass_band_74-77'])} · cap {B(G['mass_cap_<80'])} |")
+        L.append(f"| Mass bare / carry | {fmt(hd['mass_g'],'{:.2f}')} g / {fmt(hd['mass_carry_g'])} | soft: target <80 · stretch <70 (G penalty, not a gate) | {hd['mass_soft']} |")
         L.append(f"| Blade all-three (tip-heel / reach / arc) | {fmt(hd['tip_to_heel_mm'] and hd['tip_to_heel_mm']/IN,'{:.3f}')} / {fmt(hd['horizontal_reach_mm'] and hd['horizontal_reach_mm']/IN,'{:.3f}')} / {fmt(hd['sharpened_arc_mm'] and hd['sharpened_arc_mm']/IN,'{:.3f}')} in | ≥3.375 in | {B(G['blade>=3.375in_all_three'])} |")
         L.append(f"| Hard gates / red-team | rejects {hd['rejects'] if hd['rejects'] is not None else 'NOT VERIFIED'} | none | {B(G['hard_gates/redteam'])} |")
         L.append(f"| Stock / joint t / fitness / SPG | {fmt(hd['t_stock_mm'],'{:.1f}')} mm / {fmt(hd['t_joint_mm'],'{:.2f}')} mm / {fmt(hd['fit'],'{:.4f}')} / {fmt(hd['spg'],'{:.4f}')} N/g | — | info |\n")
@@ -554,9 +563,9 @@ def main():
     else:
         L.append("NOT VERIFIED (no machining ledger in the source)\n")
     L.append("## All D1-screened designs in this wave\n")
-    L.append("| design | mass g | t | joint lat cert/strict N | tip-only twist | body+tip twist | ring N | hand/blade | band 74–77 | OVERALL |\n|---|---|---|---|---|---|---|---|---|---|")
+    L.append("| design | mass g | t | joint lat cert/strict N | tip-only twist | body+tip twist | ring N | hand/blade | mass (soft) | OVERALL |\n|---|---|---|---|---|---|---|---|---|---|")
     for d in designs:
-        L.append(f"| {d['design']}{' ★' if d is hd else ''} | {fmt(d['mass_g'],'{:.2f}')} | {fmt(d['t_stock_mm'],'{:.1f}')} | {fmt(d['joint_lat_cert'],'{:.1f}')} / {fmt(d['joint_lat_strict'],'{:.1f}')} | {fmt(d['twist_tip_only_sf'],'{:.2f}')} | {fmt(d['twist_body_plus_tip_sf'],'{:.2f}')} | {fmt(d['ring_joint_N'],'{:.0f}')} | {fmt(d['hand_blade_ratio'],'{:.2f}')} | {d['gates']['mass_band_74-77']} | {B(d['overall'])} |")
+        L.append(f"| {d['design']}{' ★' if d is hd else ''} | {fmt(d['mass_g'],'{:.2f}')} | {fmt(d['t_stock_mm'],'{:.1f}')} | {fmt(d['joint_lat_cert'],'{:.1f}')} / {fmt(d['joint_lat_strict'],'{:.1f}')} | {fmt(d['twist_tip_only_sf'],'{:.2f}')} | {fmt(d['twist_body_plus_tip_sf'],'{:.2f}')} | {fmt(d['ring_joint_N'],'{:.0f}')} | {fmt(d['hand_blade_ratio'],'{:.2f}')} | {d['mass_soft']} | {B(d['overall'])} |")
     if pre:
         unscreened = sorted(set(pre) - {d['design'] for d in designs})
         if unscreened:
@@ -574,7 +583,7 @@ def main():
     L.append(f"- fields NOT VERIFIED in at least one design row of this wave's CSV: {', '.join(pack['not_verified_fields']) or 'none'}")
     if hd: L.append(f"- headline fields NOT VERIFIED: {', '.join(k for k, v in next(r for r in rows if r['headline'] is True).items() if v == NV) or 'none'}")
     L.append(f"- timestamps: generated {gen_at}; headline source written {hd['source_mtime'] if hd else 'NOT VERIFIED'}\n")
-    L.append("## Gates context\nJoint thin+hot 828 MPa; lateral ≥260 (aim 286); mass 74–77 g, cap <80; C.6 aesthetic; blade ≥3.375 in all three; hand/blade ≥1.2; BOTH twist modes @1.82 N·m. **No promotion.** Aesthetic sign-off still required.\n")
+    L.append("## Gates context\nJoint thin+hot 828 MPa; lateral ≥260 (aim 286); mass SOFT (G penalty; target <80 g, stretch <70 g); C.6 aesthetic; blade ≥3.375 in all three; hand/blade ≥1.2; BOTH twist modes @1.82 N·m. **No promotion.** Aesthetic sign-off still required.\n")
     open(os.path.join(a.out, f"{wave}_REPORT.md"), 'w').write('\n'.join(L) + '\n')
     for dst in a.copy_to:
         os.makedirs(dst, exist_ok=True)

@@ -3,6 +3,7 @@
 Policy: major wave N ⇒ `0.N.0`, git tag `v0.N.0`, entry here, WHITEPAPER header bump. Sub-experiments (Wave N.1, N.2 …) ⇒ `docs/WAVE_LOG.md` only (no bump, no tag). `-dev` while a wave is flying; the tag is cut only when that wave's pack (plates + solids) lands.
 
 ## Unreleased
+- PR-0.30.0a: `ops/wave_reports/make_wave_report.py` no longer gates on mass (74–77 g band / < 80 g cap removed from OVERALL); mass is reported as a SOFT status (target < 80 g, stretch < 70 g, G penalty), matching PR-0.28.3b. Test: `ops/ci/tests/test_wave_report_mass_soft.py`.
 
 ## v0.29.0 — 2026-10-12 (v0.29 milestone: evidence layer + honest logs — docs/v1/jarambit_v1_roadmap.json)
 - PR-0.29.1: new crate `jarambit-evidence`: `RunManifest` (canonical-JSON SHA-256), `Obs<T>` (value / not_evaluated / failed, never a silent default), scoped `Verdict`, `Event` enum, and an append-only log (`*.jevl`: one zstd frame per generation with length + FNV-1a header, fsync per generation). Wired into crescent `qd::run` / `run_islands` (new `run_with` / `run_islands_with` take an evaluator and a sink): every record carries `parents`, `op`, `op_version`; elites, migrations and per-generation counters are logged. `crescent-smoke` / `crescent-evolve` write `{out}/evidence.jevl`; `jarambit evidence-cat --log <path>` dumps it. Tests: 64 x 40 fixture = 2464 fresh evaluations / 2624 appearances; island lineage + migration; 100 random truncations and 100 real kill -9 trials all leave a valid prefix.
