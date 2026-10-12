@@ -1,0 +1,59 @@
+{
+ "design": "g3_tip+00_t58_tt3",
+ "levels": [
+  {
+   "NSUB": 0,
+   "NL": 2,
+   "n_dof": 59715,
+   "ksp_its": 61,
+   "SF_nodal_max": 1.315,
+   "SF_nodal_avg": 1.5483,
+   "vm_nodal_max_MPa": 554.61,
+   "vm_nodal_avg_MPa": 471.05,
+   "sallow_MPa": 729.32
+  },
+  {
+   "NSUB": 1,
+   "NL": 4,
+   "n_dof": 422955,
+   "ksp_its": 68,
+   "SF_nodal_max": 1.5346,
+   "SF_nodal_avg": 1.6471,
+   "vm_nodal_max_MPa": 475.26,
+   "vm_nodal_avg_MPa": 442.8,
+   "sallow_MPa": 729.32
+  },
+  {
+   "NSUB": 2,
+   "NL": 8,
+   "n_dof": 3169395,
+   "ksp_its": 74,
+   "SF_nodal_max": 1.5984,
+   "SF_nodal_avg": 1.6191,
+   "vm_nodal_max_MPa": 456.28,
+   "vm_nodal_avg_MPa": 450.46,
+   "sallow_MPa": 729.32
+  }
+ ],
+ "vm_nodal_max_MPa": {
+  "fine": 456.28,
+  "p": 2.063750230701434,
+  "f_ext": 450.3127911214179,
+  "gci_fine": 0.01634744257523365,
+  "monotone": true,
+  "band_MPa": 7.4590110982276085
+ },
+ "vm_nodal_avg_MPa": {
+  "fine": 450.46,
+  "p": null,
+  "f_ext": null,
+  "gci_fine": 0.06376814811525969,
+  "monotone": false,
+  "band_MPa": 28.724999999999877
+ },
+ "SF_nodal_max": {
+  "fine": 1.5984,
+  "lo": 1.5727,
+  "hi": 1.625
+ }
+}

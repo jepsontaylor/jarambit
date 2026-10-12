@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Solve the exact tip submodel of tip_solid.py (DUMP_MESH npz) with the dolfinx/PETSc-GAMG reference solver and compare
 the tip SF metrics (PR-0.30.2). Same geometry, same P2 field, same clamp and point loads, same vertex von Mises recovery, so the
-two solvers must agree to within 2 %. usage (container): cross_check.py dump.npz skfem_solid.json"""
+two solvers must agree to within 2 %. usage (container): cross_check.py dump.npz [skfem_solid.json | -]"""
 import json, sys
 import numpy as np
 from mpi4py import MPI
@@ -13,7 +13,7 @@ from scipy.spatial import cKDTree
 sys.path.insert(0, __file__.rsplit('/', 1)[0])
 import solve_dolfinx as S
 
-d = np.load(sys.argv[1]); ref = json.load(open(sys.argv[2]))['solid']
+d = np.load(sys.argv[1]); ref = json.load(open(sys.argv[2]))['solid'] if len(sys.argv) > 2 and sys.argv[2] != '-' else None
 pts, tets = d['pts'], d['tets'].astype(np.int64); E, nu, sallow = float(d['E']), float(d['nu']), float(d['sallow'])
 cel = basix.ufl.element("Lagrange", "tetrahedron", 1, shape=(3,))
 msh = dmesh.create_mesh(MPI.COMM_WORLD, tets, pts, ufl.Mesh(cel))
@@ -49,6 +49,8 @@ dv = np.linalg.norm(X[:, :2] - d['tipo'], axis=1); dcut = cKDTree(d['cutxy']).qu
 z = (dv >= 4) & (dv < 15) & (dcut > 3.0)
 out = dict(n_dof=V.dofmap.index_map.size_global * 3, ksp_its=ksp.getIterationNumber(),
            SF_nodal_max=round(sallow / mx[z].max(), 4), SF_nodal_avg=round(sallow / avg[z].max(), 4),
-           ref_SF_nodal_max=ref['SF_solid_nodal_max'], ref_SF_nodal_avg=ref['SF_solid_nodal_avg'], ref_n_dof=ref['n_dof'])
+           vm_nodal_max_MPa=round(float(mx[z].max()), 2), vm_nodal_avg_MPa=round(float(avg[z].max()), 2), sallow_MPa=round(sallow, 2))
+if ref is None: print(json.dumps(out, indent=1)); sys.exit(0)
+out.update(ref_SF_nodal_max=ref['SF_solid_nodal_max'], ref_SF_nodal_avg=ref['SF_solid_nodal_avg'], ref_n_dof=ref['n_dof'])
 out['rel_err_nodal_max'] = abs(out['SF_nodal_max'] / out['ref_SF_nodal_max'] - 1); out['rel_err_nodal_avg'] = abs(out['SF_nodal_avg'] / out['ref_SF_nodal_avg'] - 1)
 print(json.dumps(out, indent=1)); sys.exit(0 if max(out['rel_err_nodal_max'], out['rel_err_nodal_avg']) <= 0.02 else 1)

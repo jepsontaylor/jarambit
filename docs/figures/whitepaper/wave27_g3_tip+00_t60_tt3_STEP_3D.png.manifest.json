@@ -1,10 +1,10 @@
 {
  "extra": {
-  "caption": "jarambit v0.29.0 \u2014 g3_tip+00_t60_tt3_D1 (faceted STL preview (STEP not validated))\nG1 0.9804 \u00b7 tip\u00d7SPG 6.361 \u00b7 84.80 g",
+  "caption": "jarambit v0.30.0 \u2014 g3_tip+00_t60_tt3_D1 (faceted STL preview (STEP not validated))\nG1 0.9804 \u00b7 tip\u00d7SPG 6.361 \u00b7 84.80 g",
   "label": "g3_tip+00_t60_tt3_D1"
  },
  "figure": "docs/figures/whitepaper/wave27_g3_tip+00_t60_tt3_STEP_3D.png",
- "figure_sha256": "49eeaed25c7bf1590e857c1f6473c4d519b05d9534616d386608f87279225895",
+ "figure_sha256": "efe1b32b3228e25f2bd208e3489b2f6907fd3a61c1d3e005a8d331b2cb456eff",
  "inputs": {
   "docs/wave27_diversity/plates/wave27_D1_index.json": "5a7258526e80410bad0ae0580b5f31c28982a780fc3c7b4a18a66dc39b96dcf2",
   "evidence/wave27/g3_tip+00_t60_tt3.stl": "04404820cf8385f5e34a42ef9d39a79aecda8eb88895c78aa21f4e3a92fe28c5"

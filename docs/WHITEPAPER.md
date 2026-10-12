@@ -2,7 +2,7 @@
 
 **Jepson Taylor**
 
-**Version 0.29.0 — 2026-10-12** (living document; version from `docs/VERSION`, checked by CI `ops/ci/version_check.py`). Frozen companion: `docs/WHITEPAPER_g3_neckrail.md` (v0.1.0-g3neckrail, branch `release/v0.1.0`). Target: IEEE-style, 6–10 pp; completeness over page count. Wave27 pack landed (tag `v0.27.0`); engineering provisional is **g3_tip+00_t60_tt3** (G1 0.9804, tip×SPG 6.362 @ 84.80 g). Wave26 plates remain a placeholder. **No design is promoted** (g3_neckrail not promoted; 828 MPa screening yield provisional; human aesthetic sign-off pending).
+**Version 0.30.0 — 2026-10-12** (living document; version from `docs/VERSION`, checked by CI `ops/ci/version_check.py`). Frozen companion: `docs/WHITEPAPER_g3_neckrail.md` (v0.1.0-g3neckrail, branch `release/v0.1.0`). Target: IEEE-style, 6–10 pp; completeness over page count. Wave27 pack landed (tag `v0.27.0`); engineering provisional is **g3_tip+00_t60_tt3** (G1 0.9804, tip×SPG 6.362 @ 84.80 g). Wave26 plates remain a placeholder. **No design is promoted** (g3_neckrail not promoted; 828 MPa screening yield provisional; human aesthetic sign-off pending).
 
 **Abstract** — *jarambit* is a Rust-native pipeline that evolves fixed-blade titanium hiking/utility karambits (SWITCHBACK class) under hard manufacturability and safety constraints, verified by a plate FEM screen plus a solid tip submodel, made robust by Monte Carlo over tolerances, temperature (−10…100 °C) and cut media, and ranked across waves by a single GLOBAL metric **G** that combines solid-tip safety factor, strength-per-gram, aesthetics, mass and failure sequence. Hard limits are rejections, never penalties; G never overrides a gate.
 
