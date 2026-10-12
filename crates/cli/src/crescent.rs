@@ -249,7 +249,7 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
         // D1 P1: certified PASS also needs the failure-sequence proxy >= 1.2 at certification (hard)
         let seq_ok = !r.g.p1() || cf.seq_ratio >= fem::SEQ_TARGET;
         let tz16 = f16.as_ref().map_or(f64::NAN, |f| f.twist_tipzone_sf);
-        let prom = fem::promote_eligible(r.aes.pass, r.rejects.is_empty(), cf.floors_ok, s_lat, cf.seq_ratio, cf.twist_body_sf, tz16, r.mass_g);
+        let prom = fem::promote_eligible(r.aes.pass, r.rejects.is_empty(), cf.floors_ok, s_lat, cf.seq_ratio, cf.twist_body_sf, tz16);
         if s_ok && cf.floors_ok && seq_ok { strict_ok_ids.push(r.id); }
         strict_info.insert(r.id, serde_json::json!({"strict_lat_rob_0p0625": record::fin(s_lat, 1), "strict_ok": s_ok, "seq_ok": seq_ok, "twist_tipzone_sf_strict": record::fin(tz16, 3),
             "pass_all_828_joint_strict_seq": s_ok && cf.floors_ok && seq_ok, "twist_floor_ok": fem::twist_floor_ok(cf.twist_body_sf, tz16), "promote_eligible": prom}).to_string());
@@ -434,7 +434,7 @@ pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
         let tw_pass = c.twist_sf >= 1.0; let seq_pass = c.seq_ratio >= fem::SEQ_TARGET; let aim = c.lat_rob >= 286.0 && s_j >= 286.0;
         let pass_all = pass && seq_pass && gates_ok && r.aes.pass;
         let tw_ok = fem::twist_floor_ok(c.twist_body_sf, tz); let band = r.mass_g >= fem::MASS_BAND.0 && r.mass_g <= fem::MASS_BAND.1;
-        let prom = fem::promote_eligible(r.aes.pass, gates_ok, c.floors_ok, s_j, c.seq_ratio, c.twist_body_sf, tz, r.mass_g);
+        let prom = fem::promote_eligible(r.aes.pass, gates_ok, c.floors_ok, s_j, c.seq_ratio, c.twist_body_sf, tz);
         let _ = writeln!(csv, "{name},{:.2},{:.1},{:.3},{},{},{:.1},{:.1},{:.3},{:.3},{:.0},{:.3},{:.1},{:.3},{},{:.1},{:.3},{:.0},{:.3},{:.2},{:.2},{:.0},{:.3},{},{:.1},{:.0},{:.3},{:.3},{:.3},{:.0},{:.0},{:.3},{:.3},{},{},{},{},{},{},{:.3},{}",
             r.mass_g, r.t, tj, r.aes.pass, gates_ok, c.lat20, c.lat_rob, c.sf_hiker, c.sf_hunter, c.ring_rob, c.sf_ring, s_j, s_j / fh, pass, old, old / fh,
             c.twist20_nmm, c.twist_kc, c.twist_b_mm, c.twist_t_mm, c.twist_joint_nmm, c.twist_sf, tw_pass, c.twist_tipdist, c.twist_body_joint_nmm, c.twist_body_kc, c.twist_body_sf, tz, c.twist_hand_joint_nmm, c.couple20_nmm, old_tw, c.seq_ratio, c.seq_case, seq_pass, aim, pass_all, tw_ok, band, blade_min_in(r), prom);
@@ -454,7 +454,7 @@ pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
             }
         }
     }
-    let hdr = format!("# D1 re-screen — screening yield {:.0} MPa (TIMET min, provisional), JOINT thin+hot, chord-torsion floor {:.2} N*m\n\nCertification min(0.25, 0.125 mm^2) unbiased; strict 0.0625 mm^2 unbiased; joint factor = ((t_j-0.1)/t_j)^2 x yield(100C)/yield(20C) (ring: ^1), t_j = thinnest knot (P1) else stock. PASS @828 joint = hiker 180 / hunter 260 / ring 1500 N at certification AND hunter at strict. P1 PASS also needs seq ratio >= {:.1}. Twist floor (OWNER LOCK 2026-10-11 14:52 MT): **body AND tip submodel** both >= 1.82 N*m (hard, certification); **tip-only** (1.82 N*m at the 2 mm tip patch, peak outside 4 mm, St-Venant 3D at the peak) ALWAYS reported, not the gate; **body** = same torque, peak > 15 mm from the tip with its own 3D factor; **tip submodel** = peak restricted to the 4-15 mm tip annulus at the strict 0.0625 mesh with its own 3D factor. Seq ratio = hand-zone / blade-zone yield-onset load (min over lateral, chord-torsion, pry). PROMOTE-ELIGIBLE (OWNER LOCK) = C.6 aesthetic + all hard gates (blade >= 3.375 in on all three) + 828 joint floors + strict hunter + seq >= 1.2 + twist body AND tip-sub + mass 74-77 g (< 80 g); hunter aim 286 reported. NOTHING is promoted without human aesthetic sign-off.\n\n",
+    let hdr = format!("# D1 re-screen — screening yield {:.0} MPa (TIMET min, provisional), JOINT thin+hot, chord-torsion floor {:.2} N*m\n\nCertification min(0.25, 0.125 mm^2) unbiased; strict 0.0625 mm^2 unbiased; joint factor = ((t_j-0.1)/t_j)^2 x yield(100C)/yield(20C) (ring: ^1), t_j = thinnest knot (P1) else stock. PASS @828 joint = hiker 180 / hunter 260 / ring 1500 N at certification AND hunter at strict. P1 PASS also needs seq ratio >= {:.1}. Twist floor (OWNER LOCK 2026-10-11 14:52 MT): **body AND tip submodel** both >= 1.82 N*m (hard, certification); **tip-only** (1.82 N*m at the 2 mm tip patch, peak outside 4 mm, St-Venant 3D at the peak) ALWAYS reported, not the gate; **body** = same torque, peak > 15 mm from the tip with its own 3D factor; **tip submodel** = peak restricted to the 4-15 mm tip annulus at the strict 0.0625 mesh with its own 3D factor. Seq ratio = hand-zone / blade-zone yield-onset load (min over lateral, chord-torsion, pry). PROMOTE-ELIGIBLE (OWNER LOCK) = C.6 aesthetic + all hard gates (blade >= 3.375 in on all three) + 828 joint floors + strict hunter + seq >= 1.2 + twist body AND tip-sub; mass is SOFT (Jepson 2026-10-12: G penalty / target < 80 g then < 70 g, 74-77 band reported, not a gate); hunter aim 286 reported. NOTHING is promoted without human aesthetic sign-off.\n\n",
         jarambit_physics::TI_6AL_4V.yield_mpa, fem::TWIST_FLOOR_NMM / 1000.0, fem::SEQ_TARGET);
     let md = hdr + &md;
     std::fs::create_dir_all(out).ok(); println!("{md}");

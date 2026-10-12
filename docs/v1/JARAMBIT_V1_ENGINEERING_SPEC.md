@@ -14,7 +14,7 @@ xbabe2 `/home/ubuntu/jarambit` local `main` is **2 commits behind** its origin a
 
 1. **What v0.27.0 is.** A real Rust workspace with 9 crates (~9.5 kLOC Rust/Python audited). It has two separate evolutionary engines, a DKT+CST plate FEM with analytical verification, a faceted watertight STEP exporter, MAP-Elites-style archives, and CI with a known-negative promotion fixture. The headline provisional design `g3_tip+00_t60_tt3` is 84.80 g, G1 0.9805, tip SF 1.534 × SPG 4.147 = 6.362, and is **not promoted** (`README.md:12`, `docs/WHITEPAPER.md:130-133`).
 2. **What it is not yet.** It is not reproducible end to end. The tip SF that carries 35 % of G1 comes from an **out-of-repo scikit-fem/pyamg tet solver** on xbabe2 (`/home/ubuntu/jarambit_tools`, outputs in uncommitted worktree `exec-w27d/out/wave27/…_solid.json`, 422,955 dof, **1,419.5 s wall per solve**). Its source and outputs are not in the public repo (`docs/wave27_diversity/SOLIDS.md:3`). It also does not have one meaning of PASS, one engine, or one objective (§2, §3).
-3. **The 70 g holy grail is a geometry problem, not an optimizer-tuning problem.** 70 g of Ti-6Al-4V (ρ = 4.43 g/cm³) is 15.80 cm³; the provisional design is 19.14 cm³. A **−17.5 % volume cut** is required. Uniform thinning of 6.0 → 5.0 mm gets to ~70.7 g, but out-of-plane bending and torsion capacity scale ≈ t². That drops tip SF to ≈ 1.534 × (5/6)² ≈ **1.07** and SPG similarly, so the current *planar-plus-thickness (2.5D)* family cannot reach 70 g with margin. v1 therefore adds **rib/rail thickness fields, through-pocket lattices (connectivity-guaranteed), and SIMP/level-set-in-the-loop mutation** (§5). The mass target becomes a G2 term plus a hard ≤ 80 g gate, with 70 g as the explicit stretch criterion.
+3. **The 70 g holy grail is a geometry problem, not an optimizer-tuning problem.** 70 g of Ti-6Al-4V (ρ = 4.43 g/cm³) is 15.80 cm³; the provisional design is 19.14 cm³. A **−17.5 % volume cut** is required. Uniform thinning of 6.0 → 5.0 mm gets to ~70.7 g, but out-of-plane bending and torsion capacity scale ≈ t². That drops tip SF to ≈ 1.534 × (5/6)² ≈ **1.07** and SPG similarly, so the current *planar-plus-thickness (2.5D)* family cannot reach 70 g with margin. v1 therefore adds **rib/rail thickness fields, through-pocket lattices (connectivity-guaranteed), and SIMP/level-set-in-the-loop mutation** (§5). The mass target becomes a strong soft G2 term (not a gate; owner decision 2026-10-12), with < 80 g as the first target and 70 g as the stretch target.
 4. **Speed.** The current certification-grade evaluation of one design (`jarambit crescent-d1`) took **90.9 s on 1 core** in this audit (box, release build, wave14_c03 fixture). The solid tip submodel took 1,419.5 s. The v1 target is ≥ 50,000 search-tier evals/h across xbabe2+xbabe3 (2 × 128 cores + 2 × RTX 3090 24 GB) and **≤ 15 s per 0.4 M-dof tet10 solid submodel on one RTX 3090**, a ≥ 90× speedup (§10). xbabe1 was **unreachable** from the audit box (ssh timeout), so it is planned as optional.
 5. **Order of work.** (a) Truth and evidence (v0.28–v0.29): fix reporting bugs, add typed observations, run IDs, an event log, and figure manifests. (b) Reproducible FEM ladder in-repo (v0.30–v0.31). (c) Part-agnostic core plus new genotypes (v0.32–v0.33). (d) QD/MOO engine plus surrogates plus HPC (v0.34–v0.35). (e) Adversarial loads, aesthetics model, DFM/cost (v0.36–v0.37). (f) The 70 g campaign plus release (v0.38 → v1.0.0). This sequencing follows all six reviews' consensus: *fix evidence first, then scale*.
 6. **IP is urgent and outside engineering.** The repo is public. `docs/PATENT_DRAFT.md` is an **unfiled utility** draft with no prior-art search, while the goal is a **design** patent, and there is no US provisional route for designs. Engage counsel now (§14).
@@ -319,7 +319,7 @@ G2 = 0.30·min(SF_tip_T3, 2)          # tip, same cap as G1
    + 0.05·min(SF_adv*/1.2, 1)         # worst adversarial basket SF
    − 0.05·cost_pen                    # max(0, cost-65)/65
 ```
-- **Hard gates (G2 undefined if any fail):** ring ID ≥ 25.4 mm; blade ≥ 3.375 in on tip-to-heel, horizontal reach, and sharpened arc; sharpened edge ≤ 4.0 in; grip 60–80 mm; connected; Ti-6Al-4V; L1–L5 SF ≥ 1 (L3 ≥ 2); **mass ≤ 80 g**; seq ≥ 1.2 (now hard, unifying T2); DFM violations = 0.
+- **Hard gates (G2 undefined if any fail):** ring ID ≥ 25.4 mm; blade ≥ 3.375 in on tip-to-heel, horizontal reach, and sharpened arc; sharpened edge ≤ 4.0 in; grip 60–80 mm; connected; Ti-6Al-4V; L1–L5 SF ≥ 1 (L3 ≥ 2); seq ≥ 1.2 (now hard, unifying T2); DFM violations = 0.
 - **Compatibility:** publish G1 and G2 side by side for v0.27 designs. For `g3_tip+00_t60_tt3`, G2 is undefined (mass 84.8 > 80, seq 0.959 < 1.2), which is the honest status.
 - **Uncertainty:** G2 is reported as mean ± 1σ propagated from the term error bars (T2 GCI, calibration σ, cost ±%). Two designs are "different" only if the intervals don't overlap.
 
@@ -476,3 +476,21 @@ Generated media (all with manifests): (1) **Lineage river**: a Sankey/phylogeny 
 - MMPDS (Metallic Materials Properties Development and Standardization), Ti-6Al-4V sections (Battelle/FAA).
 - Tools: Gmsh (Geuzaine & Remacle, IJNME 2009); FEniCSx/DOLFINx; PETSc (Balay et al.); NVIDIA AmgX; scikit-fem (Gustafsson & McBain, JOSS 2020); PyAMG; OpenCASCADE; Ray (Moritz et al., OSDI 2018); faer (Rust linear algebra).
 - NASA-STD-7009 (models & simulations credibility). USPTO Design Patent Application Guide; USPTO Revised Inventorship Guidance for AI-Assisted Inventions (Nov 2025).
+
+
+## Addendum (2026-10-12, owner decision): mass is soft — G2 notes
+
+Jepson decision: mass > 80 g is **not** a hard promotion gate. Robust global fitness is the priority; mass is a strong
+soft penalty in G, and the search keeps pushing toward < 80 g and then < 70 g. Implemented in v0.28 (RS-karambit-v1
+version 2: `promote_eligible` no longer takes mass; `mass_target_g = 80`, `mass_stretch_g = 70`; 74–77 g band reported only).
+
+G2 mass term (proposal, to be fixed in the G2 PR; G1 is unchanged and versioned):
+
+- `P_mass(m) = a·max(0, m − 70)/10 + b·max(0, m − 80)/10`, a two-slope hinge: a moderate pull below 80 g toward 70 g
+  and a steeper penalty above 80 g. Starting point **a = 0.05, b = 0.15** (above 80 g the slope is 4x G1's
+  0.05 per 10 g over 77 g). Example: the provisional 84.80 g pays 0.074 + 0.072 = 0.146.
+- Mass is never a G2 "undefined" condition. Only the structural / geometric hard gates make G2 undefined.
+- The weights are calibrated so that no plausible structural gain (tip SF, SPG terms) makes a ≥ 85 g design outrank an
+  otherwise-equal design at ≤ 80 g with SF ≥ 1.5. This goes in as a G2 property test.
+- Reporting: every verdict prints mass as `soft: … (G penalty)`, never as a promotion failure (see `ops/ci/rs_verdicts.py`).
+- Items above that said "mass ≤ 80 g hard gate" are superseded by this addendum.

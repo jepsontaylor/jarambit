@@ -33,7 +33,7 @@ want(not b("promote_eligible_pending_aesthetic_signoff"), "w14c03 must NOT be pr
 for name, row in rows.items():
     g = lambda k: float(row[k]); t = lambda k: row[k].strip().lower() == "true"
     recomputed = (t("aes_pass") and t("gates_ok") and t("pass_828_joint") and g("strict_joint_lat_0p0625") >= 260 and g("seq_ratio") >= 1.2
-                  and g("twist_body_sf_1p82") >= 1.0 and g("twist_tipzone_sf_strict") >= 1.0 and 74.0 <= g("mass_g") <= 77.0 and g("blade_min_in") >= 3.375)
+                  and g("twist_body_sf_1p82") >= 1.0 and g("twist_tipzone_sf_strict") >= 1.0 and g("blade_min_in") >= 3.375)
     if recomputed != t("promote_eligible_pending_aesthetic_signoff"):
         errs.append(f"{name}: promote_eligible {row['promote_eligible_pending_aesthetic_signoff']} != locked-gate recompute {recomputed}")
 if errs:
