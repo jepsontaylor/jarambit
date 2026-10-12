@@ -31,3 +31,5 @@ jobs:
         run: python3 ops/ci/verify_figures.py
       - name: Figure helper tests (PR-0.29.4)
         run: python3 -m unittest discover -s ops/ci/tests -v
+      - name: Solid tip submodel evidence (PR-0.30.1; slow re-run is opt-in)
+        run: python3 -m unittest discover -s fem_solid/tests -v
