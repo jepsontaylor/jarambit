@@ -15,6 +15,7 @@ pub mod gates;
 pub mod fem;
 pub mod export;
 pub mod qd;
+pub mod record;
 pub use genome::Genome;
 pub use pheno::{build, Pheno};
 

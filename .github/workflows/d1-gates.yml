@@ -28,18 +28,23 @@ jobs:
         with:
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
       - uses: Swatinem/rust-cache@v2
       - name: cargo test --release (all crates, incl. D1 owner-lock gate tests)
         run: cargo test --release --workspace
+      - name: Clippy - no Option::unwrap_or_default in the CLI (missing FEM must be null + status, PR-0.28.3)
+        run: cargo clippy --release -p jarambit -- -A clippy::all -D clippy::disallowed_methods
       - name: D1 owner-lock gate tests (explicit, fast)
         run: cargo test --release -p jarambit-crescent d1_lock -- --nocapture
       - name: D1 smoke (crescent-d1 on wave14_c03 reference)
         run: |
           cargo build --release -p jarambit
-          ./target/release/jarambit crescent-d1 \
+          D1_PLATES=1 ./target/release/jarambit crescent-d1 \
             --genomes w14c03=docs/d1/wave15_16_collect/wave14_c03_genome.csv \
             --threads "$(nproc)" --out out/ci_d1
           python3 ops/ci/d1_smoke.py out/ci_d1
+          python3 ops/ci/check_json_strict.py out/ci_d1
       - name: Upload D1 smoke report
         if: always()
         uses: actions/upload-artifact@v4

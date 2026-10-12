@@ -99,9 +99,10 @@ pub fn fitness(r: &Rec) -> f64 {
 /// isogrid + ring flute + pierced-fuller windows (window area x stock).
 pub fn relief_frac(r: &Rec) -> f64 { let blank = (r.blank_g / jarambit_physics::material(r.g.mat).density * 1000.0).max(1.0);
     (r.removed.iter().sum::<f64>() + (r.win_area + r.perf_area) * r.t) / blank }
-/// MAP-Elites cell: (3-D relief volume fraction bin, Hausdorff-to-C.4 bin). Relief bins are
-/// graded for the measured range (0.5-6.5 % of the blank) so the 3-D axis actually resolves.
-/// wave7+: archive cell = (machined-removal fraction bin, finished-mass bin of 2 g from 72 to 90 g).
+/// MAP-Elites cell = (machined-removal fraction bin, finished-mass bin). Removal bins (`relief_frac`
+/// thresholds RB) span 0.5-21 % of the blank; mass bin = floor((mass_g - 72) / 2) clamped to 0..=10
+/// (2 g bins from 72 g). CSV columns: `cell_removal,cell_mass_bin`. (Pre-wave7 docs called the second
+/// axis a Hausdorff-to-C.4 bin; it has been the mass bin since wave7.)
 pub fn qd_cell(r: &Rec) -> (usize, usize) {
     const RB: [f64; 10] = [0.005, 0.01, 0.02, 0.03, 0.045, 0.065, 0.09, 0.12, 0.16, 0.21];
     let f = relief_frac(r);
