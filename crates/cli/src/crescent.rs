@@ -9,6 +9,15 @@ fn blade_min_in(r: &qd::Rec) -> f64 { r.blade.tip_to_heel.min(r.blade.horizontal
 fn jarr(v: &[(f64, f64)]) -> String { let s: Vec<String> = v.iter().map(|q| format!("[{:.3},{:.3}]", q.0, q.1)).collect(); format!("[{}]", s.join(",")) }
 fn jnum(v: &[f64]) -> String { let s: Vec<String> = v.iter().map(|x| if x.is_finite() { format!("{x:.4}") } else { "null".into() }).collect(); format!("[{}]", s.join(",")) }
 
+/// PR-0.29.1: append-only evidence log `{out}/evidence.jevl` (one fsync'ed zstd frame per generation).
+fn open_evidence(out: &str, man: &jarambit_evidence::RunManifest) -> Option<jarambit_evidence::EvidenceLog> {
+    match jarambit_evidence::EvidenceLog::create(&format!("{out}/evidence.jevl"), man) { Ok(l) => Some(l), Err(e) => { eprintln!("evidence log disabled: {e}"); None } }
+}
+fn close_evidence(l: Option<jarambit_evidence::EvidenceLog>, rep: &mut String, c: &qd::Counters) {
+    let st = match &l { None => "NOT WRITTEN".to_string(), Some(l) => l.error().map_or(format!("{} frames", l.frames), |e| format!("I/O ERROR {e}")) };
+    let _ = writeln!(rep, "evidence log `evidence.jevl`: {st}; fresh evaluations {}, population appearances {}\n", c.fresh_evals, c.appearances);
+}
+
 /// Strict, serde-typed record JSON (PR-0.28.3): missing FEM -> null metrics + `fem_status`, unique keys.
 pub fn rec_metrics(r: &qd::Rec) -> String { record::rec_json(r) }
 fn fo(r: &qd::Rec, get: impl Fn(&fem::Fem) -> f64, d: usize) -> String { record::csv_opt(r.fem.as_ref(), get, d) }
@@ -41,7 +50,10 @@ pub fn smoke(out: &str, pop: usize, gens: usize, threads: usize, seed: u64, t_se
     eprintln!("seed: mass {:.1} g, aes pass {}, rejects {:?}, fem {:?}", sp.mass_g, sa.pass, sr, sf);
     let cfg = qd::RunCfg { pop, gens, threads, seed, fem_area, t_seed };
     let t0 = std::time::Instant::now();
-    let ro = qd::run(&cfg, |l| eprintln!("gen {l}  ({:.0}s)", t0.elapsed().as_secs_f64()));
+    let man = jarambit_evidence::RunManifest::new("crescent-smoke", seed, fem::REQUIREMENT_SET_ID).param("pop", pop).param("gens", gens).param("threads", threads).param("t_seed", t_seed).param("fem_area", fem_area);
+    let mut evl = open_evidence(out, &man);
+    let ro = qd::run_with(&cfg, &qd::evaluate, |l| eprintln!("gen {l}  ({:.0}s)", t0.elapsed().as_secs_f64()), evl.as_mut().map_or(&mut jarambit_evidence::NullSink as &mut dyn jarambit_evidence::Sink, |l| l as &mut dyn jarambit_evidence::Sink));
+    close_evidence(evl, &mut rep, &ro.counters);
     std::fs::write(format!("{out}/history.csv"), ro.history.join("\n") + "\n").unwrap();
     let mut all = String::from("[\n"); let mut csv = format!("id,gen,fit,spg,mass_g,aes_pass,aes_score,hausdorff,emd,novelty,lat_rob,ring_rob,sf_hunter,legal,n_rejects,{}\n", Genome::csv_header());
     for (i, r) in ro.all.iter().enumerate() {
@@ -199,8 +211,13 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     let cfg = qd::IslandCfg { base: qd::RunCfg { pop, gens, threads, seed, fem_area, t_seed: 5.7 }, islands, migrate_every: migrate, migrants: 2, seeds, kick_frac: kick };
     let t0 = std::time::Instant::now();
     let mut hist_f = String::new();
-    let ro = qd::run_islands(&cfg, |l| { eprintln!("{l}  ({:.0}s)", t0.elapsed().as_secs_f64()); hist_f.push_str(l); hist_f.push('\n'); std::fs::write(format!("{out}/history_live.csv"), &hist_f).ok(); },
-        |gen, all, arch| { if gen % 5 == 0 { write_progress(out, gen, all, arch); } });
+    let man = jarambit_evidence::RunManifest::new("crescent-evolve", seed, fem::REQUIREMENT_SET_ID).param("wave", wave).param("pop", pop).param("islands", islands).param("gens", gens).param("threads", threads)
+        .param("fem_area", fem_area).param("seeds_csv", seeds_csv).param("seed_top", seed_top).param("migrate", migrate).param("kick", kick).param("n_cert", n_cert).param("p1_env", p1_env())
+        .param("mass_cap", qd::mass_cap()).param("min_through", qd::min_through()).param("search_bias", format!("{:?}", fem::search_bias()));
+    let mut evl = open_evidence(out, &man);
+    let ro = qd::run_islands_with(&cfg, &qd::evaluate, |l| { eprintln!("{l}  ({:.0}s)", t0.elapsed().as_secs_f64()); hist_f.push_str(l); hist_f.push('\n'); std::fs::write(format!("{out}/history_live.csv"), &hist_f).ok(); },
+        |gen, all, arch| { if gen % 5 == 0 { write_progress(out, gen, all, arch); } }, evl.as_mut().map_or(&mut jarambit_evidence::NullSink as &mut dyn jarambit_evidence::Sink, |l| l as &mut dyn jarambit_evidence::Sink));
+    close_evidence(evl, &mut rep, &ro.counters);
     std::fs::write(format!("{out}/history.csv"), ro.history.join("\n") + "\n").unwrap();
     write_progress(out, gens, &ro.all, &ro.archive);
     let mut all = String::from("[\n"); let mut csv = format!("id,gen,fit,spg,mass_g,aes_pass,aes_score,hausdorff,emd,novelty,lat_rob,ring_rob,sf_hunter,legal,n_rejects,relief_frac,n_win,{}\n", Genome::csv_header());

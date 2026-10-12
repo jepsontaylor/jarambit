@@ -15,3 +15,4 @@ jarambit-docs = { path = "../docs" }
 jarambit-crescent = { path = "../crescent" }
 mimalloc = { version = "0.1", default-features = false }
 serde_json = "1"
+jarambit-evidence = { path = "../evidence" }
