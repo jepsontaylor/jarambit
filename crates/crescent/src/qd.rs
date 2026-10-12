@@ -76,9 +76,16 @@ pub fn mass_cap() -> Option<f64> {
 }
 /// JARAMBIT_MIN_THROUGH: minimum count of through-features for the through-lattice lane (default 0 = off).
 pub fn min_through() -> usize { std::env::var("JARAMBIT_MIN_THROUGH").ok().and_then(|v| v.parse().ok()).unwrap_or(0) }
+/// JARAMBIT_TIPTWIST_GATE=1 (PR-0.30.1c): make the twist floor (body AND 4-15 mm tip submodel SF >= 1 at 1.82 N*m)
+/// constraint-dominated for every design, not just P1 genomes. A floors-OK design that misses it ranks in (-1, -0.1),
+/// graded by min(body, tip) SF, so the search cannot buy mass by thinning the tip rail/ribs.
+pub fn tiptwist_gate() -> bool { std::env::var("JARAMBIT_TIPTWIST_GATE").map_or(false, |v| v == "1") }
 pub fn under_cap(r: &Rec) -> bool { mass_cap().map_or(true, |c| r.mass_g < c) }
 
-pub fn fitness(r: &Rec) -> f64 {
+pub fn fitness(r: &Rec) -> f64 { fitness_opt(r, tiptwist_gate()) }
+
+/// `fitness` with the tip-twist constraint switch explicit (testable without process env).
+pub fn fitness_opt(r: &Rec, tiptwist: bool) -> f64 {
     if !r.aes.pass { return -200.0 - r.aes.fails.len() as f64 - r.aes.hausdorff; }
     if !r.rejects.is_empty() { return -100.0 - r.rejects.len() as f64; }
     let excess = mass_cap().map_or(0.0, |c| (r.mass_g / c - 1.0).max(0.0));
@@ -89,6 +96,9 @@ pub fn fitness(r: &Rec) -> f64 {
         // product in (-1, -0.1) so the search trades them smoothly (any floors-OK P1 design missing one ranks here)
         Some(f) if r.g.p1() && (f.seq_ratio < fem::SEQ_TARGET || !fem::twist_floor_ok(f.twist_body_sf, f.twist_tipzone_sf) || excess > 0.0) => {
             let q = (f.seq_ratio / fem::SEQ_TARGET).clamp(0.0, 1.0) * f.twist_body_sf.clamp(0.0, 1.0) * f.twist_tipzone_sf.clamp(0.0, 1.0) * (1.0 - 8.0 * excess).clamp(0.0, 1.0);
+            -1.0 + 0.9 * q + 0.001 * r.spg }
+        Some(f) if tiptwist && !fem::twist_floor_ok(f.twist_body_sf, f.twist_tipzone_sf) => {
+            let q = f.twist_body_sf.clamp(0.0, 1.0) * f.twist_tipzone_sf.clamp(0.0, 1.0) * (1.0 - 8.0 * excess).clamp(0.0, 1.0);
             -1.0 + 0.9 * q + 0.001 * r.spg }
         Some(_) if excess > 0.0 || !under_cap(r) => -0.5 - 10.0 * excess,
         // through-lattice experiment lane (JARAMBIT_MIN_THROUGH=N): a legal design with fewer than N machined
