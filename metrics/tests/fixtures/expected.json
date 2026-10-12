@@ -1,0 +1,30 @@
+{
+ "empty.json": {
+  "status": "INCOMPLETE",
+  "G": null
+ },
+ "tip_only.json": {
+  "status": "INCOMPLETE",
+  "G": null
+ },
+ "mass_null.json": {
+  "status": "INCOMPLETE",
+  "G": null
+ },
+ "aes_1p7.json": {
+  "status": "INCOMPLETE",
+  "G": null
+ },
+ "bool_spg.json": {
+  "status": "INCOMPLETE",
+  "G": null
+ },
+ "complete.json": {
+  "status": "COMPLETE",
+  "G": 0.9675
+ },
+ "complete_genuine_zero.json": {
+  "status": "COMPLETE",
+  "G": 0.9299999999999998
+ }
+}

@@ -1,0 +1,885 @@
+{
+  "project": "jarambit",
+  "author": "Jepson Taylor",
+  "baseline": {
+    "public_main": "727b28b9690704924d94bed8b5094b4c43fc3f67",
+    "xbabe2_origin_main": "17b14875 (not on public GitHub)",
+    "version": "0.27.0"
+  },
+  "target_version": "1.0.0",
+  "rules": [
+    "PRs small (<=800 changed LOC excl. fixtures), sequential",
+    "CI green (cargo test --workspace + d1_smoke known-negative + new contract tests)",
+    "rebase on main before merge",
+    "no new PR opened until the prior one is merged",
+    "each PR updates docs/RELEASES.md and bumps VERSION only at milestone close"
+  ],
+  "hosts": {
+    "xbabe2": "128 threads, RTX 3090 24 GB, 125 GB RAM",
+    "xbabe3": "128 threads, RTX 3090 24 GB",
+    "xbabe1": "unreachable from audit box (ssh timeout) - optional"
+  },
+  "milestones": [
+    {
+      "version": "v0.28.0",
+      "title": "Truthful status + typed metrics",
+      "exit_goal": "Every PASS is scoped to an RS-id; no missing->0 anywhere in reporting",
+      "work_items": [
+        {
+          "id": "PR-0.28.1",
+          "title": "G1 completeness: Obs-typed inputs, INCOMPLETE status, bool rejection, title_tag on validated record",
+          "scope_paths": [
+            "metrics/global_metric.py",
+            "metrics/tests/test_global_metric.py",
+            ".github/workflows/version-check.yml"
+          ],
+          "depends_on": [],
+          "owner_host": "any",
+          "est_hours": 6,
+          "success_criteria": [
+            "missing/null/NaN/inf/bool/out-of-range for each of 5 inputs -> status INCOMPLETE (35 cases)",
+            "deleting any input never increases G (property test, 1000 random records)",
+            "G1 of 9 historical rows in docs/GLOBAL_METRIC.md reproduced to 1e-9",
+            "title_tag never raises on any fixture"
+          ],
+          "tests_fixtures": [
+            "metrics/tests/fixtures/*.json (empty, tip-only, mass-null, aes=1.7, bool spg, complete-genuine-zero)"
+          ],
+          "risk": "low"
+        },
+        {
+          "id": "PR-0.28.2",
+          "title": "Requirement-set registry RS-karambit-v1 (as-is) + scoped verdicts; fix README/WHITEPAPER PASS language, seq soft/hard, mass cap",
+          "scope_paths": [
+            "requirements/RS-karambit-v1.toml",
+            "crates/crescent/src/fem.rs",
+            "README.md",
+            "docs/WHITEPAPER.md",
+            "docs/PROVISIONAL.md",
+            "ops/ci/check_claims.py"
+          ],
+          "depends_on": [
+            "PR-0.28.1"
+          ],
+          "owner_host": "any",
+          "est_hours": 8,
+          "success_criteria": [
+            "README badge text derived from RS verdicts; g3_tip+00_t60_tt3 shows 'mass cap 80 g: FAIL, seq>=1.2: FAIL (hard when P1)'",
+            "check_claims.py fails CI on any unscoped 'PASS' token in README/WHITEPAPER",
+            "README default-evaluator sentence matches main.rs:82 (test parses both)"
+          ],
+          "tests_fixtures": [
+            "ops/ci/tests/claims_fixture.md"
+          ],
+          "risk": "low (docs) / medium (public perception)"
+        },
+        {
+          "id": "PR-0.28.3",
+          "title": "serde-typed crescent records: Option<Fem> -> null + status, remove duplicate pry20, strict JSON, QD CSV header cell_mass_bin",
+          "scope_paths": [
+            "crates/cli/src/crescent.rs",
+            "crates/crescent/src/qd.rs",
+            "Cargo.toml (serde, serde_json)"
+          ],
+          "depends_on": [
+            "PR-0.28.2"
+          ],
+          "owner_host": "any",
+          "est_hours": 8,
+          "success_criteria": [
+            "no unwrap_or_default on Fem in cli (clippy disallowed_methods)",
+            "every emitted JSON parses with duplicate-key rejection",
+            "rejected-before-FEM record has fem_status='not_evaluated' and null metrics",
+            "d1_smoke known-negative unchanged"
+          ],
+          "tests_fixtures": [
+            "crates/cli/tests/rec_json.rs (rejected, failed, complete, NaN scalar)"
+          ],
+          "risk": "medium (downstream scripts read these keys)"
+        },
+        {
+          "id": "PR-0.28.4",
+          "title": "fem-verify expected-check manifest; theory gate fail-closed; rename err_vs_extrap->err_vs_two_finest_mean",
+          "scope_paths": [
+            "crates/cli/src/calib.rs",
+            "verify/expected.toml",
+            "docs/calibration/knife_convergence.csv (header migration note)"
+          ],
+          "depends_on": [
+            "PR-0.28.3"
+          ],
+          "owner_host": "any",
+          "est_hours": 5,
+          "success_criteria": [
+            "missing check, NaN err, duplicate id, all-missing -> theory FAIL with reason",
+            "existing finite report still PASS"
+          ],
+          "tests_fixtures": [
+            "crates/cli/tests/fem_verify_failclosed.rs"
+          ],
+          "risk": "low"
+        },
+        {
+          "id": "PR-0.28.5",
+          "title": "Pin toolchain + SHA-pin actions; generated STATUS.md; archive GAPS.md as historical; README crate table (20-gene legacy vs 128-gene crescent)",
+          "scope_paths": [
+            "rust-toolchain.toml",
+            ".github/workflows/*.yml",
+            "STATUS.md",
+            "GAPS.md",
+            "README.md",
+            "ops/ci/gen_status.py"
+          ],
+          "depends_on": [
+            "PR-0.28.4"
+          ],
+          "owner_host": "any",
+          "est_hours": 4,
+          "success_criteria": [
+            "CI green with pinned 1.8x toolchain",
+            "STATUS.md regenerated byte-identically in CI",
+            "release v0.28.0 tagged"
+          ],
+          "tests_fixtures": [
+            "ops/ci/gen_status.py --check"
+          ],
+          "risk": "low"
+        }
+      ]
+    },
+    {
+      "version": "v0.29.0",
+      "title": "Evidence layer + honest logs",
+      "exit_goal": "Any published candidate replays its creation/eval/selection history",
+      "work_items": [
+        {
+          "id": "PR-0.29.1",
+          "title": "crate jarambit-evidence: RunManifest, Obs<T>, Verdict, Event enum, JSONL+zstd append log with fsync per gen; wire into crescent qd::run/run_islands (parents, op, migration, counters)",
+          "scope_paths": [
+            "crates/evidence/**",
+            "crates/crescent/src/qd.rs",
+            "crates/cli/src/crescent.rs"
+          ],
+          "depends_on": [
+            "PR-0.28.5"
+          ],
+          "owner_host": "any",
+          "est_hours": 14,
+          "success_criteria": [
+            "Rec has parents: Vec<Id>, op, op_version",
+            "counters: pop 64 x 40 gens fixture reports 2464 fresh evals and 2624 appearances",
+            "kill -9 at random gen: log is a valid prefix (100 trials)"
+          ],
+          "tests_fixtures": [
+            "crates/evidence/tests/*.rs",
+            "tiny synthetic evaluator fixture"
+          ],
+          "risk": "medium (touches hot loop; perf budget <2%)"
+        },
+        {
+          "id": "PR-0.29.2",
+          "title": "Lossless checkpoint (f64 bits hex) bound to manifest sha; reject incompatible/missing resume; explicit --fork",
+          "scope_paths": [
+            "crates/evolve/src/lib.rs",
+            "crates/crescent/src/qd.rs",
+            "crates/cli/src/main.rs"
+          ],
+          "depends_on": [
+            "PR-0.29.1"
+          ],
+          "owner_host": "any",
+          "est_hours": 10,
+          "success_criteria": [
+            "interrupted at gens {3,7,12} then resumed == uninterrupted (bitwise genomes+obs, 3 seeds)",
+            "changing any of 12 manifest fields -> resume refused",
+            "--resume with no checkpoint -> error"
+          ],
+          "tests_fixtures": [
+            "crates/evolve/tests/replay.rs"
+          ],
+          "risk": "medium"
+        },
+        {
+          "id": "PR-0.29.3",
+          "title": "Legacy CLI: stream history/quarantine per gen, include genotype hash in quarantine, feasible-mean uses feasible(), terminal snapshot event",
+          "scope_paths": [
+            "crates/cli/src/main.rs",
+            "crates/evolve/src/lib.rs"
+          ],
+          "depends_on": [
+            "PR-0.29.2"
+          ],
+          "owner_host": "any",
+          "est_hours": 5,
+          "success_criteria": [
+            "mixed-population fixture: mean equals mean over feasible() only",
+            "final returned best present in last snapshot"
+          ],
+          "tests_fixtures": [
+            "crates/cli/tests/history_stream.rs"
+          ],
+          "risk": "low"
+        },
+        {
+          "id": "PR-0.29.4",
+          "title": "Figure manifests + verify_figures.py; derive hero caption/badges from obs; fix hard-coded aesthetic PASS; shared/declared colour normalization",
+          "scope_paths": [
+            "ops/wave_figures/render_step3d_w27.py",
+            "ops/wave_figures/make_d1_plate.py",
+            "ops/wave_figures/plate_fem.py",
+            "ops/ci/verify_figures.py"
+          ],
+          "depends_on": [
+            "PR-0.29.3"
+          ],
+          "owner_host": "any",
+          "est_hours": 8,
+          "success_criteria": [
+            "swapping STL without manifest update fails CI",
+            "aes_pass=false fixture renders FAIL badge",
+            "caption says 'faceted STL preview' unless STEP validation obs present"
+          ],
+          "tests_fixtures": [
+            "ops/ci/tests/figs/*"
+          ],
+          "risk": "low"
+        }
+      ]
+    },
+    {
+      "version": "v0.30.0",
+      "title": "Solid FEM in-repo (T2/T3 CPU reference)",
+      "exit_goal": "The tip SF used in G is reproducible from the public repo",
+      "work_items": [
+        {
+          "id": "PR-0.30.1",
+          "title": "Import out-of-repo skfem/pyamg tip submodel as fem_solid/ (pinned requirements, script, README); commit wave27 solid JSONs as evidence",
+          "scope_paths": [
+            "fem_solid/**",
+            "docs/wave27_diversity/SOLIDS.md",
+            "evidence/wave27/*.json"
+          ],
+          "depends_on": [
+            "PR-0.29.4"
+          ],
+          "owner_host": "xbabe2",
+          "est_hours": 8,
+          "success_criteria": [
+            "re-run on g3_tip+00_t60_tt3 reproduces SF_solid_nodal_max 1.534 +/- 0.005",
+            "manifest records n_dof 422955 and wall time"
+          ],
+          "tests_fixtures": [
+            "fem_solid/tests/test_tip_regression.py"
+          ],
+          "risk": "medium (env drift of vendored skfem)"
+        },
+        {
+          "id": "PR-0.30.2",
+          "title": "gmsh tet10 whole-part mesher from faceted STEP + dolfinx/PETSc GAMG reference solver for L1-L5",
+          "scope_paths": [
+            "fem_solid/mesh.py",
+            "fem_solid/solve_dolfinx.py"
+          ],
+          "depends_on": [
+            "PR-0.30.1"
+          ],
+          "owner_host": "xbabe2",
+          "est_hours": 16,
+          "success_criteria": [
+            "Saint-Venant torsion bar + Kirsch 3D within 1%",
+            "tet10 vs skfem tip SF within 2% on wave27 provisional"
+          ],
+          "tests_fixtures": [
+            "fem_solid/tests/verify_*.py"
+          ],
+          "risk": "medium"
+        },
+        {
+          "id": "PR-0.30.3",
+          "title": "Mesh convergence + GCI for T2/T3; report nodal-max/avg/elem-mean with error bars",
+          "scope_paths": [
+            "fem_solid/convergence.py",
+            "docs/calibration/solid_gci.md"
+          ],
+          "depends_on": [
+            "PR-0.30.2"
+          ],
+          "owner_host": "xbabe2",
+          "est_hours": 8,
+          "success_criteria": [
+            "3-level GCI <=3% on governing sigma_vm for 5 designs"
+          ],
+          "tests_fixtures": [
+            "golden 5-design set"
+          ],
+          "risk": "low"
+        }
+      ]
+    },
+    {
+      "version": "v0.31.0",
+      "title": "Plate tier speed + calibration + fatigue",
+      "exit_goal": "T1c <=25 s/core, calibrated vs T2 with sigma",
+      "work_items": [
+        {
+          "id": "PR-0.31.1",
+          "title": "criterion benches + bench/fixed_1k frozen workload + accounting report",
+          "scope_paths": [
+            "crates/physics/benches/*",
+            "bench/fixed_1k/**",
+            "ops/bench/run.py"
+          ],
+          "depends_on": [
+            "PR-0.30.3"
+          ],
+          "owner_host": "xbabe3",
+          "est_hours": 6,
+          "success_criteria": [
+            "baseline numbers recorded for T1 search and T1c cert (x3 reps)"
+          ],
+          "tests_fixtures": [
+            "bench manifest"
+          ],
+          "risk": "low"
+        },
+        {
+          "id": "PR-0.31.2",
+          "title": "Sparse supernodal Cholesky (faer) + multi-RHS factorization reuse; rayon eval_batch",
+          "scope_paths": [
+            "crates/physics/src/fine.rs",
+            "crates/crescent/src/qd.rs"
+          ],
+          "depends_on": [
+            "PR-0.31.1"
+          ],
+          "owner_host": "xbabe3",
+          "est_hours": 14,
+          "success_criteria": [
+            "T1c <=25 s/core on fixed_1k",
+            "results identical to old solver within 1e-9 rel",
+            "rayon load imbalance <5%"
+          ],
+          "tests_fixtures": [
+            "crates/physics/tests/solver_parity.rs"
+          ],
+          "risk": "medium"
+        },
+        {
+          "id": "PR-0.31.3",
+          "title": "Fatigue case L7 (Marin+Goodman) and baton L6 static-equivalent; T1->T2 calibration factors with sigma",
+          "scope_paths": [
+            "crates/crescent/src/fem.rs",
+            "requirements/RS-karambit-v2.toml",
+            "docs/calibration/t1_t2.md"
+          ],
+          "depends_on": [
+            "PR-0.31.2"
+          ],
+          "owner_host": "xbabe2",
+          "est_hours": 10,
+          "success_criteria": [
+            "calibration residual sigma <=7% per case on 40 designs",
+            "RS-karambit-v2 published (mass<=80 hard, seq>=1.2 hard)"
+          ],
+          "tests_fixtures": [
+            "calibration fixture set"
+          ],
+          "risk": "medium"
+        }
+      ]
+    },
+    {
+      "version": "v0.32.0",
+      "title": "Part-agnostic core",
+      "exit_goal": "PartSpec trait; karambit is a plugin",
+      "work_items": [
+        {
+          "id": "PR-0.32.1",
+          "title": "crate jarambit-core: PartSpec, LoadCase, Material, Descriptors traits; evidence moves under core",
+          "scope_paths": [
+            "crates/core/**"
+          ],
+          "depends_on": [
+            "PR-0.31.3"
+          ],
+          "owner_host": "any",
+          "est_hours": 10,
+          "success_criteria": [
+            "core contains no karambit terms (grep test)"
+          ],
+          "tests_fixtures": [
+            "core trait tests"
+          ],
+          "risk": "low"
+        },
+        {
+          "id": "PR-0.32.2",
+          "title": "part-karambit plugin: move crescent genome/pheno/gates/aesthetic behind PartSpec",
+          "scope_paths": [
+            "crates/part-karambit/**",
+            "crates/crescent/**"
+          ],
+          "depends_on": [
+            "PR-0.32.1"
+          ],
+          "owner_host": "any",
+          "est_hours": 16,
+          "success_criteria": [
+            "d1_smoke known-negative identical",
+            "all crescent tests pass in new location"
+          ],
+          "tests_fixtures": [
+            "existing tests"
+          ],
+          "risk": "high (large move; split into 2 PRs if >800 LOC)"
+        },
+        {
+          "id": "PR-0.32.3",
+          "title": "Retire strike-media MC: delete CutMedia, keep tolerance x temperature cloud",
+          "scope_paths": [
+            "crates/monte_carlo/src/lib.rs",
+            "crates/evolve/src/lib.rs",
+            "README.md"
+          ],
+          "depends_on": [
+            "PR-0.32.2"
+          ],
+          "owner_host": "any",
+          "est_hours": 4,
+          "success_criteria": [
+            "CI grep: no gel|bone|muscle|hide tokens in crates/",
+            "legacy NSGA-II behind 'legacy' feature"
+          ],
+          "tests_fixtures": [
+            "monte_carlo thread-stability test kept"
+          ],
+          "risk": "low"
+        }
+      ]
+    },
+    {
+      "version": "v0.33.0",
+      "title": "New genotypes + B-rep",
+      "exit_goal": "Skeleton/SDF/rib reps decode with guaranteed connectivity; AP242 STEP",
+      "work_items": [
+        {
+          "id": "PR-0.33.1",
+          "title": "G-B skeleton+thickness and G-E rib/rail thickness field reps",
+          "scope_paths": [
+            "crates/part-karambit/src/rep_skeleton.rs",
+            "crates/core/src/geom/sdf.rs"
+          ],
+          "depends_on": [
+            "PR-0.32.3"
+          ],
+          "owner_host": "any",
+          "est_hours": 16,
+          "success_criteria": [
+            "decode fail <2% on 10k random",
+            "100% single component (union-find 0.25 mm raster)"
+          ],
+          "tests_fixtures": [
+            "proptest suites"
+          ],
+          "risk": "medium"
+        },
+        {
+          "id": "PR-0.33.2",
+          "title": "G-C pockets + G-D 2.5D isogrid with ligament>=2.0 mm check; DFM rule engine + cost proxy",
+          "scope_paths": [
+            "crates/core/src/dfm/**",
+            "crates/part-karambit/src/dfm.rs"
+          ],
+          "depends_on": [
+            "PR-0.33.1"
+          ],
+          "owner_host": "any",
+          "est_hours": 12,
+          "success_criteria": [
+            "DFM catches 100% of 30 planted violations",
+            "cost proxy outputs +/-30% band"
+          ],
+          "tests_fixtures": [
+            "dfm fixtures"
+          ],
+          "risk": "low"
+        },
+        {
+          "id": "PR-0.33.3",
+          "title": "OCCT AP242 B-rep export sidecar (OCP), BRepCheck + volume parity",
+          "scope_paths": [
+            "ops/brep/**",
+            "crates/core/src/export.rs"
+          ],
+          "depends_on": [
+            "PR-0.33.2"
+          ],
+          "owner_host": "xbabe2",
+          "est_hours": 14,
+          "success_criteria": [
+            "0 BRepCheck errors on 100 designs",
+            "|vol_brep - vol_mesh| <=0.2%",
+            "deterministic bytes (sorted maps) for same genome"
+          ],
+          "tests_fixtures": [
+            "ops/brep/tests"
+          ],
+          "risk": "medium"
+        }
+      ]
+    },
+    {
+      "version": "v0.34.0",
+      "title": "Search engine v1",
+      "exit_goal": "Island NSGA-III + CVT-MAP-Elites + novelty + CMA-ES refine",
+      "work_items": [
+        {
+          "id": "PR-0.34.1",
+          "title": "NSGA-III with constrained-domination; context-free elite quality; versioned descriptors",
+          "scope_paths": [
+            "crates/core/src/search/nsga3.rs",
+            "crates/core/src/search/cvt_me.rs"
+          ],
+          "depends_on": [
+            "PR-0.33.3"
+          ],
+          "owner_host": "any",
+          "est_hours": 14,
+          "success_criteria": [
+            "DTLZ2 4-obj IGD within published range",
+            "descriptor id stored in archive files"
+          ],
+          "tests_fixtures": [
+            "DTLZ fixtures"
+          ],
+          "risk": "low"
+        },
+        {
+          "id": "PR-0.34.2",
+          "title": "Island orchestration with per-island rep/operator mix, logged migration, topology-respecting crossover, TO-as-mutation (SIMP 30 it)",
+          "scope_paths": [
+            "crates/core/src/search/islands.rs",
+            "crates/part-karambit/src/ops.rs",
+            "crates/core/src/to/simp.rs"
+          ],
+          "depends_on": [
+            "PR-0.34.1"
+          ],
+          "owner_host": "xbabe3",
+          "est_hours": 18,
+          "success_criteria": [
+            "SIMP cantilever matches Sigmund 99-line reference compliance within 2%",
+            "crossover child connectivity 100% after repair"
+          ],
+          "tests_fixtures": [
+            "to fixtures"
+          ],
+          "risk": "medium"
+        },
+        {
+          "id": "PR-0.34.3",
+          "title": "Benchmark vs v0.27 crescent GA at 100k T1 evals, 10 seeds",
+          "scope_paths": [
+            "ops/bench/hv_compare.py",
+            "docs/results/v0.34_hv.md"
+          ],
+          "depends_on": [
+            "PR-0.34.2"
+          ],
+          "owner_host": "xbabe2+xbabe3",
+          "est_hours": 8,
+          "success_criteria": [
+            "HV >=1.3x baseline, Wilcoxon p<0.05, or documented negative result"
+          ],
+          "tests_fixtures": [
+            "frozen RS-karambit-v2"
+          ],
+          "risk": "medium"
+        }
+      ]
+    },
+    {
+      "version": "v0.35.0",
+      "title": "HPC: Ray + GPU solid + surrogate",
+      "exit_goal": ">=50k T1/h on 2 hosts; T2 <=60 s CPU",
+      "work_items": [
+        {
+          "id": "PR-0.35.1",
+          "title": "Ray cluster driver (islands=actors, evals=tasks), content-addressed LMDB cache",
+          "scope_paths": [
+            "ops/ray/**",
+            "crates/core/src/cache.rs"
+          ],
+          "depends_on": [
+            "PR-0.34.3"
+          ],
+          "owner_host": "xbabe2+xbabe3",
+          "est_hours": 14,
+          "success_criteria": [
+            ">=50k T1 evals/h on fixed_1k-derived workload",
+            "cache hit accounting in counters",
+            "node kill -> run continues"
+          ],
+          "tests_fixtures": [
+            "ray fault test"
+          ],
+          "risk": "medium"
+        },
+        {
+          "id": "PR-0.35.2",
+          "title": "GPU T2/T3: PETSc aijcusparse+GAMG or AmgX PCG, mixed precision, multi-stream batching",
+          "scope_paths": [
+            "fem_solid/gpu/**"
+          ],
+          "depends_on": [
+            "PR-0.35.1"
+          ],
+          "owner_host": "xbabe2",
+          "est_hours": 20,
+          "success_criteria": [
+            "0.4 M dof solve <=15 s on RTX 3090",
+            "parity with dolfinx CPU <=0.5% on 50 designs"
+          ],
+          "tests_fixtures": [
+            "parity suite"
+          ],
+          "risk": "high (CUDA/PETSc build)"
+        },
+        {
+          "id": "PR-0.35.3",
+          "title": "T0 surrogate (GNN on plate mesh) + conformal intervals + SAEA pre-screen",
+          "scope_paths": [
+            "surrogate/**"
+          ],
+          "depends_on": [
+            "PR-0.35.2"
+          ],
+          "owner_host": "xbabe3",
+          "est_hours": 18,
+          "success_criteria": [
+            "grouped-split MAPE <=8%",
+            "90% interval coverage 0.88-0.92",
+            "no leakage: family groups disjoint (test)"
+          ],
+          "tests_fixtures": [
+            "data card + split manifest"
+          ],
+          "risk": "medium"
+        }
+      ]
+    },
+    {
+      "version": "v0.36.0",
+      "title": "Adversarial load discovery",
+      "exit_goal": "Curated edge-case basket replaces strike MC",
+      "work_items": [
+        {
+          "id": "PR-0.36.1",
+          "title": "Load space Theta + plausibility prior; CMA-ES worst-case per candidate (T0/T1)",
+          "scope_paths": [
+            "crates/core/src/loads/**",
+            "loads/prior.toml"
+          ],
+          "depends_on": [
+            "PR-0.35.3"
+          ],
+          "owner_host": "any",
+          "est_hours": 12,
+          "success_criteria": [
+            "planted-notch fixture: SF within 5% of analytic min in <=200 evals, >=95% of 20 seeds"
+          ],
+          "tests_fixtures": [
+            "planted-weakness fixture"
+          ],
+          "risk": "low"
+        },
+        {
+          "id": "PR-0.36.2",
+          "title": "BO confirmation at T2 + subset simulation P_f with named sampling distribution; basket curation EC-xxxx with provenance",
+          "scope_paths": [
+            "loads/basket/**",
+            "ops/loads/bo_confirm.py"
+          ],
+          "depends_on": [
+            "PR-0.36.1"
+          ],
+          "owner_host": "xbabe2",
+          "est_hours": 12,
+          "success_criteria": [
+            ">=5 validated edge cases",
+            "P_f CoV<=0.3",
+            "basket change bumps RS-id"
+          ],
+          "tests_fixtures": [
+            "basket schema test"
+          ],
+          "risk": "medium"
+        }
+      ]
+    },
+    {
+      "version": "v0.37.0",
+      "title": "Aesthetics + manufacturing",
+      "exit_goal": "Learned preference model; RFQ package",
+      "work_items": [
+        {
+          "id": "PR-0.37.1",
+          "title": "Rename style_conformance_C6; anti-stick-figure gate; EFD descriptors",
+          "scope_paths": [
+            "crates/part-karambit/src/aesthetic.rs"
+          ],
+          "depends_on": [
+            "PR-0.36.2"
+          ],
+          "owner_host": "any",
+          "est_hours": 8,
+          "success_criteria": [
+            "rejects 50/50 stick-figure fixture, <=2% of C.4-C.8 refs"
+          ],
+          "tests_fixtures": [
+            "stick-figure fixture"
+          ],
+          "risk": "low"
+        },
+        {
+          "id": "PR-0.37.2",
+          "title": "Pairwise labeling app (blinded renders) + Bradley-Terry/CNN model",
+          "scope_paths": [
+            "aesthetics/**"
+          ],
+          "depends_on": [
+            "PR-0.37.1"
+          ],
+          "owner_host": "any",
+          "est_hours": 16,
+          "success_criteria": [
+            ">=2000 comparisons, >=15 raters",
+            "held-out rater accuracy >=70%"
+          ],
+          "tests_fixtures": [
+            "rater split manifest"
+          ],
+          "risk": "medium (label supply)"
+        },
+        {
+          "id": "PR-0.37.3",
+          "title": "RFQ package generator (STEP AP242 + PDF drawing with GD&T + spec) and design-patent view renderer",
+          "scope_paths": [
+            "ops/rfq/**",
+            "ops/patent_views/**"
+          ],
+          "depends_on": [
+            "PR-0.37.2"
+          ],
+          "owner_host": "any",
+          "est_hours": 10,
+          "success_criteria": [
+            ">=3 RFQ quotes received; proxy within +/-25% of median"
+          ],
+          "tests_fixtures": [
+            "drawing check"
+          ],
+          "risk": "medium"
+        }
+      ]
+    },
+    {
+      "version": "v0.38.0",
+      "title": "70 g campaign",
+      "exit_goal": "Pareto {mass, SF_min} with error bars; H70 tested",
+      "work_items": [
+        {
+          "id": "PR-0.38.1",
+          "title": "Campaign configs + 3 x 200k-eval runs; G2 implemented alongside G1",
+          "scope_paths": [
+            "campaigns/c70/**",
+            "metrics/global_metric.py"
+          ],
+          "depends_on": [
+            "PR-0.37.3"
+          ],
+          "owner_host": "xbabe2+xbabe3",
+          "est_hours": 12,
+          "success_criteria": [
+            "G2 golden fixtures",
+            "all runs fully replayable; media pack generated <=10 min"
+          ],
+          "tests_fixtures": [
+            "campaign manifests"
+          ],
+          "risk": "high (may falsify H70)"
+        },
+        {
+          "id": "PR-0.38.2",
+          "title": "Finalist T2/T3 + adversarial + DFM + cost; results paper section generated from obs",
+          "scope_paths": [
+            "docs/results/c70.md",
+            "docs/WHITEPAPER.md"
+          ],
+          "depends_on": [
+            "PR-0.38.1"
+          ],
+          "owner_host": "xbabe2",
+          "est_hours": 10,
+          "success_criteria": [
+            ">=1 design <=75 g all RS-v2 gates; stretch <70 g",
+            "or falsification report"
+          ],
+          "tests_fixtures": [
+            "claim checker"
+          ],
+          "risk": "medium"
+        }
+      ]
+    },
+    {
+      "version": "v1.0.0",
+      "title": "Release",
+      "exit_goal": "All §19 gates",
+      "work_items": [
+        {
+          "id": "PR-1.0.1",
+          "title": "Prototype coupons: ring proof 3000 N, twist 1.25x with strain gauge, lateral 260 N; validation report",
+          "scope_paths": [
+            "docs/validation/**"
+          ],
+          "depends_on": [
+            "PR-0.38.2"
+          ],
+          "owner_host": "lab",
+          "est_hours": 20,
+          "success_criteria": [
+            "agreement <=15%",
+            "no permanent set >0.05 mm at proof"
+          ],
+          "tests_fixtures": [
+            "test procedure doc"
+          ],
+          "risk": "high (vendor lead time)"
+        },
+        {
+          "id": "PR-1.0.2",
+          "title": "part-bracket generality demo + v1.0.0 release manifest",
+          "scope_paths": [
+            "crates/part-bracket/**",
+            "docs/RELEASES.md"
+          ],
+          "depends_on": [
+            "PR-1.0.1"
+          ],
+          "owner_host": "any",
+          "est_hours": 10,
+          "success_criteria": [
+            "bracket within 10% of SIMP reference mass",
+            "core has zero karambit imports"
+          ],
+          "tests_fixtures": [
+            "bracket tests"
+          ],
+          "risk": "low"
+        }
+      ]
+    }
+  ],
+  "total_est_hours": 404
+}

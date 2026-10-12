@@ -18,6 +18,9 @@ Rationale: tip and SPG are the two engineering objectives the waves have been fi
 
 **Provisional `G*`:** when no solid tip submodel exists yet, `tip` uses the plate tip-submodel screen SF (`plate_tipsub_screen_sf`, else `twist_tipzone_sf_strict`) and the title shows `G*`.
 
+## Completeness (v0.28.1)
+All five terms are required. Missing, null, boolean, non-numeric, non-finite or out-of-range (aes outside 0..1, mass outside 1..1000 g, negative SF/SPG/seq) inputs make the record **INCOMPLETE**: `G = None`, reasons in `terms['missing']`, plate title `G INCOMPLETE (n missing)`. A missing value is never treated as 0, so deleting an input can never improve G. `G*` (provisional) is independent of completeness. Tests: `metrics/tests/test_global_metric.py`.
+
 ## Plate title contract
 Every wave FEM plate title ends with `| G <g> | <mass> g | jarambit v<VERSION>` (VERSION from `docs/VERSION`).
 Implementation: `metrics/global_metric.py::title_tag`, called in `ops/wave_figures/make_d1_plate.py` (also writes `G`, `G_terms`, `version` into `<wave>_D1_index.json`).
