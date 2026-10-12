@@ -14,3 +14,9 @@ Live screens were not touched (`jarambit_w27d`, `jarambit_w26_resume` running). 
 
 ## Best G per wave (hard PASS)
 w20 0.848 · w21 0.808 · w22 0.885 · w23 0.925 · w24 0.966 · w25 0.952 · w26 pending · w27e 0.977 (provisional, wave in flight)
+
+## v0.27.0 release — 2026-10-12 (author Jepson Taylor)
+- Engineering provisional RETITLED → g3_tip+00_t60_tt3 (G1 0.9805, tip×SPG 6.362, tip SF 1.534, 84.80 g, ring 25.46). g3_tip+00_t60_tt0 = history. NOT promoted.
+- Tag v0.27.0 on branch release/v0.27.0; pack: docs/wave27_diversity/{plates,plates_e,SOLIDS.md,w27_sf.md,w27e_sf.md}; tt3 plate: docs/figures/whitepaper/wave27_g3_tip+00_t60_tt3_W27HARDPASS_SPG4p15_wgt84p8g_D1_FEM_metrics.png
+- PR / merge SHA: recorded in /workspace/xbabe-watch/JARAMBIT_V0270_RELEASE.md (box).
+- Next major (v0.28.0) gated on G1 > 0.9805 hard PASS or ≤82 g @ tip×SPG ≥ 6 hard PASS.
