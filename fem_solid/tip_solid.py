@@ -100,7 +100,7 @@ TT[vol < 0] = TT[vol < 0][:, [0, 2, 1, 3]]
 mesh = MeshTet(pts.T.copy(), TT.T.copy())
 e = ElementVector(ElementTetP2()); ib = Basis(mesh, e, intorder=2)
 lam, mu = lame_parameters(E, NU)
-K = asm(linear_elasticity(lam, mu), ib).tocsr()
+K = None if __import__("os").environ.get("DUMP_ONLY") == "1" else asm(linear_elasticity(lam, mu), ib).tocsr()  # DUMP_ONLY: dolfinx assembles
 print(f"mesh: {len(TT)} P2 tets, {ib.N} dof, assembled {time.time()-t0:.0f}s", flush=True)
 # load: vertices within 2 mm of tip (all layers); min-norm z-forces with sum F=0, sum F*s = T, sum F*q = 0
 loc = ib.doflocs; zd = ib.nodal_dofs[2] if hasattr(ib, "nodal_dofs") else None
@@ -129,6 +129,7 @@ print(f"clamp: {len(fixed_v)} vertices on cut (R_CUT {RC} mm), {len(fixdofs)} do
 if __import__("os").environ.get("DUMP_MESH"):  # PR-0.30.2: hand the exact submodel to fem_solid/cross_check.py (dolfinx)
     np.savez_compressed(__import__("os").environ["DUMP_MESH"], pts=pv, tets=mesh.t.T, fixed_v=fixed_v, edges_fixed=ed[:, both].T, pat=pat, Fz=Fz, tipo=tipo,
                         cutxy=cutxy, sallow=SALLOW, E=E, nu=NU)
+    if __import__("os").environ.get("DUMP_ONLY") == "1": print("DUMP_ONLY: mesh written, skfem solve skipped", flush=True); sys.exit(0)
 Kff = K[free][:, free]; t1 = time.time()
 u = np.zeros(ib.N)
 try:
