@@ -10,3 +10,4 @@
 | `ops/multihost_launch.sh`, `start_*.sh`, `yield_guard.sh` | multihost launch + guards |
 
 Inputs: `out/<run>/` from `cli`. Outputs: `docs/wave*_diversity/plates*/`, `docs/wave_reports/`. Feeds G: plates are where G is computed and printed.
+- `multihost/`: multi-host crescent wave launcher + certification collector (PR-0.30.0b).
