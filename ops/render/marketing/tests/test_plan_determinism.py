@@ -4,6 +4,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -209,6 +211,21 @@ def test_assign_skips_a_yielding_host():
     assert blocked[0]["status"] == "yield"
 
 
+def test_assign_skips_a_drained_host():
+    jobs = [{"status": "pending", "host": None}, {"status": "pending", "host": None}]
+    states = [
+        {"name": "xbabe1", "reachable": True, "yield": False, "drain": True},
+        {"name": "xbabe3", "reachable": True, "yield": False, "drain": False},
+    ]
+    farm.assign_hosts(jobs, states)
+    assert jobs[0]["host"] == "xbabe3"
+    assert jobs[1]["host"] == "xbabe3"
+    only = [{"status": "pending", "host": None}]
+    farm.assign_hosts(only, [states[0]])
+    assert only[0]["status"] == "yield"
+    assert only[0]["host"] is None
+
+
 def test_gpu_lock_is_exclusive():
     first = farm.acquire_gpu_lock("unitgrokplan", blocking=False)
     assert first is not None
@@ -230,6 +247,64 @@ def test_remote_request_keeps_the_schema_and_moves_under_scratch():
     assert updated["regions_path"].endswith("/inputs/regions.json")
     assert updated["out_dir"].startswith("/home/ubuntu/jarambit_render_scratch/abc/shots/")
     assert set(updated["shot"]["frames"][0]) == {"index", "az", "el", "distance_m", "target", "seed"}
+
+
+def test_launch_shell_starts_a_new_session(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_run(cmd, check, capture_output, text):
+        seen["cmd"] = cmd
+        return type("P", (), {"stdout": "999\n", "returncode": 0})()
+
+    monkeypatch.setattr(farm.subprocess, "run", fake_run)
+    pid = farm.launch_shell(["nice", "-n", "10", "blender"], str(tmp_path / "shard.log"), ssh_host="xbabe1")
+    assert pid == "999"
+    script = seen["cmd"][-1]
+    assert script.startswith("setsid nohup ")
+    assert "< /dev/null" in script
+    assert seen["cmd"][0] == "ssh"
+
+
+def test_remote_sync_ships_signature_brand(tmp_path, monkeypatch):
+    code = tmp_path / "ops" / "render" / "marketing"
+    code.mkdir(parents=True)
+    brand = tmp_path / "ops" / "render" / "brand" / "signature"
+    brand.mkdir(parents=True)
+    (brand / "variants.json").write_text("{}\n")
+    hdri = tmp_path / "studio.hdr"
+    hdri.write_bytes(b"hdr")
+    runs = []
+
+    def fake_ssh(*_args, **_kwargs):
+        return type("P", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+    def fake_run(argv, check=False):
+        runs.append(tuple(argv))
+        return type("P", (), {"returncode": 0})()
+
+    monkeypatch.setattr(farm, "_ssh", fake_ssh)
+    monkeypatch.setattr(farm, "push_files", lambda *_a, **_k: None)
+    monkeypatch.setattr(farm.subprocess, "run", fake_run)
+    farm.sync_render_tree(
+        "xbabe1", str(code), "/scratch/plan",
+        str(tmp_path / "bundle.json"), str(tmp_path / "mesh.npz"),
+        str(tmp_path / "regions.json"), str(hdri),
+    )
+    brand_rsync = [argv for argv in runs if argv[0] == "rsync" and argv[-1].endswith("/brand/")]
+    assert brand_rsync == [(
+        "rsync", "-a", str(tmp_path / "ops" / "render" / "brand") + "/",
+        "xbabe1:/scratch/plan/brand/",
+    )]
+    code_rsync = [argv for argv in runs if argv[0] == "rsync" and "--delete" in argv]
+    assert code_rsync and code_rsync[0][-1] == "xbabe1:/scratch/plan/code/"
+    bare = tmp_path / "bare_marketing"
+    bare.mkdir()
+    with pytest.raises(OSError, match="signature assets missing"):
+        farm.sync_render_tree(
+            "xbabe1", str(bare), "/scratch/plan",
+            str(tmp_path / "bundle.json"), str(tmp_path / "mesh.npz"),
+            str(tmp_path / "regions.json"), str(hdri),
+        )
 
 
 def test_remote_stage_keeps_the_worker_filename(tmp_path):
@@ -275,6 +350,172 @@ def test_host_slot_stays_closed_while_blender_is_up():
     assert farm.host_slot_free(state, ["xbabe3"], blender_present=False) is False
     yielding = {"name": "xbabe2", "reachable": True, "yield": True}
     assert farm.host_slot_free(yielding, [], blender_present=False) is False
+    drained = {"name": "xbabe1", "reachable": True, "yield": False, "drain": True}
+    assert farm.host_slot_free(drained, [], blender_present=False) is False
+
+
+def _pending_shards(tmp_path, count):
+    jobs = []
+    for index in range(count):
+        request = tmp_path / f"turntable_final_4k_{index:03d}.json"
+        request.write_text("{}\n")
+        jobs.append({
+            "status": "pending",
+            "host": None,
+            "shot_id": "turntable",
+            "profile": "final_4k",
+            "shard": index,
+            "frames": [index],
+            "request_path": str(request),
+            "out_dir": str(tmp_path),
+        })
+    return jobs
+
+
+def _silence_render_side_effects(monkeypatch):
+    calls = {"launch": [], "ssh": [], "push": [], "pull": [], "disk": []}
+
+    def launch(*_a, **_k):
+        calls["launch"].append(1)
+        raise AssertionError("launch_shell on a drained host")
+
+    def ssh(*_a, **_k):
+        calls["ssh"].append(1)
+        raise AssertionError("ssh on a drained host")
+
+    def push(*_a, **_k):
+        calls["push"].append(1)
+        raise AssertionError("staging push on a drained host")
+
+    def pull(*_a, **_k):
+        calls["pull"].append(1)
+        raise AssertionError("pull on a drained host")
+
+    def disk(*_a, **_k):
+        calls["disk"].append(1)
+        raise AssertionError("disk probe on a drained host")
+
+    monkeypatch.setattr(farm, "launch_shell", launch)
+    monkeypatch.setattr(farm, "_ssh", ssh)
+    monkeypatch.setattr(farm, "push_files", push)
+    monkeypatch.setattr(farm, "pull_dir", pull)
+    monkeypatch.setattr(farm, "remote_disk_ok", disk)
+    return calls
+
+
+def test_render_jobs_does_not_launch_on_a_drained_host(tmp_path, monkeypatch):
+    jobs = _pending_shards(tmp_path, 2)
+    monkeypatch.setattr(farm, "prepare_jobs", lambda *_a, **_k: jobs)
+    calls = _silence_render_side_effects(monkeypatch)
+    drained = {
+        "name": "xbabe1", "reachable": True, "yield": False, "ssh": "xbabe1",
+        "drain": True, "gpu_uuid": "GPU-1",
+    }
+    monkeypatch.setattr(farm, "probe_host_gpu", lambda _host: dict(drained))
+    worker = tmp_path / "worker.py"
+    blender = tmp_path / "blender"
+    worker.write_text("")
+    blender.write_text("")
+    summary = farm.render_jobs(
+        {"plan_key": "k"}, str(tmp_path), "", "", str(blender), str(worker),
+        hosts=[{"name": "xbabe1", "ssh": "xbabe1", "drain": True}],
+        execute=True,
+    )
+    assert calls == {"launch": [], "ssh": [], "push": [], "pull": [], "disk": []}
+    assert summary["launched"] == 0
+    assert summary["queued"] == 0
+    assert all(job["status"] == "yield" and job["host"] is None for job in jobs)
+    assert not (tmp_path / "remote_requests").exists()
+
+
+def test_render_jobs_refuses_a_preassigned_drained_host(tmp_path, monkeypatch):
+    """The execute loop must refuse drain even when assignment already named the host."""
+    jobs = _pending_shards(tmp_path, 2)
+    monkeypatch.setattr(farm, "prepare_jobs", lambda *_a, **_k: jobs)
+    calls = _silence_render_side_effects(monkeypatch)
+
+    def probe(host):
+        return {"name": host["name"], "reachable": True, "yield": False, "ssh": host.get("ssh")}
+
+    def force_assign(items, states):
+        assert states[0]["drain"] is True
+        for job in items:
+            if job["status"] == "pending":
+                job["host"] = "xbabe1"
+        return items
+
+    monkeypatch.setattr(farm, "probe_host_gpu", probe)
+    monkeypatch.setattr(farm, "assign_hosts", force_assign)
+    worker = tmp_path / "worker.py"
+    blender = tmp_path / "blender"
+    worker.write_text("")
+    blender.write_text("")
+    summary = farm.render_jobs(
+        {"plan_key": "k"}, str(tmp_path), "", "", str(blender), str(worker),
+        hosts=[{"name": "xbabe1", "ssh": "xbabe1", "drain": True}],
+        execute=True,
+    )
+    assert calls == {"launch": [], "ssh": [], "push": [], "pull": [], "disk": []}
+    assert summary["launched"] == 0
+    assert summary["queued"] == 0
+    assert all(job["host"] is None and job["status"] == "pending" for job in jobs)
+
+
+def test_render_jobs_dry_run_keeps_drain(tmp_path, monkeypatch):
+    jobs = _pending_shards(tmp_path, 1)
+    monkeypatch.setattr(farm, "prepare_jobs", lambda *_a, **_k: jobs)
+    seen = {}
+    real_assign = farm.assign_hosts
+
+    def capture(items, states):
+        seen["states"] = states
+        return real_assign(items, states)
+
+    monkeypatch.setattr(farm, "assign_hosts", capture)
+    summary = farm.render_jobs(
+        {"plan_key": "k"}, str(tmp_path), "", "", "/blender", "/worker",
+        hosts=[
+            {"name": "xbabe1", "ssh": "xbabe1", "drain": True},
+            {"name": "xbabe3", "ssh": "xbabe3"},
+        ],
+        execute=False,
+    )
+    assert seen["states"][0]["drain"] is True
+    assert seen["states"][1]["drain"] is False
+    assert jobs[0]["host"] == "xbabe3"
+    assert summary["launched"] == 0
+
+
+def test_supervise_adopts_a_running_shard_on_a_drained_host(tmp_path, monkeypatch):
+    jobs = _pending_shards(tmp_path, 2)
+    monkeypatch.setattr(farm, "prepare_jobs", lambda *_a, **_k: jobs)
+    launches = []
+    monkeypatch.setattr(
+        farm, "launch_prepared_shard",
+        lambda *_a, **_k: launches.append(1) or (_ for _ in ()).throw(AssertionError("new shard")),
+    )
+    monkeypatch.setattr(
+        farm, "blender_processes",
+        lambda _ssh: [("777777", "turntable_final_4k_000.json")],
+    )
+    drained = {
+        "name": "xbabe1", "ssh": "xbabe1", "reachable": True, "yield": False,
+        "drain": True, "gpu_uuid": "GPU-1",
+    }
+    summary = farm.supervise(
+        {"plan_key": "k", "shots": []}, str(tmp_path), "bundle.json", "regions.json", "mesh.npz",
+        "/blender", "/worker.py",
+        [{"name": "xbabe1", "ssh": "xbabe1", "drain": True}],
+        str(tmp_path), "studio.hdr", "finish.py",
+        max_passes=1, probe=lambda _host: dict(drained), sleep=lambda _s: None,
+    )
+    assert launches == []
+    assert jobs[0]["adopted"] is True
+    assert jobs[0]["pid"] == "777777"
+    assert jobs[0]["status"] == "launched"
+    assert jobs[1]["status"] == "pending"
+    assert summary["launched"] == 1
+    assert summary["pending"] == 1
 
 
 def test_qa_reads_frame_seconds_and_framing():
