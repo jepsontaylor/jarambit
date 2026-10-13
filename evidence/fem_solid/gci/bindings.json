@@ -1,0 +1,11 @@
+{
+ "_note": "Solid tip-submodel GCI evidence bound to the exact genome it was run on (PR-0.32.0b2, issue #40). g3_tip+00_t60_tt3: genome = evidence/wave27/g3_tip+00_t60_tt3_D1.json, the source of the solid study mesh. w271b_11772: the GCI study was run from xbabe3 fs4/d1/w271b_11772_D1.json, whose 129 genome fields equal evidence/rs_v2/genomes/w271b_11772_genome.csv exactly (checked 2026-10-13). Paths relative to the repo root. rs-v2-eval accepts the SF only if the evaluated genome equals the bound genome.",
+ "g3_tip+00_t60_tt3": {
+  "gci": "evidence/fem_solid/gci/g3_tip+00_t60_tt3_gci.json",
+  "genome": "evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv"
+ },
+ "w271b_11772": {
+  "gci": "evidence/fem_solid/gci/w271b_11772_gci.json",
+  "genome": "evidence/rs_v2/genomes/w271b_11772_genome.csv"
+ }
+}

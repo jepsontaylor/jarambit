@@ -31,6 +31,10 @@ jobs:
         run: python3 ops/ci/verify_media.py
       - name: README generated blocks are current (issue #35)
         run: python3 ops/ci/gen_readme.py --check
+      - name: WHITEPAPER generated blocks + component figures are current (PR-0.32.0c)
+        run: python3 ops/ci/gen_whitepaper.py --check
+      - name: Patent figure set matches its manifest (PR-0.32.0d)
+        run: python3 ops/render/patent/figures.py --verify docs/patent/figures/figures.json
       - name: Figure manifests match inputs (PR-0.29.4)
         run: python3 ops/ci/verify_figures.py
       - name: Figure helper tests (PR-0.29.4)

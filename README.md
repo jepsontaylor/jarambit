@@ -34,6 +34,8 @@ Verdicts are scoped to a requirement set (`requirements/RS-karambit-v1.toml`): *
 *Top: faceted STL preview, not a validated STEP. The wave27 STEP imports as an unsewable shell, so the whole-part solid mesh uses the STL twin (84.86 g vs 84.80 g). Colour = position along the blade. Bottom: **historical** wave27 D1 plate (RS-karambit-v1 W27 screen scope; it labels seq SOFT, which RS-karambit-v2 makes HARD). Solid-tip SF 1.534 at the production mesh.*
 <!-- GEN:FIGS:END -->
 
+> **SWITCHBACK Rev C.9.2 (rc2)** — [`designs/switchback/C9.2/`](designs/switchback/C9.2/README.md): B-rep STEP, drawings and FEM plates from the hiking-karambit study. C.9.2 is a **release candidate, not the design of record**: its V1–V8 gates are the C.9 study set (not an RS-karambit-v2 verdict from this repo), the lateral-pry margin is below the 5 % promotion rule, and nothing is machined or tested.
+
 </div>
 
 <!-- GEN:RELEASE:BEGIN -->
@@ -91,16 +93,16 @@ RS-karambit-v2 structural cases — first-yield safety factors (L7: fatigue/endu
 | L7 fatigue, lateral 0..180 N, Marin + Goodman | 0.612 / 0.724 / 0.807 | 0 / 40 |
 | all human_max cases | — | **0 / 40** |
 
-### RS-karambit-v2 hard-gate verdicts — named designs (`evidence/rs_v2/*.json`, `jarambit rs-v2-eval`, certification tier)
+### RS-karambit-v2 hard-gate verdicts — named designs (`evidence/rs_v2/*.json`, `jarambit rs-v2-eval`: certification + strict 0.0625 mm² + solid tip evidence)
 
-| design | mass g | plate screen (v1 floors, gates, twist) | seq ≥ 1.2 | human_max | L7 fatigue | all hard gates | governing shortfalls |
-|---|---|---|---|---|---|---|---|
-| `g3_tip+00_t60_tt3` | 84.80 | **no** | **no** | **no** | **no** | **no** | gate: Holder envelope: best oriented box 200.9 x 100.4 > 200 x 100, seq 0.959, hm twist 0.132, hm tip 0.565, hm spine 0.419, fatigue 0.982, bearing 5.9 mm |
-| `w271b_11772` | 78.55 | **no** | **no** | **no** | **no** | **no** | tip-zone twist SF 0.673, seq 0.882, hm twist 0.076, hm tip 0.597, hm spine 0.418, fatigue 0.856, bearing 5.1 mm |
-| `w271b_11860` | 73.33 | **no** | **no** | **no** | **no** | **no** | tip-zone twist SF 0.668, seq 0.892, hm twist 0.075, hm tip 0.528, hm spine 0.384, fatigue 0.756, bearing 4.7 mm |
-| `w271c_11522` | 79.96 | **no** | **no** | **no** | **no** | **no** | tip-zone twist SF 0.859, seq 0.778, hm twist 0.097, hm tip 0.574, hm spine 0.419, fatigue 0.767, bearing 4.8 mm |
+| design | mass g | screen (v1: gates, 828 floors, twist body + strict tip-sub, solid tip) | strict hunter lateral | seq ≥ 1.2 | human_max | L7 fatigue | all hard gates | governing shortfalls / unverified |
+|---|---|---|---|---|---|---|---|---|
+| `g3_tip+00_t60_tt3` | 84.80 | **no** | yes | **no** | **no** | **no** | **no** | gate: Holder envelope: best oriented box 200.9 x 100.4 > 200 x 100, seq 0.959, hm twist 0.132, hm tip 0.565, hm spine 0.419, fatigue 0.982, bearing 5.9 mm |
+| `w271b_11772` | 78.55 | **no** | yes | **no** | **no** | **no** | **no** | strict tip-sub twist SF 0.668, solid tip SF 0.834, seq 0.882, hm twist 0.076, hm tip 0.597, hm spine 0.418, fatigue 0.856, bearing 5.1 mm |
+| `w271b_11860` | 73.33 | **no** | yes | **no** | **no** | **no** | **no** | strict tip-sub twist SF 0.716, seq 0.892, hm twist 0.075, hm tip 0.528, hm spine 0.384, fatigue 0.756, bearing 4.7 mm, unverified: solid_tip_sf |
+| `w271c_11522` | 79.96 | **no** | yes | **no** | **no** | **no** | **no** | strict tip-sub twist SF 0.842, seq 0.778, hm twist 0.097, hm tip 0.574, hm spine 0.419, fatigue 0.767, bearing 4.8 mm, unverified: solid_tip_sf |
 
-**0 of 4 named designs pass every RS-karambit-v2 hard gate.** No design is promoted.
+**0 of 4 named designs pass every RS-karambit-v2 hard gate.** An unverified gate (no evidence) never counts as met. No design is promoted.
 
 ### Calibration and solver speed
 

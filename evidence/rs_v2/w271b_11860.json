@@ -3,6 +3,16 @@
   "all_hard": false,
   "fat_sf": 0.7559942103507366,
   "floors_ok": true,
+  "gates": {
+    "aesthetic_and_geometric": "pass",
+    "fatigue": "fail",
+    "floors_828_joint": "pass",
+    "human_max": "fail",
+    "seq_hard": "fail",
+    "solid_tip_sf": "unverified",
+    "strict_hunter_lateral": "pass",
+    "twist_floor_body_and_tipsub_strict": "fail"
+  },
   "genome": "evidence/rs_v2/genomes/w271b_11860_genome.csv",
   "groups": {
     "fatigue": false,
@@ -21,10 +31,19 @@
   "requirement_set": "RS-karambit-v2",
   "ring_band_mm": 5.202806509872392,
   "ring_bearing_w_mm": 4.747087001800537,
-  "ring_rob_n": 12880.024538819525,
+  "ring_rob_n": 12880.024538819793,
+  "screen": "fail",
   "seq_ratio": 0.8917967778864481,
+  "solid_tip_note": "bound by evidence/fem_solid/gci/bindings.json: identical genome + design label required (finest mesh SF_nodal_max); absent or mismatched = unverified",
+  "solid_tip_sf": null,
+  "solid_tip_source": null,
+  "strict_lat_rob_0p0625_n": 264.4539739781605,
   "t_mm": 5.6,
-  "tier": "T2 certification (fem::certify)",
+  "tier": "T2 certification (fem::certify) + strict 0.0625 mm^2 + solid tip evidence",
   "twist_body_sf": 2.904662916728649,
-  "twist_tipzone_sf": 0.6676857913836441
+  "twist_tipzone_sf": 0.6676857913836441,
+  "twist_tipzone_sf_strict": 0.715854355826904,
+  "unverified": [
+    "solid_tip_sf"
+  ]
 }
