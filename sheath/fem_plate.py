@@ -17,13 +17,13 @@ def mesh_polygon(poly, max_area=0.6, refine_at=None, r_ref=4.0, a_ref=0.05):
     verts, segs = list(ext), [[i, (i + 1) % n] for i in range(n)]
     A = dict(vertices=np.array(verts), segments=np.array(segs))
     if refine_at is not None:
-        B = tr.triangulate(A, "pq30a%g" % max_area)
-        # second pass: refine near the bump
+        B = tr.triangulate(A, "pq20a%g" % max_area)
+        # second pass: refine near the bump (q20: Triangle terminates for min angle <= 20.7 deg; q30 looped on the c_edge 1.3 cavity)
         B = tr.triangulate(dict(vertices=B["vertices"], segments=B.get("segments", A["segments"]), triangles=B["triangles"],
                                 triangle_max_area=np.array([a_ref if np.hypot(*(B["vertices"][t].mean(0) - refine_at)) < r_ref else max_area
-                                                            for t in B["triangles"]])), "rpq30a")
+                                                            for t in B["triangles"]])), "rpq20a")
     else:
-        B = tr.triangulate(A, "pq30a%g" % max_area)
+        B = tr.triangulate(A, "pq20a%g" % max_area)
     return MeshTri(B["vertices"].T.copy(), B["triangles"].T.copy())
 
 

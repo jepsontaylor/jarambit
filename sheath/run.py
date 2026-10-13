@@ -92,7 +92,17 @@ def force_curve(t_track, arc, k, p, mat, t_gap_knife, mu=None):
     return F, i, P
 
 
+def _stage(name):
+    import resource
+    print("[stage] %s t=%.0fs maxrss=%.1fGB" % (name, time.time() - _T0, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6), file=sys.stderr, flush=True)
+
+
+_T0 = time.time()
+
+
 def main():
+    if os.environ.get("SHEATH_TB_AFTER"):
+        import faulthandler; faulthandler.dump_traceback_later(float(os.environ["SHEATH_TB_AFTER"]), repeat=True)
     ap = argparse.ArgumentParser()
     ap.add_argument("--step", required=True); ap.add_argument("--stl", required=True); ap.add_argument("--out", required=True)
     ap.add_argument("--workers", type=int, default=32); ap.add_argument("--mc", type=int, default=20000)
@@ -110,6 +120,7 @@ def main():
     mat = M.MATERIALS[base.material]
     sharp_pts = np.vstack([np.array(r["pts"]) for r in iface["sharp_regions"]])
     tip_xy = np.asarray(iface["tip"])
+    _stage("path_search")
     ranked, ncand = search_path(K, base, a.workers, sharp_pts)
     if not ranked:
         json.dump({"status": "path_infeasible", "n_candidates": ncand}, open(os.path.join(a.out, "metrics.json"), "w")); return
@@ -137,6 +148,7 @@ def main():
                 C0 = C0.difference(gb["pads"]).buffer(0)
                 C0 = C0 if C0.geom_type == "Polygon" else max(C0.geoms, key=lambda x: x.area)
         g["cavity"] = C0; g["outline"] = C0.buffer(p.rim, join_style=1).intersection(g["D"])
+    _stage("edge_margins")
     min_clear, rim_min = G.edge_margins(g, sharp_pts, p)
     nvec, mvec = g["n"], g["m"]
     seated_sharp = [q for q in sharp_pts if g["D"].contains(Point(q))]
@@ -171,6 +183,7 @@ def main():
            "tessellation_error_mm": iface.get("tessellation_error_mm"), "min_clear_nominal_mm": g.get("min_clear_nominal"),
            "wobble": {"dir_deg": p.wobble_dir_deg, "rot_deg": p.wobble_rot_deg, "ramp_mm": p.wobble_ramp}, "motion_bound_mm": g["motion_bound_mm"]}
     # --- containment: positive stop, tip reserve, first-contact screen, strength screens
+    _stage("containment")
     tr = G.tip_reserve(g, sharp_pts, tip_xy)
     land_all = np.vstack(bumper + ([np.array(g["stop_land_pts"])] if g["stop_land_pts"] else [])) if (bumper or g["stop_land_pts"]) else np.empty((0, 2))
     det0 = None
@@ -271,6 +284,7 @@ def main():
                     "p_new": float(np.mean((Fnew > W.lo_new) & (Fnew < W.hi_new))), "Fmc": Fmc}
 
         # --- retention design search (cheap, analytic k): tab length, undercut, return angle, wall
+        _stage("retention_search")
         best = None; nsearch = 0
         import itertools
         SEARCH = {"wall": (1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8), "tab_L": tuple(np.arange(6.0, 26.01, 1.0)),
@@ -287,6 +301,7 @@ def main():
                         key = (f["score"], e["p_life"], e["p_new"], -mg)
                         if best is None or key > best[0]: best = (key, q, e, mg)
         p = best[1]
+        _stage("tab_fem")
         kf, ndf = tab_k_fem(p); kf2, ndf2 = tab_k_fem(p, 0.05)
         e = evaluate(p, mc=MCf)
         m_g = best[3] - p.mount_mass_g
@@ -299,6 +314,7 @@ def main():
                                      - G.collar_mass_delta_g(g, p, bump, mat.rho_g_cm3)}
         res["search_bound_hit"] = at_bound
         res.update({"params": asdict(p), "shell_mass_g": m_g, "mass_g": best[3], "retention_search_n": nsearch})
+        _stage("track_profile")
         S, arc, pts, tt = track_profile(mesh, p, g, bump, t_gap_knife)
         F, inter, P = force_curve(tt + (t_gap_knife - t_local) * 0, arc, e["k"], p, mat, t_gap_knife)
         sh = LineString(sharp_pts) if len(sharp_pts) > 1 else None
@@ -322,6 +338,7 @@ def main():
         res["p_in_life_window"] = e["p_life"]; res["p_in_new_window"] = e["p_new"]
         np.savetxt(os.path.join(a.out, "draw_curve.csv"), np.c_[arc, F, inter, tt], delimiter=",",
                    header="grip_disp_mm,axial_force_n,interference_per_side_mm,knife_t_under_bump_mm", comments="")
+    _stage("fitness")
     res["fitness"] = M.fitness(res)
     res["verdicts"] = {"geometry": "PASS" if g["path_feasible"] else "FAIL",
                        "withdrawal_clearance": "PASS" if min_clear >= 0.3 else "FAIL",
