@@ -162,9 +162,10 @@ fn run_b(p: &Pheno, max_area: f64, keep: bool, bias_lat: f64, bias_ring: f64) ->
     let mut f_lat = vec![0.0; n * 5]; let mut f_tw = vec![0.0; n * 5]; let mut f_cp = vec![0.0; n * 5];
     for &i in &patch { f_lat[i * 5 + 2] = 1.0 / k; f_tw[i * 5 + 3] = nvec.0 / k; f_tw[i * 5 + 4] = nvec.1 / k;
         f_cp[i * 5 + 3] = dvec.0 / k; f_cp[i * 5 + 4] = dvec.1 / k; }
-    let (_, lat) = plate.stresses(&plate.solve(&sys, &f_lat));
-    let (_, twist) = plate.stresses(&plate.solve(&sys, &f_tw));
-    let (_, couple) = plate.stresses(&plate.solve(&sys, &f_cp));
+    let us = plate.solve_many(&sys, &[&f_lat, &f_tw, &f_cp]);
+    let (_, lat) = plate.stresses(&us[0]);
+    let (_, twist) = plate.stresses(&us[1]);
+    let (_, couple) = plate.stresses(&us[2]);
     drop(sys);
     let peak = |v: &[f64], ex: &[bool]| { let mut b = (0.0, 0usize); for (e, &s) in v.iter().enumerate() { if !ex[e] && s.is_finite() && s > b.0 { b = (s, e); } } b };
     let (sl, el) = peak(&lat, &excl); let (st, et_e) = peak(&twist, &excl); let (sc, _) = peak(&couple, &excl);
