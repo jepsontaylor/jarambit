@@ -68,3 +68,11 @@ class Units(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_ccx_tab_rotation_correction_lowers_bayer():
+    from sheath.ccx_tab import build_deck, analytic
+    d, m = build_deck(L=16, b=7, t=2.0, h=1.508, a_out=35, a_in=30, mu=0.3, level=3)
+    a = analytic(m)
+    assert "SURFACE TO SURFACE" in d and a["W_bayer_rot"] < a["W_bayer"]
+    assert 5.0 < a["theta_tip_deg"] < 12.0

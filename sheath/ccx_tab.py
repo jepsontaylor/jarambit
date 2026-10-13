@@ -44,7 +44,7 @@ def quad4_block(x_of, y_of, nu, nv, nodes):
 
 
 def build_deck(L=13.0, b=9.0, t=2.0, h=1.3, c_face=0.25, a_in=30.0, a_out=25.0, wb=0.6, mu=0.30, E=1800.0, nu=0.38,
-               level=6, travel=None, chamfer=0.15, K_pen=None):
+               level=6, travel=None, chamfer=0.3, K_pen=None, ctype="S2S", inc=(0.002, 0.005), fillet_n=3):
     nodes = {}
     xb = min(L - 2.0, L - wb / 2 - h / math.tan(math.radians(a_in)) - 0.2)   # bump must sit on the tab
     xl_top = xb - wb / 2 - h / math.tan(math.radians(a_out))
@@ -78,9 +78,12 @@ def build_deck(L=13.0, b=9.0, t=2.0, h=1.3, c_face=0.25, a_in=30.0, a_out=25.0, 
     kel = quad4_block(lambda u, v: kx0 + u * (xc - kx0), lambda u, v: yk - kd + v * kd, nkx, nky, kn)
     off = len(nodes)
     inv = {v: k for k, v in nodes.items()}; kinv = {v + off: k for k, v in kn.items()}
+    # round the knife's hole-wall corner (radius `chamfer`): nodes within the radius on the top face / wall are projected
+    # onto the fillet arc so the contact sees a smooth convex slave (a sharp corner chatters between master facets)
+    rc = chamfer; cx, cy = xc - rc, yk - rc
     for i_, (x, y) in list(kinv.items()):
-        if abs(x - xc) < 1e-6 and abs(y - yk) < 1e-6:
-            kinv[i_] = (x - chamfer, y)
+        if x > cx - 1e-9 and y > cy - 1e-9 and (abs(y - yk) < 1e-9 or abs(x - xc) < 1e-9):
+            ang = math.atan2(y - cy, x - cx); kinv[i_] = (cx + rc * math.cos(ang), cy + rc * math.sin(ang))
     allxy = dict(inv); allxy.update(kinv)
     NN = max(allxy)
     lines = ["*HEADING", "jarambit sheath click-tab release (uncalibrated_fea)", "*NODE"]
@@ -109,20 +112,27 @@ def build_deck(L=13.0, b=9.0, t=2.0, h=1.3, c_face=0.25, a_in=30.0, a_out=25.0, 
     for k, lab in faces_m:
         lines.append("%d, %s" % (k + 1, lab))
     K_pen = K_pen or 5.0 * E
-    lines += ["*SURFACE, NAME=SLAVE, TYPE=NODE", "SLV",
+    if ctype == "S2S":
+        lines.append("*SURFACE, NAME=SLAVE, TYPE=ELEMENT")
+        for e, i, j in ek:
+            if j == nky - 1: lines.append("%d, S5" % e)
+            if i == nkx - 1: lines.append("%d, S4" % e)
+    else:
+        lines += ["*SURFACE, NAME=SLAVE, TYPE=NODE", "SLV"]
+    lines += [
               "*MATERIAL, NAME=PA12", "*ELASTIC", "%g, %g" % (E, nu),
               "*MATERIAL, NAME=TI", "*ELASTIC", "114000, 0.34",
               "*SOLID SECTION, ELSET=TAB, MATERIAL=PA12", "*SOLID SECTION, ELSET=KNIFE, MATERIAL=TI",
               "*SURFACE INTERACTION, NAME=SI", "*SURFACE BEHAVIOR, PRESSURE-OVERCLOSURE=LINEAR", "%g" % K_pen] + \
              (["*FRICTION", "%g, %g" % (mu, K_pen)] if mu > 0 else []) + \
-             ["*CONTACT PAIR, INTERACTION=SI, TYPE=NODE TO SURFACE", "SLAVE, MASTER"]
+             ["*CONTACT PAIR, INTERACTION=SI, TYPE=%s" % ("SURFACE TO SURFACE" if ctype == "S2S" else "NODE TO SURFACE"), "SLAVE, MASTER"]
     travel = travel or (h / math.tan(math.radians(a_out)) + wb + 1.5)
-    lines += ["*STEP, NLGEOM, INC=4000", "*STATIC", "0.005, 1.0, 1e-7, 0.01",
+    lines += ["*STEP, NLGEOM, INC=4000", "*STATIC", "%g, 1.0, 1e-8, %g" % inc,
               "*BOUNDARY", "ALLN, 3, 3, 0", "ROOT, 1, 2, 0", "KDRV, 1, 1, %g" % travel, "KDRV, 2, 2, 0",
               "*NODE PRINT, NSET=KDRV, TOTALS=ONLY", "RF", "*END STEP"]
     meta = {"L": L, "b": b, "t": t, "h": h, "c_face": c_face, "a_in": a_in, "a_out": a_out, "wb": wb, "mu": mu, "E": E, "nu": nu,
             "level": level, "travel": travel, "n_nodes": 2 * len(allxy), "n_el": eid - 1, "xb": xb, "K_pen": K_pen,
-            "element": "C3D8I plane-strain slab"}
+            "element": "C3D8I plane-strain slab", "ctype": ctype, "fillet_r": chamfer}
     return "\n".join(lines) + "\n", meta
 
 
@@ -140,10 +150,15 @@ def analytic(meta):
     i = meta["h"] - meta["c_face"]
     ta = math.tan(math.radians(meta["a_out"])); mu = meta["mu"]
     P = k * i
-    return {"k_beam": k, "P": P, "W_bayer": P * (mu + ta) / (1 - mu * ta)}
+    # Bayer formula assumes the ramp keeps its as-moulded angle; the tab tip rotates by theta = 1.5 i / a (cantilever end
+    # slope) while it is lifted, so the effective release angle at peak deflection is alpha - theta (Bayer/Covestro snap-fit
+    # guide notes the angle change of long beams; quantified here, checked against ccx)
+    th = 1.5 * i / a; tr = math.tan(math.radians(meta["a_out"]) - th)
+    return {"k_beam": k, "P": P, "W_bayer": P * (mu + ta) / (1 - mu * ta), "theta_tip_deg": math.degrees(th),
+            "W_bayer_rot": P * (mu + tr) / (1 - mu * tr)}
 
 
-def run(out, levels=(4, 6, 9), ccx="ccx", **kw):
+def run(out, levels=(3, 4, 6, 8), ccx="ccx", **kw):
     os.makedirs(out, exist_ok=True)
     res = {"evidence_level": "uncalibrated_fea", "solver": None, "levels": []}
     try:
@@ -171,16 +186,17 @@ def run(out, levels=(4, 6, 9), ccx="ccx", **kw):
     if len(pk) >= 2:
         res["conv_rel_last2"] = abs(pk[-1] / pk[-2] - 1)
         res["ccx_over_bayer"] = pk[-1] / an["W_bayer"]
+        res["ccx_over_bayer_rot"] = pk[-1] / an["W_bayer_rot"]
     json.dump(res, open(os.path.join(out, "ccx_tab.json"), "w"), indent=1, default=float)
     return res
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", required=True); ap.add_argument("--levels", default="4,6,9")
+    ap.add_argument("--out", required=True); ap.add_argument("--levels", default="3,4,6,8")
     ap.add_argument("--params", default=None, help="json of build_deck kwargs (e.g. from metrics.json params)")
     a = ap.parse_args()
     kw = json.loads(a.params) if a.params else {}
     r = run(a.out, tuple(int(x) for x in a.levels.split(",")), **kw)
-    print(json.dumps({k: r.get(k) for k in ("solver", "analytic", "conv_rel_last2", "ccx_over_bayer")}, indent=1, default=float))
+    print(json.dumps({k: r.get(k) for k in ("solver", "analytic", "conv_rel_last2", "ccx_over_bayer", "ccx_over_bayer_rot")}, indent=1, default=float))
     for l in r["levels"]: print(l["level"], l.get("peak_n_per_tab"), l.get("completed"), l.get("n_inc"), l["ccx_rc"])
