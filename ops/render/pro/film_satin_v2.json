@@ -1,0 +1,548 @@
+{
+ "schema": "jarambit.render.pro.film.v1",
+ "title": "SWITCHBACK C.10a - LOOK AGAIN v2 (ti_satin_blue): macro scans + data turntable",
+ "fps": 30,
+ "note": "owner 10:45: signature close-ups removed (S02/S05); macro scans before the data turntable; one continuous linear 3x360 deg spin across the V3/V6/V7 data views (photoreal / solver mesh / von Mises cross-fades are composited from registered passes); sig_side auto = signature QA wherever the mark is presented to camera",
+ "science_range": [
+  426,
+  1326
+ ],
+ "film_lights": [
+  {
+   "name": "sci_rim_L",
+   "type": "AREA",
+   "size_D": [
+    0.8,
+    0.5
+   ],
+   "az": 150,
+   "el": 34,
+   "dist_D": 2.6,
+   "power_W": 9.0,
+   "kelvin": 7200,
+   "spread_deg": 45
+  },
+  {
+   "name": "sci_rim_R",
+   "type": "AREA",
+   "size_D": [
+    0.8,
+    0.5
+   ],
+   "az": -140,
+   "el": 38,
+   "dist_D": 2.6,
+   "power_W": 7.0,
+   "kelvin": 6500,
+   "spread_deg": 45
+  },
+  {
+   "name": "sci_top_kick",
+   "type": "AREA",
+   "size_D": [
+    0.4,
+    0.4
+   ],
+   "az": 30,
+   "el": 64,
+   "dist_D": 2.2,
+   "power_W": 4.0,
+   "kelvin": 6000,
+   "spread_deg": 35
+  }
+ ],
+ "shots": [
+  {
+   "name": "S01_whole_object",
+   "frames": [
+    0,
+    72
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 8,
+    "sig_side": "front"
+   },
+   "start": {
+    "az": -20,
+    "el": 6.0,
+    "fill": 0.8,
+    "light_rot_deg": 0
+   },
+   "end": {
+    "az": -20,
+    "el": 6.0,
+    "fill": 0.8,
+    "light_rot_deg": 6
+   }
+  },
+  {
+   "name": "M1_serration_scan",
+   "frames": [
+    72,
+    168
+   ],
+   "common": {
+    "focal_mm": 100,
+    "fstop": 0,
+    "sig_side": "auto",
+    "ease": "smooth",
+    "macro": true,
+    "note": "sweep along the inside-edge serration scallops"
+   },
+   "start": {
+    "target": [
+     0.008,
+     0.0,
+     -0.025
+    ],
+    "fit": {
+     "center": [
+      0.008,
+      0.0,
+      -0.025
+     ],
+     "half_m": 0.0085
+    },
+    "az": -28,
+    "el": 4.0,
+    "fill": 0.9,
+    "light_rot_deg": -8
+   },
+   "end": {
+    "target": [
+     0.044,
+     0.0,
+     -0.0268
+    ],
+    "fit": {
+     "center": [
+      0.044,
+      0.0,
+      -0.0268
+     ],
+     "half_m": 0.0085
+    },
+    "az": -14,
+    "el": 4.0,
+    "fill": 0.9,
+    "light_rot_deg": 8
+   }
+  },
+  {
+   "name": "M2_jimping_scan",
+   "frames": [
+    168,
+    252
+   ],
+   "common": {
+    "focal_mm": 100,
+    "fstop": 0,
+    "sig_side": "auto",
+    "ease": "smooth",
+    "macro": true,
+    "note": "thumb-seat jimping along the spine hump"
+   },
+   "start": {
+    "target": [
+     -0.01,
+     0.0,
+     0.0095
+    ],
+    "fit": {
+     "center": [
+      -0.01,
+      0.0,
+      0.0095
+     ],
+     "half_m": 0.0045
+    },
+    "az": -32,
+    "el": 24.0,
+    "fill": 0.9,
+    "light_rot_deg": 10
+   },
+   "end": {
+    "target": [
+     0.004,
+     0.0,
+     0.0095
+    ],
+    "fit": {
+     "center": [
+      0.004,
+      0.0,
+      0.0095
+     ],
+     "half_m": 0.0045
+    },
+    "az": -18,
+    "el": 24.0,
+    "fill": 0.9,
+    "light_rot_deg": -4
+   }
+  },
+  {
+   "name": "M3_tip_scan",
+   "frames": [
+    252,
+    336
+   ],
+   "common": {
+    "focal_mm": 100,
+    "fstop": 0,
+    "sig_side": "auto",
+    "ease": "smooth",
+    "macro": true,
+    "note": "hawkbill tip"
+   },
+   "start": {
+    "target": [
+     0.096,
+     0.0,
+     0.015
+    ],
+    "fit": {
+     "center": [
+      0.096,
+      0.0,
+      0.015
+     ],
+     "half_m": 0.0095
+    },
+    "az": -36,
+    "el": 6.0,
+    "fill": 0.9,
+    "light_rot_deg": -6
+   },
+   "end": {
+    "target": [
+     0.103,
+     0.0,
+     0.0215
+    ],
+    "fit": {
+     "center": [
+      0.103,
+      0.0,
+      0.0215
+     ],
+     "half_m": 0.008
+    },
+    "az": -12,
+    "el": 6.0,
+    "fill": 0.9,
+    "light_rot_deg": 6
+   }
+  },
+  {
+   "name": "M4_ring_scan",
+   "frames": [
+    336,
+    426
+   ],
+   "common": {
+    "focal_mm": 100,
+    "fstop": 0,
+    "sig_side": "auto",
+    "ease": "smooth",
+    "macro": true,
+    "note": "lanyard / finger ring"
+   },
+   "start": {
+    "target": [
+     -0.0878,
+     0.0,
+     -0.004
+    ],
+    "fit": {
+     "center": [
+      -0.0878,
+      0.0,
+      -0.004
+     ],
+     "half_m": 0.016
+    },
+    "az": -48,
+    "el": 8.0,
+    "fill": 0.9,
+    "light_rot_deg": 0
+   },
+   "end": {
+    "target": [
+     -0.0878,
+     0.0,
+     -0.004
+    ],
+    "fit": {
+     "center": [
+      -0.0878,
+      0.0,
+      -0.004
+     ],
+     "half_m": 0.015
+    },
+    "az": -8,
+    "el": 8.0,
+    "fill": 0.9,
+    "light_rot_deg": 10
+   }
+  },
+  {
+   "name": "SCI_V3_spin",
+   "frames": [
+    426,
+    726
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "fit_rot_range": [
+     0,
+     360
+    ],
+    "focal_mm": 85,
+    "fstop": 0,
+    "sig_side": "auto",
+    "ease": "linear",
+    "exposure_ev_add": 0.8,
+    "light_ev_all": 0.6,
+    "enable_lights": [
+     "sci_rim_L",
+     "sci_rim_R",
+     "sci_top_kick"
+    ],
+    "science": true,
+    "sci_case": "V3"
+   },
+   "start": {
+    "az": -20,
+    "el": 9.0,
+    "fill": 0.86,
+    "part_rot_deg": 0.0
+   },
+   "end": {
+    "az": -20,
+    "el": 9.0,
+    "fill": 0.86,
+    "part_rot_deg": 358.8
+   }
+  },
+  {
+   "name": "SCI_V6_spin",
+   "frames": [
+    726,
+    1026
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "fit_rot_range": [
+     0,
+     360
+    ],
+    "focal_mm": 85,
+    "fstop": 0,
+    "sig_side": "auto",
+    "ease": "linear",
+    "exposure_ev_add": 0.8,
+    "light_ev_all": 0.6,
+    "enable_lights": [
+     "sci_rim_L",
+     "sci_rim_R",
+     "sci_top_kick"
+    ],
+    "science": true,
+    "sci_case": "V6"
+   },
+   "start": {
+    "az": -20,
+    "el": 9.0,
+    "fill": 0.86,
+    "part_rot_deg": 360.0
+   },
+   "end": {
+    "az": -20,
+    "el": 9.0,
+    "fill": 0.86,
+    "part_rot_deg": 718.8
+   }
+  },
+  {
+   "name": "SCI_V7_spin",
+   "frames": [
+    1026,
+    1326
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "fit_rot_range": [
+     0,
+     360
+    ],
+    "focal_mm": 85,
+    "fstop": 0,
+    "sig_side": "auto",
+    "ease": "linear",
+    "exposure_ev_add": 0.8,
+    "light_ev_all": 0.6,
+    "enable_lights": [
+     "sci_rim_L",
+     "sci_rim_R",
+     "sci_top_kick"
+    ],
+    "science": true,
+    "sci_case": "V7"
+   },
+   "start": {
+    "az": -20,
+    "el": 9.0,
+    "fill": 0.86,
+    "part_rot_deg": 720.0
+   },
+   "end": {
+    "az": -20,
+    "el": 9.0,
+    "fill": 0.86,
+    "part_rot_deg": 1078.8
+   }
+  },
+  {
+   "name": "S04_color_wakes",
+   "frames": [
+    1326,
+    1506
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 8,
+    "sig_side": "front"
+   },
+   "start": {
+    "az": -14,
+    "el": 6.0,
+    "fill": 0.82,
+    "light_rot_deg": -18
+   },
+   "end": {
+    "az": -14,
+    "el": 6.0,
+    "fill": 0.82,
+    "light_rot_deg": 18
+   }
+  },
+  {
+   "name": "S06_other_face",
+   "frames": [
+    1506,
+    1746
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 11,
+    "sig_side": "back",
+    "part_rot_deg": 180
+   },
+   "start": {
+    "az": -12,
+    "el": 6,
+    "fill": 0.84,
+    "light_rot_deg": 0
+   },
+   "end": {
+    "az": 12,
+    "el": 6,
+    "fill": 0.84,
+    "light_rot_deg": 0
+   }
+  },
+  {
+   "name": "S07_floor_reflection",
+   "frames": [
+    1746,
+    1956
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 8,
+    "sig_side": "front",
+    "offset_uv": [
+     0.0,
+     -0.08
+    ]
+   },
+   "start": {
+    "az": -26,
+    "el": 2.5,
+    "fill": 0.74,
+    "light_rot_deg": -6
+   },
+   "end": {
+    "az": -8,
+    "el": 3.5,
+    "fill": 0.76,
+    "light_rot_deg": 6
+   }
+  },
+  {
+   "name": "S08_resolve_loop",
+   "frames": [
+    1956,
+    2106
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 8,
+    "sig_side": "front"
+   },
+   "start": {
+    "az": -20,
+    "el": 6.0,
+    "fill": 0.8,
+    "light_rot_deg": 12
+   },
+   "end": {
+    "az": -20,
+    "el": 6.0,
+    "fill": 0.8,
+    "light_rot_deg": 0
+   }
+  }
+ ],
+ "science_timeline_s": {
+  "real_to_wire": [
+   2.6,
+   3.4
+  ],
+  "wire_to_heat": [
+   5.0,
+   5.8
+  ],
+  "heat_to_real": [
+   9.0,
+   9.8
+  ],
+  "cues": {
+   "load": 0.3,
+   "mesh": 3.0,
+   "peak": 5.3,
+   "sf": 6.8,
+   "prov": 7.9
+  },
+  "text_fade": [
+   9.3,
+   9.9
+  ]
+ }
+}

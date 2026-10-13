@@ -1,0 +1,28 @@
+{
+ "schema": "jarambit.render.pro.autofilm.v1",
+ "note": "render recipe only (finish, film plan, sampling, where to splice the data shots). Every number the film SHOWS comes from the design manifest; nothing design-specific lives here. Data-section timeline (cross-fades, text cues) lives in the film JSON (science_timeline_s).",
+ "finish": "satin_blue",
+ "res": "hd",
+ "size": [
+  1920,
+  1080
+ ],
+ "fps": 30,
+ "film": "film_satin_v2.json",
+ "spp": {
+  "film": 64,
+  "sci": 24
+ },
+ "prep_config": "prep_flame.json",
+ "art": "~/jarambit_render/pro_tools/art_nosig_8k.png",
+ "sig_mask": "../brand/signature/jepson_t_mask_4096_bold12.png",
+ "chat_mp4_max_mb": 24.0,
+ "sci_gain": 1.5,
+ "sci_glint": 0.35,
+ "sci_wire_rgb": [
+  0.22,
+  0.55,
+  1.0
+ ],
+ "sci_wire_px": 0.7
+}

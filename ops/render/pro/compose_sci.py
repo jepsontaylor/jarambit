@@ -32,6 +32,47 @@ def sm(x):
     x = np.clip(x, 0, 1); return x * x * (3 - 2 * x)
 
 
+def plate_paths(plates, sh, res, fin, gate=None):
+    tag = f'{sh}_{res}_{fin}'
+    d = {'real': os.path.join(plates, tag + '.png'), 'idx': os.path.join(plates, f'qa_idx_{tag}_0001.png'),
+         'sig': os.path.join(plates, f'qa_sig_{tag}_0001.png')}
+    if gate:
+        d['wire'] = os.path.join(plates, f'{tag}_sci_{gate}_wire.png'); d['heat'] = os.path.join(plates, f'{tag}_sci_{gate}_heat.png')
+    return d
+
+
+def science_sequence(plates, man, shot, size, fps, res='hd', fin='satin_blue', timing=None):
+    """Yield (frame float RGB, text-QA) for one data shot: photoreal -> wipe to the solver tet wire -> dissolve to the
+    von Mises field (card + scale animate in) -> back to photoreal. One text layout is locked per shot."""
+    W, H = size; g, sh = shot['gate'], shot['shot']; P = plate_paths(plates, sh, res, fin, g)
+    tm = {'real_in': 1.0, 'wipe': 1.0, 'wire': 0.8, 'dissolve': 1.0, 'heat': 2.8, 'back': 1.0, 'real_out': 0.5, **(timing or {})}
+    real, wire, heat = load(P['real'], size), load(P['wire'], size), load(P['heat'], size)
+    knife = load_mask(P['idx'], size, 0.4, 0.6); sig = load_mask(P['sig'], size, 0.5, 2.0)
+    _, q0 = overlay.compose(heat, man, real, sig, shot, 99.0, 1.0, knife=knife); L = [q0['layout']]
+    def C(img, card_t=None, ha=0.0):
+        return overlay.compose(img, man, real, sig, shot if card_t is not None else None, card_t, ha,
+                               corner_pref=L if card_t is not None else ('tl', 'tr', 'bl', 'br'), knife=knife)
+    T = lambda k: int(round(tm[k] * fps)); x = np.linspace(0, 1, W)[None, :, None]
+    for i in range(T('real_in')): yield C(real)
+    for i in range(T('wipe')):
+        p = sm((i + 1) / T('wipe')); m = sm(np.clip((p * 1.25 - x) / 0.25, 0, 1)); yield C(real * (1 - m) + wire * m)
+    for i in range(T('wire')): yield C(wire)
+    for i in range(T('dissolve')):
+        p = sm((i + 1) / T('dissolve')); yield C(wire * (1 - p) + heat * p, i / fps, p)
+    t0 = T('dissolve') / fps
+    for i in range(T('heat')): yield C(heat, t0 + i / fps, 1.0)
+    t1 = t0 + T('heat') / fps
+    for i in range(T('back')):
+        p = sm((i + 1) / T('back')); base = heat * (1 - p) + real * p
+        withc, q = C(base, t1 + i / fps, 1.0 - p); noc, _ = C(base)
+        yield withc * (1 - p) + noc * p, q
+    for i in range(T('real_out')): yield C(real)
+
+
+def save(img, path):
+    Image.fromarray((np.clip(img, 0, 1) * 255 + 0.5).astype(np.uint8)).save(path)
+
+
 def main():
     a = sys.argv[1:]
     plates, man_p, out = a[0], a[1], a[2]
@@ -42,64 +83,20 @@ def main():
     for k in ('badge', 'label', 'Sy_MPa', 'science', 'stamp'):
         if k not in man: fail(f'manifest missing {k}')
     os.makedirs(os.path.join(out, 'frames'), exist_ok=True)
-    T = lambda s: int(round(s * fps)); n = 0
     log = {'schema': 'jarambit.render.pro.science_cut.v2', 'manifest_sha256': man['manifest_sha256'], 'stamp': man['stamp'],
-           'fps': fps, 'size': [W, H], 'shots': [], 'text_qa': []}
-
-    def emit(img, qa):
-        nonlocal n
-        Image.fromarray((np.clip(img, 0, 1) * 255 + 0.5).astype(np.uint8)).save(os.path.join(out, 'frames', f'f{n:05d}.png'))
-        log['text_qa'].append({'frame': n, 'pass': qa['pass'], 'corner': qa.get('corner'), 'hits': qa['hits']}); n += 1
-
+           'fps': fps, 'size': [W, H], 'shots': [], 'text_qa': []}; n = 0
     for shot in man['science']:
-        g, sh = shot['gate'], shot['shot']; tag = f'{sh}_{res}_{fin}'
-        real = load(os.path.join(plates, tag + '.png'), size)
-        wire = load(os.path.join(plates, f'{tag}_sci_{g}_wire.png'), size)
-        heat = load(os.path.join(plates, f'{tag}_sci_{g}_heat.png'), size)
-        knife = load_mask(os.path.join(plates, f'qa_idx_{tag}_0001.png'), size, 0.4, 0.6)
-        sig = load_mask(os.path.join(plates, f'qa_sig_{tag}_0001.png'), size, 0.5, 2.0)
-        realK = np.dstack([knife * 1.0] * 3)   # overlay.knife_mask thresholds luminance: hand it the object pass
-        # lock one layout per shot at full extent (card complete + colorbar) so text never jumps between frames
-        _, q0 = overlay.compose(heat, man, realK, sig, shot, 99.0, 1.0); L = [q0['layout']]
-        C = lambda img, card_t=None, ha=0.0: overlay.compose(img, man, realK, sig, shot if card_t is not None else None, card_t, ha, corner_pref=L)
-        x = np.linspace(0, 1, W)[None, :, None]; seq0 = n
-        for i in range(T(1.0)): emit(*C(real))
-        for i in range(T(1.0)):
-            p = sm((i + 1) / T(1.0)); m = sm(np.clip((p * 1.25 - x) / 0.25, 0, 1)); emit(*C(real * (1 - m) + wire * m))
-        for i in range(T(0.8)): emit(*C(wire))
-        for i in range(T(1.0)):
-            p = sm((i + 1) / T(1.0)); emit(*C(wire * (1 - p) + heat * p, i / fps, p))
-        t0 = T(1.0) / fps
-        for i in range(T(2.8)): emit(*C(heat, t0 + i / fps, 1.0))
-        for i in range(T(1.0)):
-            p = sm((i + 1) / T(1.0)); base = heat * (1 - p) + real * p
-            withc, q = C(base, t0 + T(2.8) / fps + i / fps, 1.0 - p); noc, _ = C(base)
-            emit(withc * (1 - p) + noc * p, q)
-        for i in range(T(0.5)): emit(*C(real))
-        # review stills
-        st, q = C(heat, 9.0, 1.0); Image.fromarray((st * 255 + 0.5).astype(np.uint8)).save(os.path.join(out, f'{man["stamp"]}_{g}_{sh}_heat_card.png'))
-        st, q = C(wire); Image.fromarray((st * 255 + 0.5).astype(np.uint8)).save(os.path.join(out, f'{man["stamp"]}_{g}_{sh}_wire.png'))
-        log['shots'].append({'gate': g, 'shot': sh, 'frames': [seq0, n], 'test': shot['test'], 'SF': shot['SF'], 'verdict': shot['verdict']})
-    for ex in [e for e in opt('--extra', '').split(',') if e]:
-        sh, dur = ex.split(':'); tag = f'{sh}_{res}_{fin}'
-        real = load(os.path.join(plates, tag + '.png'), size)
-        knife = load_mask(os.path.join(plates, f'qa_idx_{tag}_0001.png'), size, 0.4, 0.6)
-        sig = load_mask(os.path.join(plates, f'qa_sig_{tag}_0001.png'), size, 0.5, 2.0)
-        seq0 = n
-        try:
-            img, q = overlay.compose(real, man, np.dstack([knife * 1.0] * 3), sig)
-        except SystemExit as e:   # macro fills the frame: badge is skipped for this shot and recorded, not forced
-            img, q = real, {'pass': True, 'corner': None, 'hits': [], 'note': f'badge omitted: {e}'}
-        for i in range(T(float(dur))): emit(img, q)
-        Image.fromarray((img * 255 + 0.5).astype(np.uint8)).save(os.path.join(out, f'{man["stamp"]}_{sh}.png'))
-        log['shots'].append({'shot': sh, 'frames': [seq0, n], 'badge_note': q.get('note')})
+        seq0 = n; frames = []
+        for img, q in science_sequence(plates, man, shot, size, fps, res, fin):
+            save(img, os.path.join(out, 'frames', f'f{n:05d}.png')); frames.append(img) if len(frames) < 1 else None
+            log['text_qa'].append({'frame': n, 'pass': q['pass'], 'corner': q.get('corner'), 'hits': q['hits']}); n += 1
+            if n - seq0 == int(round(7.2 * fps)): save(img, os.path.join(out, f'{man["stamp"]}_{shot["gate"]}_{shot["shot"]}_heat_card.png'))
+            if n - seq0 == int(round(2.5 * fps)): save(img, os.path.join(out, f'{man["stamp"]}_{shot["gate"]}_{shot["shot"]}_wire.png'))
+        log['shots'].append({'gate': shot['gate'], 'shot': shot['shot'], 'frames': [seq0, n], 'test': shot['test'], 'SF': shot['SF'], 'verdict': shot['verdict']})
     log['frames'] = n; log['text_qa_pass'] = all(x['pass'] for x in log['text_qa'])
     json.dump(log, open(os.path.join(out, f'{man["stamp"]}_science_cut.json'), 'w'), indent=1, ensure_ascii=False)
     if not log['text_qa_pass']: fail('text QA failed')
-    mp4 = os.path.join(out, f'{man["stamp"]}_science_preview_{W}x{H}.mp4')
-    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-framerate', str(fps), '-i', os.path.join(out, 'frames', 'f%05d.png'),
-                    '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', mp4], check=True)
-    print('WROTE', mp4, n)
+    print('WROTE', out, n)
 
 
 if __name__ == '__main__':

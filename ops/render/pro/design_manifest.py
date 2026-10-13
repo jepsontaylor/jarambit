@@ -54,6 +54,25 @@ def parse_load(case_text, src):
     return name, val, unit
 
 
+def msh_counts(p):
+    """Node and tetrahedron counts straight from the gmsh 2.2 ASCII solver mesh (shown on screen in the mesh view)."""
+    nodes = tets = None; sec = None; first = False
+    with open(p) as f:
+        for line in f:
+            if line.startswith('$'):
+                sec = line.strip(); first = True; continue
+            if first:
+                first = False
+                if sec == '$Nodes': nodes = int(line)
+                if sec == '$Elements': tets = 0
+                continue
+            if sec == '$Elements':
+                parts = line.split()
+                if len(parts) > 1 and parts[1] == '4': tets += 1
+    need(nodes and tets, f'{p}: could not count nodes/tets (not gmsh 2.2 ASCII?)')
+    return {'nodes': nodes, 'tets': tets}
+
+
 def build(design_dir, fem_store, cases_cfg):
     D = Path(design_dir); need(D.is_dir(), f'design folder {D} not found')
     readme = (D / 'README.md'); need(readme.is_file(), f'{readme} missing'); R = readme.read_text()
@@ -103,7 +122,7 @@ def build(design_dir, fem_store, cases_cfg):
            'status_note': 'design candidate, not certified',
            'step': {'path': rel, 'sha256': step_sha}, 'mass_g': mass, 'material': material,
            'Sy_MPa': sy, 'gate_SF': gate, 'gates': gates,
-           'fem': {'store': str(fem_store), 'mesh': {'file': cases_cfg['fem_mesh'], 'sha256': sha256(fem_mesh)}},
+           'fem': {'store': str(fem_store), 'mesh': {'file': cases_cfg['fem_mesh'], 'sha256': sha256(fem_mesh), **msh_counts(fem_mesh)}},
            'science': shots,
            'badge': f"{D.parent.name.upper()} Rev {rev} {rc} · {mass:.1f} g · {material} Ti",
            'sources': {'readme': {'path': 'README.md', 'sha256': sha256(readme)},
