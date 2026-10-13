@@ -1,7 +1,7 @@
 The owner-selected MAJOR-release render source is SWITCHBACK Rev C.10a rc4.
 STEP pin: `441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7`.
 STL pin: `0bcadad61bff550d9c527266e183440e8242c3a0222b9a89755cdc682b214411`.
-Both match the C.10a machinist-pack manifest on main `831818f`.
+Both match the C.10a machinist-pack manifest on main `6853184`.
 
 Use these consumer paths together:
 
@@ -38,21 +38,22 @@ The source topology has four holes, Euler -6, and is preserved. Front/back
 regions_debug.png and oblique regions_debug_3q.png were inspected; owner art
 review remains pending.
 
-Gate status: all 214 marketing/pro pytest passed (zero skips), including CPU
-protected-metal shader, memcap and failure-propagation regressions.
-Required-tool and 12 documentation/evidence checks passed. All 21 repository/
-sheath checks passed on feat/sheath-v1 after rebasing onto the same main. The
-CAD branch's Rust sources/build manifests match that validated tree.
-Logs: `~/jarambit_render_scratch/codex-c10a/cad-gates/gates/` and
-`~/jarambit_render_scratch/codex-c10a/sheath-rebase/gates/`.
+Revalidation after rebase onto main `6853184`: all 214 marketing/pro pytest
+passed (zero skips), including CPU protected-metal shader, memcap and failure
+propagation regressions. Fifteen tool/CAD/docs checks passed; two additional
+finish-library mark/budget tests passed. The production CAD rerun matches
+all six published artifact hashes; the live C.10a and C.9.2 bundles are
+unchanged. The Rust source tree matches current main.
+Fresh receipt: [CAD_rebase_6853184_validation.json](CAD_rebase_6853184_validation.json).
+Logs: this checkout's `target/cadmesh-rebase-6853184/gates/`.
 
 Reproduce in a new output directory, under the memory cap:
 
 ```bash
-~/bin/memcap 32G -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+~/bin/memcap 32G -- nice -n 19 env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
   ~/jarambit_render/venv-cad/bin/python -m ops.render.marketing.notes.validate_cad \
   --out /path/to/new/C10a-output
 ```
 
-This lane opens no PR. The executor opens the single queued sheath PR first
-and sequences subsequent render integration for the MAJOR release.
+Sheath follow-up #58 is merged. This CAD branch is next in the executor-owned
+queue. This lane opens or merges no PR and leaves the C.10a farm to jr_grok.

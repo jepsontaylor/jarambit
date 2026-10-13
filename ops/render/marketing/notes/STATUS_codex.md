@@ -26,12 +26,20 @@ Old C.9.2 production and regions-v2 bundles remain unchanged. C.9.2 and C.9.3
 source pins remain supported. C.9.2's immutable NPZ plus external overrides are
 documented in [REGIONS_v2.md](REGIONS_v2.md).
 
-The CAD branch is based on main 831818f and retains its protected-metal, memcap
-and fail-closed rendering/QA. Heavy jobs use memcap 32G; validation uses CPU
-only. Full marketing/pro gate status is recorded in C10A_bundle.md. Rust/D1
-gates passed on the rebased sheath branch with identical Rust source trees.
-The executor owns PR sequencing; this lane opens no PRs. COORD handoffs go
-through the queued sheath PR per the current COORD rule.
+The CAD branch is rebased onto main `6853184` after sheath follow-up #58.
+Fresh validation: 214 marketing/pro pytest pass, zero skips; 15 tool/CAD/docs
+checks pass; two finish-library mark/budget tests pass. The production CAD
+rerun matches all six published artifact hashes, with chamfer IoU 1.0 and
+36 native-4K framing angles at minimum margin 14.50%. Existing C.10a and
+C.9.2 bundle files remain unchanged. Signature stays protected bare
+laser-etched metal; grinds, serrations and apex stay raw.
 
-Owner-added root COORD entries are preserved outside the CAD lane's commits,
-with backups in ~/jarambit_render_scratch/codex-c10a/ and a named git stash.
+Validation used memcap 32G, nice 19, CPU only and eight-core affinity; outputs
+are in this checkout's `target/cadmesh-rebase-6853184/`. The Rust source tree
+matches current main. See [CAD_rebase_6853184_validation.json](CAD_rebase_6853184_validation.json)
+for the fresh receipt; C10A_validation.json records the original bundle build.
+The executor opens the next CAD PR. This lane opens or merges none, leaves
+jr_grok's farm alone, and stops after its READY handoff.
+
+The two owner-added root COORD entries are preserved outside this lane's
+commits, with a named stash and backups in `target/cadmesh-rebase-6853184/`.
