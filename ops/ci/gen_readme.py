@@ -56,6 +56,16 @@ def pct(x, n=1):
     return f'{100 * x:.{n}f} %'
 
 
+def ring_bore(d1):
+    """Measured inscribed bore (mm) of the committed ring-hole polygon: 2 x min distance from the ring centre (origin) to its edges."""
+    ring = d1['holes'][d1['hole_names'].index('ring')]
+    def seg(a, b):
+        (ax, ay), (bx, by) = a, b; dx, dy = bx - ax, by - ay
+        t = max(0.0, min(1.0, -(ax * dx + ay * dy) / (dx * dx + dy * dy or 1.0)))
+        return ((ax + t * dx) ** 2 + (ay + t * dy) ** 2) ** 0.5
+    return 2 * min(seg(ring[i], ring[(i + 1) % len(ring)]) for i in range(len(ring)))
+
+
 def head():
     v = rd('docs/VERSION').strip()
     rec = next(r for r in js(IDX) if r.get('label') == LABEL)
@@ -68,7 +78,7 @@ def head():
     L = [badge('version', f'v{v}', 'ff6f00', rel), badge('G1', f(g, 4), '7b1fa2', 'docs/GLOBAL_METRIC.md'),
          badge('mass', f'{m:.2f} g', '00897b', 'docs/PROVISIONAL.md'), badge('tip×SPG', f(tip * spg), '1565c0', 'docs/WHITEPAPER.md'),
          badge('status', 'engineering provisional · not promoted', 'c62828', 'docs/PROVISIONAL.md'), '',
-         f'**Provisional `{DESIGN}` — G1 {f(g, 4)} · {m:.2f} g · tip SF {f(tip)} × SPG {f(spg)} = {f(tip * spg)} · ring {ring_id:.2f} mm · {d1["metrics"]["material"]} {rec["t"]:.1f} mm**']
+         f'**Provisional `{DESIGN}` — G1 {f(g, 4)} · {m:.2f} g · tip SF {f(tip)} × SPG {f(spg)} = {f(tip * spg)} · ring bore {ring_bore(d1):.2f} mm · {d1["metrics"]["material"]} {rec["t"]:.1f} mm**']
     return '\n'.join(L)
 
 
@@ -97,6 +107,7 @@ def release():
     gl = js(f'evidence/wave27/{DESIGN}_grind_law.json')
     gh = d1['genome_header'].split(','); gv = d1['genome'].split(',')
     gene = lambda k: float(gv[gh.index(k)])
+    bore = ring_bore(d1)
     ver = js('evidence/fem_solid/verify_0.30.2.json')
     cal = js('docs/calibration/t1_t2.json')
     b0 = js('evidence/bench/baseline_0.31.1_xbabe3.json'); b1 = js('evidence/bench/faer_0.31.2_xbabe3.json')
@@ -118,7 +129,7 @@ def release():
     for e in gl['edges']:
         L.append(f'| {e["edge"]} edge grind | half-angle {e["half_angle_deg"]:.2f}°, edge thickness {e["edge_thickness_mm"]:.2f} mm | grind law |')
     L += [f'| blade | tip-to-heel {mt["tip_to_heel"]:.2f} mm, reach {mt["horizontal_reach"]:.2f} mm, arcs {mt["arc_in"]:.2f} / {mt["arc_sp"]:.2f} mm | D1 record |',
-          f'| ring | ID {gene("ring_id"):.2f} mm, wall {gene("ring_wall"):.2f} mm, neck fillet {gene("neck_fillet"):.2f} mm | genome |',
+          f'| ring | nominal ID {gene("ring_id"):.3f} mm (genome; measured bore {bore:.2f} mm), wall {gene("ring_wall"):.2f} mm, neck fillet {gene("neck_fillet"):.2f} mm | genome |',
           f'| grip / relief | grip {mt["grip"]:.1f} mm, relief fraction {mt["relief_frac"]:.4f}, min web {mt["min_web"]:.1f} mm, perforations {mt["n_perf"]} | D1 record |',
           f'| mass | {mt["mass_g"]:.2f} g (blank {mt["blank_g"]:.2f} g); STL solid mesh {ver["whole_part_mesh"]["mass_g_at_4.43"]:.2f} g | D1 record, verify_0.30.2 |',
           f'| CAD artifacts | faceted STL (watertight); STEP is an unsewable shell — **not validated** | verify_0.30.2 |', '']
@@ -131,7 +142,9 @@ def release():
           '| quantity | value |', '|---|---|',
           f'| robust lateral / hunter SF / hiker SF | {mt["lat_rob"]:.1f} N / {mt["sf_hunter"]:.3f} / {mt["sf_hiker"]:.3f} |',
           f'| robust ring pull / SF | {mt["ring_rob"]:.0f} N / {mt["sf_ring"]:.2f} |',
-          f'| chord twist SF tip / body / tip zone | {mt["twist_tip_sf"]:.3f} / {mt["twist_body_sf"]:.2f} / {mt["twist_tipzone_sf"]:.3f} |',
+          f'| chord twist SF tip / body / tip zone (certification mesh) | {mt["twist_tip_sf"]:.3f} / {mt["twist_body_sf"]:.2f} / {mt["twist_tipzone_sf"]:.3f} |',
+          f'| strict D1 mesh (0.0625 mm²): hunter capacity / SF | {d1["d1"]["strict_lat_rob_0p0625"]:.1f} N / {d1["d1"]["strict_lat_rob_0p0625"] / c1["hunter_lateral_n"]:.3f} |',
+          f'| strict D1 mesh (0.0625 mm²): 4–15 mm tip-submodel twist SF | {d1["d1"]["twist_tipzone_sf_strict"]:.3f} |',
           f'| failure sequence seq | {mt["seq_ratio"]:.3f} (HARD ≥ {rconst(fem, "SEQ_TARGET")}: **not met**, governs `{mt["seq_case"]}`) |',
           f'| SPG | {mt["spg"]:.3f} N/g |']
     for gp in sorted(glob.glob(os.path.join(ROOT, 'evidence/fem_solid/gci/*_gci.json'))):
@@ -147,7 +160,7 @@ def release():
     names = {'hm_twist_sf': f'twist {c2["twist_nmm"] / 1000:.1f} N·m', 'hm_tip_inplane_sf': f'tip in-plane {c2["tip_inplane_n"]:.0f} N',
              'hm_spine_sf': f'spine {c2["spine_n"]:.0f} N', 'hm_ringback_sf': f'L6 ring-back {c2["ringback_n"]:.0f} N (static equivalent, **PROVISIONAL**)',
              'fat_sf': f'L7 fatigue, lateral 0..{c2["cyclic_lateral_n"]:.0f} N, Marin + Goodman'}
-    L += [f'RS-karambit-v2 structural cases — first-yield SF on the {cal["n_designs"]}-design `bench/fixed_1k` cohort (cohort results, not a re-assessment of `{DESIGN}`; RS-v2 is evaluated but does not yet gate search):', '',
+    L += [f'RS-karambit-v2 structural cases — first-yield safety factors (L7: fatigue/endurance SF, Marin + modified Goodman) on the {cal["n_designs"]}-design `bench/fixed_1k` cohort (cohort results, not a re-assessment of `{DESIGN}`; RS-v2 is evaluated but does not yet gate search):', '',
           '| case (RS-karambit-v2) | SF min / median / max | meets SF ≥ 1 |', '|---|---|---|']
     for k, nm in names.items():
         s = rv[k]
