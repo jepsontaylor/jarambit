@@ -97,6 +97,7 @@ def main():
     ap.add_argument("--step", required=True); ap.add_argument("--stl", required=True); ap.add_argument("--out", required=True)
     ap.add_argument("--workers", type=int, default=32); ap.add_argument("--mc", type=int, default=20000)
     ap.add_argument("--annotations", default=None); ap.add_argument("--ccx", default=None, help="ccx_tab results json (axial-force correction)")
+    ap.add_argument("--no-rot-corr", action="store_true", help="disable the tab-end rotation correction of the Bayer release angle")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     t0 = time.time()
@@ -172,7 +173,7 @@ def main():
     # --- containment: positive stop, tip reserve, first-contact screen, strength screens
     tr = G.tip_reserve(g, sharp_pts, tip_xy)
     land_all = np.vstack(bumper + ([np.array(g["stop_land_pts"])] if g["stop_land_pts"] else [])) if (bumper or g["stop_land_pts"]) else np.empty((0, 2))
-    fc = SS.first_contact_screen(K, g["cavity"], sharp_pts, land_all)
+    fc = SS.first_contact_screen(K, g["cavity"], sharp_pts, land_all, mouth=(g["m"], g["n"]))
     A_stop = 0.5 * len(g["stop_land_pts"]) * 3.6 if g["stop_land_pts"] else 0.0
     A_bump = [0.5 * len(b) * 3.0 for b in bumper]
     from shapely.geometry import Polygon as Pg
@@ -181,7 +182,7 @@ def main():
     res.update({"tip_reserve_mm": tr, "stop_land_n": len(g["stop_land_pts"]), "stop_bearing_area_mm2": A_stop,
                 "first_contact": {"frac_land_first": fc["frac_land_first"], "worst": fc["worst"]},
                 "strength_screens": {
-                    "drop_1.5m_edge": SS.drop_screen(iface["mass_g"], min(A_bump) if A_bump else 0.0, margin_worst, 10.0, p.rim),
+                    "drop_1.5m_edge": SS.drop_screen(iface["mass_g"], min(A_bump) if A_bump else A_stop, margin_worst, 10.0, p.rim),
                     "drop_1.5m_tip_on_stop": SS.drop_screen(iface["mass_g"], A_stop, tr, 2.0, p.rim),
                     "crush_500N_platen": SS.crush_screen(span, p.wall, p.c_face),
                     "seated_overload_150N": SS.overload_screen(150.0, A_stop),
@@ -217,35 +218,49 @@ def main():
             return kf, nd
 
         rng = np.random.default_rng(42); N = a.mc; W = M.WINDOW
+        ROT = 0.0 if a.no_rot_corr else 1.0
+        # residual FEA calibration: ccx large-sliding S2S peak / rotation-corrected Bayer at the benchmark geometry
+        CCXF = 1.0; ccx_info = None
+        if a.ccx:
+            cj = json.load(open(a.ccx)); CCXF = float(cj.get("ccx_over_bayer_rot") or 1.0) if not a.no_rot_corr else 1.0
+            ccx_info = {k: cj.get(k) for k in ("solver", "conv_rel_last2", "ccx_over_bayer", "ccx_over_bayer_rot", "analytic")}
         def draws(N, seed):
             r = np.random.default_rng(seed)
             Tf = r.choice([1.15, 1.0, 0.80], size=N, p=[0.2, 0.6, 0.2])   # E(-10C), E(23C), E(+50C): ASSUMPTION pending ISO 178 at T
             return dict(Tf=Tf, dw=r.normal(0, 0.1, N), du=r.normal(0, 0.05, N), dc=r.normal(0, 0.05, N), tk=r.normal(0, 0.03, N),
-                        mu=r.uniform(0.20, 0.45, N), wear=r.uniform(0.0, 0.15, N), dL=r.normal(0, 0.1, N))
+                        mu=r.uniform(0.20, 0.45, N), wear=r.uniform(0.0, 0.15, N), dL=r.normal(0, 0.1, N),
+                        # NEW condition population (same tolerance draws): 23 C, no wear, clean dry Ti/PA12 mu U(0.20,0.32)
+                        # ASSUMPTION pending ASTM D1894 coupons; conditioned/life population keeps dry/wet/grit U(0.20,0.45)
+                        mu_new=r.uniform(0.20, 0.32, N))
         MCs = draws(2000, 7); MCf = draws(N, 42)
 
         def evaluate(q, k=None, mc=None):
             mc = mc or MCs
             Tf, dw, du, dc, tk, mu_s, wear, dL = (mc[x] for x in ("Tf", "dw", "du", "dc", "tk", "mu", "wear", "dL"))
-            new = (Tf == 1.0) & (wear < 0.02)
             if k is None:
                 k = M.tab_k(mat.E_mpa, q.tab_b, q.wall, q.tab_L - 2.0)
             i_face = q.detent_undercut - q.c_face - (t_gap_knife - t_local) / 2
             d = M.detent_forces(k, max(i_face, 0), mat.mu_steel, q.detent_a_in, q.detent_a_out)
             eps = M.tab_strain(q.wall, q.tab_L - 2.0, max(i_face, 0))
-            kk = k * Tf * ((q.wall + dw) / q.wall) ** 3 * ((q.tab_L - 2.0) / (q.tab_L - 2.0 + dL)) ** 3
-            ii = np.clip(q.detent_undercut + du - (q.c_face + dc) - (t_gap_knife - t_local) / 2 + tk / 2 - wear, 0, None)
-            ta = math.tan(math.radians(q.detent_a_out))
-            Fmc = 2 * kk * ii * (mu_s + ta) / np.clip(1 - mu_s * ta, 1e-6, None)
-            return {"k": k, "i_face": i_face, "P": d.P_n, "draw": 2 * d.draw_n, "insert": 2 * d.insert_n, "eps": eps,
+            a_tab = q.tab_L - 2.0
+            def F_of(Tf_, wear_, mu_):
+                kk = k * Tf_ * ((q.wall + dw) / q.wall) ** 3 * (a_tab / (a_tab + dL)) ** 3
+                ii = np.clip(q.detent_undercut + du - (q.c_face + dc) - (t_gap_knife - t_local) / 2 + tk / 2 - wear_, 0, None)
+                ta = np.tan(np.radians(q.detent_a_out) - ROT * 1.5 * ii / a_tab)   # tab-end rotation (ccx-verified, ccx_tab.py)
+                return CCXF * 2 * kk * ii * (mu_ + ta) / np.clip(1 - mu_ * ta, 1e-6, None)
+            Fmc = F_of(Tf, wear, mu_s); Fnew = F_of(1.0, 0.0, mc["mu_new"])
+            i0 = max(i_face, 0); tr0 = math.tan(math.radians(q.detent_a_out) - ROT * 1.5 * i0 / a_tab); mu0 = mat.mu_steel
+            draw0 = CCXF * 2 * k * i0 * (mu0 + tr0) / (1 - mu0 * tr0)
+            return {"k": k, "i_face": i_face, "P": d.P_n, "draw": draw0, "draw_no_rot": 2 * d.draw_n, "insert": 2 * d.insert_n, "eps": eps,
+                    "new_p05": float(np.percentile(Fnew, 5)), "new_p95": float(np.percentile(Fnew, 95)),
                     "p05": float(np.percentile(Fmc, 5)), "p50": float(np.median(Fmc)), "p95": float(np.percentile(Fmc, 95)),
                     "p_life": float(np.mean((Fmc > W.lo_life) & (Fmc < W.hi_life))),
-                    "p_new": float(np.mean((Fmc[new] > W.lo_new) & (Fmc[new] < W.hi_new))), "Fmc": Fmc}
+                    "p_new": float(np.mean((Fnew > W.lo_new) & (Fnew < W.hi_new))), "Fmc": Fmc}
 
         # --- retention design search (cheap, analytic k): tab length, undercut, return angle, wall
         best = None; nsearch = 0
         import itertools
-        SEARCH = {"wall": (1.0, 1.2, 1.4, 1.6, 1.8, 2.0), "tab_L": tuple(np.arange(6.0, 26.01, 1.0)),
+        SEARCH = {"wall": (1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8), "tab_L": tuple(np.arange(6.0, 26.01, 1.0)),
                   "undercut": tuple(np.round(np.arange(0.30, 2.001, 0.05), 3)), "a_out": (20.0, 25.0, 30.0, 35.0, 40.0, 45.0),
                   "tab_b": (5.0, 7.0, 9.0), "retention": ("tab", "collar")}
         for wall, L, und, aout, tb, rmode in itertools.product(*SEARCH.values()):
@@ -286,9 +301,10 @@ def main():
             "strain_est": e["eps"], "sharp_edge_over_detent": bool(sharp_hit),
             "retention_sf": {kn: M.inertial_sf(e["draw"], iface["brep"].get("mass_g_ti64", 66.8), acc) for kn, acc in M.RETENTION_CASES.items()},
             "retention_sf_p05": {kn: M.inertial_sf(e["p05"], iface["brep"].get("mass_g_ti64", 66.8), acc) for kn, acc in M.RETENTION_CASES.items()},
+            "draw_n_no_rot_corr": e["draw_no_rot"], "ccx_factor": CCXF, "ccx": ccx_info, "mc_new": {"p05": e["new_p05"], "p95": e["new_p95"], "mu": "U(0.20,0.32) ASSUMED", "wear": 0, "T": "23C"},
             "mc": {"n": N, "p05": e["p05"], "p50": e["p50"], "p95": e["p95"], "p_in_life_window": e["p_life"], "p_in_new_window": e["p_new"],
                    "p01": float(np.percentile(e["Fmc"], 1)), "p99": float(np.percentile(e["Fmc"], 99)),
-                   "assumptions": "wall sd0.1, undercut sd0.05, c_face sd0.05, knife t sd0.03, tab L sd0.1, mu U(0.20,0.45), wear U(0,0.15)mm (5000 cyc), E x{1.15@-10C,1,0.80@+50C} p{.2,.6,.2}"},
+                   "assumptions": "wall sd0.1, undercut sd0.05, c_face sd0.05, knife t sd0.03, tab L sd0.1, life mu U(0.20,0.45) / new mu U(0.20,0.32), tab-end rotation correction %s, wear U(0,0.15)mm (5000 cyc), E x{1.15@-10C,1,0.80@+50C} p{.2,.6,.2}" % ("on" if ROT else "off")},
         })
         res["p_in_life_window"] = e["p_life"]; res["p_in_new_window"] = e["p_new"]
         np.savetxt(os.path.join(a.out, "draw_curve.csv"), np.c_[arc, F, inter, tt], delimiter=",",

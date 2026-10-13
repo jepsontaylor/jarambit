@@ -14,20 +14,31 @@ R_CUT_N_PER_MM = (5.0, 30.0)     # ASSUMPTION range
 DROP_H_M = 1.5
 
 
-def first_contact_screen(K, C, sharp_pts, land_pts, ndir=36):
-    """In-plane rigid shift of the seated knife in each direction: which boundary point touches the cavity wall first?
-    Returns per-direction gaps and the worst edge margin (gap_sharp - gap_land, >0 means a non-sharp land hits first)."""
+def first_contact_screen(K, C, sharp_pts, land_pts, ndir=36, mouth=None, L=10.0):
+    """In-plane rigid shift of the seated knife in each direction: which boundary point touches the cavity WALL first?
+    Returns per-direction gaps and the worst edge margin (gap_sharp - gap_land, >0 means a non-sharp land hits first).
+    The mouth line is open (not a wall): it is removed from the boundary, and directions in which the sharp points meet
+    no wall within L (they leave through the mouth = the draw direction) are reported as 'exit', not as a margin."""
     from sheath.generate import ray_dist
+    from shapely.geometry import LineString as LS
     ring = C.exterior
+    if mouth is not None:
+        m, n = np.asarray(mouth[0], float), np.asarray(mouth[1], float)
+        tdir = np.array([-n[1], n[0]])
+        ring = ring.difference(LS([m - 400 * tdir, m + 400 * tdir]).buffer(0.05))
     S = np.asarray(sharp_pts)[::3]; Lp = np.asarray(land_pts) if len(land_pts) else np.empty((0, 2))
     out = []
     for k in range(ndir):
         a = 2 * math.pi * k / ndir; u = np.array([math.cos(a), math.sin(a)])
-        gs = min(ray_dist(q, u, ring, 10.0) for q in S)
-        gl = min((ray_dist(q, u, ring, 10.0) for q in Lp), default=10.0)
-        out.append({"dir_deg": math.degrees(a), "gap_sharp": gs, "gap_land": gl, "margin": gs - gl})
-    worst = min(out, key=lambda r: r["margin"])
-    return {"dirs": out, "worst": worst, "frac_land_first": float(np.mean([r["margin"] > 0 for r in out]))}
+        gs = min(ray_dist(q, u, ring, L) for q in S)
+        gl = min((ray_dist(q, u, ring, L) for q in Lp), default=L)
+        if gs >= L - 1e-9:
+            out.append({"dir_deg": math.degrees(a), "gap_sharp": None, "gap_land": gl, "margin": None, "exit": True}); continue
+        out.append({"dir_deg": math.degrees(a), "gap_sharp": gs, "gap_land": gl, "margin": gs - gl, "exit": False})
+    walls = [r for r in out if not r["exit"]]
+    worst = min(walls, key=lambda r: r["margin"])
+    return {"dirs": out, "worst": worst, "n_exit": len(out) - len(walls),
+            "frac_land_first": float(np.mean([r["margin"] > 0 for r in walls]))}
 
 
 def drop_screen(m_knife_g, A_land_mm2, margin_mm, L_edge_mm, rim_mm, h=DROP_H_M, sigma=M.SIGMA_PA12_MPA):
