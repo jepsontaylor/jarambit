@@ -1,0 +1,77 @@
+{
+ "schema": "jarambit.sheath.knife_annotations.v1",
+ "source_sha256": "3a818183bcb5b9a9093da947e00414ed29aa9bfebbb614046b8fb0b16dcbe919",
+ "source": "designs/switchback/C9.3/cad/switchback_revC9_3_ground.step",
+ "review": {
+  "approved": false,
+  "reviewer": null,
+  "date": null,
+  "status": "PROPOSED by Grok Bot executor 2026-10-13 \u2014 Jepson to approve or edit"
+ },
+ "retention_lands": [
+  {
+   "name": "guard_hole_rim",
+   "type": "closed_hole_rim",
+   "hole_centroid": [
+    85.0,
+    -15.0
+   ],
+   "hole_radius_mm": 2.99,
+   "annulus_mm": [
+    2.99,
+    4.5
+   ],
+   "finish": "as-machined, unsharpened, full stock (local t ~3.6 mm)",
+   "why": "only closed full-thickness feature in covered zone; > 6 mm from any sharpened boundary"
+  }
+ ],
+ "seating_lands": [
+  {
+   "name": "choil_lobe",
+   "type": "boundary_arc",
+   "x_range": [
+    78.0,
+    100.0
+   ],
+   "y_max": -17.0,
+   "finish": "unsharpened radiused lobe",
+   "why": "leading non-sharp land in the insertion direction; positive stop so the tip never bottoms"
+  }
+ ],
+ "keepouts": [
+  {
+   "name": "grip+ring",
+   "x_max": 60.0,
+   "origin": "\u226560 mm grip + 25.4 mm ring exposed for one-handed draw"
+  }
+ ],
+ "hazards_note": "BOTH edges (inner/concave and spine-side) + tip zone are sharp (~0 edge width). Spine is NOT a retention or bearing surface.",
+ "bumper_lands": [
+  {
+   "name": "choil_lobe_bumper",
+   "type": "boundary_arc",
+   "x_range": [
+    78.0,
+    100.0
+   ],
+   "y_max": -17.0,
+   "finish": "unsharpened radiused lobe",
+   "why": "leading non-sharp land in the insertion direction; positive stop so the tip never bottoms"
+  },
+  {
+   "name": "hook_back",
+   "type": "boundary_arc",
+   "x_range": [
+    163.0,
+    186.0
+   ],
+   "y_range": [
+    -47.0,
+    -4.0
+   ],
+   "side": "outer convex back of the hook (not flagged sharp by the thickness probe; tip 6 mm zone excluded)",
+   "why": "second non-sharp land far from the choil so in-plane shocks/rotations land on non-sharp steel before an edge touches the rim",
+   "finish": "MUST be confirmed unsharpened by Jepson"
+  }
+ ]
+}
