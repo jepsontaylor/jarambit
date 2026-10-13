@@ -15,7 +15,7 @@ These follow the SWITCHBACK C.9 human-max gate set (W69 loads, solid FEM on the 
 | V1 | twist 16.2 N·m | 1.768 | 17.9 % | mesh ladder 1.866 / 1.786 / 1.768 |
 | V2 | tip 1 kN | 0.738 | — | **RECORD-ONLY** |
 | V3 | spine 3427 N | 1.584 | 5.6 % | ladder 1.652 / 1.588 / 1.584; peak at spine-edge root |
-| V4 | ring-back 3427 N | 1.767 | 17.8 % | |
+| V4 | ring-back 3427 N | 1.662 | 5.5 % | ring-refined mesh v4r (W81 correction of coarse 1.767; not fully converged) |
 | V5 | ring pull 641 N | 7.15 | | |
 | V6 | pry 13.7 N·m (a1 / a2 / a1b / a2b) | **1.578** / 1.690 / 1.909 / 2.154 | **5.2 %** | **governor**; W80-S2 solved directly on C.10a (`data/v6_c10a.json`) |
 | V7 | handle twist 16.2 N·m | 1.616 | 7.7 % | nose ladder 1.645 / 1.624 / 1.622 / 1.616 (`data/v7_c10a.json`) |
@@ -23,6 +23,8 @@ These follow the SWITCHBACK C.9 human-max gate set (W69 loads, solid FEM on the 
 
 Change vs C.9.3: edge grind only (outline and jimping unchanged). Edges are 0.15 mm apex to the point with no tip flat. A 10 mm unsharpened, full-thickness ricasso sits behind the spine-edge start (x 86 → 96; break 0.3 mm on drawing; `data/ricasso_check.json`).
 
-Files: `cad/` B-rep STEP (sha256 441cfabc284efd63…) + reference STL 0.01 mm; `drawings/` 00–09 from the STEP by `drawings/draw_c10a.py`; `data/` gate JSONs.
+**Fitness / auto-selection (owner, 2026-10-13 05:12 MDT):** `fitness = min(V1,V3–V7)/(mass/100) × (1 + 0.20·min(V2,1.5)/1.5)` over designs that pass every hard gate (`fem::soft_tip`, RS-karambit-v2 `[soft_objectives]`). C.10a 2.673. The tip-strengthened w80d (66.966 g, V2 1.245) would score 2.709, but it fails the V3 owner margin (1.556), so C.10a stays RC.
+
+Files: `cad/` B-rep STEP (sha256 441cfabc284efd63…) + reference STL 0.01 mm; `drawings/` 00–09 from the STEP by `drawings/draw_c10a.py`; `data/` gate JSONs; `plates/` FEM wave plates W79–W81.
 Full machinist pack: `SWITCHBACK_RevC10a_RC4_machinist_pack.zip` (sha256 in SHA256SUMS). **Publication pending.**
-Source of record: hiking-karambit commit a47979a, tag `switchback-revC.10a-rc4` (local).
+Source of record: hiking-karambit commit 3a3e36e, tag `switchback-revC.10a-rc4` (local).
