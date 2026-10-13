@@ -1,0 +1,325 @@
+#!/usr/bin/env python3
+"""Marketing render CLI.
+
+  pipeline.py doctor [--require ffmpeg,zscale,blender] [--write-lock] [--hosts]
+  pipeline.py plan --bundle bundle.json --out plan.json [--regions regions.json]
+  pipeline.py render --plan plan.json --dest DIR [--bundle B] [--regions R] [--execute]
+  pipeline.py finish --in DIR --out DIR
+  pipeline.py encode --frames DIR --out DIR
+  pipeline.py qa --measurements measurements.json --out qa.json [--stills a.png]
+  pipeline.py package --root DIR --cad FILE --cad-sha SHA --bundle-sha SHA --plan-key KEY --file SRC=NAME:ROLE
+  pipeline.py all ...   runs the stages that have their inputs; a missing peer tool fails the stage
+
+ingest and finish delegate to the Codex and Claude modules when those files exist.
+This process never imports bpy. It does not upload a release.
+"""
+import argparse
+import importlib.util
+import json
+import os
+import sys
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+
+import canon
+import encode as encode_mod
+import farm as farm_mod
+import package as package_mod
+import plan as plan_mod
+import qa as qa_mod
+import toolchain as toolchain_mod
+
+LOCK_PATH = os.path.join(_HERE, "toolchain.lock.json")
+
+
+def _load_peer(name):
+    path = os.path.join(_HERE, name + ".py")
+    if not os.path.isfile(path):
+        return None
+    spec = importlib.util.spec_from_file_location(f"marketing_{name}", path)
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _die(message, code=2):
+    print(message, file=sys.stderr)
+    raise SystemExit(code)
+
+
+def cmd_doctor(args):
+    report = toolchain_mod.collect(include_hosts=args.hosts)
+    require = [part.strip() for part in (args.require or "").split(",") if part.strip()]
+    gone = toolchain_mod.missing(report, require)
+    if args.write_lock:
+        toolchain_mod.write_lock(args.lock or LOCK_PATH, report)
+        print(f"wrote {args.lock or LOCK_PATH}")
+    print(json.dumps({
+        "ffmpeg": report["ffmpeg"]["version_line"],
+        "zscale": report["ffmpeg"]["zscale"],
+        "libx264": report["ffmpeg"]["libx264"],
+        "libx265": report["ffmpeg"]["libx265"],
+        "libwebp": report["ffmpeg"]["libwebp"],
+        "gifski": report["gifski"],
+        "blender": report["blender"]["version_line"] or report["blender"]["path"],
+        "hosts": report.get("hosts"),
+        "missing": gone,
+    }, indent=2))
+    if gone:
+        _die("required tool missing: " + ", ".join(gone) + " (fail, not skip)", 2)
+
+
+def cmd_ingest(args):
+    peer = _load_peer("ingest")
+    if peer is None or not hasattr(peer, "main"):
+        _die("ingest.py is not in this worktree yet (Codex lane). Refusing to invent a mesh.")
+    raise SystemExit(peer.main(args.rest))
+
+
+def _load_json(path):
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def cmd_plan(args):
+    bundle = _load_json(args.bundle)
+    regions_sha = None
+    if args.regions:
+        regions_sha = canon.sha256_file(args.regions)
+    profiles = tuple(part.strip() for part in args.profiles.split(",") if part.strip())
+    resolved = plan_mod.resolve(
+        bundle,
+        regions_sha256=regions_sha,
+        finish_preset=args.finish,
+        accents=[part for part in (args.accents or "").split(",") if part],
+        profiles=profiles,
+        include_dark_turntable=args.dark_turntable,
+    )
+    canon.atomic_write_bytes(args.out, plan_mod.dumps(resolved))
+    print(resolved["plan_key"])
+
+
+def cmd_render(args):
+    resolved = _load_json(args.plan)
+    if args.execute:
+        sha = (resolved.get("bundle") or {}).get("source_sha256")
+        try:
+            plan_mod.assert_hero_source(sha)
+        except plan_mod.PlanError as exc:
+            _die(str(exc))
+    blender = args.blender or toolchain_mod.find_blender() or ""
+    worker = args.worker or os.path.join(_HERE, "blender", "worker.py")
+    summary = farm_mod.render_jobs(
+        resolved,
+        args.dest,
+        args.bundle or "",
+        args.regions or "",
+        blender,
+        worker,
+        execute=args.execute,
+    )
+    print(json.dumps({key: summary[key] for key in ("plan_key", "jobs", "pending", "skip", "launched", "yield")}))
+    if args.execute and summary["launched"] == 0 and summary["pending"]:
+        _die("execute was set but no shard launched")
+
+
+def cmd_finish(args):
+    peer = _load_peer("finish")
+    if peer is None:
+        _die("finish.py is not in this worktree yet (Claude lane). Refusing to invent a display transform.")
+    fn = getattr(peer, "main", None)
+    if fn is None:
+        _die("finish.py has no main()")
+    raise SystemExit(fn(args.rest))
+
+
+def cmd_encode(args):
+    os.makedirs(args.out, exist_ok=True)
+    if args.ramp:
+        png = os.path.join(args.out, "gray_ramp.png")
+        encode_mod.write_gray_ramp(png)
+        encode_mod.encode_h264(
+            png, os.path.join(args.out, "gray_ramp.mp4"),
+            width=64, height=48, fps=1, preset=args.preset, sequence=False,
+        )
+        print(os.path.join(args.out, "gray_ramp.mp4"))
+        return
+    if not args.frames:
+        _die("encode needs --frames DIR or --ramp")
+    pattern = os.path.join(args.frames, args.pattern)
+    encode_mod.encode_h264(
+        pattern, os.path.join(args.out, "turntable_1080p_h264.mp4"),
+        width=1920, height=1080, fps=30, preset=args.preset, sequence=True,
+    )
+    encode_mod.encode_h264(
+        pattern, os.path.join(args.out, "turntable_2160p_h264.mp4"),
+        width=3840, height=2160, fps=30, crf=18, preset=args.preset, sequence=True,
+    )
+    encode_mod.encode_h265(
+        pattern, os.path.join(args.out, "turntable_2160p_h265.mp4"),
+        preset=args.preset, sequence=True,
+    )
+    encode_mod.encode_webp(
+        pattern, os.path.join(args.out, "turntable_720p.webp"), sequence=True,
+    )
+    encode_mod.encode_gif(args.frames, os.path.join(args.out, "turntable_640.gif"))
+    print(args.out)
+
+
+def cmd_qa(args):
+    measurements = _load_json(args.measurements) if args.measurements else {}
+    report = qa_mod.evaluate(measurements)
+    if args.stills:
+        sheet = qa_mod.contact_sheet(args.stills, os.path.join(os.path.dirname(args.out) or ".", "contact_sheet.png"))
+        report["contact_sheet"] = sheet
+    qa_mod.write_qa(args.out, report)
+    print(args.out)
+    if report["release_blocked"] and args.strict:
+        _die("QA release_blocked: " + ",".join(report["release_blocked_reasons"]))
+
+
+def _parse_file(item):
+    # SRC=NAME:ROLE
+    src, rest = item.split("=", 1)
+    name, role = rest.split(":", 1)
+    return {"src": src, "dest_name": name, "role": role}
+
+
+def cmd_package(args):
+    files = [_parse_file(item) for item in args.file]
+    git_sha = args.git_sha
+    if not git_sha:
+        proc = __import__("subprocess").run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=_HERE)
+        git_sha = proc.stdout.strip() or "unknown"
+    toolchain = {}
+    if os.path.isfile(LOCK_PATH):
+        toolchain = _load_json(LOCK_PATH)
+    result = package_mod.stage(
+        args.root,
+        cad_path=args.cad,
+        expected_cad_sha256=args.cad_sha,
+        mesh_bundle_sha256=args.bundle_sha,
+        toolchain=toolchain,
+        git_sha=git_sha,
+        plan_key=args.plan_key,
+        files=files,
+        normal_policy=args.normal_policy,
+        raw_paths=args.raw or [],
+        keep_raw=args.keep_raw,
+    )
+    print(result["manifest"])
+
+
+def cmd_all(args):
+    """Run the stages whose inputs were passed. Peer gaps fail instead of being skipped."""
+    if args.cad and not args.bundle:
+        cmd_ingest(argparse.Namespace(rest=["--help"]))
+    if not args.bundle or not args.out:
+        _die("all needs --bundle and --out")
+    plan_path = os.path.join(args.out, "render_plan.resolved.json")
+    cmd_plan(argparse.Namespace(
+        bundle=args.bundle, regions=args.regions, out=plan_path, finish=args.finish,
+        accents=args.accents, profiles=args.profiles, dark_turntable=args.dark_turntable,
+    ))
+    cmd_render(argparse.Namespace(
+        plan=plan_path, dest=os.path.join(args.out, "farm"), bundle=args.bundle,
+        regions=args.regions or "", blender=args.blender, worker=args.worker, execute=args.execute,
+    ))
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(prog="pipeline.py")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    doctor = sub.add_parser("doctor")
+    doctor.add_argument("--require", default="", help="comma list; missing names fail the process")
+    doctor.add_argument("--write-lock", action="store_true")
+    doctor.add_argument("--lock", default=LOCK_PATH)
+    doctor.add_argument("--hosts", action="store_true")
+    doctor.set_defaults(func=cmd_doctor)
+
+    ingest = sub.add_parser("ingest")
+    ingest.add_argument("rest", nargs=argparse.REMAINDER)
+    ingest.set_defaults(func=cmd_ingest)
+
+    plan = sub.add_parser("plan")
+    plan.add_argument("--bundle", required=True)
+    plan.add_argument("--regions")
+    plan.add_argument("--out", required=True)
+    plan.add_argument("--finish", default="bead_blast")
+    plan.add_argument("--accents", default="")
+    plan.add_argument("--profiles", default="final_4k,native_1080")
+    plan.add_argument("--dark-turntable", action="store_true")
+    plan.set_defaults(func=cmd_plan)
+
+    render = sub.add_parser("render")
+    render.add_argument("--plan", required=True)
+    render.add_argument("--dest", required=True)
+    render.add_argument("--bundle", default="")
+    render.add_argument("--regions", default="")
+    render.add_argument("--blender")
+    render.add_argument("--worker")
+    render.add_argument("--execute", action="store_true")
+    render.set_defaults(func=cmd_render)
+
+    finish = sub.add_parser("finish")
+    finish.add_argument("rest", nargs=argparse.REMAINDER)
+    finish.set_defaults(func=cmd_finish)
+
+    enc = sub.add_parser("encode")
+    enc.add_argument("--frames")
+    enc.add_argument("--pattern", default="frame_%04d.png")
+    enc.add_argument("--out", required=True)
+    enc.add_argument("--preset", default="slow")
+    enc.add_argument("--ramp", action="store_true")
+    enc.set_defaults(func=cmd_encode)
+
+    qa = sub.add_parser("qa")
+    qa.add_argument("--measurements")
+    qa.add_argument("--out", required=True)
+    qa.add_argument("--stills", nargs="*")
+    qa.add_argument("--strict", action="store_true")
+    qa.set_defaults(func=cmd_qa)
+
+    pkg = sub.add_parser("package")
+    pkg.add_argument("--root", required=True)
+    pkg.add_argument("--cad", required=True)
+    pkg.add_argument("--cad-sha", required=True)
+    pkg.add_argument("--bundle-sha", required=True)
+    pkg.add_argument("--plan-key", required=True)
+    pkg.add_argument("--file", action="append", required=True)
+    pkg.add_argument("--git-sha")
+    pkg.add_argument("--normal-policy")
+    pkg.add_argument("--raw", action="append")
+    pkg.add_argument("--keep-raw", action="store_true")
+    pkg.set_defaults(func=cmd_package)
+
+    entire = sub.add_parser("all")
+    entire.add_argument("--bundle")
+    entire.add_argument("--regions")
+    entire.add_argument("--cad")
+    entire.add_argument("--out")
+    entire.add_argument("--finish", default="bead_blast")
+    entire.add_argument("--accents", default="")
+    entire.add_argument("--profiles", default="final_4k,native_1080")
+    entire.add_argument("--dark-turntable", action="store_true")
+    entire.add_argument("--execute", action="store_true")
+    entire.add_argument("--blender")
+    entire.add_argument("--worker")
+    entire.set_defaults(func=cmd_all)
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    args.func(args)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
