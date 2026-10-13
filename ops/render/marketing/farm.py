@@ -277,6 +277,8 @@ def build_request(plan, shot, frames, profile_name, out_dir, bundle_path, region
             "el": frame["el"],
             "distance_m": frame["distance_m"],
             "target": list(frame["target"]),
+            # the resolved plan's per-frame seed: independent of how frames are sharded
+            "seed": int(frame["seed"]),
         })
     return {
         "schema": REQUEST_SCHEMA,
@@ -289,6 +291,7 @@ def build_request(plan, shot, frames, profile_name, out_dir, bundle_path, region
         "shot": {
             "id": shot["id"],
             "camera": shot["camera"],
+            "pose": shot.get("pose", "as_is"),
             "frames": frozen_frames,
         },
         "profile": profile_for_request(plan["profiles"][profile_name], frames[0]["seed"]),

@@ -75,7 +75,7 @@ def test_package_defaults_point_at_c92_and_reject_retired_g3(tmp_path):
         )
     except package.PackageError as exc:
         assert plan.RETIRED_G3_SHA256 in str(exc)
-        assert "C.9.2" in str(exc)
+        assert plan.HERO_MODEL in str(exc)
     else:
         raise AssertionError("retired g3 sha must not stage a hero still")
     root = tmp_path / "c92"
@@ -91,7 +91,7 @@ def test_package_defaults_point_at_c92_and_reject_retired_g3(tmp_path):
     assert manifest["source_cad"]["path"] == plan.HERO_STEP_PATH
     assert manifest["source_cad"]["sha256"] == plan.HERO_STEP_SHA256
     assert manifest["source_cad"]["verified"] is True
-    assert manifest["source_cad"]["model"] == "SWITCHBACK Rev C.9.2"
+    assert manifest["source_cad"]["model"] == plan.HERO_MODEL == plan.KNOWN_SOURCES[plan.HERO_STEP_SHA256]["model"]
     assert manifest["source_cad"]["replaces_sha256"] == plan.RETIRED_G3_SHA256
 
 
@@ -253,3 +253,15 @@ def test_peer_stages_fail_instead_of_skipping():
         assert proc.returncode == 2
         text = (proc.stderr or "").lower()
         assert "not" in text or "required" in text or "error" in text
+
+
+def test_manifest_model_name_comes_from_source_hash():
+    for sha, info in plan.KNOWN_SOURCES.items():
+        m = package.build_manifest(source_cad={"path": "x", "sha256": sha, "verified": True},
+                                   mesh_bundle_sha256="c" * 64, toolchain={}, git_sha="abc", plan_key="d" * 64,
+                                   outputs=[{"path": "a.png", "sha256": "e" * 64, "role": "poster"}])
+        assert m["source_cad"]["model"] == info["model"]
+    m = package.build_manifest(source_cad={"path": "x", "sha256": "f" * 64, "verified": True},
+                               mesh_bundle_sha256="c" * 64, toolchain={}, git_sha="abc", plan_key="d" * 64,
+                               outputs=[{"path": "a.png", "sha256": "e" * 64, "role": "poster"}])
+    assert "model" not in m["source_cad"]

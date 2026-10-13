@@ -352,7 +352,7 @@ def check_q13(manifest, sums_ok, source_sha256=None, hero=False):
             "Q13",
             "retired g3 sha256 "
             f"{plan_mod.RETIRED_G3_SHA256} is rejected for hero stills and the turntable; "
-            f"use Rev C.9.2 {plan_mod.HERO_STEP_SHA256}",
+            f"use {plan_mod.HERO_MODEL} {plan_mod.HERO_STEP_SHA256}",
             threshold,
         )
     ok = (

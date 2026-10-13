@@ -161,7 +161,7 @@ def test_request_matches_the_frozen_schema():
         "schema", "plan_key", "bundle_path", "regions_path", "finish_preset", "rig_preset",
         "accents", "shot", "profile", "out_dir",
     }
-    assert set(request["shot"]["frames"][0]) == {"index", "az", "el", "distance_m", "target"}
+    assert set(request["shot"]["frames"][0]) == {"index", "az", "el", "distance_m", "target", "seed"}
     assert set(request["profile"]) == {
         "res", "spp_max", "spp_min", "adaptive_threshold", "denoise", "device", "seed",
         "auto_tile",
@@ -229,7 +229,7 @@ def test_remote_request_keeps_the_schema_and_moves_under_scratch():
     assert updated["bundle_path"].endswith("/inputs/bundle.npz")
     assert updated["regions_path"].endswith("/inputs/regions.json")
     assert updated["out_dir"].startswith("/home/ubuntu/jarambit_render_scratch/abc/shots/")
-    assert set(updated["shot"]["frames"][0]) == {"index", "az", "el", "distance_m", "target"}
+    assert set(updated["shot"]["frames"][0]) == {"index", "az", "el", "distance_m", "target", "seed"}
 
 
 def test_remote_stage_keeps_the_worker_filename(tmp_path):
