@@ -1,0 +1,7 @@
+# PR-0.31.1 frozen workload
+id = "fixed_1k"
+n_genomes = 1000
+rs_id = "RS-karambit-v1"
+seed = 20261012
+owner_host = "xbabe3"
+notes = "Frozen 128-gene crescent genomes for accounting. Fill genomes.csv then freeze; do not regenerate."
