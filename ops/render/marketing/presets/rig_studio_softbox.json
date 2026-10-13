@@ -1,0 +1,108 @@
+{
+ "schema": "jarambit.render.rig.v1",
+ "name": "rig_studio_softbox",
+ "id": "R1",
+ "use": "hero stills, light background",
+ "exposure_ev": -1.0,
+ "lights": [
+  {
+   "name": "key",
+   "type": "AREA",
+   "size_D": [
+    1.2,
+    0.8
+   ],
+   "az": 45,
+   "el": 35,
+   "dist_D": 2.5,
+   "power_W": 6.0,
+   "kelvin": 6500
+  },
+  {
+   "name": "fill",
+   "type": "AREA",
+   "size_D": [
+    2.0,
+    2.0
+   ],
+   "az": -70,
+   "el": 15,
+   "dist_D": 3.0,
+   "power_W": 6.0,
+   "ev": -3.5,
+   "kelvin": 6500
+  },
+  {
+   "name": "bevel_kicker",
+   "type": "AREA",
+   "size_D": [
+    0.15,
+    2.0
+   ],
+   "aim": "mirror",
+   "region": "bevel",
+   "normal_filter": "up",
+   "dist_D": 2.2,
+   "power_W": 3.0,
+   "kelvin": 6500
+  },
+  {
+   "name": "flag_face",
+   "type": "CARD",
+   "size_D": [
+    3,
+    3
+   ],
+   "aim": "mirror",
+   "region": "body",
+   "normal_filter": "toward_camera",
+   "dist_D": 1.8,
+   "color": [
+    0.005,
+    0.005,
+    0.005
+   ]
+  }
+ ],
+ "world": {
+  "hdri": {
+   "file": "studio_small_09_4k.hdr",
+   "sha256": "71a876b4315e691cc095e7340228dc9bc48417c26a681b4fc30938161fc85e39",
+   "source": "https://polyhaven.com/a/studio_small_09 (CC0)"
+  },
+  "strength": 0.1,
+  "rotation_deg": 0,
+  "glossy_only": false,
+  "camera_color": [
+   0.55,
+   0.55,
+   0.55
+  ],
+  "fallback_color": [
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ "backdrop": {
+  "type": "sweep",
+  "width_D": 10,
+  "front_D": 8,
+  "back_D": 2.5,
+  "radius_D": 1.2,
+  "height_D": 5,
+  "gap_D": 0.12,
+  "material": {
+   "base_color": [
+    0.6,
+    0.6,
+    0.6
+   ],
+   "roughness": 0.9,
+   "specular": 0.3
+  }
+ },
+ "lookdev_note": "v1 lookdev (C.9.2): plan R1 overhead strip dropped and HDRI 0.35->0.1, fill -2.3->-3.5 EV, exposure -1 EV, black flag on the flat-face mirror direction: flat Ti faces otherwise reflect the bright sweep and read as matte white plastic. See notes/LOOKDEV.md.",
+ "allow_emitter_in_frame": true,
+ "allow_emitter_in_frame_note": "legacy stills rig (pre-arc-key): its bevel kicker can enter frame; camera rays never see emitters (visible_camera off). The out-of-frame check is enforced for rig_dark_arc_key (turntables)."
+}

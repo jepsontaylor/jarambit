@@ -1,0 +1,23 @@
+{
+ "schema": "jarambit.render.finish.v1",
+ "name": "finish_ti64",
+ "appearance_assumed": true,
+ "note": "Ti-6Al-4V appearance from literature complex IOR (Ti n,k at 650/550/450 nm -> normal-incidence F0; F82 tint). Not a measured coating. Physically based visualization under stated material assumptions.",
+ "metal": {"model": "principled_f82_tint (Blender 4.2 Principled metallic)", "base_color_lin": [0.542, 0.497, 0.449], "f82_tint": [0.62, 0.59, 0.56]},
+ "edge_break_mm": 0.12,
+ "default_assignment": {"body": "bead_blast", "bevel": "satin_bevel", "edge_apex": "edge_highlight", "serration": "serration", "ring": "ring_bore", "pad": "brand_pad", "spine": "bead_blast"},
+ "accent_finish": "anodized_bronze",
+ "finishes": {
+  "bead_blast":     {"roughness": 0.42, "anisotropy": 0.0, "micro": "bead_blast", "grain_um": 40, "bump": 0.04},
+  "stonewash":      {"roughness": 0.30, "roughness_range": [0.18, 0.45], "anisotropy": 0.0, "micro": "stonewash", "bump": 0.02},
+  "satin_bevel":    {"roughness": 0.16, "anisotropy": 0.75, "micro": "satin_lines", "stretch": 200, "bump": 0.03},
+  "mirror_bevel":   {"roughness": 0.035, "anisotropy": 0.2, "micro": "none"},
+  "edge_highlight": {"roughness": 0.06, "anisotropy": 0.0, "micro": "none", "bevel_radius_mm": 0.03, "bevel_samples": 8},
+  "serration":      {"roughness": 0.20, "anisotropy": 0.5, "micro": "none"},
+  "ring_bore":      {"roughness": 0.30, "anisotropy": 0.3, "micro": "none"},
+  "brand_pad":      {"roughness": 0.12, "anisotropy": 0.0, "micro": "none"},
+  "anodized_bronze":{"roughness": 0.25, "anisotropy": 0.0, "micro": "none", "thin_film_nm": 210, "thin_film_ior": 2.4},
+  "anodized_blue":  {"roughness": 0.25, "anisotropy": 0.0, "micro": "none", "thin_film_nm": 260, "thin_film_ior": 2.4},
+  "anodized_gold":  {"roughness": 0.25, "anisotropy": 0.0, "micro": "none", "thin_film_nm": 290, "thin_film_ior": 2.4}
+ }
+}

@@ -7,7 +7,7 @@
   pipeline.py finish --in DIR --out DIR
   pipeline.py encode --frames DIR --out DIR
   pipeline.py qa --measurements measurements.json --out qa.json [--stills a.png]
-  pipeline.py package --root DIR [--cad C.9.2.step] [--cad-sha 2ad2a8ec...] --bundle-sha SHA --plan-key KEY --file SRC=NAME:ROLE
+  pipeline.py package --root DIR [--cad C.9.3.step] [--cad-sha 3a818183...] --bundle-sha SHA --plan-key KEY --file SRC=NAME:ROLE
   pipeline.py all ...   runs the stages that have their inputs; a missing peer tool fails the stage
 
 ingest and finish delegate to the Codex and Claude modules when those files exist.
@@ -572,9 +572,9 @@ def build_parser():
     pkg = sub.add_parser("package")
     pkg.add_argument("--root", required=True)
     pkg.add_argument("--cad", default=plan_mod.HERO_STEP_PATH,
-                     help="defaults to the SWITCHBACK Rev C.9.2 STEP")
+                     help="defaults to the SWITCHBACK Rev C.9.3 STEP")
     pkg.add_argument("--cad-sha", default=plan_mod.HERO_STEP_SHA256,
-                     help="defaults to the C.9.2 STEP sha256")
+                     help="defaults to the C.9.3 STEP sha256")
     pkg.add_argument("--bundle-sha", required=True)
     pkg.add_argument("--plan-key", required=True)
     pkg.add_argument("--file", action="append", required=True)

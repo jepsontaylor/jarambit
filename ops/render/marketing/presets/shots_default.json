@@ -1,0 +1,20 @@
+{
+ "schema": "jarambit.render.shots.v1",
+ "note": "Consumed by plan.py -> request.json per shot. az/el = camera direction relative to the part (worker turntable convention, see notes/LOOKDEV.md). target/focus_point null = bbox centre, 'auto:<region>' = worker-picked region point. distance_m comes from framing.py (fill/margin) unless field_mm is given (macro).",
+ "defaults": {"finish_preset": "finish_ti64", "accents": [], "sensor_mm": 36, "fill": [0.62, 0.78], "margin": 0.06, "pose": "as_is", "still_res": [[3840, 2160], [1920, 1080]]},
+ "stills": [
+  {"id": "hero_3q",      "rig": "rig_studio_softbox", "az": 35,  "el": 20, "camera": {"focal_mm": 85,  "fstop": 5.6, "dof_policy": "whole_object"}, "target": null, "fill": [0.62, 0.78]},
+  {"id": "profile_flat", "rig": "rig_studio_softbox", "az": 0,   "el": 0,  "camera": {"focal_mm": 200, "fstop": 8.0, "dof_policy": "whole_object"}, "target": null},
+  {"id": "spine_top",    "rig": "rig_studio_softbox", "az": 0,   "el": 75, "camera": {"focal_mm": 85,  "fstop": 5.6, "dof_policy": "whole_object"}, "target": null},
+  {"id": "edge_macro",   "rig": "rig_dark_strip",     "az": 25,  "el": 12, "camera": {"focal_mm": 135, "fstop": 2.8, "dof_policy": "fixed", "focus_point": "target"}, "target": "auto:thin_edge,edge_apex,bevel", "field_mm": 60},
+  {"id": "ring_detail",  "rig": "rig_studio_softbox", "az": 20,  "el": 15, "camera": {"focal_mm": 135, "fstop": 4.0, "dof_policy": "fixed", "focus_point": "target"}, "target": "auto:ring,bevel", "field_mm": 70},
+  {"id": "dark_hero",    "rig": "rig_dark_strip",     "az": 30,  "el": 8,  "camera": {"focal_mm": 85,  "fstop": 5.6, "dof_policy": "whole_object"}, "target": null},
+  {"id": "white_ecom",   "rig": "rig_product_white",  "az": 0,   "el": 5,  "camera": {"focal_mm": 85,  "fstop": 8.0, "dof_policy": "whole_object"}, "target": null},
+  {"id": "flat_lay",     "rig": "rig_studio_softbox", "az": 0,   "el": 90, "camera": {"focal_mm": 85,  "fstop": 8.0, "dof_policy": "whole_object"}, "target": null, "pose": "lay_flat", "roll_deg": 0}
+ ],
+ "turntables": [
+  {"id": "turntable",      "rig": "rig_dark_arc_key"  , "el": 15, "frames": 240, "fps": 30, "az_start": 0, "loop": true, "camera": {"focal_mm": 85, "fstop": 5.6, "dof_policy": "whole_object"}, "target": null, "shutter": 0.5},
+  {"id": "turntable_dark", "rig": "rig_dark_arc_key",   "el": 15, "frames": 240, "fps": 30, "az_start": 0, "loop": true, "camera": {"focal_mm": 85, "fstop": 5.6, "dof_policy": "whole_object"}, "target": null, "shutter": 0.5}
+ ],
+ "turntable_az": "az_i = az_start + 360 * i / frames, i = 0..frames-1 (frame 'frames' == frame 0, never rendered twice)"
+}

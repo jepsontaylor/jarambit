@@ -27,4 +27,14 @@ jobs:
       - name: required tools fail instead of skip
         run: python3 ops/render/marketing/pipeline.py doctor --require ffmpeg,zscale,libx264,libx265,libwebp,blender
       - name: pytest
-        run: python3 -m pytest -q ops/render/marketing/tests
+        run: |
+          set -euo pipefail
+          # CAD ingest tests import OCP. System Python on the jarambit runners does not
+          # have it; the pinned interpreter is requirements-cad.txt. Missing OCP fails closed.
+          PY="${HOME}/jarambit_render/venv-cad/bin/python"
+          if [ ! -x "$PY" ]; then
+            echo "required tool missing: ${PY} (OCP). Not skipped."
+            exit 1
+          fi
+          "$PY" -c 'import OCP'
+          "$PY" -m pytest -q ops/render/marketing/tests

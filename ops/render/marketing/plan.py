@@ -27,17 +27,51 @@ INPUT_SCHEMA = "jarambit.render.plan.inputs.v1"
 CAMERA_FRAME = "z_up_az0_minus_y"
 MARGIN = 0.06
 HERO_FILL = (0.62, 0.78)
-# Owner lock 2026-10-12: hero stills and the turntable use SWITCHBACK Rev C.9.2.
+# Owner lock 2026-10-13: hero stills and the turntable use SWITCHBACK Rev C.9.3
+# (supersedes the 2026-10-12 C.9.2 lock; C.9.2 hashes stay accepted for re-renders of old stills).
 # The earlier scratch bundle under ~/jarambit_render_scratch/hero is superseded.
-HERO_STEP_SHA256 = "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307"
-HERO_STL_SHA256 = "10b8c41f80b898c255cc090a349559722258f87f8af849ce9a605e14d762e847"
-HERO_SOURCE_SHA256 = frozenset({HERO_STEP_SHA256, HERO_STL_SHA256})
+HERO_STEP_SHA256 = "3a818183bcb5b9a9093da947e00414ed29aa9bfebbb614046b8fb0b16dcbe919"
+HERO_STL_SHA256 = "1aeda17eba396bcec7380ac27f7d20886d64d234f70ad8d3d0cc57aaf63d74ca"
+C92_STEP_SHA256 = "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307"
+C92_STL_SHA256 = "10b8c41f80b898c255cc090a349559722258f87f8af849ce9a605e14d762e847"
+HERO_SOURCE_SHA256 = frozenset({HERO_STEP_SHA256, HERO_STL_SHA256, C92_STEP_SHA256, C92_STL_SHA256})
 HERO_STEP_PATH = os.path.expanduser(
-    "~/jarambit_render/inputs/switchback_C9.2/switchback_revC9_2_ground.step"
+    "~/jarambit_render/inputs/switchback_C9.3/switchback_revC9_3_ground.step"
 )
 HERO_STL_PATH = os.path.expanduser(
-    "~/jarambit_render/inputs/switchback_C9.2/switchback_revC9_2_ground.stl"
+    "~/jarambit_render/inputs/switchback_C9.3/switchback_revC9_3_ground.stl"
 )
+# Source registry: the model name, file name and reference mass for each pinned CAD hash.
+# Ingest, package and QA read model names from here keyed by the actual source sha256 (from
+# --cad / the plan's bundle), so nothing downstream hardcodes a revision. A new hero (e.g. a
+# sharpened Rev C.10) is one entry here plus HERO_STEP/STL_* above.
+KNOWN_SOURCES = {
+    HERO_STEP_SHA256: {"model": "SWITCHBACK Rev C.9.3", "name": "switchback_revC9_3_ground.step",
+                       "reference_mass_g": 66.773, "role": "hero"},
+    HERO_STL_SHA256: {"model": "SWITCHBACK Rev C.9.3", "name": "switchback_revC9_3_ground.stl",
+                      "reference_mass_g": 66.773, "role": "hero"},
+    C92_STEP_SHA256: {"model": "SWITCHBACK Rev C.9.2", "name": "switchback_revC9_2_ground.step",
+                      "reference_mass_g": 66.764, "role": "previous"},
+    C92_STL_SHA256: {"model": "SWITCHBACK Rev C.9.2", "name": "switchback_revC9_2_ground.stl",
+                     "reference_mass_g": 66.764, "role": "previous"},
+}
+HERO_MODEL = KNOWN_SOURCES[HERO_STEP_SHA256]["model"]
+
+
+def source_info(sha256):
+    """Registry entry for a source sha256, or None for an unpinned/unknown source."""
+    return KNOWN_SOURCES.get(sha256)
+
+
+def pinned_sha_for_name(name):
+    """sha256 pinned to a known hero/previous file name (case-insensitive), else None."""
+    low = os.path.basename(str(name or "")).lower()
+    for sha, info in KNOWN_SOURCES.items():
+        if info["name"].lower() == low:
+            return sha
+    return None
+
+
 # Replaced for every hero still and the turntable. Smoke provenance only.
 RETIRED_G3_SHA256 = "04404820cf8385f5e34a42ef9d39a79aecda8eb88895c78aa21f4e3a92fe28c5"
 RETIRED_G3_STL = "g3_tip+00_t60_tt3.stl"
@@ -113,7 +147,8 @@ STILLS = [
 
 TURNTABLE = {
     "id": "turntable",
-    "rig_preset": "rig_studio_softbox",
+    # Art direction 2026-10-13 (Jepson): fixed arc key outside the view, dark glossy floor.
+    "rig_preset": "rig_dark_arc_key",
     "el": 15.0,
     "focal_mm": 85.0,
     "fstop": 8.0,
@@ -125,7 +160,7 @@ TURNTABLE = {
 
 TURNTABLE_DARK = {
     "id": "turntable_dark",
-    "rig_preset": "rig_dark_strip",
+    "rig_preset": "rig_dark_arc_key",
     "el": 15.0,
     "focal_mm": 85.0,
     "fstop": 5.6,
@@ -141,10 +176,10 @@ class PlanError(RuntimeError):
 
 
 def assert_hero_source(sha256):
-    """Refuse a production render whose CAD is not SWITCHBACK Rev C.9.2."""
+    """Refuse a production render whose CAD is not SWITCHBACK Rev C.9.3 (C.9.2 still accepted)."""
     if sha256 not in HERO_SOURCE_SHA256:
         raise PlanError(
-            "hero stills and the turntable require SWITCHBACK Rev C.9.2 "
+            "hero stills and the turntable require SWITCHBACK Rev C.9.3 (or C.9.2) "
             f"(step {HERO_STEP_SHA256} or stl {HERO_STL_SHA256}); got {sha256}"
         )
 

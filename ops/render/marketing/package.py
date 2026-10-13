@@ -88,7 +88,7 @@ def refuse_retired_g3(source_sha, source_path, records):
     raise PackageError(
         "hero stills and the turntable reject retired g3 STL "
         f"{plan_mod.RETIRED_G3_STL} sha256 {plan_mod.RETIRED_G3_SHA256}; "
-        f"use SWITCHBACK Rev C.9.2 step {plan_mod.HERO_STEP_PATH} "
+        f"use {plan_mod.HERO_MODEL} step {plan_mod.HERO_STEP_PATH} "
         f"sha256 {plan_mod.HERO_STEP_SHA256}"
     )
 
@@ -107,8 +107,9 @@ def build_manifest(*, source_cad, mesh_bundle_sha256, toolchain, git_sha, plan_k
         "sha256": source_cad["sha256"],
         "verified": True,
     }
-    if source["sha256"] in plan_mod.HERO_SOURCE_SHA256:
-        source["model"] = "SWITCHBACK Rev C.9.2"
+    info = plan_mod.source_info(source["sha256"])
+    if info is not None:
+        source["model"] = info["model"]
         source["replaces_sha256"] = plan_mod.RETIRED_G3_SHA256
     manifest = {
         "schema": SCHEMA,
@@ -182,7 +183,7 @@ def stage(root, *, cad_path=None, expected_cad_sha256=None, mesh_bundle_sha256, 
           plan_key, files, normal_policy=None, raw_paths=None, keep_raw=False):
     """files is a list of {src, dest_name, role}. Copies into root, then writes manifest and sums.
 
-    Omitted CAD arguments point at the SWITCHBACK Rev C.9.2 STEP. The manifest
+    Omitted CAD arguments point at plan.HERO_STEP_PATH (the current pinned hero). The manifest
     and the snippet are hashed into SHA256SUMS. Raw EXR purge runs only after
     those files are in place.
     """

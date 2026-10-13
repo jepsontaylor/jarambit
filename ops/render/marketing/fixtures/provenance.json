@@ -1,0 +1,15 @@
+{
+  "role": "legacy smoke fixture only; not the C.9.2 hero",
+  "source": "evidence/wave27/g3_tip+00_t60_tt3.stl",
+  "source_sha256": "04404820cf8385f5e34a42ef9d39a79aecda8eb88895c78aa21f4e3a92fe28c5",
+  "tiny_knife": {
+    "triangles": 1416,
+    "cluster_mm": 4,
+    "sha256": "e4060decf24c21210ebed555bd939d08197e646300144e949256ce5a9e7cc8ae",
+    "purpose": "smoke only; preserves selected source positions, loses detail"
+  },
+  "cube_bevel": {
+    "sha256": "f423f1623025e2b5313eadb95ade4e6ef796d6aebb70018e5814933cf9d86ced",
+    "generator": "OCP box + upper/lower perimeter 1 mm chamfer"
+  }
+}

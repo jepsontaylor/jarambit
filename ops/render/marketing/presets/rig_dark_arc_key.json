@@ -1,0 +1,61 @@
+{
+ "schema": "jarambit.render.rig.v1",
+ "name": "rig_dark_arc_key",
+ "id": "R4",
+ "use": "turntable + dark hero: fixed curved strip softbox arcing over and behind the camera (camera-right -> camera-left), dark glossy floor, black background",
+ "art_direction": "Jepson 2026-10-13: no light/emitter visible at any turntable frame (direct or reflected in the floor); key fixed in world, outside camera view, sweeping R->L above the viewer; dark reflective floor; dark background; show titanium edge + surface finish.",
+ "exposure_ev": -1.5,
+ "lights": [
+  {
+   "name": "arc_key",
+   "type": "ARC",
+   "az_from": 80,
+   "az_to": -80,
+   "el_side": 32,
+   "el_top": 62,
+   "segments": 13,
+   "width_D": 0.35,
+   "dist_D": 2.4,
+   "power_W": 14.0,
+   "kelvin": 5600,
+   "spread_deg": 120
+  },
+  {
+   "name": "rim_back",
+   "type": "AREA",
+   "size_D": [0.06, 2.2],
+   "az": 180,
+   "el": 58,
+   "dist_D": 2.2,
+   "power_W": 3.0,
+   "kelvin": 6500,
+   "roll_deg": 90,
+   "spread_deg": 90
+  }
+ ],
+ "world": {
+  "hdri": {
+   "file": "studio_small_09_4k.hdr",
+   "sha256": "71a876b4315e691cc095e7340228dc9bc48417c26a681b4fc30938161fc85e39",
+   "source": "https://polyhaven.com/a/studio_small_09 (CC0)"
+  },
+  "strength": 0.06,
+  "rotation_deg": 90,
+  "glossy_only": true,
+  "camera_color": [0.0, 0.0, 0.0],
+  "fallback_color": [0.0, 0.0, 0.0]
+ },
+ "backdrop": {
+  "type": "plane",
+  "size_D": 40,
+  "gap_D": 0.0,
+  "material": {
+   "base_color": [0.006, 0.006, 0.007],
+   "roughness": 0.18,
+   "coat": 0.35,
+   "coat_roughness": 0.06,
+   "specular": 0.5
+  }
+ },
+ "lookdev_note": "R4 (2026-10-13): replaces R1 light-grey cyclorama for the turntable. Emitters are camera-invisible (lights._hide_from_camera, not overridable) and worker.check_emitters_out_of_frame fails the shot if any emitter or its floor mirror image enters any frame."
+}

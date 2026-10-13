@@ -1,0 +1,7 @@
+# Python 3.12; uv pip install --python ~/jarambit_render/venv-cad/bin/python -r this-file
+cadquery-ocp==7.8.1.1
+numpy==2.2.6
+trimesh==4.7.4
+scipy==1.15.3
+pillow==11.3.0
+pytest==8.4.2
