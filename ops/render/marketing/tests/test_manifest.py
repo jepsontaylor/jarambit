@@ -197,6 +197,8 @@ def _passing_measurements():
         "image_b": flat,
         "manifest": manifest,
         "sums_ok": True,
+        "signature": [{"shot": "hero_3q", "frame": 0, "hero": True, "applied": True, "facing": True,
+                       "in_frame": True, "expected_px": 400.0, "visible_px": 390.0, "visible_ratio": 0.975}],
         "art_review": "pending",
     }
 

@@ -94,7 +94,7 @@ def refuse_retired_g3(source_sha, source_path, records):
 
 
 def build_manifest(*, source_cad, mesh_bundle_sha256, toolchain, git_sha, plan_key,
-                   outputs, normal_policy=None):
+                   outputs, normal_policy=None, signature=None):
     if not source_cad.get("verified"):
         raise PackageError("source CAD sha256 did not verify; refusing to stage a manifest")
     if not mesh_bundle_sha256 or not git_sha or not plan_key:
@@ -125,6 +125,8 @@ def build_manifest(*, source_cad, mesh_bundle_sha256, toolchain, git_sha, plan_k
         "plan_key": plan_key,
         "outputs": outputs,
     }
+    if signature is not None:
+        manifest["signature"] = signature  # maker's-mark placement log (face, centre, size, rotation)
     return manifest
 
 
@@ -180,7 +182,7 @@ def purge_raw(root, raw_paths, keep_raw=False):
 
 
 def stage(root, *, cad_path=None, expected_cad_sha256=None, mesh_bundle_sha256, toolchain, git_sha,
-          plan_key, files, normal_policy=None, raw_paths=None, keep_raw=False):
+          plan_key, files, normal_policy=None, raw_paths=None, keep_raw=False, signature=None):
     """files is a list of {src, dest_name, role}. Copies into root, then writes manifest and sums.
 
     Omitted CAD arguments point at plan.HERO_STEP_PATH (the current pinned hero). The manifest
@@ -216,6 +218,7 @@ def stage(root, *, cad_path=None, expected_cad_sha256=None, mesh_bundle_sha256, 
         plan_key=plan_key,
         outputs=records,
         normal_policy=normal_policy,
+        signature=signature,
     )
     manifest_path = os.path.join(root, "manifest.marketing.json")
     canon.atomic_write_json(manifest_path, manifest)

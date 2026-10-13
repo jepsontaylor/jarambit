@@ -162,7 +162,8 @@ def assign(obj, finish, accents=()):
     for lab in LABELS:
         fname = chosen[lab]
         spec = finish['finishes'][fname]
-        obj.data.materials.append(build_finish(f'{lab}:{fname}', spec, metal, edge_break_m))
+        m_lab = {**metal, **finish.get('region_metal', {}).get(lab, {})}
+        obj.data.materials.append(build_finish(f'{lab}:{fname}', spec, m_lab, edge_break_m))
         rec[lab] = fname
     return rec
 
@@ -189,3 +190,84 @@ def flat_emission(name, rgb_lin):
     em.inputs['Color'].default_value = (*rgb_lin, 1.0)
     g.link(em.outputs['Emission'], out.inputs['Surface'])
     return mat
+
+
+# ---------------------------------------------------------------- maker's mark (signature decal)
+SIG_AOV = 'sig'
+
+
+def _sig_mask(g, placements, image, spec):
+    """Shader-space mask (0..1) of the signature: planar projection in OBJECT space (rotates with the
+    part), clipped to the face plane (+-depth_tol) and to faces whose normal matches the placement."""
+    tc = g.n('ShaderNodeTexCoord')
+    geo = g.n('ShaderNodeNewGeometry')
+    nobj = g.n('ShaderNodeVectorTransform', vector_type='NORMAL', convert_from='WORLD', convert_to='OBJECT')
+    g.link(geo.outputs['Normal'], nobj.inputs['Vector'])
+    P = tc.outputs['Object']
+    total = None
+    tol = float(spec.get('depth_tol_mm', 0.25)) * 1e-3
+    for pl in placements:
+        d = g.math('SUBTRACT', P, tuple(pl['center_m']), vector=True)
+        uu = g.math('ADD', g.math('MULTIPLY', g.math('DOT_PRODUCT', d, tuple(pl['u_axis']), vector=True),
+                                  1.0 / pl['width_m']), 0.5)
+        vv = g.math('ADD', g.math('MULTIPLY', g.math('DOT_PRODUCT', d, tuple(pl['v_axis']), vector=True),
+                                  1.0 / pl['height_m']), 0.5)
+        cmb = g.n('ShaderNodeCombineXYZ')
+        g.link(uu, cmb.inputs['X'])
+        g.link(vv, cmb.inputs['Y'])
+        tex = g.n('ShaderNodeTexImage', interpolation='Cubic', extension='CLIP')
+        img = bpy.data.images.load(pl.get('mask') or image, check_existing=True)
+        img.colorspace_settings.name = 'Non-Color'
+        tex.image = img
+        g.link(cmb.outputs['Vector'], tex.inputs['Vector'])
+        # crisp edge: smoothstep 0.3..0.7 on the antialiased mask
+        mr = g.n('ShaderNodeMapRange', interpolation_type='SMOOTHSTEP')
+        mr.inputs['From Min'].default_value = 0.3
+        mr.inputs['From Max'].default_value = 0.7
+        g.link(tex.outputs['Color'], mr.inputs['Value'])
+        depth = g.math('ABSOLUTE', g.math('DOT_PRODUCT', d, tuple(pl['normal']), vector=True))
+        on_plane = g.math('LESS_THAN', depth, tol)
+        facing = g.math('GREATER_THAN', g.math('DOT_PRODUCT', nobj.outputs['Vector'], tuple(pl['normal']),
+                                               vector=True), 0.9)
+        m = g.math('MULTIPLY', g.math('MULTIPLY', mr.outputs['Result'], on_plane), facing)
+        total = m if total is None else g.math('MAXIMUM', total, m)
+    return total
+
+
+def apply_signature(obj, placements, mask_path, spec):
+    """Mix a matte near-black mark into EVERY material slot of obj, as the final overlay before the
+    output node (laser/black-marked Ti: roughness ~0.9, no specular). Also writes the mask to the
+    'sig' shader AOV so QA can measure on-screen visibility (camera rays only: occlusion-aware)."""
+    placements = [p for p in placements if p.get('ok')]
+    if not placements:
+        return {'applied': False, 'reason': 'no placement'}
+    img = mask_path  # default mask; a placement's own stroke-weight variant wins
+    vl = bpy.context.view_layer
+    if SIG_AOV not in [a.name for a in vl.aovs]:
+        a = vl.aovs.add()
+        a.name = SIG_AOV
+        a.type = 'VALUE'
+    for mat in obj.data.materials:
+        nt = mat.node_tree
+        out = next(n for n in nt.nodes if n.type == 'OUTPUT_MATERIAL')
+        src = out.inputs['Surface'].links[0].from_socket
+        g = G.__new__(G)
+        g.nt, g.x = nt, -2000
+        mask = _sig_mask(g, placements, img, spec)
+        mark = g.n('ShaderNodeBsdfPrincipled', distribution='MULTI_GGX')
+        mark.inputs['Base Color'].default_value = (*spec['base_color_lin'], 1.0)
+        mark.inputs['Metallic'].default_value = 0.0
+        mark.inputs['Roughness'].default_value = float(spec['roughness'])
+        mark.inputs['Specular IOR Level'].default_value = float(spec['specular_ior_level'])
+        mark.inputs['Coat Weight'].default_value = 0.0
+        mix = g.n('ShaderNodeMixShader')
+        mix.name = mix.label = 'signature_overlay'
+        g.link(mask, mix.inputs['Fac'])
+        g.link(src, mix.inputs[1])
+        g.link(mark.outputs['BSDF'], mix.inputs[2])
+        g.link(mix.outputs['Shader'], out.inputs['Surface'])
+        aov = g.n('ShaderNodeOutputAOV')
+        aov.aov_name = SIG_AOV
+        g.link(mask, aov.inputs['Value'])
+    return {'applied': True, 'materials': [m.name for m in obj.data.materials], 'mask_image': sorted({p.get('mask') or mask_path for p in placements}),
+            'aov': SIG_AOV, 'finish': {k: spec[k] for k in ('base_color_lin', 'roughness', 'specular_ior_level')}}
