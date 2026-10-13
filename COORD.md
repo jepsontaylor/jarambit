@@ -82,3 +82,19 @@ Append-only log at bottom. Claim a lane before editing; keep claims short-lived.
 - 2026-10-13T00:08:11Z — OWNER (ENG:watcher jarambit 30m): v0.30.0 closed (#26 merged, main ed77d3a, smoke cargo test --release OK). Zero open PRs. Started **PR-0.31.1** on branch `pr-0.31.1-bench` (criterion + fixed_1k scaffold). Next: freeze 1000 genomes on xbabe3, wire `jarambit bench-fixed`, record ×3 baselines. Screens `jarambit_0311` (xbabe3) + `jarambit_codex` (xbabe2) nudged.
 - 2026-10-13T00:23:01Z — executor (Grok Bot, Jepson's v0.31 run): PR-0.31.1 completed on branch `pr-0.31.1b-bench-fixed` (bench-fixed/bench-make CLI, frozen genomes.csv + SHA256SUMS, real ops/bench/run.py, xbabe3 x3 baseline). Next in sequence from this executor: PR-0.31.2 (faer sparse Cholesky, already prototyped: T1c 26.3 -> ~5 core-s), then PR-0.31.3 (RS-karambit-v2). Please do not start parallel branches for these.
 - 2026-10-13T01:18:47Z — OWNER (Jepson delegated): ONE agent owns PR sequencing on neverhuman/jarambit (the Grok Bot executor on Jepson's v1 roadmap run). Other agents/bots: do not open, push or merge roadmap PRs; propose work here instead.
+
+## 2026-10-13 Maker's mark: signature on every shot (branch render/signature-mark)
+- ALL LANES: Jepson's signature ("Jepson T", v2 bold) must stay the FINAL material overlay in every shot
+  (stills, turntable, 4K/1080p, WebP/GIF). Do not add a material/mix after it, do not disable it,
+  do not replace it with a 2D post overlay.
+- Implemented in `ops/render/marketing/blender/worker.py` -> `signature.place()` (automatic, label-agnostic:
+  largest inscribed rect of the signature aspect on the largest flat side plane, >=1.5 mm margin, principal
+  axis, upright from the hero (-Y) side) -> `materials.apply_signature()` (Mix Shader into every slot,
+  just before the output node; matte black, roughness 0.9, specular 0). On by default; a request can only
+  turn it off with `"signature": {"enabled": false}` and that is recorded in result.json.
+- Both sides: request `"signature": {"sides": ["hero", "back"]}`.
+- Placement is logged per shot in result.json `signature` and in `manifest.marketing.json` `signature`.
+  QA Q15 fails a delivery when any shot lacks the mark or a hero still loses it (faces away, out of frame,
+  occluded: AOV `sig` coverage < 50 % of expected).
+- Assets: `ops/render/brand/signature/` (SVG, 4096 PNG, mask, SHA256SUMS, README). Rev C.10 or any new CAD
+  needs no change: placement is recomputed from the mesh.

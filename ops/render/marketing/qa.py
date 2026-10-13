@@ -1,8 +1,8 @@
-"""QA gates Q1–Q14.
+"""QA gates Q1–Q15 (Q15: maker's-mark signature present and visible).
 
 A missing measurement is FAIL, not a skip. Q14 stays pending until a person
 sets art_review to approved. Nothing in this module writes that approval.
-release_blocked is true unless Q1–Q13 all PASS and art_review is approved.
+release_blocked is true unless Q1–Q13 and Q15 all PASS and art_review is approved.
 """
 import math
 import os
@@ -372,6 +372,49 @@ def check_q13(manifest, sums_ok, source_sha256=None, hero=False):
     }, threshold)
 
 
+SIG_MIN_RATIO = 0.5      # visible ink px / expected ink px (projected bbox * ink fraction)
+SIG_MIN_EXPECTED_PX = 30
+
+
+def signature_rows(results):
+    """Flatten worker result.json dicts into Q15 rows. A shot is 'hero' when its id starts with
+    'hero' or the row says so."""
+    rows = []
+    for res in results or []:
+        sid = res.get("shot_id")
+        sig = res.get("signature") or {}
+        applied = bool(sig.get("enabled")) and bool((sig.get("material") or {}).get("applied"))
+        for fr in res.get("frames") or []:
+            rows.append({"shot": sid, "frame": fr.get("index"), "hero": str(sid or "").startswith("hero"),
+                         "applied": applied, **(fr.get("signature") or {})})
+        if not res.get("frames"):
+            rows.append({"shot": sid, "frame": None, "hero": False, "applied": applied})
+    return rows
+
+
+def check_q15(rows):
+    """Every shot carries the signature overlay; in hero stills it must face the camera, be in
+    frame and be at least SIG_MIN_RATIO visible (fails on missing or unexpected occlusion)."""
+    threshold = {"applied_every_shot": True, "hero_min_visible_ratio": SIG_MIN_RATIO,
+                 "hero_min_expected_px": SIG_MIN_EXPECTED_PX}
+    if not rows:
+        return _fail("Q15", "no signature measurements", threshold)
+    bad = []
+    for r in rows:
+        if not r.get("applied"):
+            bad.append({"shot": r.get("shot"), "frame": r.get("frame"), "why": "signature not applied"})
+            continue
+        if not r.get("hero"):
+            continue
+        if not r.get("facing") or not r.get("in_frame"):
+            bad.append({"shot": r["shot"], "frame": r["frame"], "why": "hero still: mark faces away/out of frame"})
+        elif (r.get("expected_px") or 0) < SIG_MIN_EXPECTED_PX:
+            bad.append({"shot": r["shot"], "frame": r["frame"], "why": f"hero still: mark too small ({r.get('expected_px')} px)"})
+        elif r.get("visible_px") is None or (r.get("visible_ratio") or 0) < SIG_MIN_RATIO:
+            bad.append({"shot": r["shot"], "frame": r["frame"], "why": f"hero still: mark occluded/missing (ratio {r.get('visible_ratio')})"})
+    return _record("Q15", not bad, {"rows": len(rows), "violations": bad[:20]}, threshold)
+
+
 def check_q14(art_review):
     # Never promoted here. pending is not a FAIL of the metric; it blocks release separately.
     status = "PASS" if art_review == "approved" else "PENDING"
@@ -407,6 +450,7 @@ def evaluate(measurements):
             source_sha256=m.get("source_sha256") or (m.get("source_cad") or {}).get("sha256"),
             hero=any(row.get("hero") for row in (m.get("framing") or [])),
         ),
+        check_q15(m.get("signature")),
         check_q14(m.get("art_review")),
     ]
     failed = [item["id"] for item in checks if item["status"] == "FAIL"]

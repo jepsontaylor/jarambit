@@ -42,6 +42,9 @@ import materials  # noqa: E402
 import rigmath  # noqa: E402
 import scene  # noqa: E402
 
+sys.path.insert(0, os.path.dirname(HERE))
+import signature  # noqa: E402
+
 PRESETS = os.path.join(os.path.dirname(HERE), 'presets')
 HDRI_SEARCH = [os.environ.get('JARAMBIT_HDRI_DIR', ''), '~/jarambit_render_scratch/hdri',
                os.path.join(os.path.dirname(HERE), 'hdri')]
@@ -124,6 +127,51 @@ def exr_stats(path):
     a.close()
     px = np.asarray(px)[..., 0]
     return float(px.mean()), float(np.percentile(px, 95))
+
+
+def exr_coverage(path):
+    """Sum of the antialiased mask AOV = visible ink area in pixels (sub-pixel hairlines count)."""
+    import OpenImageIO as oiio
+    a = oiio.ImageInput.open(path)
+    px = np.asarray(a.read_image(format='float'))[..., 0]
+    a.close()
+    return round(float(np.clip(px, 0.0, 1.0).sum()), 1)
+
+
+def signature_expectation(part, placements, cam, sc):
+    """Expected on-screen footprint of each placed mark for the current camera/turntable state:
+    facing (front side toward camera), in frame, projected pixel area of the ink-bbox rectangle."""
+    from bpy_extras.object_utils import world_to_camera_view
+    from mathutils import Vector as _V
+    bpy.context.view_layer.update()
+    M = part.matrix_world
+    R = M.to_3x3()
+    cam_p = np.array(cam.matrix_world.translation)
+    W, H = sc.render.resolution_x, sc.render.resolution_y
+    best = {'expected_px': 0.0, 'facing': False, 'in_frame': False, 'side': None, 'facing_cos': None}
+    for p in placements:
+        c = np.array(M @ _V(p['center_m']))
+        n = np.array(R @ _V(p['normal'])); n /= np.linalg.norm(n)
+        view = cam_p - c; view /= np.linalg.norm(view)
+        cosf = float(np.dot(n, view))
+        u, v = np.array(p['u_axis']), np.array(p['v_axis'])
+        pts = []
+        for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+            q = np.array(p['center_m']) + su * u * p['width_m'] / 2 + sv * v * p['height_m'] / 2
+            s = world_to_camera_view(sc, cam, M @ _V(q))
+            pts.append((s.x * W, s.y * H, s.z))
+        inf = all(0 <= x <= W and 0 <= y <= H and z > 0 for x, y, z in pts)
+        area = 0.0
+        for i in range(4):
+            x0, y0, _ = pts[i]; x1, y1, _ = pts[(i + 1) % 4]
+            area += x0 * y1 - x1 * y0
+        area = abs(area) / 2 if cosf > 0 else 0.0
+        # mark ink covers ~ink_fraction of its bbox; expected px = projected bbox * ink fraction
+        exp_px = area * signature.INK_FRACTION
+        if exp_px > best['expected_px'] or best['side'] is None:
+            best = {'expected_px': round(exp_px, 1), 'bbox_px': round(area, 1), 'facing': cosf > 0,
+                    'facing_cos': round(cosf, 4), 'in_frame': inf, 'side': p['side']}
+    return best
 
 
 def resolve_point(p, pivot, label_pts):
@@ -219,6 +267,23 @@ def run(req, force=False, threads=16):
     part = scene.build_part(mesh)
     tt = scene.build_turntable(part, pivot)
     mat_rec = materials.assign(part, finish, req.get('accents', []))
+
+    # maker's mark: automatic placement on the canonical mesh, then posed; final material overlay.
+    # On by default for every shot; a request may only turn it off explicitly (recorded).
+    sig_req = req.get('signature') or {}
+    sig_rec = {'enabled': bool(sig_req.get('enabled', True))}
+    sig_pl = []
+    if sig_rec['enabled']:
+        cv, cf = mesh['V'] @ Rp, mesh['F']  # canonical (Rp orthonormal: V_canon = V_posed @ Rp)
+        sig = signature.place(cv, cf, {k: v for k, v in sig_req.items() if k != 'enabled'})
+        sig_pl = [signature.transform(p, Rp) if p.get('ok') else p for p in sig['placements']]
+        sig_rec.update({'schema': sig['schema'], 'asset': sig['asset'], 'params': sig['params'],
+                        'placements_canonical': sig['placements'], 'placements_posed': sig_pl})
+        sig_rec['material'] = materials.apply_signature(part, sig_pl, sig['asset']['mask'], sig['params'])
+        for p in sig['placements']:
+            print(f"[worker] signature {p['side']}: " + (f"centre {p['center_m']} {p['width_m']*1e3:.2f}x"
+                  f"{p['height_m']*1e3:.2f} mm rot {p['rotation_deg']} deg" if p.get('ok') else p.get('reason')),
+                  flush=True)
 
     # frames: resolve targets and distances
     frames = []
@@ -326,11 +391,12 @@ def run(req, force=False, threads=16):
         for p in glob.glob(os.path.join(tmp_root, '*')):
             os.remove(p)
         t1 = time.time()
+        sig_expect = signature_expectation(part, sig_pl, cam, sc) if sig_pl else None
         bpy.ops.render.render(write_still=False)
         secs = time.time() - t1
         files = {}
         for key, ext in (('raw', 'raw'), ('den', 'denoised'), ('normal', 'normal'), ('depth', 'depth'),
-                         ('mask', 'mask'), ('spp', 'spp')):
+                         ('mask', 'mask'), ('spp', 'spp'), ('sig', 'sig')):
             src = glob.glob(os.path.join(tmp_root, f'{key}_*.exr'))
             if not src:
                 continue
@@ -342,13 +408,22 @@ def run(req, force=False, threads=16):
         # Cycles stores the sample-count pass normalised by the sample budget
         spp_mean, spp_p95 = (x * int(prof['spp_max']) for x in exr_stats(files.pop('spp')))
         os.remove(f'{stem}.spp.exr')
+        sig_frame = None
+        if sig_expect is not None:
+            sig_px = exr_coverage(files.pop('sig')) if 'sig' in files else None
+            if os.path.isfile(f'{stem}.sig.exr'):
+                os.remove(f'{stem}.sig.exr')
+            sig_frame = {**sig_expect, 'visible_px': sig_px,
+                         'visible_ratio': (round(sig_px / sig_expect['expected_px'], 4)
+                                           if sig_px is not None and sig_expect['expected_px'] > 0 else None)}
         shas = {k: scene.sha256(p) for k, p in files.items()}
         fr = {'index': f['index'], 'raw_exr': files['raw'], 'denoised_exr': files.get('denoised'),
               'passes': {k: files.get(k) for k in ('normal', 'depth', 'mask')},
               'spp': int(prof['spp_max']), 'spp_mean': round(spp_mean, 2), 'spp_p95': round(spp_p95, 1),
               'seconds': round(secs, 3), 'device': prof.get('device', 'CPU').upper(), 'gpu_uuid': uuid,
               'sha256': shas['raw'], 'sha256_all': shas, 'seed': seed, 'az': f['az'], 'el': f['el'],
-              'distance_m': f['distance_m'], 'fstop': fstop, 'focus_m': round(focus_dist, 5)}
+              'distance_m': f['distance_m'], 'fstop': fstop, 'focus_m': round(focus_dist, 5),
+              'signature': sig_frame}
         atomic_json(rp, {'host': host, 'frame': fr, 'files': {k: [p, shas[k]] for k, p in files.items()},
                          'plan_key': req['plan_key'], 'identity': ident, 'time_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())})
         results.append(fr)
@@ -366,6 +441,7 @@ def run(req, force=False, threads=16):
                     'artistic_visibility': bool(rig['world'].get('glossy_only', False)),
                     'exposure_ev': rig.get('exposure_ev', 0.0), 'emitter_check': emitter_check},
             'camera': {'focal_mm': focal, 'sensor_mm': sensor, 'dof_policy': dof_policy, 'fstop_request': fstop_req},
+            'signature': sig_rec,
             'framing': framing, 'wall_seconds': round(time.time() - t_start, 2)}
 
 

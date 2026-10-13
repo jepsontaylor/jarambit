@@ -339,6 +339,13 @@ def cmd_post(args):
             if name.startswith("turntable_") and name.endswith(".receipt.json"):
                 receipts.append(_load_json(os.path.join(args.png_dir, name)))
     seconds = qa_mod.seconds_from_receipts(receipts)
+    results = []
+    if os.path.isdir(args.png_dir):
+        for name in sorted(os.listdir(args.png_dir)):
+            if name.endswith(".result.json"):
+                results.append(_load_json(os.path.join(args.png_dir, name)))
+    signature_log = [{"shot": r.get("shot_id"), **{k: (r.get("signature") or {}).get(k) for k in
+                      ("enabled", "asset", "placements_canonical")}} for r in results]
     wall = None
     stamp = os.path.join(args.dest, "started_at.txt")
     if os.path.isfile(stamp):
@@ -383,6 +390,7 @@ def cmd_post(args):
             plan_key=plan.get("plan_key"),
             files=files,
             normal_policy=bundle.get("normal_policy"),
+            signature=signature_log or None,
         )
     except package_mod.PackageError as exc:
         _die(str(exc))
@@ -399,6 +407,7 @@ def cmd_post(args):
         "manifest": manifest,
         "sums_ok": package_mod.verify_sums(args.package),
         "source_sha256": (manifest.get("source_cad") or {}).get("sha256"),
+        "signature": qa_mod.signature_rows(results),
     }
     report = qa_mod.evaluate(measurements)
     qa_path = os.path.join(args.dest, "qa.json")

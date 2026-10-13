@@ -275,5 +275,7 @@ def setup_compositor(tmpdir, denoise=True, codec='ZIP'):
     nt.links.new(rl.outputs['IndexOB'], idm.inputs['ID value'])
     fout('mask', idm.outputs['Alpha'], mode='RGB')
     fout('spp', rl.outputs['Debug Sample Count'], depth='32', mode='RGB')
+    if 'sig' in rl.outputs:  # maker's-mark AOV (materials.apply_signature)
+        fout('sig', rl.outputs['sig'], mode='RGB')
     comp = nt.nodes.new('CompositorNodeComposite')
     nt.links.new(rl.outputs['Image'], comp.inputs['Image'])
