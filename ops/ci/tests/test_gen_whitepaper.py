@@ -1,4 +1,6 @@
 import json, os, subprocess, sys, unittest
+import tempfile
+MAN_TMP = os.path.join(tempfile.mkdtemp(), 'x')
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, os.path.join(ROOT, 'ops', 'ci'))
 
@@ -20,6 +22,28 @@ class GenWhitepaper(unittest.TestCase):
         c = json.load(open(os.path.join(ROOT, 'docs/figures/components/components.json')))
         self.assertEqual([x['component'] for x in c['components']], ['ring', 'grip_spine', 'blade', 'tip'])
         self.assertAlmostEqual(sum(x['area_share'] for x in c['components']), 1.0, places=6)
+
+    def test_components_reject_mismatched_rsv2(self):
+        r = subprocess.run([sys.executable, os.path.join(ROOT, 'ops/render/components.py'), '--stl', os.path.join(ROOT, 'evidence/wave27/g3_tip+00_t60_tt3.stl'),
+                            '--d1', os.path.join(ROOT, 'evidence/wave27/g3_tip+00_t60_tt3_D1.json'), '--rsv2', os.path.join(ROOT, 'evidence/rs_v2/w271b_11772.json'),
+                            '--out', os.path.join(os.path.dirname(MAN_TMP), 'mm')], capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0); self.assertIn('is not the D1 design', r.stderr)
+
+    def test_tip_reports_locked_gate_values(self):
+        c = json.load(open(os.path.join(ROOT, 'docs/figures/components/components.json')))
+        tip = [x for x in c['components'] if x['component'] == 'tip'][0]['rs_v2']
+        self.assertIn('twist_tipzone_sf_strict', tip); self.assertIn('solid_tip_sf', tip); self.assertNotIn('twist_tipzone_sf', tip)
+
+    def test_caption_fits(self):
+        try:
+            from PIL import ImageFont
+            f = ImageFont.truetype('DejaVuSans.ttf', 30)
+        except (ImportError, OSError):
+            self.skipTest('font unavailable')
+        sys.path.insert(0, os.path.join(ROOT, 'ops', 'render'))
+        import components
+        for t in components.TITLE.values():
+            self.assertLess(1000 + 40 + f.getlength(t), 2000, t)
 
 
 if __name__ == '__main__':

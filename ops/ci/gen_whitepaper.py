@@ -56,7 +56,7 @@ def components():
     c = js(COMP); p = c['partition']
     L = [f'Design `{c["label"][:-3] if c["label"].endswith("_D1") else c["label"]}` ({f(c["mass_g"], 2)} g). Plan partition (`ops/render/components.py`): ring = within bore radius + 1.6 × ring band '
          f'({f(p["bore_radius_est_mm"], 2)} + 1.6 × {f(p["ring_band_mm"], 2)} mm) of the ring centre; grip/spine = next {p["grip_mm"]:.0f} mm; tip = within {p["tip_radius_mm"]:.0f} mm of the tip; blade = rest. '
-         f'(b) panels show the {c["sf_field"]}; that field is the RS-karambit-v1 screen field. The RS-karambit-v2 human-max columns are the design\'s gate values from `evidence/rs_v2/`.', '']
+         f'(b) panels show the {c["sf_field"]}; that field is the RS-karambit-v1 screen field. The last column lists the design\'s RS-karambit-v2 gate values from `evidence/rs_v2/` (tip: strict 0.0625 mm² tip-submodel twist SF and the genome-bound solid tip SF, which are the locked gate values; the plate min element SF is the screen field only).', '']
     for k, x in enumerate(c['components'], 1):
         rs = ', '.join(f'{g} {f(v, 3) if isinstance(v, float) else v}' for g, v in x['rs_v2'].items())
         L += [f'![Fig. C{k}]({os.path.relpath(os.path.join(ROOT, x["figure"]), os.path.join(ROOT, "docs"))})', '',

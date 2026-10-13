@@ -5,7 +5,7 @@
    "area_share": 0.1711364369839348,
    "component": "ring",
    "figure": "docs/figures/components/g3_tip+00_t60_tt3_D1_ring.png",
-   "figure_sha256": "699c6fb84087885eee48ced09d49474f6eebbc8c894c7b36da3ef7f02c969f21",
+   "figure_sha256": "06c693636b73ed59468737876afbf4c7e1efbc03f6c23e5e3467185ab4145e89",
    "frac_area_sf_below_1": 0.0,
    "n_elements": 4135,
    "rs_v2": {
@@ -22,7 +22,7 @@
    "area_share": 0.34815270186641434,
    "component": "grip_spine",
    "figure": "docs/figures/components/g3_tip+00_t60_tt3_D1_grip_spine.png",
-   "figure_sha256": "4e195307a46fcef271e82916408a375595bc1a89d0be259e65a68c6cdba77178",
+   "figure_sha256": "83a4710c04e62abadb6ed995b718e7d72773f170ca2d8160225444affb3cae3f",
    "frac_area_sf_below_1": 0.0,
    "n_elements": 8963,
    "rs_v2": {
@@ -38,7 +38,7 @@
    "area_share": 0.4506454849247703,
    "component": "blade",
    "figure": "docs/figures/components/g3_tip+00_t60_tt3_D1_blade.png",
-   "figure_sha256": "b9bd6f018a90b62c213ddb01d48aaeed070908eddea762ce12426c0051c657c9",
+   "figure_sha256": "227c7867a5b0d3adeccb5e4557a79000b158564f46a1bd9701a16f80850614bb",
    "frac_area_sf_below_1": 0.0,
    "n_elements": 12305,
    "rs_v2": {
@@ -54,12 +54,13 @@
    "area_share": 0.030065376224880737,
    "component": "tip",
    "figure": "docs/figures/components/g3_tip+00_t60_tt3_D1_tip.png",
-   "figure_sha256": "8be68fac6eb8116ebd2193ed853d269611285ff58857f6d9ba6a3ae878604e6d",
+   "figure_sha256": "67d52fafa7210165a318989eec237b298f6f7fb9289624423905511277e89f40",
    "frac_area_sf_below_1": 0.0,
    "n_elements": 734,
    "rs_v2": {
     "hm_tip_inplane_sf": 0.5648925162300026,
-    "twist_tipzone_sf": 1.1758612223759735
+    "solid_tip_sf": 1.6002,
+    "twist_tipzone_sf_strict": 1.2239847445256393
    },
    "sf_median": 4.0085999999999995,
    "sf_min": 1.1759,
