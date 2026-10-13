@@ -8,3 +8,10 @@ license.workspace = true
 jarambit-phenotype = { path = "../phenotype" }
 jarambit-genotype = { path = "../genotype" }
 spade = "2.15"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "t1_plate"
+harness = false
