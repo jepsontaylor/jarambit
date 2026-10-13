@@ -34,7 +34,11 @@ HERO_STEP_SHA256 = "3a818183bcb5b9a9093da947e00414ed29aa9bfebbb614046b8fb0b16dcb
 HERO_STL_SHA256 = "1aeda17eba396bcec7380ac27f7d20886d64d234f70ad8d3d0cc57aaf63d74ca"
 C92_STEP_SHA256 = "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307"
 C92_STL_SHA256 = "10b8c41f80b898c255cc090a349559722258f87f8af849ce9a605e14d762e847"
-HERO_SOURCE_SHA256 = frozenset({HERO_STEP_SHA256, HERO_STL_SHA256, C92_STEP_SHA256, C92_STL_SHA256})
+# Owner 2026-10-13 (Sharpness Gate S): true-sharp Rev C.10a (EDGE_T 0.15 mm, no tip flat; hiking-karambit 0b7ef2e
+# analysis/w79/ground_c10a.step). Pro-hero lane renders this; it is a DESIGN CANDIDATE, NOT CERTIFIED (V2-S tip SF fails).
+C10A_STEP_SHA256 = "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7"
+C10A_STEP_PATH = os.path.expanduser("~/jarambit_render/inputs/switchback_C10a/switchback_revC10a_ground.step")
+HERO_SOURCE_SHA256 = frozenset({HERO_STEP_SHA256, HERO_STL_SHA256, C92_STEP_SHA256, C92_STL_SHA256, C10A_STEP_SHA256})
 HERO_STEP_PATH = os.path.expanduser(
     "~/jarambit_render/inputs/switchback_C9.3/switchback_revC9_3_ground.step"
 )
@@ -52,6 +56,9 @@ KNOWN_SOURCES = {
                       "reference_mass_g": 66.773, "role": "hero"},
     C92_STEP_SHA256: {"model": "SWITCHBACK Rev C.9.2", "name": "switchback_revC9_2_ground.step",
                       "reference_mass_g": 66.764, "role": "previous"},
+    C10A_STEP_SHA256: {"model": "SWITCHBACK Rev C.10a", "name": "switchback_revC10a_ground.step",
+                       "reference_mass_g": 64.841, "role": "candidate",
+                       "status_label": "design candidate, not certified"},
     C92_STL_SHA256: {"model": "SWITCHBACK Rev C.9.2", "name": "switchback_revC9_2_ground.stl",
                      "reference_mass_g": 66.764, "role": "previous"},
 }
