@@ -20,6 +20,10 @@
   "4k_portrait": [
    2160,
    3840
+  ],
+  "hd": [
+   1920,
+   1080
   ]
  },
  "spp": 1024,
@@ -267,16 +271,17 @@
   ],
   "look": {
    "gold": [
-    1.0,
-    0.5,
-    0.08
+    0.02,
+    0.02,
+    0.022
    ],
-   "gold_emit": 0.35,
-   "gold_rough": 0.1
+   "gold_emit": 0.0,
+   "gold_rough": 0.08,
+   "note": "owner 5:56: signature = deep glossy black ink on anodize; no gold, no outline"
   },
   "floor": {
-   "coat": 0.15,
-   "roughness": 0.09
+   "coat": 0.08,
+   "roughness": 0.1
   },
   "shot_overrides": {
    "01_hero_34": {
@@ -290,7 +295,6 @@
     "el": 3.0
    }
   },
-  "sig_inner_mask": "jepson_t_mask_4096_bold12.png",
   "keyline_rgb": [
    0.0,
    0.0,
@@ -298,12 +302,42 @@
   ],
   "keyline_rough": 0.6,
   "light_ev": {
-   "arc_key": -2.2,
-   "rim_back": -1.0,
-   "blade_sweep": -1.6,
+   "arc_key": -3.4,
+   "rim_back": -1.8,
+   "blade_sweep": -3.0,
    "face_soft_R": -1.0,
    "face_soft_L": -0.5
   },
-  "wall_rough": 0.22
+  "wall_rough": 0.38
+ },
+ "floor_soft": {
+  "spec_level": 0.28,
+  "coat": 0.08,
+  "roughness": 0.1,
+  "rough_far": 0.3,
+  "fade_m": [
+   0.06,
+   0.3
+  ],
+  "tint": [
+   0.002,
+   0.002,
+   0.0025
+  ],
+  "note": "owner: floor reflection -40..50 %"
+ },
+ "finishes": {
+  "satin_blue": {
+   "d_start_nm": 50.0,
+   "d_end_nm": 50.0,
+   "lick_amp": 0.0,
+   "rough": 0.3,
+   "wall_rough": 0.38,
+   "coat": 0.0,
+   "aniso": 0.6,
+   "bevel_flamed": false,
+   "exposure_ev": 0.35,
+   "note": "film finish (owner 5:58): satin bead-blast/brushed Ti, single mid blue (~30-35 V), raw-Ti mirror bevels/edge, black ink signature"
+  }
  }
 }

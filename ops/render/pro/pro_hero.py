@@ -201,6 +201,9 @@ def flame_material():
     # and not on walls/recesses (its white reflection blew out the serrations)
     coat = math_node(N, L, 'MULTIPLY', math_node(N, L, 'MULTIPLY', face, math_node(N, L, 'SUBTRACT', 1.0, outer)), F['coat'])
     L(coat, bs.inputs['Coat Weight']); bs.inputs['Coat Roughness'].default_value = F['coat_rough']
+    if F.get('aniso'):   # satin brush along the blade arc: tangent circles about the plate normal (Y)
+        tg = N('ShaderNodeTangent'); tg.direction_type = 'RADIAL'; tg.axis = 'Y'
+        L(tg.outputs[0], bs.inputs['Tangent']); L(math_node(N, L, 'MULTIPLY', face, F['aniso']), bs.inputs['Anisotropic'])
     L(mix_rgb(N, L, sig, (0, 0, 0, 1), gold), bs.inputs['Emission Color'])
     bs.inputs['Emission Strength'].default_value = LOOK['gold_emit']
     L(bs.outputs[0], out.inputs['Surface'])
@@ -209,21 +212,24 @@ def flame_material():
 
 
 FINISH = A.get('--finish', CFG.get('finish', 'art'))
-if FINISH == 'flame':
+if FINISH in CFG.get('finishes', {}):   # named anodize variants ride the thin-film path with overrides
+    CFG['flame'] = {**CFG['flame'], **CFG['finishes'][FINISH]}
+FILM_PATH = FINISH == 'flame' or FINISH in CFG.get('finishes', {})
+if FILM_PATH:
     LOOK['exposure'] = CFG['flame'].get('exposure_ev', LOOK['exposure']); LOOK.update(CFG['flame'].get('look', {}))
     ART_M = flame_material(); TI_M = ART_M if CFG['flame'].get('bevel_flamed', True) else ti_material()
 else:
     ART_M, TI_M = art_material(), ti_material()
 for i in range(len(labels)):
     lab = labels[str(i)]
-    part.data.materials.append((ti_material() if (FINISH == 'flame' and lab == 'edge_apex') else TI_M) if lab in ('bevel', 'edge_apex', 'serration') else ART_M)
+    part.data.materials.append((ti_material() if (FILM_PATH and lab == 'edge_apex') else TI_M) if lab in ('bevel', 'edge_apex', 'serration') else ART_M)
 part.data.update()
 
 sc = bpy.context.scene
 vl = sc.view_layers[0]; a = vl.aovs.add(); a.name = 'sig'; a.type = 'VALUE'
 vl.use_pass_normal = vl.use_pass_z = vl.use_pass_object_index = True
 rig = json.load(open(os.path.join(MK, 'presets', 'rig_dark_arc_key.json')))
-rig['lights'] = rig['lights'] + CFG['extra_lights'] + (CFG['flame'].get('extra_lights', []) if A.get('--finish', CFG.get('finish', 'art')) == 'flame' else [])
+rig['lights'] = rig['lights'] + CFG['extra_lights'] + (CFG['flame'].get('extra_lights', []) if FILM_PATH else [])
 rig['backdrop']['material'].update(CFG.get('floor', {}))
 if A.get('--finish', CFG.get('finish', 'art')) == 'flame':
     rig['backdrop']['material'].update(CFG['flame'].get('floor', {}))
@@ -231,6 +237,26 @@ if A.get('--finish', CFG.get('finish', 'art')) == 'flame':
         Lc['ev'] = Lc.get('ev', 0.0) + CFG['flame'].get('light_ev', {}).get(Lc['name'], 0.0)
 z_floor = float(lo[2])
 scene.build_backdrop(rig['backdrop'], D, z_floor, materials.floor_material(rig['backdrop']['material']))
+
+def soften_floor(fc):
+    """Owner 2026-10-13: floor reflection ~45 % darker, soft falloff, gentle distance fade (dark + reflective kept)."""
+    if not fc: return
+    for m in bpy.data.materials:
+        if not m.use_nodes: continue
+        nt = m.node_tree; P = [n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED']
+        if not P or 'floor' not in m.name.lower() and 'backdrop' not in m.name.lower(): continue
+        p = P[0]
+        p.inputs['Specular IOR Level'].default_value = fc.get('spec_level', 0.28)
+        p.inputs['Coat Weight'].default_value = fc.get('coat', 0.08)
+        p.inputs['Base Color'].default_value = (*fc.get('tint', [0.002, 0.002, 0.0025]), 1)
+        tc = nt.nodes.new('ShaderNodeTexCoord'); vl = nt.nodes.new('ShaderNodeVectorMath'); vl.operation = 'LENGTH'
+        mr = nt.nodes.new('ShaderNodeMapRange')
+        mr.inputs['From Min'].default_value, mr.inputs['From Max'].default_value = fc.get('fade_m', [0.06, 0.30])
+        mr.inputs['To Min'].default_value = fc.get('roughness', 0.10); mr.inputs['To Max'].default_value = fc.get('rough_far', 0.30)
+        nt.links.new(tc.outputs['Generated' if False else 'Object'], vl.inputs[0]); nt.links.new(vl.outputs['Value'], mr.inputs['Value'])
+        nt.links.new(mr.outputs['Result'], p.inputs['Roughness'])
+        print('floor softened', m.name)
+soften_floor(CFG.get('floor_soft'))
 hdri = scene.find_hdri(rig['world']['hdri']['file'], rig['world']['hdri']['sha256'],
                        ['~/jarambit_render_scratch/hdri', os.path.join(MK, 'hdri')])
 rig['world'].update(CFG.get('world', {}))
@@ -568,7 +594,7 @@ if '--anim' in A:
 
 only = set(A['--shots'].split(',')) if '--shots' in A else None
 for sh in CFG['shots']:
-    if FINISH == 'flame': sh = {**sh, **CFG['flame'].get('shot_overrides', {}).get(sh['name'], {})}
+    if FILM_PATH: sh = {**sh, **CFG['flame'].get('shot_overrides', {}).get(sh['name'], {})}
     if only and sh['name'] not in only: continue
     if RES not in sh.get('res', ['4k']): continue
     reset_lights()
