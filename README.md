@@ -32,6 +32,28 @@ Verdicts are scoped to a requirement set (`requirements/RS-karambit-v1.toml`): *
 <img src="docs/figures/whitepaper/wave27_g3_tip+00_t60_tt3_W27HARDPASS_SPG4p15_wgt84p8g_D1_FEM_metrics.png" width="88%" alt="historical wave27 D1 FEM plate for g3_tip+00_t60_tt3"/>
 
 *Top: faceted STL preview, not a validated STEP. The wave27 STEP imports as an unsewable shell, so the whole-part solid mesh uses the STL twin (84.86 g vs 84.80 g). Colour = position along the blade. Bottom: **historical** wave27 D1 plate (RS-karambit-v1 W27 screen scope; it labels seq SOFT, which RS-karambit-v2 makes HARD). Solid-tip SF 1.534 at the production mesh.*
+
+### SWITCHBACK Rev C.9.2 — hiking/utility renders
+
+Physically based visualization of the SWITCHBACK-class titanium hiking/utility karambit under stated material assumptions. Source STEP [`designs/switchback/C9.2/cad/switchback_revC9_2_ground.step`](designs/switchback/C9.2/cad/switchback_revC9_2_ground.step). The stills and the turntable are files in this repository. Art review is pending.
+
+<img src="docs/media/marketing/hero_3q_1920.jpg" width="100%" alt="Three-quarter hero preview: SWITCHBACK-class titanium hiking/utility karambit"/>
+
+**Downloads**
+
+- [Three-quarter hero preview](docs/media/marketing/hero_3q_1920.jpg) (1920×1080)
+- [Three-quarter hero still](docs/media/marketing/hero_3q.jpg) (3840×2160)
+- [Profile still](docs/media/marketing/profile_flat.jpg) (3840×2160)
+- [Spine, top view](docs/media/marketing/spine_top.jpg) (3840×2160)
+- [Edge macro](docs/media/marketing/edge_macro.jpg) (3840×2160)
+- [Ring detail](docs/media/marketing/ring_detail.jpg) (3840×2160)
+- [Flat lay](docs/media/marketing/flat_lay.jpg) (3840×2160)
+- [White background](docs/media/marketing/white_ecom.jpg) (3840×2160)
+- [Dark studio hero](docs/media/marketing/dark_hero.jpg) (3840×2160)
+- [Turntable, 1080p H.264](docs/media/marketing/turntable_1080p_h264.mp4) (240 frames, 30 fps, bt709)
+- [Turntable, 4K H.264](docs/media/marketing/turntable_2160p_h264.mp4) (240 frames, 30 fps, bt709)
+
+*Hiking and utility only. Physically based visualization under stated material assumptions.*
 <!-- GEN:FIGS:END -->
 
 > **SWITCHBACK Rev C.9.2 (rc2)** — [`designs/switchback/C9.2/`](designs/switchback/C9.2/README.md): B-rep STEP, drawings and FEM plates from the hiking-karambit study. C.9.2 is a **release candidate, not the design of record**: its V1–V8 gates are the C.9 study set (not an RS-karambit-v2 verdict from this repo), the lateral-pry margin is below the 5 % promotion rule, and nothing is machined or tested.

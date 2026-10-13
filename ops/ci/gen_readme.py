@@ -95,8 +95,49 @@ def figs():
          f'<img src="{FIG}/wave27_{DESIGN}_W27HARDPASS_SPG4p15_wgt84p8g_D1_FEM_metrics.png" width="88%" alt="historical wave27 D1 FEM plate for {DESIGN}"/>', '',
          f'*Top: faceted STL preview, not a validated STEP. The wave27 STEP imports as an unsewable shell, so the whole-part solid mesh uses the STL twin '
          f'({wp["mass_g_at_4.43"]:.2f} g vs {wp["ref_mass_g"]:.2f} g). Colour = position along the blade. Bottom: **historical** wave27 D1 plate '
-         f'(RS-karambit-v1 W27 screen scope; it labels seq SOFT, which RS-karambit-v2 makes HARD). Solid-tip SF {f(tip)} at the production mesh.*']
+         f'(RS-karambit-v1 W27 screen scope; it labels seq SOFT, which RS-karambit-v2 makes HARD). Solid-tip SF {f(tip)} at the production mesh.*',
+         '',
+         *marketing_downloads()]
     return '\n'.join(L)
+
+
+def marketing_downloads():
+    """README downloads for the committed C.9.2 stills and turntable. Numbers come from the manifests."""
+    step = 'designs/switchback/C9.2/cad/switchback_revC9_2_ground.step'
+    mans = sorted(glob.glob(os.path.join(ROOT, 'docs/media/marketing/*.manifest.json')))
+    if not mans:
+        raise SystemExit('gen_readme: docs/media/marketing manifests are missing')
+    items = [js(os.path.relpath(path, ROOT)) for path in mans]
+    items.sort(key=lambda d: (d['readme_order'], d['output']))
+    poster = next((d for d in items if d.get('role') == 'poster'), None)
+    if poster is None:
+        raise SystemExit('gen_readme: marketing poster manifest is missing')
+    lines = [
+        '### SWITCHBACK Rev C.9.2 — hiking/utility renders',
+        '',
+        'Physically based visualization of the SWITCHBACK-class titanium hiking/utility karambit under stated material assumptions. '
+        f'Source STEP [`{step}`]({step}). '
+        'The stills and the turntable are files in this repository. Art review is pending.',
+        '',
+        f'<img src="{poster["output"]}" width="100%" alt="{poster["caption"]}: SWITCHBACK-class titanium hiking/utility karambit"/>',
+        '',
+        '**Downloads**',
+        '',
+    ]
+    for d in items:
+        bits = []
+        if d.get('width') and d.get('height'):
+            bits.append(f'{d["width"]}×{d["height"]}')
+        if d.get('frames'):
+            bits.append(f'{d["frames"]} frames')
+        if d.get('fps'):
+            bits.append(f'{d["fps"]} fps')
+        if d.get('color_space'):
+            bits.append(str(d['color_space']))
+        suffix = f' ({", ".join(bits)})' if bits else ''
+        lines.append(f'- [{d["caption"]}]({d["output"]}){suffix}')
+    lines += ['', '*Hiking and utility only. Physically based visualization under stated material assumptions.*']
+    return lines
 
 
 def release():
