@@ -1,0 +1,65 @@
+{
+ "wave": "W80-S2",
+ "solid": "C.10a ground_c10a_fea.step (sha16 441cfabc284efd63 machining solid)",
+ "ladders": {
+  "a1": {
+   "ladder": [
+    1.7248,
+    1.6919,
+    1.6523
+   ],
+   "ratio": 1.204,
+   "extrap_observed": 1.652,
+   "extrap_p1p2": 1.578,
+   "SF_conv": 1.578
+  },
+  "a2": {
+   "ladder": [
+    1.8683,
+    1.8328,
+    1.783
+   ],
+   "ratio": 1.403,
+   "extrap_observed": 1.783,
+   "extrap_p1p2": 1.69,
+   "SF_conv": 1.69
+  },
+  "a1b": {
+   "ladder": [
+    2.0865,
+    2.0462,
+    1.9986
+   ],
+   "ratio": 1.181,
+   "extrap_observed": 1.999,
+   "extrap_p1p2": 1.909,
+   "SF_conv": 1.909
+  },
+  "a2b": {
+   "ladder": [
+    2.3507,
+    2.3061,
+    2.2532
+   ],
+   "ratio": 1.186,
+   "extrap_observed": 2.253,
+   "extrap_p1p2": 2.154,
+   "SF_conv": 2.154
+  }
+ },
+ "V6": {
+  "a1": 1.578,
+  "a2": 1.69,
+  "a1b": 1.909,
+  "a2b": 2.154
+ },
+ "C93_W76": {
+  "a1": 1.632,
+  "a2": 1.697,
+  "a1b": 1.965,
+  "a2b": 2.072
+ },
+ "V6_min": 1.578,
+ "margin_pct": 5.2,
+ "pass_1p575": true
+}

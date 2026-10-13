@@ -7,8 +7,8 @@
 # No tissue-damage, penetration or strike-effect objectives exist in this set or anywhere in jarambit.
 
 id = "RS-karambit-v2"
-version = 1
-status = "v0.31: published; human_max group is new (Jepson 2026-10-12); mass SOFT (Jepson decision overrides the roadmap's 'mass<=80 hard'); seq >= 1.2 HARD"
+version = 2
+status = "v0.32.0i: tip_inplane RECORD-ONLY + Gate S (Jepson 2026-10-13 04:13 MT); v0.31: published; human_max group is new (Jepson 2026-10-12); mass SOFT (Jepson decision overrides the roadmap's 'mass<=80 hard'); seq >= 1.2 HARD"
 
 [constants]
 inherits = "RS-karambit-v1"      # every v1 constant still applies (ring ID, blade limit, floors, twist floor, solid tip)
@@ -19,7 +19,7 @@ mass_stretch_g = 70.0            # SOFT
 [human_max]
 # Human-maximum structural load cases (static, first-yield SF >= 1 = no permanent set).
 twist_nmm = 16200.0              # 16.2 N*m tip torque about the ring->tip chord (3D-corrected, as the 1.82 N*m floor)
-tip_inplane_n = 1000.0           # in-plane tip load, worst of chord-normal and chord-axial, ring held
+tip_inplane_n = 1000.0           # in-plane tip load, worst of chord-normal and chord-axial, ring held. RECORD-ONLY since 2026-10-13 (owner): solved + reported, not gating
 spine_n = 3427.0                 # in-plane load distributed on the spine edge toward the sharpened edge, ring held
 ringback_daf = 2.0               # L6 ring-back impact as a static equivalent: DAF 2 (suddenly applied) x ring pull
 ringback_n = 3000.0              # PROVISIONAL (owner decision 2026-10-12): no measured ring-back impact data yet; static equivalent = DAF 2 (suddenly applied load) x 1500 N ring pull, +x on the outer ring back, grip band seated. Replace when impact test data exist.
@@ -45,13 +45,36 @@ source = "docs/calibration/t1_t2.json"
 criteria = ["RS-karambit-v1.screen"]
 
 [groups.human_max]
-criteria = ["hm_twist_sf >= 1", "hm_tip_inplane_sf >= 1", "hm_spine_sf >= 1", "hm_ringback_sf >= 1", "ring_bearing_w_mm >= 10", "ring_edge_r_mm >= 1.5"]
+criteria = ["hm_twist_sf >= 1", "hm_spine_sf >= 1", "hm_ringback_sf >= 1", "ring_bearing_w_mm >= 10", "ring_edge_r_mm >= 1.5"]
 record_field = "rs_v2_human_max_pass"
+record_only = ["hm_tip_inplane_sf"]   # owner decision Jepson 2026-10-13 04:13 MT
+
+[gate_s]
+# SHARPNESS GATE S, owner hard requirement (Jepson 2026-10-13). Measured on the sharpened B-rep (hiking-karambit
+# analysis/w79/sharpness_check.py); mass and every FEM case are taken on the sharpened solid.
+apex_max_mm = 0.20               # S1: edge apex (thickness extrapolated to the plan boundary) on every cutting edge
+half_angle_max_deg = 25.0        # S3: edge half-angle over the first 0.4 mm (blocks obtuse-wedge apexes)
+tip_t025_max_mm = 0.30           # S2: point section thickness 0.25 mm behind the point
+tip_t1_max_mm = 0.60             # S2: at 1 mm
+tip_t2_max_mm = 1.00             # S2: at 2 mm; t(a) monotonic over the last 10 mm
+tip_taper_min_mm = 5.0           # S2: taper length (first a with t >= 0.95 core) >= 5 mm
+note = "the extreme point may yield or chip in structural overload (accepted); a dull edge or blunt point is not"
+
+[groups.gate_s]
+criteria = ["edge_t <= 0.20", "ea_in <= 25", "ea_sp <= 25", "B-rep S2 tip point (unverified until bound)"]
 
 [groups.fatigue]
 criteria = ["fat_sf >= 1"]
 
 [groups.promotion]
-criteria = ["RS-karambit-v1.promotion", "seq_ratio >= 1.2 (HARD)", "human_max", "fatigue"]
+criteria = ["RS-karambit-v1.promotion", "seq_ratio >= 1.2 (HARD)", "human_max", "fatigue", "gate_s"]
 soft = ["mass_target_g (G penalty, not a gate)", "mass_stretch_g"]
 note = "nothing is ever auto-promoted; human aesthetic sign-off still required"
+
+
+# Owner decision, Jepson Taylor, 2026-10-13 05:12 MDT: V2 tip stays record-only (non-blocking) but is a soft objective.
+[soft_objectives]
+fitness = "min(gating_sf) / (mass_g / 100) * (1 + w_tip * min(hm_tip_inplane_sf, tip_sat) / tip_sat)"
+w_tip = 0.20
+tip_sat = 1.5
+source = "crates/crescent/src/fem.rs soft_tip; hiking-karambit analysis/scoring.py"

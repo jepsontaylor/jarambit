@@ -1,0 +1,63 @@
+{
+ "wave": "W80-S3",
+ "owner_decision": "Jepson Taylor 2026-10-13 05:12 MDT: adopt w80d as rc5 IF V1,V3-V7>=1.575, Gate S, <70 g",
+ "w80d": {
+  "mass_g": 66.966,
+  "gates": {
+   "V1": 1.739,
+   "V2": 1.245,
+   "V3": 1.556,
+   "V4": 1.662,
+   "V5": 7.39,
+   "V6": 1.63,
+   "V7": 1.62
+  },
+  "notes": {
+   "V1": "g2 ratio carry 1.835/1.866 x 1.768 (r0p2 a3 still solving)",
+   "V3": "DIRECT r0p2 b1 outside-support 1.556 @ (105.32,11.02) vs C.10a 1.584; g2 1.625 vs 1.652",
+   "V4": "DIRECT v4r 1.662 (= C.10a v4r 1.662); no-patch 1.744",
+   "V5": "g2 7.39",
+   "V6": "DIRECT jimping submodel ladder a1/a2/a1b/a2b 1.630/1.663/2.006/2.189",
+   "V7": "DIRECT nose ladder 1.647/1.629/1.623/1.620",
+   "V2": "record 1.245 (W80 t0p28; transition spot not converged)",
+   "GateS": "PASS (W80 sharp_w80d.json)"
+  }
+ },
+ "C10a": {
+  "mass_g": 64.841,
+  "gates": {
+   "V1": 1.768,
+   "V2": 0.738,
+   "V3": 1.584,
+   "V4": 1.662,
+   "V5": 7.15,
+   "V6": 1.578,
+   "V7": 1.616
+  },
+  "V4_note": "W81 v4r 1.662 replaces g2 1.767"
+ },
+ "scores": {
+  "C.10a": {
+   "eligible": true,
+   "governor": "V6",
+   "governor_SF": 1.578,
+   "fitness_legacy": 2.434,
+   "tip_reward": 1.0984,
+   "fitness": 2.673,
+   "fails": []
+  },
+  "w80d": {
+   "eligible": false,
+   "governor": "V3",
+   "governor_SF": 1.556,
+   "fitness_legacy": 2.324,
+   "tip_reward": 1.166,
+   "fitness": 2.709,
+   "fails": [
+    "V3"
+   ]
+  }
+ },
+ "auto_pick": "C.10a",
+ "verdict": "w80d FAILS owner margin on V3 (1.556 < 1.575; passes SF 1.5 by 3.7 %). NOT tagged rc5; rc4 C.10a stays release candidate. Owner decision needed: accept V3 3.7 % margin, or a V3 spine-root fix on w80d."
+}
