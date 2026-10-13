@@ -1,0 +1,19 @@
+{
+  "chamfer_face_ids": [
+    2,
+    3,
+    6,
+    7,
+    9,
+    11,
+    12,
+    13
+  ],
+  "box_mm": [
+    60,
+    40,
+    6
+  ],
+  "chamfer_mm": 1,
+  "oracle": "centroid lies on none of the six original box planes"
+}
