@@ -104,3 +104,51 @@ def test_flat_lay_pose_reaches_the_worker_request():
     assert flat["framing"]["distance_m"] != as_is["framing"]["distance_m"]
     assert np.allclose(np.asarray(plan.POSES["lay_flat"]),
                        np.array([[1.0, 0, 0], [0, 0, 1.0], [0, -1.0, 0]]))
+
+
+def test_pose_changes_plan_key_and_invalidates_completed_output(tmp_path):
+    spec = dict(next(s for s in plan.STILLS if s["id"] == "flat_lay"))
+    a = plan.resolve(_bundle(), profiles=("smoke",), stills=[{**spec, "pose": "as_is"}], use_external_framing=False)
+    b = plan.resolve(_bundle(), profiles=("smoke",), stills=[{**spec, "pose": "lay_flat"}], use_external_framing=False)
+    assert a["plan_key"] != b["plan_key"]
+    dest = str(tmp_path / "dest")
+    jobs = farm.prepare_jobs(a, dest, "b.json", "r.json")
+    job = next(j for j in jobs if j["shot_id"] == "flat_lay")
+    png = os.path.join(job["out_dir"], "flat_lay_0000.png")
+    Path(png).write_bytes(b"x" * 64)
+    farm.write_receipt(job["out_dir"], 0, png, "h", "u", 1, 1.0, a["plan_key"])
+    assert next(j for j in farm.prepare_jobs(a, dest, "b.json", "r.json") if j["shot_id"] == "flat_lay")["status"] == "skip"
+    assert next(j for j in farm.prepare_jobs(b, dest, "b.json", "r.json") if j["shot_id"] == "flat_lay")["status"] == "pending"
+
+
+def _lookdev_args(bundle, out):
+    from types import SimpleNamespace
+    return SimpleNamespace(bundle=bundle["bundle"], regions=bundle["regions"], finish_override=None, rig_override=None,
+                           accents=None, res=[160, 90], spp=8, spp_min=0, threshold=0.05, device="CPU", hdri="off",
+                           out=out)
+
+
+def test_lookdev_changed_mesh_does_not_resume(blender, tiny_bundle, tmp_path):
+    import _stl_bundle
+    import lookdev
+    shots = json.load(open(MKT / "presets" / "shots_default.json"))
+    shot = next(s for s in shots["stills"] if s["id"] == "hero_3q")
+    b_dir = tmp_path / "meshB"
+    bb, rb = _stl_bundle.build(tiny_bundle["stl"], str(b_dir / "mesh"), pose="upright", units="in")
+    mesh_b = {"bundle": bb, "regions": rb}
+    out = str(tmp_path / "ld")
+    ra = lookdev.build_request(shot, shots["defaults"], _lookdev_args(tiny_bundle, out), "x")
+    ra["plan_key"] = lookdev.lookdev_key(ra, "lookdev")
+    p, res_a = run_worker(blender, ra, str(tmp_path / "a.json"))
+    assert p.returncode == 0, p.stderr[-2000:]
+    p, res_a2 = run_worker(blender, ra, str(tmp_path / "a2.json"))
+    assert res_a2["frames"][0].get("resumed") is True  # identical inputs still resume
+    rb_ = lookdev.build_request(shot, shots["defaults"], _lookdev_args(mesh_b, out), "x")
+    rb_["plan_key"] = lookdev.lookdev_key(rb_, "lookdev")
+    assert rb_["plan_key"] != ra["plan_key"]
+    # even with the same (tag-style) key, the worker receipt identity binds the mesh inputs
+    rb_["plan_key"] = ra["plan_key"]
+    p, res_b = run_worker(blender, rb_, str(tmp_path / "b.json"))
+    assert p.returncode == 0, p.stderr[-2000:]
+    assert not res_b["frames"][0].get("resumed")
+    assert res_b["frames"][0]["sha256"] != res_a["frames"][0]["sha256"]

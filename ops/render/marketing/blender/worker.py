@@ -148,10 +148,14 @@ def resolve_point(p, pivot, label_pts):
     return np.asarray(p, float), 'given'
 
 
-def frame_identity(req, f, prof, res, seed):
-    """What a resumable frame must match: plan, shot, frame, resolution, sample budget, seed."""
+def frame_identity(req, f, prof, res, seed, inputs):
+    """What a resumable frame must match: plan, shot, frame, camera, resolution, sample budget,
+    seed, and the verified visual inputs (mesh source/NPZ, regions, finish, rig, accents, pose).
+    Lookdev keys are tags, so the input hashes, not the key, are what bind a receipt to a model."""
     return {'plan_key': req['plan_key'], 'shot_id': req['shot']['id'], 'index': int(f['index']),
-            'res': [int(res[0]), int(res[1])], 'spp': int(prof['spp_max']), 'seed': int(seed)}
+            'az': float(f['az']), 'el': float(f['el']), 'distance_m': f.get('distance_m'),
+            'res': [int(res[0]), int(res[1])], 'spp': int(prof['spp_max']), 'seed': int(seed),
+            'inputs': inputs}
 
 
 def planned_seed(req, f, prof):
@@ -289,11 +293,17 @@ def run(req, force=False, threads=16):
     uuid = gpu_uuid() if prof.get('device', 'CPU').upper() != 'CPU' else None
     host = socket.gethostname()
     results = []
+    input_ident = {
+        'source_sha256': (bundle.get('source') or {}).get('sha256'), 'npz_sha256': bundle.get('npz_sha256'),
+        'regions_sha256': scene.sha256(req['regions_path']) if req.get('regions_path') else None,
+        'finish_sha256': finish_sha, 'rig_sha256': rig_sha, 'accents': list(req.get('accents') or []),
+        'pose': pose_name, 'camera': cam_spec, 'hdri_sha256': (hdri_rec or {}).get('sha256'),
+    }
     for f in frames:
         stem = os.path.join(out_dir, f'{sid}_{f["index"]:04d}')
         rp = stem + '.receipt.json'
         seed = planned_seed(req, f, prof)
-        ident = frame_identity(req, f, prof, res, seed)
+        ident = frame_identity(req, f, prof, res, seed, input_ident)
         if not force:
             r = verify_receipt(rp, ident)
             if r:

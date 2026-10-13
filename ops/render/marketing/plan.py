@@ -403,6 +403,8 @@ def _shot_spec(raw):
     for key in ("az", "el", "frames", "fps"):
         if key in raw:
             spec[key] = raw[key]
+    # the part pose changes the rendered image, so it is part of the plan key (normalized)
+    spec["pose"] = raw.get("pose") or "as_is"
     return spec
 
 

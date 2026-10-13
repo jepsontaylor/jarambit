@@ -33,6 +33,30 @@ def gpu_busy():
     return None
 
 
+def _sha(path):
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, 'rb') as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def lookdev_key(req, tag):
+    """Lookdev plan key derived from the render inputs (bundle + NPZ + regions bytes and every
+    visual setting), not from a tag/shot label, so a changed mesh never resumes an old render."""
+    import hashlib
+    body = {k: v for k, v in req.items() if k not in ('plan_key', 'out_dir')}
+    files = {'bundle': _sha(req['bundle_path'])}
+    npz = os.path.join(os.path.dirname(req['bundle_path']), 'mesh.npz')
+    if os.path.isfile(npz):
+        files['npz'] = _sha(npz)
+    if req.get('regions_path'):
+        files['regions'] = _sha(req['regions_path'])
+    doc = json.dumps({'req': body, 'files': files}, sort_keys=True, default=str).encode()
+    return f'{tag}:{req["shot"]["id"]}:{hashlib.sha256(doc).hexdigest()[:16]}'
+
+
 def build_request(shot, defaults, args, plan_key, frames=None):
     tt = 'frames' in shot and isinstance(shot['frames'], int)
     if tt:
@@ -87,6 +111,7 @@ def main():
                 print(f'[lookdev] {b}; waiting 60 s (yield rule)', flush=True)
                 time.sleep(60)
         req = build_request(by_id[sid], shots['defaults'], args, f'{args.tag}:{sid}', args.frames)
+        req['plan_key'] = lookdev_key(req, args.tag)
         os.makedirs(req['out_dir'], exist_ok=True)
         rq = os.path.join(req['out_dir'], 'request.json')
         json.dump(req, open(rq, 'w'), indent=1)
