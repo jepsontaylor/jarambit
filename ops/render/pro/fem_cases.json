@@ -21,7 +21,12 @@
     "result": "b1_c10ar_g2h_vm.npz",
     "scale": "b1_c10ar_g2h_zones.json"
    },
-   "shot": "01_hero_34"
+   "shot": "01_hero_34",
+   "certification": {
+    "status": "unresolved",
+    "ref": "W84",
+    "note": "C.10a V3 certification reopened (W84): show the solver value only, no converged PASS"
+   }
   },
   {
    "gate": "V6",

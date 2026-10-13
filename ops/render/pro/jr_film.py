@@ -106,8 +106,12 @@ def main():
     need(man['science'], 'manifest has no science shots (gate table / fem_cases mismatch)')
     # stage key = manifest + recipe + signature/art inputs: a new mark or recipe rebuilds prep and everything after
     # (code-only changes: use --force <stage>)
-    key = hashlib.sha256((msha + Path(a.recipe).read_text() + sha256(HERE / R['sig_mask']) + sha256(os.path.expanduser(R['art']))).encode()).hexdigest()
-    S = Stamp(work, key, a.force)
+    inputs = Path(a.recipe).read_text() + sha256(HERE / R['sig_mask']) + sha256(os.path.expanduser(R['art']))
+    # render stages depend only on geometry + solver fields + recipe; text (verdicts, labels) only on assemble/encode
+    rkey = hashlib.sha256((man['step']['sha256'] + str(man['Sy_MPa']) + json.dumps([s_['fem'] for s_ in man['science']], sort_keys=True)
+                           + man['fem']['mesh']['sha256'] + inputs).encode()).hexdigest()
+    key = hashlib.sha256((msha + inputs).encode()).hexdigest()
+    S = Stamp(work, rkey, a.force); SA = Stamp(work, key, a.force)
     film_plan = json.loads((HERE / R['film']).read_text())
     sci_shots = [s_ for s_ in film_plan['shots'] if s_['common'].get('science')]
     for s_ in sci_shots:
@@ -172,13 +176,13 @@ def main():
 
     # ---- assemble + encode
     final = work / 'final'; seq = final / f'{stamp}_seq'
-    if not S.done('assemble', [final / f'{stamp}_assembly.json']):
+    if not SA.done('assemble', [final / f'{stamp}_assembly.json']):
         run([py, HERE / 'assemble_film.py', film, sci_dirs['wire'], sci_dirs['heat'], dm, HERE / R['film'], a.recipe, seq, final / f'{stamp}_assembly.json', '--size', f'{R["size"][0]}x{R["size"][1]}'], logs / 'assemble.log')
-        S.mark('assemble', [final / f'{stamp}_assembly.json'])
+        SA.mark('assemble', [final / f'{stamp}_assembly.json'])
     asm = json.loads((final / f'{stamp}_assembly.json').read_text()); need(asm['text_qa_pass'], 'text QA failed')
     W, H = R['size']; fps = R['fps']; fin = R['finish']
     mkv = final / f'{stamp}_{fin}_{W}x{H}_ffv1.mkv'; h265 = final / f'{stamp}_{fin}_{W}x{H}_h265.mp4'; chat = final / f'{stamp}_{fin}_chat.mp4'
-    if not S.done('encode', [mkv, h265, chat]):
+    if not SA.done('encode', [mkv, h265, chat]):
         inp = ['-framerate', fps, '-i', seq / 'f%05d.png']
         ff = lambda *x: run(['ffmpeg', '-y', '-loglevel', 'error', *x], logs / 'encode.log')
         ff(*inp, '-c:v', 'ffv1', '-level', 3, '-g', 1, '-slicecrc', 1, '-pix_fmt', 'rgb48le', mkv)
@@ -188,7 +192,7 @@ def main():
             ff(*inp, '-c:v', 'libx264', '-preset', 'slow', '-b:v', f'{kbps}k', '-pass', crf_pass, '-passlogfile', work / 'x264pass',
                '-pix_fmt', 'yuv420p', '-movflags', '+faststart', *(['-f', 'mp4', '/dev/null'] if crf_pass == 1 else [chat]))
         need(chat.stat().st_size < R['chat_mp4_max_mb'] * 1e6, f'chat copy {chat.stat().st_size/1e6:.1f} MB over budget')
-        S.mark('encode', [mkv, h265, chat])
+        SA.mark('encode', [mkv, h265, chat])
     for p in (mkv, h265, chat):
         n = int(subprocess.run(['ffprobe', '-v', 'error', '-count_frames', '-select_streams', 'v:0', '-show_entries', 'stream=nb_read_frames',
                                 '-of', 'csv=p=0', p], capture_output=True, text=True).stdout.strip() or 0)

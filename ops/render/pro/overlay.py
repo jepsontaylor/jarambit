@@ -301,8 +301,10 @@ def science_lines(man, shot):
     return [
         ('load', f"{shot['test']} · {num_str(load['value'])} {load['unit']}"),
         ('mesh', f"MESH · {mesh['tets']:,} TETS"),
-        ('peak', f"PEAK σvM {shot['peak_vm_MPa']:.0f} MPa"),
-        ('sf', f"SF {shot['SF']:.3f} · {shot['verdict']}"),
+        *([('peak', f"PEAK σvM {shot['peak_vm_MPa']:.0f} MPa"), ('sf', f"SF {shot['SF']:.3f} · {shot['verdict']}")]
+          if shot.get('certification', {}).get('status', 'of record') == 'of record' else
+          [('peak', f"SOLVER PEAK σvM {shot['solver_peak_vm_MPa']:.0f} MPa"),
+           ('sf', f"SOLVER SF {shot['solver_SF']:.3f} · {shot['verdict']}")]),
         ('prov', (f"{man['label']} · solver output · gate SF ≥ {shot['gate_SF']:.3f} · Sy {man['Sy_MPa']:.0f} MPa · {man['status_note']}").upper())]
 
 
@@ -315,7 +317,8 @@ def draw_science_typed(d, lay, man, shot, t, anchor, cues, fade=1.0):
     yy = y; boxes = []
     for role in ('load', 'mesh', 'peak', 'sf', 'prov'):
         f, tr, col = spec[role]; txt = L[role]
-        if role == 'sf' and shot['verdict'] != 'PASS': col = (255, 120, 110)
+        if role == 'sf' and shot['verdict'] == 'FAIL': col = (255, 120, 110)
+        if role == 'sf' and shot['verdict'] not in ('PASS', 'FAIL'): col = (240, 200, 120)   # open / unresolved: amber, no pass claim
         if role == 'prov':
             k = ease((t - cues['prov']) / 0.5); bb = tracked(d, (x, yy), txt, f, col + (int(a * k),), tr) if k > 0 else [x, yy, x + int(text_width(d, txt, f, tr)), yy + f.size]
             bb = [x, yy, x + int(text_width(d, txt, f, tr)), yy + int(f.size * 1.05)]; done = 0

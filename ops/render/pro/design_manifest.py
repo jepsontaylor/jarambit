@@ -112,10 +112,24 @@ def build(design_dir, fem_store, cases_cfg):
             p = Path(fem_store) / f; need(p.is_file(), f'FEM store missing {p} (needed for {v})')
             res[k] = {'file': f, 'sha256': sha256(p)}
         sf = gates[v]['SF']
-        shots.append({'gate': v, 'test': sc.get('display', name).upper(), 'case_text': gates[v]['case'],
-                      'load': {'value': val, 'unit': unit}, 'SF': sf, 'gate_SF': gate,
-                      'verdict': 'PASS' if sf >= gate else 'FAIL', 'peak_vm_MPa': round(sy / sf, 1),
-                      'peak_basis': 'Sy / SF of record (converged)', 'fem': res, 'fem_case': sc['fem_case'], 'shot': sc['shot']})
+        # solver value straight from the result file (per-tet vM x sourced load scale)
+        import numpy as np
+        fc = sc['fem_case']; sj = json.loads((Path(fem_store) / fc['scale_json']).read_text()); scl = sj
+        for k in fc['scale_key']:
+            need(isinstance(scl, dict) and k in scl, f'{v}: scale key {fc["scale_key"]} missing in {fc["scale_json"]}'); scl = scl[k]
+        z = np.load(Path(fem_store) / fc['npz']); need(fc['key'] in z.files, f'{v}: {fc["key"]} not in {fc["npz"]}')
+        solver_peak = float(np.max(z[fc['key']]) * float(scl))
+        cert = sc.get('certification', {'status': 'of record'})
+        rec = {'gate': v, 'test': sc.get('display', name).upper(), 'case_text': gates[v]['case'],
+               'load': {'value': val, 'unit': unit}, 'SF': sf, 'gate_SF': gate, 'certification': cert,
+               'solver_peak_vm_MPa': round(solver_peak, 1), 'solver_SF': round(sy / solver_peak, 3),
+               'fem': res, 'fem_case': fc, 'shot': sc['shot']}
+        if cert['status'] == 'of record':
+            rec.update(verdict='PASS' if sf >= gate else 'FAIL', peak_vm_MPa=round(sy / sf, 1), peak_basis='Sy / SF of record (converged)')
+        else:   # no converged claim: show the solver value, verdict = the open status
+            rec.update(verdict=f"CERT. {cert['status'].upper()} {cert.get('ref', '')}".strip(), peak_vm_MPa=round(solver_peak, 1),
+                       peak_basis=f"solver field max (certification {cert['status']}, {cert.get('ref', '')})")
+        shots.append(rec)
     fem_mesh = Path(fem_store) / cases_cfg['fem_mesh']; need(fem_mesh.is_file(), f'FEM mesh {fem_mesh} missing')
     man = {'schema': 'jarambit.design_manifest.v1', 'design_dir': str(D), 'family': D.parent.name.upper(),
            'rev': rev, 'rc': rc, 'label': f'Rev {rev} {rc}', 'title': title,
