@@ -303,9 +303,11 @@ def science_lines(man, shot):
         ('mesh', f"MESH · {mesh['tets']:,} TETS"),
         *([('peak', f"PEAK σvM {shot['peak_vm_MPa']:.0f} MPa"), ('sf', f"SF {shot['SF']:.3f} · {shot['verdict']}")]
           if shot.get('certification', {}).get('status', 'of record') == 'of record' else
-          [('peak', f"SOLVER PEAK σvM {shot['solver_peak_vm_MPa']:.0f} MPa"),
-           ('sf', f"SOLVER SF {shot['solver_SF']:.3f} · {shot['verdict']}")]),
-        ('prov', (f"{man['label']} · solver output · gate SF ≥ {shot['gate_SF']:.3f} · Sy {man['Sy_MPa']:.0f} MPa · {man['status_note']}").upper())]
+          [('peak', f"PEAK σvM {shot['solver_peak_vm_MPa']:.0f} MPa*"),
+           ('sf', f"SF {shot['solver_SF']:.2f}* · OPEN")]),
+        ('prov', (f"{man['label']} · solver output · gate SF ≥ {shot['gate_SF']:.3f} · Sy {man['Sy_MPa']:.0f} MPa · {man['status_note']}").upper()
+                 if shot.get('certification', {}).get('status', 'of record') == 'of record' else
+                 (f"{man['label']} · *solver value · cert. {shot['certification']['status']} ({shot['certification'].get('ref', '')}) · Sy {man['Sy_MPa']:.0f} MPa").upper())]
 
 
 def draw_science_typed(d, lay, man, shot, t, anchor, cues, fade=1.0):
@@ -356,7 +358,7 @@ def compose_v2(frame, man, knife, sig, card=None, heat_alpha=0.0, gain=1.0, marg
         x0, y0, x1, y1 = bbox
         if x0 < 0 or y0 < 0 or x1 > W or y1 > H: hits.append({'what': 'badge', 'why': 'clipped by frame'})
         if S[max(0, y0):y1, max(0, x0):x1].any(): hits.append({'what': 'badge', 'why': 'signature'})
-        nb = len(lay.boxes)
+        nb = len(lay.boxes); over_knife = []
         if card is not None:
             shot, t, cues, fade = card; s = lay.s
             ax = int(64 * s) if corner == 'tl' else int(W * 0.52); ay = int(56 * s)
@@ -368,10 +370,17 @@ def compose_v2(frame, man, knife, sig, card=None, heat_alpha=0.0, gain=1.0, marg
                 bx0, by0, bx1, by1 = max(0, b[0]), max(0, b[1]), min(W, b[2]), min(H, b[3])
                 if b[0] < 0 or b[1] < 0 or b[2] > W or b[3] > H: hits.append({'what': 'card', 'box': b, 'why': 'clipped by frame'})
                 if bx1 > bx0 and by1 > by0:
-                    if K[by0:by1, bx0:bx1].any(): hits.append({'what': 'card', 'box': b, 'why': 'knife'})
+                    if K[by0:by1, bx0:bx1].any(): over_knife.append(b)   # spin: knife sweeps the card -> dark backing plate (never over the mark)
                     if S[by0:by1, bx0:bx1].any(): hits.append({'what': 'card', 'box': b, 'why': 'signature'})
                     if bbox[0] < bx1 and bx0 < bbox[2] and bbox[1] < by1 and by0 < bbox[3]: hits.append({'what': 'card', 'box': b, 'why': 'badge'})
-        q = {'badge_present': True, 'badge_box': bbox, 'hits': hits, 'pass': not hits, 'layout': (corner, cbk), 'margin_px': margin_px}
+        q = {'badge_present': True, 'badge_box': bbox, 'hits': hits, 'pass': not hits, 'layout': (corner, cbk), 'margin_px': margin_px,
+             'card_backing': len(over_knife)}
+        if over_knife and not hits:
+            pad = int(8 * lay.s); bx = (min(b[0] for b in lay.boxes[nb:]) - pad, min(b[1] for b in lay.boxes[nb:]) - pad,
+                                     max(b[2] for b in lay.boxes[nb:]) + pad, max(b[3] for b in lay.boxes[nb:]) + pad)
+            bk = Image.new('RGBA', (W, H), (0, 0, 0, 0)); ImageDraw.Draw(bk).rounded_rectangle(bx, radius=int(10 * lay.s), fill=(6, 8, 12, 150))
+            if S[max(0, bx[1]):bx[3], max(0, bx[0]):bx[2]].any(): hits.append({'what': 'card_backing', 'box': bx, 'why': 'signature'}); q['pass'] = False
+            else: ov = Image.alpha_composite(bk, ov)
         tries.append(q)
         if q['pass']:
             o = np.asarray(ov).astype(np.float32) / 255.0; al = o[..., 3:4]
