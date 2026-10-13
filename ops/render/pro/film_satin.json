@@ -1,0 +1,226 @@
+{
+ "schema": "jarambit.render.pro.film.v1",
+ "title": "SWITCHBACK C.10a - LOOK AGAIN (ti_satin_blue)",
+ "fps": 30,
+ "note": "frames are zero-based, start-inclusive/end-exclusive; every shot keeps the signature fully in frame and unoccluded (per-frame QA); flame: low elevations (<=6 deg) so the polished vertical flats reflect the mirror-aimed reflector instead of the black floor",
+ "shots": [
+  {
+   "name": "S01_whole_object",
+   "frames": [
+    0,
+    72
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 8,
+    "sig_side": "front"
+   },
+   "start": {
+    "az": -20,
+    "el": 6.0,
+    "fill": 0.8,
+    "light_rot_deg": 0
+   },
+   "end": {
+    "az": -20,
+    "el": 6.0,
+    "fill": 0.8,
+    "light_rot_deg": 6
+   }
+  },
+  {
+   "name": "S02_spine_recesses_and_mark",
+   "frames": [
+    72,
+    180
+   ],
+   "common": {
+    "target": "sig_front",
+    "fit": "sig_front",
+    "focal_mm": 135,
+    "fstop": 8,
+    "sig_side": "front",
+    "fill_v": 0.4,
+    "offset_uv": [
+     0.0,
+     0.12
+    ]
+   },
+   "start": {
+    "az": -36,
+    "el": 5.0,
+    "fill": 0.44,
+    "light_rot_deg": 6
+   },
+   "end": {
+    "az": -26,
+    "el": 5.0,
+    "fill": 0.46,
+    "light_rot_deg": 12
+   }
+  },
+  {
+   "name": "S03_ring_to_mark_low",
+   "frames": [
+    180,
+    252
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 8,
+    "sig_side": "front"
+   },
+   "start": {
+    "az": -44,
+    "el": 6,
+    "fill": 0.86,
+    "light_rot_deg": 12
+   },
+   "end": {
+    "az": -38,
+    "el": 5,
+    "fill": 0.86,
+    "light_rot_deg": 12
+   }
+  },
+  {
+   "name": "S04_color_wakes",
+   "frames": [
+    252,
+    432
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 8,
+    "sig_side": "front"
+   },
+   "start": {
+    "az": -14,
+    "el": 6.0,
+    "fill": 0.82,
+    "light_rot_deg": -18
+   },
+   "end": {
+    "az": -14,
+    "el": 6.0,
+    "fill": 0.82,
+    "light_rot_deg": 18
+   }
+  },
+  {
+   "name": "S05_the_mark",
+   "frames": [
+    432,
+    540
+   ],
+   "common": {
+    "target": "sig_front",
+    "fit": "sig_front",
+    "focal_mm": 135,
+    "fstop": 8,
+    "sig_side": "front"
+   },
+   "start": {
+    "az": -14,
+    "el": 5.0,
+    "fill": 0.62,
+    "light_rot_deg": 18
+   },
+   "end": {
+    "az": -8,
+    "el": 5.0,
+    "fill": 0.7,
+    "light_rot_deg": 10
+   }
+  },
+  {
+   "name": "S06_other_face",
+   "frames": [
+    540,
+    780
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 11,
+    "sig_side": "back",
+    "part_rot_deg": 180
+   },
+   "start": {
+    "az": -12,
+    "el": 6,
+    "fill": 0.84,
+    "light_rot_deg": 0
+   },
+   "end": {
+    "az": 12,
+    "el": 6,
+    "fill": 0.84,
+    "light_rot_deg": 0
+   }
+  },
+  {
+   "name": "S07_floor_reflection",
+   "frames": [
+    780,
+    990
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 8,
+    "sig_side": "front",
+    "offset_uv": [
+     0.0,
+     -0.08
+    ]
+   },
+   "start": {
+    "az": -26,
+    "el": 2.5,
+    "fill": 0.74,
+    "light_rot_deg": -6
+   },
+   "end": {
+    "az": -8,
+    "el": 3.5,
+    "fill": 0.76,
+    "light_rot_deg": 6
+   }
+  },
+  {
+   "name": "S08_resolve_loop",
+   "frames": [
+    990,
+    1140
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 8,
+    "sig_side": "front"
+   },
+   "start": {
+    "az": -20,
+    "el": 6.0,
+    "fill": 0.8,
+    "light_rot_deg": 12
+   },
+   "end": {
+    "az": -20,
+    "el": 6.0,
+    "fill": 0.8,
+    "light_rot_deg": 0
+   }
+  }
+ ]
+}

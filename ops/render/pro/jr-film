@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# jr-film: see docs/render/AUTOFILM.md
+exec python3 "$(dirname "$(readlink -f "$0")")/jr_film.py" "$@"

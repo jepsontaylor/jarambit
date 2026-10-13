@@ -144,8 +144,9 @@ def art_material():
 
 def ti_material():
     m, nt, N, L = mk('pro_ground_ti'); out = N('ShaderNodeOutputMaterial'); bs = N('ShaderNodeBsdfPrincipled')
-    bs.inputs['Base Color'].default_value = (0.72, 0.70, 0.67, 1); bs.inputs['Metallic'].default_value = 1
-    bs.inputs['Roughness'].default_value = 0.06
+    G_ = CFG['protected']   # design-wide ground-Ti look (#53: identical in every finish)
+    bs.inputs['Base Color'].default_value = (*G_['grind_rgb'], 1); bs.inputs['Metallic'].default_value = 1
+    bs.inputs['Roughness'].default_value = G_['grind_roughness']
     for key in ('Coat Weight', 'Thin Film Thickness', 'Anisotropic', 'Emission Strength'):
         bs.inputs[key].default_value = 0
     L(bs.outputs[0], out.inputs['Surface'])
@@ -154,11 +155,15 @@ def ti_material():
 
 
 def protect_signature(N, L, sig, finish):
-    """The laser-etched mark is its own bare-metal region, independent of every finish knob."""
-    bare = N('ShaderNodeBsdfPrincipled'); bare.name = 'protected_laser_etched_ti'
-    bare.inputs['Base Color'].default_value = (0.12, 0.13, 0.14, 1)
-    bare.inputs['Metallic'].default_value = 1
-    bare.inputs['Roughness'].default_value = 0.22
+    """The maker mark is its own protected region: one design-wide glossy BLACK ink (dielectric), independent of
+    every finish knob (#53/#55). Values come from CFG['protected']['mark']; missing keys are a hard failure."""
+    M = CFG['protected']['mark']
+    bare = N('ShaderNodeBsdfPrincipled'); bare.name = 'protected_laser_etched_ti'   # node name pinned by #53 tests
+    bare.inputs['Base Color'].default_value = (*M['base_rgb'], 1)
+    bare.inputs['Metallic'].default_value = M['metallic']
+    bare.inputs['Roughness'].default_value = M['roughness']
+    bare.inputs['IOR'].default_value = M['ior']
+    bare.inputs['Specular IOR Level'].default_value = M['specular_ior_level']   # clearcoat-like gloss without Coat
     for key in ('Coat Weight', 'Thin Film Thickness', 'Anisotropic', 'Emission Strength'):
         bare.inputs[key].default_value = 0
     mix = N('ShaderNodeMixShader')
@@ -217,8 +222,15 @@ def flame_material():
     coat = math_node(N, L, 'MULTIPLY', math_node(N, L, 'MULTIPLY', face, math_node(N, L, 'SUBTRACT', 1.0, outer)), F['coat'])
     L(coat, bs.inputs['Coat Weight']); bs.inputs['Coat Roughness'].default_value = F['coat_rough']
     if F.get('aniso'):   # satin brush along the blade arc: tangent circles about the plate normal (Y)
-        tg = N('ShaderNodeTangent'); tg.direction_type = 'RADIAL'; tg.axis = 'Y'
-        L(tg.outputs[0], bs.inputs['Tangent']); L(math_node(N, L, 'MULTIPLY', face, F['aniso']), bs.inputs['Anisotropic'])
+        # tangent = Y x (p - C), C far off the part (brush_center_m): gentle arcs, no singularity on the part.
+        # (Radial tangents about the object origin had a pole on the handle flat -> an anisotropic streak line.)
+        tc_ = N('ShaderNodeTexCoord'); sub = N('ShaderNodeVectorMath'); sub.operation = 'SUBTRACT'
+        sub.inputs[1].default_value = tuple(F.get('brush_center_m', [0.0, 0.0, 0.30]))
+        crs = N('ShaderNodeVectorMath'); crs.operation = 'CROSS_PRODUCT'; crs.inputs[0].default_value = (0, 1, 0)
+        nrm = N('ShaderNodeVectorMath'); nrm.operation = 'NORMALIZE'
+        L(tc_.outputs['Object'], sub.inputs[0]); L(sub.outputs[0], crs.inputs[1]); L(crs.outputs[0], nrm.inputs[0])
+        vt = N('ShaderNodeVectorTransform'); vt.vector_type = 'VECTOR'; vt.convert_from = 'OBJECT'; vt.convert_to = 'WORLD'
+        L(nrm.outputs[0], vt.inputs[0]); L(vt.outputs[0], bs.inputs['Tangent']); L(math_node(N, L, 'MULTIPLY', face, F['aniso']), bs.inputs['Anisotropic'])
     L(protect_signature(N, L, outer, bs.outputs[0]), out.inputs['Surface'])
     aov = N('ShaderNodeOutputAOV'); aov.aov_name = 'sig'; L(outer, aov.inputs['Value'])
     return m
@@ -243,6 +255,9 @@ vl = sc.view_layers[0]; a = vl.aovs.add(); a.name = 'sig'; a.type = 'VALUE'
 vl.use_pass_normal = vl.use_pass_z = vl.use_pass_object_index = True
 rig = json.load(open(os.path.join(MK, 'presets', 'rig_dark_arc_key.json')))
 rig['lights'] = rig['lights'] + CFG['extra_lights'] + (CFG['flame'].get('extra_lights', []) if FILM_PATH else [])
+_AN = json.load(open(A['--anim'])) if '--anim' in A else {}
+FILM_LIGHTS = [L_['name'] for L_ in _AN.get('film_lights', [])]   # off by default; a shot turns them on (enable_lights)
+rig['lights'] = rig['lights'] + _AN.get('film_lights', [])
 rig['backdrop']['material'].update(CFG.get('floor', {}))
 if FILM_PATH:   # named anodize finishes (e.g. satin_blue) get the same floor / light_ev overrides as flame
     rig['backdrop']['material'].update(CFG['flame'].get('floor', {}))
@@ -275,6 +290,19 @@ hdri = scene.find_hdri(rig['world']['hdri']['file'], rig['world']['hdri']['sha25
 rig['world'].update(CFG.get('world', {}))
 scene.build_world(rig['world'], hdri)
 light_rec = lights.build(rig, D, np.zeros(3), exposure_scale=2.0 ** (rig['exposure_ev'] + CFG['ev']))
+BASE_ENERGY = {o.name: o.data.energy for o in sc.objects if o.type == 'LIGHT'}
+BASE_EXPOSURE = None
+
+
+def apply_shot_light(sh):
+    """Per-shot light energy (EV) + exposure for authored film sections (e.g. the brighter science spin).
+    Lights in FILM_LIGHTS are dark unless the shot lists them in enable_lights."""
+    for n, e0 in BASE_ENERGY.items():
+        on = n not in FILM_LIGHTS or n in sh.get('enable_lights', [])
+        ev = sh.get('light_ev_all', 0.0) + sh.get('light_ev', {}).get(n, 0.0)
+        sc.objects[n].data.energy = e0 * (2.0 ** ev) * (1.0 if on else 0.0)
+    if not SCI:
+        sc.view_settings.exposure = LOOK['exposure'] + sh.get('exposure_ev_add', 0.0)
 
 r = sc.render; r.engine = 'CYCLES'; r.resolution_x, r.resolution_y, r.resolution_percentage = RX, RY, 100
 r.threads_mode = 'FIXED'; r.threads = THREADS
@@ -441,7 +469,7 @@ def aim_mirror_lights(sh):
     for Lc in rig['lights']:
         if not Lc.get('mirror_flat'): continue
         ob = sc.objects[Lc['name']]
-        n = part.matrix_world.to_3x3() @ Vector((0, 1 if sh['sig_side'] == 'back' else -1, 0)); n.normalize()
+        n = part.matrix_world.to_3x3() @ Vector((0, 1 if facing_side(sh) == 'back' else -1, 0)); n.normalize()
         v = (cam.location - tgt).normalized()
         r_ = 2 * n.dot(v) * n - v
         el_off, az_off = [math.radians(x) for x in Lc.get('offset_deg', [0, 0])]
@@ -477,6 +505,35 @@ def reset_lights():
     for n, (l_, r_) in BASE_LIGHTS.items():
         sc.objects[n].location = l_; sc.objects[n].rotation_euler = r_
     dg.update()
+
+
+def facing_side(sh):
+    """'front'/'back' as authored; 'auto' (turntable / macro scans) = the broad face turned toward the camera."""
+    if sh.get('sig_side') != 'auto': return sh['sig_side']
+    n = part.matrix_world.to_3x3() @ Vector((0, -1, 0)); n.normalize()
+    c = Vector(resolve_target('part')); return 'front' if n.dot((cam.location - c).normalized()) >= 0 else 'back'
+
+
+def qa_sig_visible(sh, grazing_cos=0.30):
+    """Signature QA wherever the signature is visible (#53 + owner 10:45). For each side whose face is presented
+    to the camera (cos > grazing_cos) and that has ANY glyph sample in frame, every sample must be in frame and
+    unoccluded (no cropped or half-hidden mark). Fully off-frame or grazing/back-facing marks are recorded, not failed."""
+    if sh.get('sig_side') != 'auto': return qa_sig_frame(sh['sig_side'])
+    out = {'side': 'auto', 'sides': {}, 'pass': True}
+    for side, ny in (('front', -1), ('back', 1)):
+        n = part.matrix_world.to_3x3() @ Vector((0, ny, 0)); n.normalize()
+        ctr = Vector(np.mean(world_pts(sig_pts[side]), 0).tolist()); cosv = n.dot((cam.location - ctr).normalized())
+        if cosv <= grazing_cos:
+            out['sides'][side] = {'presented': False, 'cos': round(cosv, 3), 'pass': True}; continue
+        inside = sum(1 for q in world_pts(sig_pts[side])
+                     if (lambda c: 0.0 < c.x < 1.0 and 0.0 < c.y < 1.0 and c.z > 0)(world_to_camera_view(sc, cam, Vector(q))))
+        if inside == 0:
+            out['sides'][side] = {'presented': True, 'in_frame': 0, 'cos': round(cosv, 3), 'pass': True}; continue
+        q_ = qa_sig_frame(side); q_.update(presented=True, cos=round(cosv, 3))
+        if q_['out_of_frame'] == q_['samples']: q_.update({'pass': True, 'note': 'only edge-guard samples in frame'})
+        out['sides'][side] = q_
+        out['pass'] = out['pass'] and q_['pass']
+    return out
 
 
 def qa_sig_frame(side):
@@ -534,9 +591,11 @@ def apply_fault(kind):
     dg.update()
 
 
-def image_pixels(png):
-    """Copy pixels without a Python-float list; release Blender's buffer even on errors."""
+def image_pixels(png, raw=False):
+    """Copy pixels without a Python-float list; release Blender's buffer even on errors.
+    raw=True reads data passes (object index / AOV) without the sRGB->linear decode (0.5 stays 0.5)."""
     im = bpy.data.images.load(png)
+    if raw: im.colorspace_settings.name = 'Non-Color'
     try:
         values = np.empty(len(im.pixels), np.float32)
         im.pixels.foreach_get(values)
@@ -573,11 +632,21 @@ def frame_qa_image(png, tag):
 def lerp_shot(S, f):
     """Shot state at absolute frame f: keys interpolate with smoothstep (absolute time, shard-safe)."""
     a, b = S['start'], S['end']; t = (f - S['frames'][0]) / max(1, S['frames'][1] - 1 - S['frames'][0])
-    t = t * t * (3 - 2 * t)
+    if S['common'].get('ease', 'smooth') == 'smooth': t = t * t * (3 - 2 * t)
     sh = dict(S['common'])
+    if 'rot_table_deg' in sh:   # authored per-frame turntable angle (broadside-eased science spin)
+        sh['part_rot_deg'] = sh.pop('rot_table_deg')[f - S['frames'][0]]
     for k in set(a) | set(b):
         va, vb = a.get(k, b.get(k)), b.get(k, a.get(k))
-        sh[k] = va + (vb - va) * t if isinstance(va, (int, float)) else va
+        if isinstance(va, (int, float)) and isinstance(vb, (int, float)):
+            sh[k] = va + (vb - va) * t
+        elif isinstance(va, list) and isinstance(vb, list) and len(va) == len(vb) and all(isinstance(x, (int, float)) for x in va + vb):
+            sh[k] = [x + (y - x) * t for x, y in zip(va, vb)]   # moving target point (macro scans)
+        elif isinstance(va, dict) and isinstance(vb, dict) and 'center' in va:
+            sh[k] = {**va, 'center': [x + (y - x) * t for x, y in zip(va['center'], vb['center'])],
+                     'half_m': va['half_m'] + (vb['half_m'] - va['half_m']) * t}
+        else:
+            sh[k] = va
     return sh
 
 
@@ -586,6 +655,8 @@ def run_animation():
     lt0 = {n: (l_.copy(), r_.copy()) for n, (l_, r_) in BASE_LIGHTS.items()}
     r.image_settings.file_format = 'PNG'; r.image_settings.color_depth = '16'; r.image_settings.color_mode = 'RGB'
     want = set(int(x) for x in A['--frames'].split(',')) if '--frames' in A else None
+    if '--frame_range' in A:   # a:b (end-exclusive), e.g. only the science section for the wire/heat passes
+        a0, b0 = map(int, A['--frame_range'].split(':')); want = set(range(a0, b0))
     DRY = A.get('--dry') == '1'
     header = {'schema': 'jarambit.render.pro.anim_qa.v1', 'fps': AN['fps'], 'film': AN.get('title'), 'finish': FINISH,
               'code': CODE_ID, 'material_state_sha256': hashlib.sha256(json.dumps({**MATERIAL_STATE, 'finish': FINISH}, sort_keys=True, default=str).encode()).hexdigest(),
@@ -605,8 +676,13 @@ def run_animation():
                         sc.objects[n].matrix_world = Rz @ Matrix.LocRotScale(l_, r_.to_quaternion(), Vector((1, 1, 1)))
                     dg.update()
                 place_camera(sh); aim_mirror_lights(sh); adj = clear_lights()
+                G = globals()   # film-only hooks (absent in the #53 unit-test worker env -> no-ops)
+                if 'apply_shot_light' in G: apply_shot_light(sh)
+                if G.get('SCI'):
+                    fem_ob.matrix_world = part.matrix_world.copy(); cd.dof.use_dof = False; sci_select(sh)
+                if 'fo' in G: fo.file_slots[0].path = f'qa_sig_f{f:05d}_'; fo.file_slots[1].path = f'qa_idx_f{f:05d}_'
                 if A.get('--fault'): apply_fault(A['--fault'])
-                ql = qa_lights(); qs = qa_sig_frame(sh['sig_side'])
+                ql = qa_lights(); qs = qa_sig_visible(sh) if sh.get('sig_side') == 'auto' else qa_sig_frame(sh['sig_side'])
                 st, h = physical_state()
                 rec = {'frame': f, 'shot': S['name'], 'lights_pass': ql.get('pass'), 'raised': adj, 'sig': qs,
                        'edge_sharpness': MAN.get('edge_qa'),
@@ -616,9 +692,13 @@ def run_animation():
                     rec['status'] = 'FAIL_PRE_RENDER'; receipt.add(rec)
                     print('QAFAIL', json.dumps(rec), flush=True); return 1
                 if not DRY:
-                    r.filepath = os.path.join(OUT, f'f{f:05d}.png'); bpy.ops.render.render(write_still=True)
+                    r.filepath = os.path.join(OUT, f'f{f:05d}.png')
+                    if A.get('--resume') == '1' and os.path.isfile(r.filepath) and os.path.getsize(r.filepath) > 0:
+                        rec['resumed'] = True   # same state hash path; image QA re-run on the existing frame below
+                    else:
+                        bpy.ops.render.render(write_still=True)
                     try:
-                        rec['image'] = frame_qa_image(r.filepath, f)
+                        rec['image'] = frame_qa_image(r.filepath, f) if not globals().get('SCI') else {'pass': True, 'note': 'science plate (emission data view, composited inside the knife mask only): white-blob gate n/a, same as stills'}
                     except Exception as e:
                         rec['image'] = {'pass': False, 'error': str(e)}
                 ok = Q.frame_pass(rec, dry=DRY)
@@ -627,6 +707,62 @@ def run_animation():
                 if not ok:
                     print('QAFAIL', json.dumps(rec), flush=True); return 1
     return 0 if receipt.all_pass else 1
+
+# ---------- science shots (real solver mesh + von Mises; see fem_asset.py). Same shot camera as the photoreal pass.
+INFERNO = [(0.0, (0.0015, 0.0005, 0.0139)), (0.125, (0.0828, 0.0448, 0.2203)), (0.25, (0.2582, 0.0386, 0.4065)),
+           (0.375, (0.4163, 0.0904, 0.4329)), (0.5, (0.5783, 0.148, 0.4044)), (0.625, (0.7357, 0.2161, 0.3302)),
+           (0.75, (0.8650, 0.3168, 0.2261)), (0.875, (0.9545, 0.4686, 0.0998)), (1.0, (0.9884, 0.9984, 0.6449))]
+SCI = None
+SCI_GAIN = 1.0
+
+
+def sci_select(sh):
+    """Per-shot load case for the turntable data section: the heat material reads attribute vm_<case>."""
+    if SCI and SCI['mode'] == 'heat':
+        sci_attr.attribute_name = 'vm_' + sh.get('sci_case', SCI['case'])
+
+
+if '--sci' in A:
+    _z = np.load(A['--sci']); SCI = {'case': A['--sci_case'], 'mode': A['--sci_mode'], 'Sy': float(A['--sci_vmax'])}   # Sy from the design manifest (jr_film)
+    SCI_GAIN = float(A.get('--sci_gain', 1.0))   # emission gain; overlay legend is drawn with the SAME gain (jr_film passes both)
+    lin = lambda c: tuple(((x + 0.055) / 1.055) ** 2.4 if x > 0.04045 else x / 12.92 for x in c)   # ramp stops are sRGB
+    me = bpy.data.meshes.new('fem_rc4'); me.from_pydata(_z['V'].astype(float).tolist(), [], _z['F'].tolist()); me.update()
+    for k_ in _z.files:
+        if k_.startswith('vm_'):
+            at = me.attributes.new(k_, 'FLOAT', 'FACE'); at.data.foreach_set('value', _z[k_].astype(np.float32))
+    if 'vm_' + SCI['case'] not in _z.files: raise SystemExit(f"--sci_case {SCI['case']}: no vm_{SCI['case']} in {A['--sci']}")
+    fem_ob = bpy.data.objects.new('fem_rc4', me); sc.collection.objects.link(fem_ob); fem_ob.hide_viewport = True   # keep QA raycasts on the part
+    m_, nt_, N_, L_ = mk('fem_' + SCI['mode']); o_ = N_('ShaderNodeOutputMaterial'); em = N_('ShaderNodeEmission')
+    # glints: an additive clear dielectric gloss over the data emission (white specular only, lit by the rig),
+    # so the spinning knife still throws light; hue of the field is untouched where there is no glint.
+    gl = N_('ShaderNodeBsdfGlossy'); gl.inputs['Color'].default_value = (1, 1, 1, 1); gl.inputs['Roughness'].default_value = float(A.get('--sci_gloss_rough', 0.18))
+    fr = N_('ShaderNodeFresnel'); fr.inputs['IOR'].default_value = 1.5
+    gmul = N_('ShaderNodeMixShader'); hold = N_('ShaderNodeEmission'); hold.inputs['Strength'].default_value = 0.0   # 'nothing' closure
+    add = N_('ShaderNodeAddShader')
+    sglint = float(A.get('--sci_glint', 0.0))
+    if SCI['mode'] == 'heat':
+        sci_attr = a_ = N_('ShaderNodeAttribute'); a_.attribute_type = 'GEOMETRY'; a_.attribute_name = 'vm_' + SCI['case']
+        mr_ = N_('ShaderNodeMapRange'); mr_.inputs['From Max'].default_value = SCI['Sy']
+        cr = N_('ShaderNodeValToRGB'); el = cr.color_ramp.elements
+        el[0].position, el[0].color = INFERNO[0][0], (*lin(INFERNO[0][1]), 1); el[1].position, el[1].color = INFERNO[-1][0], (*lin(INFERNO[-1][1]), 1)
+        for p_, c_ in INFERNO[1:-1]:
+            e_ = el.new(p_); e_.color = (*lin(c_), 1)
+        L_(a_.outputs['Fac'], mr_.inputs['Value']); L_(mr_.outputs['Result'], cr.inputs['Fac']); L_(cr.outputs['Color'], em.inputs['Color'])
+        em.inputs['Strength'].default_value = SCI_GAIN
+    else:   # tet-mesh wireframe: surface triangles of the solver mesh, thin bright lines over a dark ghost
+        wf = N_('ShaderNodeWireframe'); wf.use_pixel_size = True; wf.inputs['Size'].default_value = float(A.get('--sci_wire_px', 0.6))
+        mix = N_('ShaderNodeMixRGB'); mix.inputs['Color1'].default_value = (0.010, 0.016, 0.030, 1)
+        mix.inputs['Color2'].default_value = tuple(json.loads(A.get('--sci_wire_rgb', '[0.10, 0.30, 0.75]'))) + (1,)
+        L_(wf.outputs['Fac'], mix.inputs['Fac']); L_(mix.outputs['Color'], em.inputs['Color']); em.inputs['Strength'].default_value = SCI_GAIN
+    if sglint > 0:
+        L_(fr.outputs['Fac'], gmul.inputs[0]); L_(hold.outputs[0], gmul.inputs[1]); L_(gl.outputs[0], gmul.inputs[2])
+        sc_ = N_('ShaderNodeMixShader'); sc_.inputs[0].default_value = sglint; L_(hold.outputs[0], sc_.inputs[1]); L_(gmul.outputs[0], sc_.inputs[2])
+        L_(em.outputs[0], add.inputs[0]); L_(sc_.outputs[0], add.inputs[1]); L_(add.outputs[0], o_.inputs['Surface'])
+    else:
+        L_(em.outputs[0], o_.inputs['Surface'])
+    me.materials.append(m_)
+    sc.view_settings.view_transform = 'Standard'; sc.view_settings.look = 'None'; sc.view_settings.exposure = 0.0
+    part.hide_render = True
 
 
 def run_stills():
@@ -641,6 +777,9 @@ def run_stills():
         dist = place_camera(sh)
         aim_mirror_lights(sh)
         tag = f"{sh['name']}_{RES}" + ('' if FINISH == 'art' else '_' + FINISH)
+        if globals().get('SCI'):
+            tag += f"_sci_{SCI['case']}_{SCI['mode']}"; fem_ob.matrix_world = part.matrix_world.copy()
+            cd.dof.use_dof = False   # data plates stay crisp (same camera pose/lens, so still pixel-registered)
         light_adj = clear_lights()
         ql = qa_lights(); ql['raised_el_deg'] = light_adj; qs = qa_sig_frame(sh['sig_side'])
         qa = {'shot': tag, 'lights': ql, 'signature_frame': qs, 'signature_mesh': mesh_qa,
@@ -662,7 +801,7 @@ def run_stills():
         png = os.path.join(OUT, tag + '.png'); img.save_render(png, scene=sc)
         try:
             px_ = image_pixels(png)[:, :, :3]
-            idx = image_pixels(os.path.join(OUT, f'qa_idx_{tag}_0001.png'))[:, :, 0]
+            idx = image_pixels(os.path.join(OUT, f'qa_idx_{tag}_0001.png'), raw=True)[:, :, 0]
             partm = (idx > 0.4) & (idx < 0.6)
             if not partm.any() or not np.isfinite(px_).all():
                 raise ValueError('missing part mask or non-finite pixels')
@@ -671,7 +810,8 @@ def run_stills():
         except Exception as e:
             qa['clipping'] = {'pass': False, 'error': str(e)}
         try:
-            qa['image'] = frame_qa_image(png, tag)
+            qa['image'] = frame_qa_image(png, tag) if not globals().get('SCI') else {'pass': True, 'note': 'science plate (emission data view): white-blob gate n/a'}
+            if globals().get('SCI'): qa['science'] = {**SCI, 'colormap': 'inferno (perceptually uniform)', 'vmin_MPa': 0.0, 'vmax_MPa': SCI['Sy'], 'fem': A['--sci'], 'fem_sha256': sha(A['--sci'])}
         except Exception as e:
             qa['image'] = {'pass': False, 'error': str(e)}
         st_, h_ = physical_state()

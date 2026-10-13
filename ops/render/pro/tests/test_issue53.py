@@ -99,7 +99,7 @@ def worker_env(tmp_path):
                bpy=SimpleNamespace(data=SimpleNamespace(images={'Render Result': image}), app=SimpleNamespace(version_string='test'),
                                    ops=SimpleNamespace(render=SimpleNamespace(render=lambda **kw: calls.append(kw)))),
                frame_qa_image=lambda p, f: {'pass': True},
-               image_pixels=lambda p: np.full((4, 4, 4), .5 if 'qa_idx_' in p else .02),
+               image_pixels=lambda p, raw=False: np.full((4, 4, 4), .5 if 'qa_idx_' in p else .02),
                cd=SimpleNamespace(lens=85, dof=SimpleNamespace(use_dof=False)),
                cam=SimpleNamespace(location=[0, 0, 0], rotation_euler=[0, 0, 0]),
                SPP=1, RX=4, RY=4, LOOK={'agx_look': 'Standard', 'exposure': 0},

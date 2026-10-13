@@ -1,0 +1,70 @@
+{
+ "_note": "Which committed files carry which numbers, and which solver artefacts carry each science field. No values here.",
+ "cad_json": "cad_revC9_c10a.json",
+ "gates_json": "w80d_rc5_verify.json",
+ "gates_key": "C10a.gates",
+ "gates_mass_key": "C10a.mass_g",
+ "fem_mesh": "c10ar_g2h.msh",
+ "science": [
+  {
+   "gate": "V3",
+   "display": "spine strike",
+   "fem_case": {
+    "npz": "b1_c10ar_g2h_vm.npz",
+    "key": "vm",
+    "scale_json": "b1_c10ar_g2h_zones.json",
+    "scale_key": [
+     "scale_to_sourced"
+    ]
+   },
+   "fem_files": {
+    "result": "b1_c10ar_g2h_vm.npz",
+    "scale": "b1_c10ar_g2h_zones.json"
+   },
+   "shot": "01_hero_34",
+   "certification": {
+    "status": "unresolved",
+    "ref": "W84",
+    "note": "C.10a V3 certification reopened (W84): show the solver value only, no converged PASS"
+   }
+  },
+  {
+   "gate": "V6",
+   "display": "pry",
+   "fem_case": {
+    "npz": "c10ar_g2h_plate_grip_sig.npz",
+    "key": "vm_a1_40N",
+    "scale_json": "w79_results_c10ar_g2h.json",
+    "scale_key": [
+     "V6_pry",
+     "cases",
+     "a1_40N",
+     "13.7Nm",
+     "scale"
+    ]
+   },
+   "fem_files": {
+    "result": "c10ar_g2h_plate_grip_sig.npz",
+    "scale": "w79_results_c10ar_g2h.json"
+   },
+   "shot": "02_face_on"
+  },
+  {
+   "gate": "V7",
+   "display": "handle twist",
+   "fem_case": {
+    "npz": "glob_c10ar_g2hsoft_vm.npz",
+    "key": "vm",
+    "scale_json": "glob_c10ar_g2hsoft_zones.json",
+    "scale_key": [
+     "scale"
+    ]
+   },
+   "fem_files": {
+    "result": "glob_c10ar_g2hsoft_vm.npz",
+    "scale": "glob_c10ar_g2hsoft_zones.json"
+   },
+   "shot": "01_hero_34"
+  }
+ ]
+}

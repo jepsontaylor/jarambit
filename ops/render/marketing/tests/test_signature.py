@@ -93,12 +93,14 @@ def test_asset_manifest_and_constants():
     for line in filter(None, sums):
         sha, name = line.split(None, 1)
         assert hashlib.sha256((BRAND / name.strip()).read_bytes()).hexdigest() == sha, name
-    m = np.asarray(Image.open(BRAND / "jepson_t_mask_4096.png").convert("L"), float) / 255
+    m = np.asarray(Image.open(signature.ASSET_MASK).convert("L"), float) / 255   # the ACTIVE mark (NeverHuman)
     assert m.shape[1] / m.shape[0] == pytest.approx(signature.ASPECT, rel=1e-9)
     assert m.mean() == pytest.approx(signature.INK_FRACTION, abs=5e-4)
-    svg = (BRAND / "jepson_t.svg").read_text()
+    svg = open(signature.ASSET_SVG).read()
     assert 'fill="#000000"' in svg and "<rect" not in svg  # single fill, no background
-    assert (BRAND / "source" / "jepson_signature_v2_bold.png").is_file()
+    assert (BRAND / "source" / "neverhuman_signature_v1_src.png").is_file()
+    # the previous mark stays available for re-enable
+    assert (BRAND / "jepson_t.svg").is_file() and (BRAND / "jepson_t_mask_4096.png").is_file()
 
 
 def test_plate_avoids_hole_and_is_deterministic():

@@ -30,13 +30,13 @@ DEF = {'crease_deg': 25.0, 'wall_ny': 0.5, 'res_mm': 0.1, 'margin_mm': 1.5, 'dar
        'dark_blur_mm': 0.6, 'dark_cover_min': 0.995, 'art_scale': 1.0, 'art_u0': 0.12,
        'angles_deg': list(range(-14, 15, 2)), 'sig_h_max_mm': 16.0, 'sig_h_min_mm': 5.0,
        'flat_regions': ['body', 'pad', 'ring', 'spine'], 'edge_limit_mm': 0.20,
-       'blade_start_tol_mm': 60.0}
+       'blade_start_tol_mm': 60.0, 'flat_ny': 0.95, 'flat_crease_deg': 4.0, 'flat_seam_limit_deg': 0.05}
 
 
-def smooth_wall_normals(V, F, N, crease_deg, wall_ny):
+def smooth_wall_normals(V, F, N, crease_deg, wall_ny, sel=None):
     fn = edgeqa.face_normals(V, F)
     area = 0.5 * np.linalg.norm(np.cross(V[F[:, 1]] - V[F[:, 0]], V[F[:, 2]] - V[F[:, 0]]), axis=1)
-    wall = np.abs(fn[:, 1]) < wall_ny
+    wall = (np.abs(fn[:, 1]) < wall_ny) if sel is None else sel
     c = math.cos(math.radians(crease_deg))
     N = N.copy()
     tri = np.where(wall)[0]
@@ -54,6 +54,27 @@ def smooth_wall_normals(V, F, N, crease_deg, wall_ny):
             n = (fns[m] * w[m, None]).sum(0); n /= np.linalg.norm(n) + 1e-30
             N[ts[j], ck[s + j]] = n; changed += 1
     return N, int(changed), wall
+
+
+def flat_seam_deg(V, F, N, fn, cfg):
+    """Shading-seam QA on broad faces: at every vertex shared by same-side broad-face triangles whose face normals
+    are within the flat crease, the spread of their corner normals (deg). 0 = continuous shading."""
+    out = {'max_deg': 0.0, 'n_vertices': 0, 'worst_xyz_mm': None}
+    for sgn in (-1, 1):
+        tri = np.where(fn[:, 1] * sgn > cfg['flat_ny'])[0]
+        cv_ = F[tri].ravel(); ct = np.repeat(tri, 3); ck = np.tile([0, 1, 2], len(tri))
+        o = np.argsort(cv_, kind='stable'); cv_, ct, ck = cv_[o], ct[o], ck[o]
+        st = np.r_[0, np.where(np.diff(cv_))[0] + 1, len(cv_)]
+        cmin = math.cos(math.radians(cfg['flat_crease_deg']))
+        for s_, e in zip(st[:-1], st[1:]):
+            if e - s_ < 2: continue
+            ts = ct[s_:e]; ns = N[ts, ck[s_:e]]
+            if (fn[ts] @ fn[ts].T).min() < cmin: continue        # a real crease meets here: allowed to be hard
+            dmin = float(np.clip((ns @ ns.T).min(), -1, 1)); a = math.degrees(math.acos(dmin))
+            if a > out['max_deg']:
+                out.update(max_deg=round(a, 4), worst_xyz_mm=[round(float(x) * 1e3, 2) for x in V[cv_[s_]]])
+            out['n_vertices'] += 1
+    return out
 
 
 def sig_uv(dx, dz, ang_deg, L, H, side):
@@ -94,7 +115,7 @@ PINNED_CV2 = '4.12.0'
 
 def main():
     if cv2 is None:
-        raise SystemExit('prep.py needs opencv (see ops/render/pro/requirements.txt)')
+        raise SystemExit("prep.py needs opencv (see ops/render/pro/requirements.txt)")
     if cv2.__version__ != PINNED_CV2 and os.environ.get('PRO_ALLOW_CV2') != '1':
         raise SystemExit(f'opencv {cv2.__version__} != pinned {PINNED_CV2} (placements are cv2-version dependent); see ops/render/pro/requirements.txt')
     cv2.setNumThreads(THREADS)
@@ -105,6 +126,17 @@ def main():
     labels = json.load(open(os.path.join(bdir, 'regions.json')))['labels']
     V, F, R = d['V'], d['F'], d['region_id']
     N2, nchg, wall = smooth_wall_normals(V, F, d['N_corner'], cfg['crease_deg'], cfg['wall_ny'])
+    # Broad-face knees: CAD flats split into planar patches meeting at a few degrees (C.10a handle taper ramp
+    # fid 28 | 237 | 457: 2.5 deg kinks) shade as a hard line under satin/anisotropic finishes. Weld the
+    # corner normals across sub-crease knees on same-side broad faces (bevels sit far above the crease, stay hard).
+    fn0 = edgeqa.face_normals(V, F)
+    seam0 = flat_seam_deg(V, F, N2, fn0, cfg)
+    for sgn in (-1, 1):
+        N2, k, _ = smooth_wall_normals(V, F, N2, cfg['flat_crease_deg'], cfg['wall_ny'], sel=(fn0[:, 1] * sgn > cfg['flat_ny']))
+        nchg_flat = k if sgn == -1 else nchg_flat + k
+    seam1 = flat_seam_deg(V, F, N2, fn0, cfg)
+    if seam1['max_deg'] > cfg['flat_seam_limit_deg']:
+        raise SystemExit(f"flat shading-seam QA FAIL: {seam1}")
     np.savez_compressed(os.path.join(out, 'mesh.npz'), **{k: d[k] for k in d.files if k != 'N_corner'}, N_corner=N2)
     # pre/post facet metric: max normal step between wall neighbours sharing an edge (shading discontinuity)
     eq = edgeqa.edge_width(V, F, R, labels, cfg['edge_limit_mm'])
@@ -144,19 +176,22 @@ def main():
         dark = lum_b < cfg['dark_lum']
         allowed = (ok & dark).astype(np.uint8)
         mpx = int(math.ceil((cfg['margin_mm'] + 0.3) / cfg['res_mm']))   # +0.3 mm raster guard
-        best = None
-        h = cfg['sig_h_max_mm']
-        while h >= cfg['sig_h_min_mm'] and best is None:
-            hp = h / cfg['res_mm']; wp = hp * ink_aspect
+        def try_h(h):
+            best = None
             for ang in cfg['angles_deg']:
                 kr = sig_kernel(ink, h, ink_aspect, ang, side, cfg['res_mm'], mpx)
-                fit = cv2.erode(allowed, kr, anchor=(kr.shape[1] // 2, kr.shape[0] // 2), borderValue=0)
-                cand = np.argwhere(fit > 0)
+                # erosion == (forbidden * kernel) == 0; FFT keeps big glyph kernels O(N log N) (cv2.erode was O(N*K))
+                from scipy.signal import fftconvolve
+                kb = (kr > 0).astype(np.float32)
+                hit = fftconvolve((allowed == 0).astype(np.float32), kb[::-1, ::-1], mode='full')
+                oy, ox = kr.shape[0] // 2, kr.shape[1] // 2
+                hit = hit[kr.shape[0] - 1 - oy: kr.shape[0] - 1 - oy + allowed.shape[0], kr.shape[1] - 1 - ox: kr.shape[1] - 1 - ox + allowed.shape[1]]
+                fit = hit < 0.5   # verified identical to cv2.erode (interior)
+                cand = np.argwhere(fit)
                 if not len(cand): continue
                 cx_m = lo[0] + (cand[:, 1] + 0.5) * res
                 xk = np.where(kr.any(0))[0]
-                left = cx_m + (xk.min() - kr.shape[1] // 2) * res
-                lean = left - bevel_x0   # same rule both sides (back is laid out unmirrored as seen from +Y)
+                lean = cx_m + (xk.min() - kr.shape[1] // 2) * res - bevel_x0
                 i = int(np.argmin(np.abs(lean)))
                 if abs(lean[i]) > cfg['blade_start_tol_mm'] * 1e-3: continue
                 c = cand[i]
@@ -166,7 +201,16 @@ def main():
                        'left_end_from_blade_start_mm': round(float(lean[i]) * 1e3, 2)}
                 if best is None or abs(rec['left_end_from_blade_start_mm']) < abs(best['left_end_from_blade_start_mm']):
                     best = rec
-            h -= 0.25
+            return best
+        # bisection on height (feasibility is monotone in h): largest fitting h to 0.1 mm
+        lo_h, hi_h = cfg['sig_h_min_mm'], cfg['sig_h_max_mm']
+        best = try_h(hi_h)
+        if best is None:
+            best = try_h(lo_h)
+            while best is not None and hi_h - lo_h > 0.1:
+                mid = 0.5 * (lo_h + hi_h); r = try_h(mid)
+                if r is None: hi_h = mid
+                else: lo_h, best = mid, r
         if best is None:
             raise SystemExit(f'no signature placement on {side}: relax dark_lum/margin or art offset')
         best['margin_mm'] = cfg['margin_mm']; best['on'] = ('flat broad face' + (', dark art (dilated lum < %.2f)' % cfg['dark_lum'] if cfg['dark_lum'] <= 1.0 else ''))
@@ -180,7 +224,10 @@ def main():
     man = {'schema': 'jarambit.render.pro.prep.v1', 'toolchain': {'numpy': np.__version__, 'cv2': cv2.__version__, 'note': 'placements are cv2-version dependent at the 0.1 mm grid; pin cv2 per toolchain.lock'}, 'source': bundle['source'], 'bundle_npz_sha256': bundle['npz_sha256'],
            'out_npz_sha256': sha(os.path.join(out, 'mesh.npz')), 'config': cfg,
            'normal_repair': {'policy': 'render-only wall-normal smoothing; positions untouched',
-                             'crease_deg': cfg['crease_deg'], 'wall_corners_changed': nchg},
+                             'crease_deg': cfg['crease_deg'], 'wall_corners_changed': nchg,
+                             'flat_crease_deg': cfg['flat_crease_deg'], 'flat_corners_changed': nchg_flat,
+                             'flat_seam_qa': {'before': seam0, 'after': seam1, 'limit_deg': cfg['flat_seam_limit_deg'],
+                                              'pass': seam1['max_deg'] <= cfg['flat_seam_limit_deg']}},
            'edge_qa': eq,
            'art': {'path': art_p, 'sha256': sha(art_p), 'size_px': [aW, aH], 'width_m': art_w, 'height_m': art_h,
                    'x0_m': x_art0, 'z_mid_m': z_mid, 'mapping': 'planar XZ, same world mapping both faces'},

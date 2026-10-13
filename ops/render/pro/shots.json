@@ -24,6 +24,10 @@
   "hd": [
    1920,
    1080
+  ],
+  "low": [
+   960,
+   540
   ]
  },
  "spp": 1024,
@@ -127,7 +131,9 @@
     "4k_portrait",
     "8k",
     "preview",
-    "preview_portrait"
+    "preview_portrait",
+    "hd",
+    "low"
    ]
   },
   {
@@ -145,7 +151,9 @@
     "4k_portrait",
     "8k",
     "preview",
-    "preview_portrait"
+    "preview_portrait",
+    "hd",
+    "low"
    ]
   },
   {
@@ -161,7 +169,9 @@
    "res": [
     "preview",
     "4k",
-    "8k"
+    "8k",
+    "hd",
+    "low"
    ],
    "part_rot_deg": 180
   },
@@ -182,7 +192,9 @@
    "sig_side": "front",
    "res": [
     "preview",
-    "4k"
+    "4k",
+    "hd",
+    "low"
    ]
   },
   {
@@ -200,7 +212,9 @@
     "4k_portrait",
     "8k",
     "preview",
-    "preview_portrait"
+    "preview_portrait",
+    "hd",
+    "low"
    ]
   },
   {
@@ -219,7 +233,9 @@
    "sig_side": "front",
    "res": [
     "preview",
-    "4k"
+    "4k",
+    "hd",
+    "low"
    ]
   }
  ],
@@ -277,7 +293,7 @@
    ],
    "gold_emit": 0.0,
    "gold_rough": 0.08,
-   "note": "signature is a protected bare laser-etched metal region; finish look/gold parameters never apply"
+   "note": "signature is a protected glossy black-ink region; finish look/gold parameters never apply"
   },
   "floor": {
    "coat": 0.08,
@@ -328,16 +344,37 @@
  },
  "finishes": {
   "satin_blue": {
-   "d_start_nm": 50.0,
-   "d_end_nm": 50.0,
+   "d_start_nm": 45.0,
+   "d_end_nm": 45.0,
    "lick_amp": 0.0,
    "rough": 0.3,
    "wall_rough": 0.38,
    "coat": 0.0,
    "aniso": 0.6,
    "bevel_flamed": false,
-   "exposure_ev": 0.35,
-   "note": "satin brushed Ti, single mid blue (~30-35 V); bevel/edge/serration grinds and laser-etched signature stay bare metal"
+   "exposure_ev": -0.6,
+   "note": "satin brushed Ti, single mid blue (~30-35 V); bevel/edge/serration grinds and signature is protected black ink"
   }
+ },
+ "protected": {
+  "mark": {
+   "base_rgb": [
+    0.01,
+    0.01,
+    0.01
+   ],
+   "metallic": 0.0,
+   "roughness": 0.15,
+   "ior": 1.5,
+   "specular_ior_level": 0.06,
+   "note": "owner 10:39: true glossy BLACK ink, design-wide (#53/#55: identical in every finish). Dielectric, base 0.01, rough 0.15, IOR 1.5. Specular IOR Level 0.06 (F0 ~0.5 %): measured on the satin macro, a full 4 % dielectric mirrors the macro softbox to sRGB 0.37 (reads grey); 0.06 keeps a crisp gloss highlight and reads black (~0.15 vs 0.46 body). Coat stays 0 (#53 test)."
+  },
+  "grind_roughness": 0.24,
+  "note": "#53 protected regions: values are design-wide, never finish-dependent. Grinds: satin-ground raw Ti (rough 0.24, F0 ~0.6) instead of mirror 0.06/0.72, which blew the serration scallops to white in the satin hero (clipping gate).",
+  "grind_rgb": [
+   0.6,
+   0.59,
+   0.57
+  ]
  }
 }
