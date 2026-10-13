@@ -294,8 +294,18 @@ def run(req, force=False, threads=16):
             'placements_posed': posed_pls,
         }
         mat_rec = blender_finish.apply(part, flib, finish)
+        mark_decal = (mat_rec or {}).get('mark_decal') or {}
+        applied = bool(mark_decal.get('applied')) and bool(posed_pls)
+        sig_rec['material'] = {
+            'applied': applied,
+            'via': 'finish_library',
+            'n_placements': len(posed_pls),
+            'aov': mark_decal.get('aov') or 'sig',
+            'mark_decal': mark_decal,
+        }
+        if not applied:
+            sig_rec['enabled'] = False
         if posed_pls:
-            sig_rec['material'] = {'via': 'finish_library', 'n_placements': len(posed_pls)}
             for p in posed_pls:
                 if p.get('ok', True) and 'side' in p:
                     print(f"[worker] finishlib mark {p.get('side')}: centre {p.get('center_m')} "

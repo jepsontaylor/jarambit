@@ -376,8 +376,22 @@ def decal_mask(g, placements, tol_m=0.25e-3):
     return total
 
 
+SIG_AOV = 'sig'
+
+
+def ensure_sig_aov():
+    """Register the 'sig' view-layer AOV once so QA can measure mark visibility (Q15)."""
+    vl = bpy.context.view_layer
+    if SIG_AOV not in [a.name for a in vl.aovs]:
+        a = vl.aovs.add()
+        a.name = SIG_AOV
+        a.type = 'VALUE'
+    return SIG_AOV
+
+
 def overlay_mark(mat, placements, style, metal, debug_rgb=None):
-    """final node before the output: mix(src, mark, decal mask). Returns True when inserted."""
+    """final node before the output: mix(src, mark, decal mask) + write mask to 'sig' AOV. Returns True when inserted."""
+    ensure_sig_aov()
     nt = mat.node_tree
     out = next(n for n in nt.nodes if n.type == 'OUTPUT_MATERIAL')
     src = out.inputs['Surface'].links[0].from_socket
@@ -391,6 +405,9 @@ def overlay_mark(mat, placements, style, metal, debug_rgb=None):
     mix = g.n('ShaderNodeMixShader'); mix.name = mix.label = 'finishlib_mark_overlay'
     g.link(mask, mix.inputs['Fac']); g.link(src, mix.inputs[1]); g.link(mk, mix.inputs[2])
     g.link(mix.outputs['Shader'], out.inputs['Surface'])
+    aov = g.n('ShaderNodeOutputAOV')
+    aov.aov_name = SIG_AOV
+    g.link(mask, aov.inputs['Value'])
     return True
 
 
@@ -472,7 +489,9 @@ def _decal(me, lib, rec, spec, metal, debug=False):
         n += overlay_mark(mat, pls, style, metal, debug_rgb=ZONE_RGB[5] if debug else None)
     if n != len(me.materials):
         raise RuntimeError('mark overlay missing on some material slots')
-    rec['mark_decal'] = {'applied': True, 'slots': n, 'coat_style': coat_style, 'placements': len(pls)}
+    rec['mark_decal'] = {
+        'applied': True, 'slots': n, 'coat_style': coat_style, 'placements': len(pls), 'aov': SIG_AOV,
+    }
 
 
 def _set_zones(me, zone, rec):
