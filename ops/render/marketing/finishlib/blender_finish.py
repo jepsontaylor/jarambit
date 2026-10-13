@@ -214,12 +214,12 @@ def layer_params(g, L, p, lut_img, dmax, metal):
     return out
 
 
-def build_coat(spec, metal, lut_img, dmax, arc_m, edge_break_m):
+def build_coat(spec, metal, lut_img, dmax, arc_m, edge_break_m, boost_ev=0.0):
     mat = bpy.data.materials.new('coat:' + spec['id'])
     g = G(mat)
     out = g.n('ShaderNodeOutputMaterial', target='CYCLES')
     bsdf = g.n('ShaderNodeBsdfPrincipled', distribution='MULTI_GGX')
-    g.link(bsdf.outputs['BSDF'], out.inputs['Surface'])
+    apply_gain(g, bsdf.outputs['BSDF'], out.inputs['Surface'], boost_ev)
     tc = g.n('ShaderNodeTexCoord'); P = tc.outputs['Object']
     s, t = attr(g, 'finish_s'), attr(g, 'finish_t')
     p = pattern(g, spec.get('pattern', {'kind': 'none'}), P, s, t, arc_m)
@@ -293,6 +293,47 @@ def build_coat(spec, metal, lut_img, dmax, arc_m, edge_break_m):
     return mat
 
 
+def coat_albedo(spec, lut, dmax):
+    """rough normal-incidence luminance of the coat (area-agnostic mean over layers / film stops)."""
+    vals = []
+    for L in spec['layers']:
+        f = L.get('film')
+        if f:
+            nms = [f['nm']] if 'nm' in f else [y for _, y in f['stops']]
+            rgb = np.mean([lut[min(len(lut) - 1, int(nm / dmax * (len(lut) - 1)))] for nm in nms], 0)
+        else:
+            m = float(L.get('metallic', 1.0)); ior = float(L.get('ior', 1.5))
+            rgb = m * np.asarray(L.get('base_color_lin', (0.5, 0.5, 0.5))) + (1 - m) * ((ior - 1) / (ior + 1)) ** 2
+        vals.append(float(np.dot(rgb, (0.2126, 0.7152, 0.0722))))
+    return float(np.mean(vals))
+
+
+def exposure_boost_ev(spec, lut, dmax, target=0.45, k=0.75, max_ev=1.5):
+    """library override `exposure_boost_ev`, else albedo-aware: k*log2(target/albedo) clamped [0, max_ev].
+    Applied as a gain on the coat BSDF only (equivalent to boosting key/fill/world on the coat alone);
+    bare blade zones, backdrop and lights are untouched."""
+    if 'exposure_boost_ev' in spec:
+        return float(spec['exposure_boost_ev'])
+    a = max(coat_albedo(spec, lut, dmax), 1e-4)
+    return float(np.clip(k * np.log2(target / a), 0.0, max_ev))
+
+
+def apply_gain(g, bsdf_out, out_in, ev):
+    gain = 2.0 ** ev
+    if gain <= 1.0001:
+        g.link(bsdf_out, out_in); return
+    n, f = int(gain), gain - int(gain)
+    acc = bsdf_out
+    for _ in range(n - 1):
+        a = g.n('ShaderNodeAddShader'); g.link(acc, a.inputs[0]); g.link(bsdf_out, a.inputs[1]); acc = a.outputs[0]
+    if f > 1e-4:
+        black = g.n('ShaderNodeEmission', in_Strength=0.0)
+        mx = g.n('ShaderNodeMixShader'); mx.inputs['Fac'].default_value = f
+        g.link(black.outputs[0], mx.inputs[1]); g.link(bsdf_out, mx.inputs[2])
+        a = g.n('ShaderNodeAddShader'); g.link(acc, a.inputs[0]); g.link(mx.outputs[0], a.inputs[1]); acc = a.outputs[0]
+    g.link(acc, out_in)
+
+
 def debug_material(i):
     mat = bpy.data.materials.new(f'maskdbg:{ZONES[i]}')
     g = G(mat)
@@ -327,9 +368,12 @@ def apply(obj, lib, base_finish):
     img.pixels.foreach_set(np.concatenate([lut, np.ones((len(lut), 1), np.float32)], 1).ravel())
     metal = base_finish['metal']
     eb = base_finish.get('edge_break_mm', 0.0) * 1e-3
-    me.materials.append(build_coat(spec, metal, img, float(lib.get('lut_dmax_nm', 480.0)),
-                                   float(lib.get('arc_length_m', 0.2)), eb))
+    dmax = float(lib.get('lut_dmax_nm', 480.0))
+    ev = exposure_boost_ev(spec, lut, dmax) if lib.get('coat_boost', True) else 0.0
+    me.materials.append(build_coat(spec, metal, img, dmax, float(lib.get('arc_length_m', 0.2)), eb, ev))
     rec['coat'] = spec['id']
+    rec['coat_boost_ev'] = round(ev, 3)
+    rec['coat_albedo_est'] = round(coat_albedo(spec, lut, dmax), 4)
     bare = dict(BARE_DEFAULT, **spec.get('bare', {}))
     specs = dict(base_finish['finishes'], **lib.get('bare_specs', {}))
     for zn in ZONES[1:]:

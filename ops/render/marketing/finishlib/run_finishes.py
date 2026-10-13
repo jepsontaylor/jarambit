@@ -51,7 +51,7 @@ def render(entry, args, masks, lut_path, arc_m, out_root, bare_specs=None):
     req = lookdev.build_request(by_id[args.shot], shots['defaults'], ns, f'finishlib:{entry["id"]}:{args.shot}')
     req['finish_library'] = {'entry': entry, 'masks_npz': masks, 'lut_npy': lut_path,
                              'lut_dmax_nm': thinfilm.DMAX_NM, 'arc_length_m': arc_m,
-                             'bare_specs': bare_specs or {}}
+                             'bare_specs': bare_specs or {}, 'coat_boost': not args.no_coat_boost}
     req['profile']['threads'] = args.threads
     os.makedirs(req['out_dir'], exist_ok=True)
     rq = os.path.join(req['out_dir'], 'request.json')
@@ -121,6 +121,7 @@ def main():
     ap.add_argument('--threshold', type=float, default=0.02)
     ap.add_argument('--device', default='OPTIX', help='OPTIX (waits for idle GPU + flock) or CPU (niced)')
     ap.add_argument('--threads', type=int, default=48)
+    ap.add_argument('--no-coat-boost', action='store_true', help='disable albedo-aware coat exposure boost')
     ap.add_argument('--backdrop', choices=list(BACKDROPS), default='dark',
                     help='dark (default): glossy black base with reflection (rig_dark_strip); studio: original grey softbox')
     ap.add_argument('--masks-only', action='store_true'); ap.add_argument('--allow-mask-warn', action='store_true')
@@ -170,7 +171,7 @@ def main():
         results.append(render(e, args, rep['masks_npz'], lut_path, arc_m, out, bare_specs))
         print(f'[finishlib] {fid} done {results[-1]["seconds"]} s', flush=True)
     finish.contact_sheet(os.path.join(out, 'contact_sheet.jpg'), [r['jpg'] for r in results], cols=3, width=960,
-                         labels=[f"{r['id']}: {r['label']}" for r in results])
+                         labels=[f"{r['id']}: {r['label']}  (coat +{r['assignment'].get('coat_boost_ev', 0):.2f} EV)" for r in results])
     tip_closeups(results, out)
     json.dump({'mask': rep, 'results': results, 'args': vars(args)}, open(os.path.join(out, 'run_summary.json'), 'w'), indent=1)
     print(os.path.join(out, 'contact_sheet.jpg'))
