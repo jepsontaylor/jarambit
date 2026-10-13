@@ -53,7 +53,8 @@ def main():
             assert xy.min() >= .06 - 1e-12 and xy.max() <= .94 + 1e-12
             assert depth.min() > .001 and depth.max() < 100
         labels, _, _, repeated = regions.classify(V, F, source.face_id, source.surface_types,
-                                                  analysis=regions.topology(V, F, 1e-9))
+                                                  analysis=regions.topology(V, F, 1e-9),
+                                                  brep_faces=regions.read_brep_faces(HERO_PATH, R, t), N_corner=N)
         assert np.array_equal(labels, z["region_id"]), "region rerun differs"
         assert repeated["area_mm2"]["bevel"] > 0 and repeated["area_mm2"]["ring"] > 0
         assert repeated["diagnostics"]["ring_center_m"][0] < 0

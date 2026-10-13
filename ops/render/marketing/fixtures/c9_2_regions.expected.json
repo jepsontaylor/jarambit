@@ -1,0 +1,12 @@
+{
+  "source_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
+  "base_npz_sha256": "062be78fe0828a5f0fc5f2e20e2f4ed07f2d9ffa07741b0645fbb053aa232228",
+  "oracle": "Named STEP faces checked against analytic surface catalogue and source geometry. IoU scope is these annotated patches; unannotated blend faces are excluded.",
+  "patches": {
+    "ruled_blade_grinds": {"label": 1, "face_ids": [1, 3, 32]},
+    "body_and_distal_taper_planes": {"label": 0, "face_ids": [28, 31, 291, 514, 531, 778]},
+    "conical_serration_wheel_grinds": {"label": 3, "face_ids": [27, 305, 306, 309, 312, 315, 515, 528]},
+    "coaxial_ring_bore_and_ridges": {"label": 4, "face_ids": [1506, 1509, 1513, 1514, 1515, 1516, 1519, 1520, 1521, 1522, 1525, 1526, 1527]},
+    "planar_half_mm_edge_lands": {"label": 2, "face_ids": [463, 464, 465, 466, 467, 468, 469, 470, 471]}
+  }
+}

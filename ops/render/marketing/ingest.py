@@ -545,7 +545,9 @@ def ingest(path, out, *, units=None, validated_brep=False, expected_sha256=None,
             raise ValueError("regions sidecar must map face IDs to labels")
     elif tags_path is not None:
         raise ValueError("requested region tags sidecar is missing")
-    labels, tangent, uv, info = regions.classify(V, mesh.F, mesh.face_id, mesh.surface_types, tags, topo)
+    descriptors = regions.read_brep_faces(path, R, t) if mesh.N_corner is not None else None
+    labels, tangent, uv, info = regions.classify(V, mesh.F, mesh.face_id, mesh.surface_types, tags, topo,
+                                              brep_faces=descriptors, N_corner=N)
     mesh_dir = out / "mesh"
     mesh_dir.mkdir(parents=True, exist_ok=True)
     _deterministic_npz(mesh_dir / "mesh.npz", {"V": V.astype(np.float64), "F": mesh.F.astype(np.int32),
