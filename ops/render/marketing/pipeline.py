@@ -106,6 +106,42 @@ def cmd_plan(args):
     print(resolved["plan_key"])
 
 
+def bundle_mismatch(resolved, bundle_path, regions_path):
+    """Return why the supplied bundle/regions do not match the resolved plan, or None.
+
+    The worker consumes the bundle that is passed in, not the plan's record of it, so the
+    supplied files themselves must hash to what the plan was resolved from."""
+    if not bundle_path or not os.path.isfile(bundle_path):
+        return f"bundle not found: {bundle_path!r}"
+    try:
+        digest = plan_mod._bundle_digest(_load_json(bundle_path))
+    except (OSError, ValueError, plan_mod.PlanError) as exc:
+        return f"bundle unreadable: {exc}"
+    want = resolved.get("bundle") or {}
+    if not want.get("npz_sha256") or not digest.get("npz_sha256"):
+        return "plan and bundle must both pin a non-empty npz_sha256"
+    # the worker always loads mesh.npz next to the bundle, so that exact file is what gets verified
+    npz_path = os.path.join(os.path.dirname(os.path.abspath(bundle_path)), "mesh.npz")
+    if not os.path.isfile(npz_path):
+        return f"mesh npz missing: {npz_path}"
+    actual = canon.sha256_file(npz_path)
+    if actual != want["npz_sha256"]:
+        return f"mesh npz sha256 {actual} != plan {want['npz_sha256']}"
+    for key in ("source_sha256", "npz_sha256"):
+        if digest.get(key) != want.get(key):
+            return f"bundle {key} {digest.get(key)} != plan {want.get(key)}"
+    if plan_mod.retired_g3(digest.get("source_sha256")):
+        return "bundle names the retired g3 STL"
+    want_regions = resolved.get("regions_sha256")
+    if want_regions and want_regions != "missing":
+        if not regions_path or not os.path.isfile(regions_path):
+            return "plan pins regions but no regions file was supplied"
+        got = canon.sha256_file(regions_path)
+        if got != want_regions:
+            return f"regions sha256 {got} != plan {want_regions}"
+    return None
+
+
 def cmd_render(args):
     resolved = _load_json(args.plan)
     if args.execute:
@@ -114,6 +150,9 @@ def cmd_render(args):
             plan_mod.assert_hero_source(sha)
         except plan_mod.PlanError as exc:
             _die(str(exc))
+        problem = bundle_mismatch(resolved, args.bundle, args.regions)
+        if problem:
+            _die("refusing to dispatch: " + problem)
     blender = args.blender or toolchain_mod.find_blender() or ""
     worker = args.worker or os.path.join(_HERE, "blender", "worker.py")
     summary = farm_mod.render_jobs(
@@ -125,7 +164,7 @@ def cmd_render(args):
         worker,
         execute=args.execute,
     )
-    print(json.dumps({key: summary[key] for key in ("plan_key", "jobs", "pending", "skip", "launched", "yield")}))
+    print(json.dumps({key: summary[key] for key in ("plan_key", "jobs", "pending", "skip", "launched", "queued", "yield")}))
     if args.execute and summary["launched"] == 0 and summary["pending"]:
         _die("execute was set but no shard launched")
 

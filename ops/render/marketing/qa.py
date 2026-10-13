@@ -215,16 +215,21 @@ def ssim(image_a, image_b):
     return ((2 * mu_a * mu_b + c1) * (2 * cov + c2)) / ((mu_a ** 2 + mu_b ** 2 + c1) * (var_a + var_b + c2))
 
 
-def check_q7(residual, reference, denoised):
-    threshold = "flat-body high-pass residual std <=0.6% of mean; SSIM vs 4096-spp reference >=0.97"
+def check_q7(residual, reference, denoised, body_mean=None):
+    """residual is the zero-mean high-pass of the flat-body patch; its std is normalised by the
+    flat-body luminance (body_mean, else the mean of the 4096-spp reference patch), never by the
+    residual's own mean, which is ~0 for an unbiased high-pass."""
+    threshold = "flat-body high-pass residual std <=0.6% of body luminance; SSIM vs 4096-spp reference >=0.97"
     if residual is None or reference is None or denoised is None:
         return _fail("Q7", "noise pair not measured", threshold)
     res = np.asarray(residual, float)
-    mean = float(abs(res.mean())) + 1e-12
-    rel = float(res.std()) / mean
+    body = float(body_mean) if body_mean is not None else float(np.asarray(reference, float).mean())
+    if not body > 0:
+        return _fail("Q7", "flat-body luminance not measured (<= 0)", threshold)
+    rel = float(res.std()) / body
     score = float(ssim(reference, denoised))
     return _record("Q7", rel <= 0.006 and score >= 0.97,
-                   {"residual_std_over_mean": rel, "ssim": score}, threshold)
+                   {"residual_std_over_body": rel, "body_mean": body, "ssim": score}, threshold)
 
 
 def firefly_count(image, factor=8.0):
@@ -313,19 +318,22 @@ def check_q12(plan_bytes_a, plan_bytes_b, image_a=None, image_b=None):
         return _fail("Q12", "plan bytes not measured", threshold)
     same = bytes(plan_bytes_a) == bytes(plan_bytes_b)
     diff = None
-    images_ok = True
-    if image_a is not None or image_b is not None:
-        if image_a is None or image_b is None:
-            images_ok = False
+    images_ok = False  # fail closed: the rerun image pair is required for Q12
+    reason = "rerun image pair not measured"
+    if image_a is not None and image_b is not None:
+        a = np.asarray(image_a, float)
+        b = np.asarray(image_b, float)
+        if a.shape != b.shape or a.size == 0:
+            reason = f"rerun image shapes incompatible {a.shape} vs {b.shape}"
         else:
-            a = np.asarray(image_a, float)
-            b = np.asarray(image_b, float)
+            reason = None
             if a.max() > 1.0 or b.max() > 1.0:
                 a = a / 255.0
                 b = b / 255.0
             diff = float(np.mean(np.abs(a - b)))
             images_ok = diff <= (1.0 / 255.0)
-    return _record("Q12", same and images_ok, {"plan_bytes_equal": same, "mean_abs": diff}, threshold)
+    return _record("Q12", same and images_ok,
+                   {"plan_bytes_equal": same, "mean_abs": diff, "unverified": reason}, threshold)
 
 
 def check_q13(manifest, sums_ok, source_sha256=None, hero=False):
@@ -386,7 +394,7 @@ def evaluate(measurements):
         check_q4(m.get("display"), m.get("mask"), m.get("apex_mask")),
         check_q5(m.get("display"), m.get("mask")),
         check_q6(m.get("delta_e_pairs"), m.get("y_medians")),
-        check_q7(m.get("residual"), m.get("reference"), m.get("denoised")),
+        check_q7(m.get("residual"), m.get("reference"), m.get("denoised"), m.get("body_mean")),
         check_q8(m.get("floor_frames")),
         check_q9(m.get("loop_frames")),
         check_q10(m.get("probe"), frame_count=m.get("frame_count") or 0,
