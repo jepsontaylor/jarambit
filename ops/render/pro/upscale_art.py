@@ -1,6 +1,10 @@
 """Upscale the clean no-signature art 4x with Real-ESRGAN x4plus (spandrel), tiled, 16-bit PNG out.
 python upscale_art.py IN.png OUT.png WEIGHTS.pth"""
-import sys, hashlib, json, numpy as np, torch, cv2
+import sys, hashlib, json
+from runtime import ensure_memcap
+THREADS = ensure_memcap()
+import numpy as np, torch, cv2
+torch.set_num_threads(THREADS); cv2.setNumThreads(THREADS)
 from spandrel import ModelLoader
 src, dst, w = sys.argv[1:4]
 m = ModelLoader().load_from_file(w).model.cuda().eval().half()

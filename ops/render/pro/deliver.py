@@ -2,11 +2,30 @@
 blue-noise-like dither), 100 % signature crop (16-bit PNG, from the `sig` AOV bbox), small JPG thumbnail.
 python deliver.py RENDER_DIR OUT_DIR"""
 import glob, json, os, sys, hashlib
+from runtime import ensure_memcap
+import qa as Q
+
+if __name__ == '__main__':
+    THREADS = ensure_memcap()
+
+# Validate the entire requested set before creating any delivery files or loading pixels.
+src, dst = sys.argv[1:3]
+receipts = sorted(glob.glob(os.path.join(src, '*.qa.json')))
+if not receipts:
+    raise SystemExit('no still QA receipts; delivery refused')
+validated = []
+for qa_p in receipts:
+    qa = json.load(open(qa_p))
+    if qa.get('status') != 'RENDERED' or qa.get('all_pass') is not True or not Q.still_pass(qa):
+        raise SystemExit(f'failed or missing hard gates: {qa_p}; delivery refused')
+    validated.append((qa_p, qa))
+
 import numpy as np
 from PIL import Image
 import cv2
+cv2.setNumThreads(THREADS)
 
-src, dst = sys.argv[1:3]; os.makedirs(dst, exist_ok=True)
+os.makedirs(dst, exist_ok=True)
 rng = np.random.default_rng(20261013)
 
 
@@ -20,9 +39,7 @@ def blue_noise(h, w):
 
 sha = lambda p: hashlib.sha256(open(p, 'rb').read()).hexdigest()
 man = []
-for qa_p in sorted(glob.glob(os.path.join(src, '*.qa.json'))):
-    qa = json.load(open(qa_p))
-    if qa.get('status') != 'RENDERED': continue
+for qa_p, qa in validated:
     tag = qa['shot']; png = qa['png']
     im16 = cv2.imread(png, cv2.IMREAD_UNCHANGED)[:, :, ::-1].astype(np.float32)   # RGB, 0..65535
     out16 = os.path.join(dst, tag + '_16bit.png'); cv2.imwrite(out16, im16[:, :, ::-1].astype(np.uint16))

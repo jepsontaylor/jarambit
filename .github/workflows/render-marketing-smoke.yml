@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - 'ops/render/marketing/**'
+      - 'ops/render/pro/**'
       - '.github/workflows/render-marketing-smoke.yml'
   push:
     branches: [main, 'render/**']
     paths:
       - 'ops/render/marketing/**'
+      - 'ops/render/pro/**'
       - '.github/workflows/render-marketing-smoke.yml'
   workflow_dispatch:
 
@@ -37,4 +39,4 @@ jobs:
             exit 1
           fi
           "$PY" -c 'import OCP'
-          "$PY" -m pytest -q ops/render/marketing/tests
+          "$PY" -m pytest -q ops/render/marketing/tests ops/render/pro/tests

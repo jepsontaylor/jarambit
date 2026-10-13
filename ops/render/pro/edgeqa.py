@@ -2,6 +2,9 @@
 (|n.y|<0.3, blade plane XZ) none of whose vertices touches a flat broad face (|n.y|>0.98), i.e. it
 sits between two ground bevels (cutting edge / tip) rather than on a spine/ring wall. Its Y span is the
 local edge width. FAIL if the p99 land width exceeds the limit (default 0.20 mm)."""
+if __name__ == '__main__':
+    from runtime import ensure_memcap
+    ensure_memcap()
 import numpy as np
 
 

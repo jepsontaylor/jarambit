@@ -246,7 +246,7 @@
   "coat": 1.0,
   "coat_rough": 0.02,
   "exposure_ev": 0.55,
-  "bevel_flamed": true,
+  "bevel_flamed": false,
   "note": "ti_flame_heat: straw(14nm)->bronze(25-30)->purple(40)->blue(45-56) along the arc; clearcoat on, +0.55 EV",
   "extra_lights": [
    {
@@ -277,7 +277,7 @@
    ],
    "gold_emit": 0.0,
    "gold_rough": 0.08,
-   "note": "owner 5:56: signature = deep glossy black ink on anodize; no gold, no outline"
+   "note": "signature is a protected bare laser-etched metal region; finish look/gold parameters never apply"
   },
   "floor": {
    "coat": 0.08,
@@ -337,7 +337,7 @@
    "aniso": 0.6,
    "bevel_flamed": false,
    "exposure_ev": 0.35,
-   "note": "film finish (owner 5:58): satin bead-blast/brushed Ti, single mid blue (~30-35 V), raw-Ti mirror bevels/edge, black ink signature"
+   "note": "satin brushed Ti, single mid blue (~30-35 V); bevel/edge/serration grinds and laser-etched signature stay bare metal"
   }
  }
 }
