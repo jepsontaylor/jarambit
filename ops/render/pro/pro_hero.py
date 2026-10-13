@@ -84,7 +84,7 @@ def art_uv(N, L, xyz):
     c = N('ShaderNodeCombineXYZ'); L(u, c.inputs['X']); L(v, c.inputs['Y']); return c.outputs[0]
 
 
-def sig_mask(N, L, xyz, side):
+def sig_mask(N, L, xyz, side, mask_path=None):
     """Same transform as prep.sig_uv; ink px window -> mask uv."""
     S = MAN['signature']; p = S['placements'][side]
     L_m, H_m = p['len_mm'] * 1e-3, p['h_mm'] * 1e-3
@@ -101,7 +101,7 @@ def sig_mask(N, L, xyz, side):
     U = math_node(N, L, 'MULTIPLY_ADD', su, (x1 - x0) / W_px); U.node.inputs[2].default_value = x0 / W_px
     Vv = math_node(N, L, 'MULTIPLY_ADD', tv, (y1 - y0) / H_px); Vv.node.inputs[2].default_value = (H_px - y1) / H_px
     cmb = N('ShaderNodeCombineXYZ'); L(U, cmb.inputs['X']); L(Vv, cmb.inputs['Y'])
-    t = N('ShaderNodeTexImage'); t.image = bpy.data.images.load(S['mask'], check_existing=True)
+    t = N('ShaderNodeTexImage'); t.image = bpy.data.images.load(mask_path or S['mask'], check_existing=True)
     t.image.colorspace_settings.name = 'Non-Color'; t.extension = 'CLIP'; t.interpolation = 'Cubic'
     L(cmb.outputs[0], t.inputs['Vector']); return t.outputs['Color']
 
@@ -176,18 +176,35 @@ def flame_material():
         t = N('ShaderNodeTexImage'); t.image = lut_image(name, rows); t.interpolation = 'Linear'; t.extension = 'EXTEND'
         L(cmb.outputs[0], t.inputs['Vector']); return t.outputs['Color']
     f0 = lut_tex('lut_f0', lut['f0']); f82 = lut_tex('lut_f82', lut['f82'])
-    sig = mix_f(N, L, back, sig_mask(N, L, xyz, 'front'), sig_mask(N, L, xyz, 'back'))
-    sig = math_node(N, L, 'MULTIPLY', sig, face)
+    outer = mix_f(N, L, back, sig_mask(N, L, xyz, 'front'), sig_mask(N, L, xyz, 'back'))
+    outer = math_node(N, L, 'MULTIPLY', outer, face)
+    inner_p = F.get('sig_inner_mask')
+    if inner_p:   # gold = inner glyph; keyline = outer - inner (thin dark polished Ti outline for contrast)
+        ip = os.path.join(HERE, '..', 'brand', 'signature', inner_p)
+        sig = mix_f(N, L, back, sig_mask(N, L, xyz, 'front', ip), sig_mask(N, L, xyz, 'back', ip))
+        sig = math_node(N, L, 'MULTIPLY', sig, face)
+        key = math_node(N, L, 'MAXIMUM', math_node(N, L, 'SUBTRACT', outer, sig), 0.0)
+    else:
+        sig, key = outer, None
     gold = tuple(LOOK['gold']) + (1,)
     bs = N('ShaderNodeBsdfPrincipled'); bs.inputs['Metallic'].default_value = 1.0
+    if key is not None:
+        kc = tuple(F['keyline_rgb']) + (1,)
+        f0 = mix_rgb(N, L, key, f0, kc); f82 = mix_rgb(N, L, key, f82, kc)
     L(mix_rgb(N, L, sig, f0, gold), bs.inputs['Base Color'])
     L(mix_rgb(N, L, sig, f82, gold), bs.inputs['Specular Tint'])
-    L(mix_f(N, L, sig, F['rough'], LOOK['gold_rough']), bs.inputs['Roughness'])
-    bs.inputs['Coat Weight'].default_value = F['coat']; bs.inputs['Coat Roughness'].default_value = F['coat_rough']
+    rough = mix_f(N, L, face, F.get('wall_rough', F['rough']), F['rough'])
+    rough = mix_f(N, L, sig, rough, LOOK['gold_rough'])
+    if key is not None: rough = mix_f(N, L, key, rough, F['keyline_rough'])
+    L(rough, bs.inputs['Roughness'])
+    # clearcoat only on the anodized broad faces: not on the inlaid mark/keyline (it washed the gold to cream)
+    # and not on walls/recesses (its white reflection blew out the serrations)
+    coat = math_node(N, L, 'MULTIPLY', math_node(N, L, 'MULTIPLY', face, math_node(N, L, 'SUBTRACT', 1.0, outer)), F['coat'])
+    L(coat, bs.inputs['Coat Weight']); bs.inputs['Coat Roughness'].default_value = F['coat_rough']
     L(mix_rgb(N, L, sig, (0, 0, 0, 1), gold), bs.inputs['Emission Color'])
     bs.inputs['Emission Strength'].default_value = LOOK['gold_emit']
     L(bs.outputs[0], out.inputs['Surface'])
-    aov = N('ShaderNodeOutputAOV'); aov.aov_name = 'sig'; L(sig, aov.inputs['Value'])
+    aov = N('ShaderNodeOutputAOV'); aov.aov_name = 'sig'; L(outer, aov.inputs['Value'])
     return m
 
 
@@ -208,7 +225,10 @@ vl.use_pass_normal = vl.use_pass_z = vl.use_pass_object_index = True
 rig = json.load(open(os.path.join(MK, 'presets', 'rig_dark_arc_key.json')))
 rig['lights'] = rig['lights'] + CFG['extra_lights'] + (CFG['flame'].get('extra_lights', []) if A.get('--finish', CFG.get('finish', 'art')) == 'flame' else [])
 rig['backdrop']['material'].update(CFG.get('floor', {}))
-if A.get('--finish', CFG.get('finish', 'art')) == 'flame': rig['backdrop']['material'].update(CFG['flame'].get('floor', {}))
+if A.get('--finish', CFG.get('finish', 'art')) == 'flame':
+    rig['backdrop']['material'].update(CFG['flame'].get('floor', {}))
+    for Lc in rig['lights']:
+        Lc['ev'] = Lc.get('ev', 0.0) + CFG['flame'].get('light_ev', {}).get(Lc['name'], 0.0)
 z_floor = float(lo[2])
 scene.build_backdrop(rig['backdrop'], D, z_floor, materials.floor_material(rig['backdrop']['material']))
 hdri = scene.find_hdri(rig['world']['hdri']['file'], rig['world']['hdri']['sha256'],
@@ -336,6 +356,13 @@ def fit_points(sh):
     f = sh.get('fit', 'part')
     if f == 'part':
         bb = [(x, y, z) for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])]
+        if 'fit_rot_range' in sh:   # constant framing over a rock/turntable: union of corners over the range
+            from mathutils import Matrix
+            out = []
+            for a_ in np.linspace(*sh['fit_rot_range'], 9):
+                Mz = Matrix.Rotation(math.radians(a_), 4, 'Z')
+                out += [tuple(Mz @ Vector(q)) for q in bb]
+            return out
         return world_pts(bb)
     if f in ('sig_front', 'sig_back'):
         return world_pts(sig_pts[f[4:]])
@@ -430,6 +457,66 @@ def sha(p):
     return hashlib.sha256(open(p, 'rb').read()).hexdigest()
 
 
+def r6(v):
+    # 1e-5 quantisation (10 um / 1e-5 rad): declared tolerance so float32 decomposition noise doesn't alter the state hash
+    return [round(float(x), 5) + 0.0 for x in v]
+
+
+def physical_state():
+    """Every physical control as resolved in the worker (director books: plan -> worker -> receipt)."""
+    st = {'camera': {'matrix': [r6(row) for row in cam.matrix_world], 'lens_mm': cd.lens, 'sensor_mm': cd.sensor_width,
+                     'dof': cd.dof.use_dof, 'focus_m': round(cd.dof.focus_distance, 6), 'fstop': cd.dof.aperture_fstop,
+                     'motion_blur': sc.render.use_motion_blur},
+          'part': {'matrix': [r6(row) for row in part.matrix_world]},
+          'lights': {o.name: {'matrix': [r6(row) for row in o.matrix_world], 'energy': round(o.data.energy, 6),
+                              'size': round(getattr(o.data, 'size', 0), 6), 'size_y': round(getattr(o.data, 'size_y', 0), 6)}
+                     for o in sorted((o for o in sc.objects if o.type == 'LIGHT'), key=lambda o: o.name)},
+          'floor': rig['backdrop'], 'world': rig['world'].get('strength'), 'res': [RX, RY]}
+    return st, hashlib.sha256(json.dumps(st, sort_keys=True).encode()).hexdigest()
+
+
+MATERIAL_STATE = {'finish': None, 'look': LOOK, 'flame': CFG.get('flame'), 'prep_sig': MAN['signature']['placements'],
+                  'art_sha256': MAN['art']['sha256']}
+CODE_ID = {'pro_hero_sha256': sha(os.path.abspath(__file__)), 'cfg_sha256': hashlib.sha256(json.dumps(CFG, sort_keys=True).encode()).hexdigest(),
+           'prep_sha256': sha(os.path.join(PREP, 'prep.json')), 'source': MAN['source']}
+sc.render.use_motion_blur = False   # stills/animatic: no shutter blending of states (books: disable blur unless subframes are evaluated)
+
+
+def apply_fault(kind):
+    """Deliberate faults (books: gates must fail on them)."""
+    if kind == 'light_in_frame':
+        ob = next(o for o in sc.objects if o.type == 'LIGHT')
+        tgt = Vector(((lo + hi) / 2).tolist()); ob.location = tgt + (cam.location - tgt) * 0.5 + Vector((0, 0, 0.0))
+        ob.location = tgt + Vector((0, 0.6 * (hi[1] - lo[1]) + 0.02, 0.01))   # just behind the part: in frame
+    elif kind == 'sig_off_flat':
+        for side in sig_pts: sig_pts[side] = [(x + 0.03, y, z) for (x, y, z) in sig_pts[side]]
+        for side in mesh_qa: mesh_qa[side]['pass'] = False; mesh_qa[side]['fault'] = 'sig_off_flat'
+    dg.update()
+
+
+def frame_qa_image(png, tag):
+    """Whole-frame review aid: clipped fraction over the WHOLE frame and the largest clipped blob."""
+    im = bpy.data.images.load(png); a_ = np.array(im.pixels[:], np.float32).reshape(RY, RX, -1)[:, :, :3]
+    clip = a_.max(2) >= 0.995
+    frac = float(clip.mean())
+    # largest 4-connected clipped component (cheap flood on a downsample)
+    small = clip[::4, ::4]; seen = np.zeros_like(small); best = 0
+    for y0, x0 in zip(*np.nonzero(small)):
+        if seen[y0, x0]: continue
+        stack = [(y0, x0)]; seen[y0, x0] = 1; n = 0
+        while stack:
+            y, x = stack.pop(); n += 1
+            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                yy, xx = y + dy, x + dx
+                if 0 <= yy < small.shape[0] and 0 <= xx < small.shape[1] and small[yy, xx] and not seen[yy, xx]:
+                    seen[yy, xx] = 1; stack.append((yy, xx))
+        best = max(best, n)
+    blob = best * 16 / (RX * RY)
+    lim = CFG.get('white_patch_limit', 0.0015)
+    return {'frame_clipped_frac': round(frac, 6), 'largest_white_blob_frac': round(blob, 6), 'limit': lim,
+            'pass': blob <= lim}
+
+
 def lerp_shot(S, f):
     """Shot state at absolute frame f: keys interpolate with smoothstep (absolute time, shard-safe)."""
     a, b = S['start'], S['end']; t = (f - S['frames'][0]) / max(1, S['frames'][1] - 1 - S['frames'][0])
@@ -445,25 +532,38 @@ if '--anim' in A:
     AN = json.load(open(A['--anim'])); step = int(A.get('--step', 1)); log = []
     lt0 = {n: (l_.copy(), r_.copy()) for n, (l_, r_) in BASE_LIGHTS.items()}
     r.image_settings.file_format = 'PNG'; r.image_settings.color_depth = '16'; r.image_settings.color_mode = 'RGB'
+    want = set(int(x) for x in A['--frames'].split(',')) if '--frames' in A else None
+    DRY = A.get('--dry') == '1'
     for S in AN['shots']:
-        for f in range(S['frames'][0], S['frames'][1], step):
+        fr = range(S['frames'][0], S['frames'][1], step) if want is None else sorted(x for x in want if S['frames'][0] <= x < S['frames'][1])
+        for f in fr:
             sh = lerp_shot(S, f)
             reset_lights()
             if 'light_rot_deg' in sh:   # authored lighting arc: whole rig rotates about Z, part fixed
                 Rz = __import__('mathutils').Matrix.Rotation(math.radians(sh['light_rot_deg']), 4, 'Z')
-                for n, (l_, r_) in lt0.items():
-                    ob = sc.objects[n]; ob.matrix_world = Rz @ ob.matrix_world
+                from mathutils import Matrix
+                for n, (l_, r_) in lt0.items():   # from the authored base state, never from the worker's last frame
+                    sc.objects[n].matrix_world = Rz @ Matrix.LocRotScale(l_, r_.to_quaternion(), Vector((1, 1, 1)))
                 dg.update()
             place_camera(sh); aim_mirror_lights(sh); adj = clear_lights()
+            if A.get('--fault'): apply_fault(A['--fault'])
             ql = qa_lights(); qs = qa_sig_frame(sh['sig_side'])
-            rec = {'frame': f, 'shot': S['name'], 'lights_pass': ql['pass'], 'raised': adj, 'sig': qs}
+            st, h = physical_state()
+            rec = {'frame': f, 'shot': S['name'], 'lights_pass': ql['pass'], 'raised': adj, 'sig': qs,
+                   'sig_mesh_pass': all(m['pass'] for m in mesh_qa.values()), 'physical_state_sha256': h, 'state': st}
+            if not (ql['pass'] and qs['pass'] and rec['sig_mesh_pass']):
+                print('QAFAIL', json.dumps({k: rec[k] for k in ('frame', 'shot', 'lights_pass', 'sig', 'sig_mesh_pass')}), flush=True)
+            if not DRY:
+                r.filepath = os.path.join(OUT, f'f{f:05d}.png'); bpy.ops.render.render(write_still=True)
+                rec['image'] = frame_qa_image(r.filepath, f)
             log.append(rec)
-            if not (ql['pass'] and qs['pass']):
-                print('QAFAIL', json.dumps(rec), flush=True)
-            r.filepath = os.path.join(OUT, f'f{f:05d}.png'); bpy.ops.render.render(write_still=True)
-    json.dump({'schema': 'jarambit.render.pro.anim_qa.v1', 'fps': AN['fps'], 'frames': log,
-               'all_pass': all(x['lights_pass'] and x['sig']['pass'] for x in log)},
-              open(os.path.join(OUT, 'anim_qa.json'), 'w'), indent=1)
+    json.dump({'schema': 'jarambit.render.pro.anim_qa.v1', 'fps': AN['fps'], 'film': AN.get('title'), 'finish': FINISH,
+               'code': CODE_ID, 'material_state_sha256': hashlib.sha256(json.dumps({**MATERIAL_STATE, 'finish': FINISH}, sort_keys=True, default=str).encode()).hexdigest(),
+               'fault': A.get('--fault'), 'render_ready': not A.get('--fault'), 'release_ready': False,
+               'release_note': 'human creative + presentation sign-off required; C.10a = design candidate, not certified',
+               'frames': log,
+               'all_pass': all(x['lights_pass'] and x['sig']['pass'] and x['sig_mesh_pass'] and x.get('image', {}).get('pass', True) for x in log)},
+              open(os.path.join(OUT, A.get('--receipt', 'anim_qa.json')), 'w'), indent=1)
     raise SystemExit(0)
 
 only = set(A['--shots'].split(',')) if '--shots' in A else None
@@ -492,6 +592,17 @@ for sh in CFG['shots']:
     img = bpy.data.images['Render Result']
     s2 = sc.render.image_settings; s2.file_format = 'PNG'; s2.color_depth = '16'; s2.color_mode = 'RGB'; s2.compression = 15
     png = os.path.join(OUT, tag + '.png'); img.save_render(png, scene=sc)
+    try:
+        pimg = bpy.data.images.load(png); px_ = np.array(pimg.pixels[:], np.float32).reshape(RY, RX, -1)[:, :, :3]
+        idx_p = os.path.join(OUT, f'qa_idx_{tag}_0001.png'); ii = bpy.data.images.load(idx_p)
+        idx = np.array(ii.pixels[:], np.float32).reshape(RY, RX, -1)[:, :, 0]
+        partm = (idx > 0.4) & (idx < 0.6)
+        clip = float((px_[partm].max(1) >= 0.995).mean()) if partm.any() else 0.0
+        qa['clipping'] = {'part_px_clipped_frac': round(clip, 5), 'limit': CFG.get('clip_limit', 0.002), 'pass': clip <= CFG.get('clip_limit', 0.002)}
+    except Exception as e:
+        qa['clipping'] = {'error': str(e)}
+    qa['image'] = frame_qa_image(png, tag); st_, h_ = physical_state()
+    qa.update({'physical_state_sha256': h_, 'code': CODE_ID, 'release_ready': False, 'label': MAN['source'].get('status_label') or 'design candidate, not certified'})
     qa.update({'status': 'RENDERED', 'render_s': round(time.time() - t0, 1), 'spp': SPP, 'res': [RX, RY],
                'camera': {'focal_mm': cd.lens, 'sensor_mm': 36, 'fstop': cd.dof.aperture_fstop if cd.dof.use_dof else None,
                           'loc': list(cam.location), 'rot': list(cam.rotation_euler), 'dist_m': dist},

@@ -58,3 +58,19 @@ It's rendered as polished gold (1.0/0.66/0.22, rough 0.06, metallic, clearcoat, 
 ## Deliverables
 32-bit EXR master → 16-bit PNG. There is also an 8-bit RGB PNG for chat (< 25 MB, blue-noise-style dithered with a high-passed noise
 field, ±0.5 LSB). Signature crops are at 100 %. No JPG deliverables; JPG is used only for thumbnails.
+
+## Anodized finishes: `ti_flame_heat` (`--finish flame`, `shots.json:flame`)
+- The colour comes from `marketing/anodize.py`: `film_metal(d)`, an air/TiO2/Ti thin film. It's baked into a 64-entry LUT
+  (`film_lut_12_62nm.json`) that feeds the conductor's Base Color (F0) and Specular Tint (F82). Blender 4.2's Thin Film input
+  doesn't act on metals. Oxide thickness runs from 21 nm at the ring end to 60 nm at the tip, with slight z "licks": straw/gold → bronze/rose
+  → purple → blue. Clearcoat is 1.0 @ 0.02 and the view is AgX Punchy at +0.55 EV. The edge-apex strip is polished raw Ti.
+  This is a reflective visualization, not a calibrated finish claim.
+- Vertical mirror flats only show colour when they reflect something. A `mirror_flat` reflector is placed per shot or frame on the
+  mirror direction of the visible broad face, plus 8°. Camera elevations are kept ≤ 6° so that direction stays above the floor.
+  The lights-out-of-frame gate still applies.
+- To stop the serrations and spine walls blowing out, the arc key is −1.2 EV and the rim −0.5 EV, and walls are rough 0.22. A whole-frame
+  largest-white-blob gate is limited to 0.15 % of the frame.
+- Signature: the placement footprint is `jepson_t_mask_4096_key40.png` (bold06 dilated 40 px), so the dark keyline counts toward the
+  1.5 mm margin. The gold glyph is `bold12`, mirror gold (1.0/0.55/0.12, rough 0.04) with emission lift 1.0. The keyline is dark
+  polished Ti (0.004, rough 0.3). The solver config is `prep_flame.json`: no dark-art requirement, so the largest size on the flat wins.
+- OpenCV is pinned at 4.12.0 (`requirements.txt`). `prep.py` refuses any other version because placements depend on the cv2 version.

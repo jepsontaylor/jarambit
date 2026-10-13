@@ -1,0 +1,15 @@
+{
+ "dark_lum": 2.0,
+ "sig_h_max_mm": 16.0,
+ "sig_h_min_mm": 6.0,
+ "blade_start_tol_mm": 200.0,
+ "angles_deg": [
+  -12,
+  -8,
+  -4,
+  0,
+  4,
+  8
+ ],
+ "note": "flame/anodize finishes: no dark-art requirement; largest signature on the flat with 1.5 mm margin (keyline included via bold12 footprint)"
+}

@@ -12,6 +12,14 @@
   "8k": [
    7680,
    4320
+  ],
+  "preview_portrait": [
+   720,
+   1280
+  ],
+  "4k_portrait": [
+   2160,
+   3840
   ]
  },
  "spp": 1024,
@@ -111,9 +119,11 @@
    "fill": 0.8,
    "sig_side": "front",
    "res": [
-    "preview",
     "4k",
-    "8k"
+    "4k_portrait",
+    "8k",
+    "preview",
+    "preview_portrait"
    ]
   },
   {
@@ -127,9 +137,11 @@
    "fill": 0.84,
    "sig_side": "front",
    "res": [
-    "preview",
     "4k",
-    "8k"
+    "4k_portrait",
+    "8k",
+    "preview",
+    "preview_portrait"
    ]
   },
   {
@@ -180,9 +192,11 @@
    "fill": 0.7,
    "sig_side": "front",
    "res": [
-    "preview",
     "4k",
-    "8k"
+    "4k_portrait",
+    "8k",
+    "preview",
+    "preview_portrait"
    ]
   },
   {
@@ -253,12 +267,12 @@
   ],
   "look": {
    "gold": [
-    0.98,
-    0.56,
-    0.1
+    1.0,
+    0.5,
+    0.08
    ],
-   "gold_emit": 0.3,
-   "gold_rough": 0.05
+   "gold_emit": 0.35,
+   "gold_rough": 0.1
   },
   "floor": {
    "coat": 0.15,
@@ -275,6 +289,21 @@
    "05_macro_signature": {
     "el": 3.0
    }
-  }
+  },
+  "sig_inner_mask": "jepson_t_mask_4096_bold12.png",
+  "keyline_rgb": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "keyline_rough": 0.6,
+  "light_ev": {
+   "arc_key": -2.2,
+   "rim_back": -1.0,
+   "blade_sweep": -1.6,
+   "face_soft_R": -1.0,
+   "face_soft_L": -0.5
+  },
+  "wall_rough": 0.22
  }
 }

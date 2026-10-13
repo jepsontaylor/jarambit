@@ -85,7 +85,12 @@ def raster(V, F, sel, res, lo, shape, edges=False):
     return img
 
 
+PINNED_CV2 = '4.12.0'
+
+
 def main():
+    if cv2.__version__ != PINNED_CV2 and os.environ.get('PRO_ALLOW_CV2') != '1':
+        raise SystemExit(f'opencv {cv2.__version__} != pinned {PINNED_CV2} (placements are cv2-version dependent); see ops/render/pro/requirements.txt')
     bdir, out, art_p, sig_p = sys.argv[1:5]
     cfg = dict(DEF); cfg.update(json.load(open(sys.argv[5])) if len(sys.argv) > 5 else {})
     os.makedirs(out, exist_ok=True)
@@ -157,7 +162,7 @@ def main():
             h -= 0.25
         if best is None:
             raise SystemExit(f'no signature placement on {side}: relax dark_lum/margin or art offset')
-        best['margin_mm'] = cfg['margin_mm']; best['on'] = 'flat broad face, dark art (blurred-dilated lum < %.2f)' % cfg['dark_lum']
+        best['margin_mm'] = cfg['margin_mm']; best['on'] = ('flat broad face' + (', dark art (dilated lum < %.2f)' % cfg['dark_lum'] if cfg['dark_lum'] <= 1.0 else ''))
         placements[side] = best
         dbg = np.dstack([ok * 120, dark * 120, flat // 3]).astype(np.uint8)
         debug[side] = dbg
