@@ -19,7 +19,7 @@ Source: Codex's C.9.2 bundle `~/jarambit_render_scratch/hero_C9.2/mesh` (STEP sh
 | Q6 | ColorChecker emission patches → Cycles → EXR → `finish.py` (Standard view) | ΔE2000 mean 0.000, max 0.000 | mean ≤ 2, max ≤ 4 |
 | Q6b | `finish.py` AgX path vs Blender's own colour-managed save (HDR ramp 1e-4…64) | max 0.004/255 | ≤ 1/255 |
 | Q7 | high-pass residual, flattest 96² body patch, 4K frame 0: denoised / raw | 0.06 % / 3.0 % of mean | ≤ 0.6 % (denoised) |
-| Q7 | SSIM raw(512, 0.02) vs raw(1024, 0.005), product bbox, display | 0.992 (denoised: 0.9987) | ≥ 0.97 vs 4096-spp ref (**4096-spp ref not rendered yet**) |
+| Q7 | SSIM raw(512, 0.02) vs raw(1024, 0.005), product bbox, display | 0.992 (denoised: 0.9987) | ≥ 0.97 vs 4096-spp ref (measured below: 0.9962) |
 | Q8 | fireflies (> 8× 3×3 median) after denoise, 6 4K frames | 0 | 0 |
 | Q8 | static-background luminance flicker over 6 frames | 0.001 % | ≤ 0.8 % |
 | Q12 | smoke rerun with `--force`, same plan key | mean abs diff ≤ 1/255 (test asserts) | ≤ 1/255 |
@@ -27,6 +27,32 @@ Source: Codex's C.9.2 bundle `~/jarambit_render_scratch/hero_C9.2/mesh` (STEP sh
 Raw data: `~/jarambit_render_scratch/q1/qa_frames.json` on xbabe3.
 
 **Recommendation for `profiles.json` `final_4k` (Grok):** `adaptive_threshold 0.02, spp_min 64, spp_max 512, auto_tile false`. This keeps 4K resolution and passes Q1 with margin. Do not rely on 0.005: adaptive sampling cannot converge on the 40 µm bead-blast bump, which is smaller than a pixel at 4K (≈ 60 µm/px).
+
+## Final 4K stills (C.9.2, final_4k), 2026-10-13
+![final 4K contact sheet](final4k_contact_c92.jpg)
+
+Eight stills at **native 3840×2160** on the xbabe3 **RTX 3090** (OptiX, GPU flock, yield rule). `final_4k` = adaptive 0.02, 512 max / 64 min spp, no auto-tile. The source is Codex's READY bundle `hero_C9.2/mesh`, with npz `062be78f…aa232228` and STEP `2ad2a8ec…b1c307`. Regions are now `brep` (bevel 2292 mm², ring 617 mm²), so the satin bevel material sits on the grind. Outputs: `~/jarambit_render_scratch/c92_final4k/stills/<shot>/` on xbabe3, containing the PNG16, the JPEG q92, the denoised EXR, the mask, `qa.json` and the receipt. Raw/normal/depth EXRs were purged after finishing. The full-size sheet is `c92_final4k/contact_4k.jpg` (two 1920 px tiles per row).
+
+| shot | s/frame | f-stop | Q3 margin / fill | Q4 clip | Q5 crush | Q7 high-pass (denoised) | Q8 fireflies |
+|---|---|---|---|---|---|---|---|
+| hero_3q | 73.5 | 22 | 0.066 / 0.78 | 0 | 0 | 0.067 % | 0 |
+| dark_hero | 62.1 | 22 | 0.074 / 0.78 | 0 | 0.002 % | 0.101 % | 0 |
+| edge_macro | 84.3 | 2.8 | macro (field 60 mm) | 0 | 0.0001 % | 0.245 % | 0 |
+| ring_detail | 80.6 | 4.0 | macro (field 70 mm) | 0 | 0 | 0.086 % | 0 |
+| profile_flat | 65.4 | 8 | 0.110 / 0.78 | 0 | 0 | 0.073 % | 0 |
+| spine_top | 63.2 | 22 | 0.102 / 0.78 | 0 | 0 | 0.091 % (48 px patch) | 0 |
+| white_ecom | 46.5 | 10.1 | 0.109 / 0.78 | 0 | 0 | 0.065 % | 0 |
+| flat_lay | 70.2 | 8 | 0.110 / 0.78 | 0 | 0 | 0.072 % | 0 |
+
+All 8 pass Q3 (whole-object stills: margin ≥ 6 %, fill in 0.62–0.78; macros are field-framed by design), Q4, Q5, Q7 noise (≤ 0.6 %) and Q8. Q8 flicker and Q9 seam apply to the turntable, which jr_grok's farm owns.
+
+**Q7 reference (4096 spp).** I rendered hero_3q at 4K with 4096 fixed spp (adaptive off) in 529 s on the 3090 and compared it with the same frame at final_4k on the product bbox, in display space:
+- raw final_4k vs raw reference: **SSIM 0.9962** (target ≥ 0.97), so final_4k passes;
+- denoised final_4k vs raw reference: SSIM 0.9997;
+- high-pass residual on the flat body: raw 3.84 %, denoised 0.068 %.
+Data: `c92_final4k/q7_result.json`. The reference raw EXR is kept at `c92_final4k/q7ref/`.
+
+QA patch fix: the Q7 flat-patch picker originally scored horizontal gradients only. On spine_top the only 96 px fully-masked patches straddle the horizontal spine/face edge, so it reported 4.9 % "noise" that was really geometry. The picker now scores both axes, and the patch size scales to the visible product (min(96, short side/5), at least 32). Unit tests cover both cases.
 
 ## Conventions (worker)
 - World = bundle canonical frame (m, +Z up). This matches Codex's pose decision (COORD 04:38Z): X longest, −Y blade normal, ring left.
@@ -46,7 +72,6 @@ Blender 4.2's Principled metal is the F82-tint conductor: base = F0 (0.542, 0.49
 HDRI: Poly Haven `studio_small_09` 4k (CC0), sha256 `71a876b4…5e39`. The worker searches `$JARAMBIT_HDRI_DIR`, `~/jarambit_render_scratch/hdri`, `ops/render/marketing/hdri`, and fails if the HDRI is missing unless `profile.hdri` is `optional`/`off` (smoke uses `off`).
 
 ## Open items
-- **Regions (Codex)**: the C.9.2 first pass labels the ring's concentric ridges as `bevel`, finds no `ring`/`edge_apex`, and leaves the blade grind as `body` and the handle as `pad` (gloss 0.12). The look holds because the grind geometry itself catches light. Once regions are reviewed, the satin bevel and edge-apex materials will apply where intended, and the R1 `bevel_kicker` will aim at the real grind. The edge macro uses the label-free `auto:thin_edge` target (vertices within 0.3 mm of the mid-plane).
-- 4096-spp reference crop for Q7 SSIM.
+- **Regions (Codex)**: fixed in the READY bundle (062be78f), which the final 4K stills use. Historical note: the C.9.2 first pass labels the ring's concentric ridges as `bevel`, finds no `ring`/`edge_apex`, and leaves the blade grind as `body` and the handle as `pad` (gloss 0.12). The look holds because the grind geometry itself catches light. Once regions are reviewed, the satin bevel and edge-apex materials will apply where intended, and the R1 `bevel_kicker` will aim at the real grind. The edge macro uses the label-free `auto:thin_edge` target (vertices within 0.3 mm of the mid-plane).
 - Art review (Q14) is `pending` and needs owner sign-off on this sheet and the full-res frames.
 - Old-model lookdev (g3 wave27 STL, `hero_tmp`) is superseded by C.9.2 and kept only in scratch.

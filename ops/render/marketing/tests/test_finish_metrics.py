@@ -50,3 +50,20 @@ def test_srgb_roundtrip_and_lab_white():
     x = np.linspace(0, 1, 101)
     assert np.allclose(finish.linear_to_srgb(finish.srgb_to_linear(x)), x)
     assert np.allclose(finish.srgb_to_lab(np.array([1.0, 1.0, 1.0])), [100, 0, 0], atol=1e-3)
+
+
+def test_flattest_patch_picks_flat_masked_region():
+    rng = np.random.default_rng(2)
+    img = rng.random((300, 300))
+    img[150:260, 150:260] = 0.5            # flat area
+    mask = np.zeros((300, 300)); mask[40:280, 40:280] = 1
+    r, c = finish.flattest_patch(img, mask, size=96, step=8)
+    assert 150 <= r and r + 96 <= 260 and 150 <= c and c + 96 <= 260
+    assert finish.flattest_patch(img, np.zeros((300, 300))) is None
+
+
+def test_flattest_patch_rejects_horizontal_edge():
+    img = np.zeros((200, 200)); img[100:] = 1.0      # one horizontal step edge, otherwise flat
+    mask = np.ones((200, 200))
+    r, c = finish.flattest_patch(img, mask, size=64, step=4)
+    assert r + 64 <= 100 or r >= 100

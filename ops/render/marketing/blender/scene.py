@@ -210,7 +210,7 @@ def setup_render(profile, threads=16):
     else:
         raise ValueError(f'unknown device {dev}')
     c.samples = int(profile['spp_max'])
-    c.use_adaptive_sampling = True
+    c.use_adaptive_sampling = bool(profile.get('adaptive', True))  # False for the fixed-spp Q7 reference
     c.adaptive_min_samples = int(profile.get('spp_min', 0))
     c.adaptive_threshold = float(profile.get('adaptive_threshold', 0.01))
     b = profile.get('bounces', {})

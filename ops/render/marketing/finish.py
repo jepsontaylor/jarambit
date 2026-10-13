@@ -17,6 +17,7 @@ usage:
   finish.py stats IMG.png --mask MASK.exr [--json]
   finish.py contact OUT.jpg IMG1.png IMG2.png ... [--cols 3 --width 640]
   finish.py npy IMG OUT.npy
+  finish.py qa DENOISED.exr --mask MASK.exr [--raw RAW.exr --ref REF.exr --out QA.json]
 """
 import argparse
 import glob
@@ -261,6 +262,56 @@ def ssim(a, b, L=1.0):
     return float((2 * mx * my + c1) * (2 * cov + c2) / ((mx * mx + my * my + c1) * (vx + vy + c2)))
 
 
+def flattest_patch(img, mask, size=96, step=48):
+    """(y, x) of the size x size fully-masked patch with the lowest mean gradient (both axes, so a patch
+    never straddles a horizontal or vertical geometric edge)."""
+    y = np.asarray(img, np.float64)
+    y = y[..., :3].mean(-1) if y.ndim == 3 else y
+    m = np.asarray(mask) > 0.99
+    ys, xs = np.where(m)
+    if not len(ys):
+        return None
+    best = None
+    for r in range(ys.min(), ys.max() - size, step):
+        for c in range(xs.min(), xs.max() - size, step):
+            if m[r:r + size, c:c + size].all():
+                p = y[r:r + size, c:c + size]
+                g = np.abs(np.diff(p, axis=1)).mean() + np.abs(np.diff(p, axis=0)).mean()
+                if best is None or g < best[0]:
+                    best = (g, r, c)
+    return None if best is None else best[1:]
+
+
+def qa_frame(denoised, mask, raw=None, ref=None, view=VIEW, look=LOOK, patch=96):
+    """Q4/Q5 (display, product mask), Q7 (high-pass residual on the flattest body patch; SSIM of the
+    product bbox vs a fixed-spp reference), Q8 (fireflies after denoise). Arrays are scene-linear."""
+    disp = to_display(denoised, view, look)
+    st = mask_stats(disp, mask)
+    out = {**st, **q4_q5(st), 'Q8_fireflies': fireflies(denoised)}
+    out['Q8'] = 'PASS' if out['Q8_fireflies'] == 0 else 'FAIL'
+    ys, xs = np.where(np.asarray(mask) > 0.99)
+    if len(ys):  # a thin view (spine_top) cannot hold a 96 px patch without crossing a geometric edge
+        patch = int(min(patch, max(32, min(np.ptp(ys), np.ptp(xs)) // 5)))
+    pc = flattest_patch(denoised, mask, patch, max(8, patch // 2))
+    if pc:
+        r, c = pc
+        out['Q7_patch'] = [int(r), int(c), patch]
+        out['Q7_highpass_denoised'] = highpass_residual(denoised[r:r + patch, c:c + patch])
+        if raw is not None:
+            out['Q7_highpass_raw'] = highpass_residual(raw[r:r + patch, c:c + patch])
+        out['Q7_noise'] = 'PASS' if out['Q7_highpass_denoised'] <= 0.006 else 'FAIL'
+    if ref is not None:
+        m = np.asarray(mask) > 0.5
+        ys, xs = np.where(m)
+        sl = (slice(ys.min(), ys.max() + 1), slice(xs.min(), xs.max() + 1))
+        rd = to_display(ref, view, look)[sl]
+        if raw is not None:
+            out['Q7_ssim_raw_vs_ref'] = ssim(to_display(raw, view, look)[sl], rd)
+            out['Q7_ssim'] = 'PASS' if out['Q7_ssim_raw_vs_ref'] >= 0.97 else 'FAIL'
+        out['Q7_ssim_denoised_vs_ref'] = ssim(disp[sl], rd)
+    return out
+
+
 # ---------------------------------------------------------------- colour (Q6)
 def srgb_to_linear(c):
     c = np.asarray(c, np.float64)
@@ -352,13 +403,16 @@ def main(argv=None):
     p.add_argument('--exposure', type=float, default=0.0); p.add_argument('--record')
     s = sp.add_parser('stats')
     s.add_argument('img'); s.add_argument('--mask', required=True); s.add_argument('--apex', action='store_true')
+    q = sp.add_parser('qa', help='Q4/Q5/Q7/Q8 for one rendered frame')
+    q.add_argument('denoised'); q.add_argument('--mask', required=True); q.add_argument('--raw'); q.add_argument('--ref')
+    q.add_argument('--out')
     n = sp.add_parser('npy', help='dump any image (EXR/PNG16) as float32 .npy (exact, for tests)')
     n.add_argument('img'); n.add_argument('npy')
     c = sp.add_parser('contact')
     c.add_argument('out'); c.add_argument('images', nargs='+')
     c.add_argument('--cols', type=int, default=3); c.add_argument('--width', type=int, default=640)
     a = ap.parse_args(argv)
-    if a.cmd in ('png', 'stats', 'npy') and not have_oiio():
+    if a.cmd in ('png', 'stats', 'npy', 'qa') and not have_oiio():
         os.execv(blender_python(), [blender_python(), '-I', os.path.abspath(__file__)] + (argv or sys.argv[1:]))
     if a.cmd == 'png':
         size = tuple(int(x) for x in a.size.lower().split('x')) if a.size else None
@@ -372,6 +426,13 @@ def main(argv=None):
         st = mask_stats(img, mask)
         st.update(q4_q5(st, a.apex))
         print(json.dumps(st))
+    elif a.cmd == 'qa':
+        rd = lambda p: read_image(p)[..., :3] if p else None  # noqa: E731
+        res = qa_frame(rd(a.denoised), read_image(a.mask)[..., 0], rd(a.raw), rd(a.ref))
+        res.update({'denoised': a.denoised, 'raw': a.raw, 'ref': a.ref})
+        if a.out:
+            json.dump(res, open(a.out, 'w'), indent=1)
+        print(json.dumps(res))
     elif a.cmd == 'npy':
         np.save(a.npy, read_image(a.img))
     elif a.cmd == 'contact':
