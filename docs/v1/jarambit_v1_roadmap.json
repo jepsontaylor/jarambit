@@ -525,6 +525,29 @@
             "ops/brep/tests"
           ],
           "risk": "medium"
+        },
+        {
+          "id": "PR-0.33.4",
+          "title": "Ring flare / 3D ring lip in the genotype so finger-bearing width (bore length along the finger axis) can reach >= 10 mm (RS-karambit-v2 ring_bearing_w_min_mm) with >= 1.5 mm bore edge radii",
+          "scope_paths": [
+            "crates/part-karambit/src/rep_*.rs",
+            "crates/crescent/src/pheno.rs",
+            "fem_solid/**"
+          ],
+          "depends_on": [
+            "PR-0.33.1"
+          ],
+          "owner_host": "any",
+          "est_hours": 12,
+          "success_criteria": [
+            "ring_bearing_w_mm >= 10 reachable by decode",
+            "solid ring L6/ring-pull cases re-run on flared designs",
+            "mass impact reported (soft)"
+          ],
+          "tests_fixtures": [
+            "ring flare decode + bearing-width tests"
+          ],
+          "risk": "medium (2.5D plate -> local 3D feature)"
         }
       ]
     },
