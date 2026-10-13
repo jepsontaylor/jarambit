@@ -1,0 +1,30 @@
+{
+  "aes_pass": true,
+  "all_hard": false,
+  "fat_sf": 0.7673006161022223,
+  "floors_ok": true,
+  "genome": "evidence/rs_v2/genomes/w271c_11522.csv",
+  "groups": {
+    "fatigue": false,
+    "human_max": false,
+    "screen_plate": false,
+    "seq_hard": false
+  },
+  "hm_ringback_sf": 1.9923488470273178,
+  "hm_spine_sf": 0.41939747194561466,
+  "hm_tip_inplane_sf": 0.5739417829204602,
+  "hm_twist_sf": 0.09651947249219367,
+  "label": "w271c_11522",
+  "lat_rob_n": 274.69077251697746,
+  "mass_g": 79.96161512803431,
+  "rejects": [],
+  "requirement_set": "RS-karambit-v2",
+  "ring_band_mm": 5.208845503897187,
+  "ring_bearing_w_mm": 4.7931365966796875,
+  "ring_rob_n": 13403.844789239041,
+  "seq_ratio": 0.7784421108892615,
+  "t_mm": 5.8,
+  "tier": "T2 certification (fem::certify)",
+  "twist_body_sf": 3.5743750371955394,
+  "twist_tipzone_sf": 0.8591293705349107
+}
