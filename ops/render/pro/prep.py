@@ -94,7 +94,7 @@ PINNED_CV2 = '4.12.0'
 
 def main():
     if cv2 is None:
-        raise SystemExit('prep.py needs opencv (see ops/render/pro/requirements.txt)')
+        raise SystemExit("prep.py needs opencv (see ops/render/pro/requirements.txt)")
     if cv2.__version__ != PINNED_CV2 and os.environ.get('PRO_ALLOW_CV2') != '1':
         raise SystemExit(f'opencv {cv2.__version__} != pinned {PINNED_CV2} (placements are cv2-version dependent); see ops/render/pro/requirements.txt')
     cv2.setNumThreads(THREADS)
@@ -144,19 +144,22 @@ def main():
         dark = lum_b < cfg['dark_lum']
         allowed = (ok & dark).astype(np.uint8)
         mpx = int(math.ceil((cfg['margin_mm'] + 0.3) / cfg['res_mm']))   # +0.3 mm raster guard
-        best = None
-        h = cfg['sig_h_max_mm']
-        while h >= cfg['sig_h_min_mm'] and best is None:
-            hp = h / cfg['res_mm']; wp = hp * ink_aspect
+        def try_h(h):
+            best = None
             for ang in cfg['angles_deg']:
                 kr = sig_kernel(ink, h, ink_aspect, ang, side, cfg['res_mm'], mpx)
-                fit = cv2.erode(allowed, kr, anchor=(kr.shape[1] // 2, kr.shape[0] // 2), borderValue=0)
-                cand = np.argwhere(fit > 0)
+                # erosion == (forbidden * kernel) == 0; FFT keeps big glyph kernels O(N log N) (cv2.erode was O(N*K))
+                from scipy.signal import fftconvolve
+                kb = (kr > 0).astype(np.float32)
+                hit = fftconvolve((allowed == 0).astype(np.float32), kb[::-1, ::-1], mode='full')
+                oy, ox = kr.shape[0] // 2, kr.shape[1] // 2
+                hit = hit[kr.shape[0] - 1 - oy: kr.shape[0] - 1 - oy + allowed.shape[0], kr.shape[1] - 1 - ox: kr.shape[1] - 1 - ox + allowed.shape[1]]
+                fit = hit < 0.5   # verified identical to cv2.erode (interior)
+                cand = np.argwhere(fit)
                 if not len(cand): continue
                 cx_m = lo[0] + (cand[:, 1] + 0.5) * res
                 xk = np.where(kr.any(0))[0]
-                left = cx_m + (xk.min() - kr.shape[1] // 2) * res
-                lean = left - bevel_x0   # same rule both sides (back is laid out unmirrored as seen from +Y)
+                lean = cx_m + (xk.min() - kr.shape[1] // 2) * res - bevel_x0
                 i = int(np.argmin(np.abs(lean)))
                 if abs(lean[i]) > cfg['blade_start_tol_mm'] * 1e-3: continue
                 c = cand[i]
@@ -166,7 +169,16 @@ def main():
                        'left_end_from_blade_start_mm': round(float(lean[i]) * 1e3, 2)}
                 if best is None or abs(rec['left_end_from_blade_start_mm']) < abs(best['left_end_from_blade_start_mm']):
                     best = rec
-            h -= 0.25
+            return best
+        # bisection on height (feasibility is monotone in h): largest fitting h to 0.1 mm
+        lo_h, hi_h = cfg['sig_h_min_mm'], cfg['sig_h_max_mm']
+        best = try_h(hi_h)
+        if best is None:
+            best = try_h(lo_h)
+            while best is not None and hi_h - lo_h > 0.1:
+                mid = 0.5 * (lo_h + hi_h); r = try_h(mid)
+                if r is None: hi_h = mid
+                else: lo_h, best = mid, r
         if best is None:
             raise SystemExit(f'no signature placement on {side}: relax dark_lum/margin or art offset')
         best['margin_mm'] = cfg['margin_mm']; best['on'] = ('flat broad face' + (', dark art (dilated lum < %.2f)' % cfg['dark_lum'] if cfg['dark_lum'] <= 1.0 else ''))
