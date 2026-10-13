@@ -1,0 +1,382 @@
+{
+ "schema": "jarambit.sheath.metrics.v1",
+ "evidence_level": "analytic_proxy+uncalibrated_fea",
+ "knife": {
+  "kind": "step",
+  "step": "/home/ubuntu/jarambit_render_scratch/c10a/ground_c10a.step",
+  "step_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+  "stl": "/home/ubuntu/jarambit_render_scratch/c10a/ground_c10a.stl",
+  "stl_sha256": "07b9615c025892bf0eb66afdd728974f55272585ddfb68468f9adf5697ef6d11"
+ },
+ "knife_mass_g_brep": 64.84116307039213,
+ "params": {
+  "material": "PA12_MJF",
+  "mouth_x": 76.0,
+  "path": "trans",
+  "centre": [
+   120.0,
+   40.0
+  ],
+  "direction_deg": 140.0,
+  "sweep_max": 200.0,
+  "c_face": 0.25,
+  "c_edge": 1.3,
+  "rim": 3.0,
+  "wall": 2.0,
+  "detent_undercut": 1.7,
+  "detent_a_in": 30.0,
+  "detent_a_out": 35.0,
+  "detent_hole": "guard",
+  "retention": "tab",
+  "tab_L": 14.0,
+  "tab_b": 9.0,
+  "slot_w": 0.8,
+  "grip_keepout_x": 60.0,
+  "mount_mass_g": 4.0,
+  "wobble_dir_deg": 2.0,
+  "wobble_rot_deg": 2.0,
+  "wobble_ramp": 20.0,
+  "tip_reserve": 1.5,
+  "collar_frame": 2.0,
+  "collar_flange": 0.8,
+  "bump_cam_half_deg": 20.0,
+  "c_land": 0.3
+ },
+ "material": {
+  "name": "PA12_MJF",
+  "E_mpa": 1800.0,
+  "rho_g_cm3": 1.01,
+  "mu_steel": 0.3,
+  "eps_allow": 0.04,
+  "E_temp": [
+   1.25,
+   0.7
+  ],
+  "source": "HP 3D HP PA12 datasheet (tensile modulus ~1800 MPa, part density 1.01 g/cm3); mu: Covestro snap-fit guide Table 3 PA 0.25-0.30 (x1.5 vs self)"
+ },
+ "n_path_candidates": 377,
+ "n_feasible": 50,
+ "top_paths": [
+  {
+   "path": "trans",
+   "centre": [
+    120.0,
+    40.0
+   ],
+   "dir": 140.0,
+   "sweep": 200.0,
+   "outline_mm2": 5488.8417325678965,
+   "edge_mouth_depth_mm": 6.982663637229621
+  },
+  {
+   "path": "trans",
+   "centre": [
+    120.0,
+    40.0
+   ],
+   "dir": 150.0,
+   "sweep": 200.0,
+   "outline_mm2": 5827.676883843999,
+   "edge_mouth_depth_mm": 10.907291685526022
+  },
+  {
+   "path": "trans",
+   "centre": [
+    120.0,
+    40.0
+   ],
+   "dir": 160.0,
+   "sweep": 200.0,
+   "outline_mm2": 6401.111078796544,
+   "edge_mouth_depth_mm": 14.500507195313611
+  },
+  {
+   "path": "rot",
+   "centre": [
+    180.0,
+    120.0
+   ],
+   "dir": 180.0,
+   "sweep": -150.0,
+   "outline_mm2": 7081.105110805962,
+   "edge_mouth_depth_mm": 6.758042514213081
+  },
+  {
+   "path": "trans",
+   "centre": [
+    120.0,
+    40.0
+   ],
+   "dir": 170.0,
+   "sweep": 200.0,
+   "outline_mm2": 7417.706410513001,
+   "edge_mouth_depth_mm": 17.653132131582293
+  },
+  {
+   "path": "rot",
+   "centre": [
+    170.0,
+    110.0
+   ],
+   "dir": 180.0,
+   "sweep": -150.0,
+   "outline_mm2": 7487.797777363766,
+   "edge_mouth_depth_mm": 6.932820041106554
+  },
+  {
+   "path": "rot",
+   "centre": [
+    170.0,
+    120.0
+   ],
+   "dir": 180.0,
+   "sweep": -150.0,
+   "outline_mm2": 7554.930704980447,
+   "edge_mouth_depth_mm": 7.900907062375024
+  },
+  {
+   "path": "trans",
+   "centre": [
+    120.0,
+    40.0
+   ],
+   "dir": 180.0,
+   "sweep": 200.0,
+   "outline_mm2": 8203.180605203846,
+   "edge_mouth_depth_mm": 20.26937558094872
+  }
+ ],
+ "path_feasible": true,
+ "left_at": 120.0,
+ "mouth_len_mm": 36.25480382355795,
+ "mouth_note": "length of cavity edge on the mouth line",
+ "outline_mm2": 5308.320825156425,
+ "cavity_mm2": 4462.096167281532,
+ "t_gap_knife_mm": 4.5,
+ "min_edge_clearance_mm": 1.9084541493917984,
+ "rim_min_mm": 4.906924088914738,
+ "edge_mouth_depth_mm": 6.982663637229621,
+ "uncovered_sharp_mm": 0.0,
+ "shell_mass_g": 25.719050655900162,
+ "mass_g": 29.719050655900162,
+ "eps_allow": 0.04,
+ "interface_verdict": {
+  "outcome": "pass"
+ },
+ "annotation_status": "APPROVED",
+ "tessellation_error_mm": {
+  "max": 0.01827840045535492,
+  "p95": 2.658851849034538e-06,
+  "n": 400,
+  "method": "STL vertex -> B-rep distance"
+ },
+ "min_clear_nominal_mm": 1.9084541493918101,
+ "wobble": {
+  "dir_deg": 2.0,
+  "rot_deg": 2.0,
+  "ramp_mm": 20.0
+ },
+ "motion_bound_mm": 1.2169082987836628,
+ "tip_reserve_mm": 3.300989237498387,
+ "stop_land_n": 9,
+ "stop_bearing_area_mm2": 16.2,
+ "first_contact": {
+  "frac_land_first": 1.0,
+  "worst": {
+   "dir_deg": 50.0,
+   "gap_sharp": 1.9316247237326094,
+   "gap_land": 0.3,
+   "margin": 1.6316247237326094,
+   "exit": false
+  },
+  "n_exit": 4,
+  "hole_land": {
+   "draw_deg": 140.0,
+   "gap_mm": 0.3,
+   "cam_half_deg": 20.0,
+   "r_bump_mm": 2.6903412395138986,
+   "flank_bearing_mm2": 7.6094341366643965,
+   "requirement": "bump lateral flanks >= 75 deg (non-camming); ramps only on the draw/insert axis +-20 deg"
+  }
+ },
+ "strength_screens": {
+  "drop_1.5m_edge": {
+   "E_nmm": 953.8118877363914,
+   "land_crush_mm": 2.6113743331798736,
+   "edge_reached": true,
+   "residual_nmm": 357.8563259285579,
+   "cut_depth_mm_pess_opt": [
+    7.157126518571158,
+    1.1928544197618598
+   ],
+   "rim_mm": 3.0,
+   "verdict": "SCREEN_MARGINAL"
+  },
+  "drop_1.5m_tip_on_stop": {
+   "E_nmm": 953.8118877363914,
+   "land_crush_mm": 1.2266099379326023,
+   "edge_reached": false,
+   "residual_nmm": 0.0,
+   "cut_depth_mm_pess_opt": [
+    0.0,
+    0.0
+   ],
+   "rim_mm": 3.0,
+   "verdict": "SCREEN_PASS"
+  },
+  "crush_500N_platen": {
+   "sigma_unsupported_mpa": 49.43847656249999,
+   "w_unsupported_mm": 2.172589302062988,
+   "knife_supported": 1.0,
+   "verdict": "SCREEN_PASS"
+  },
+  "seated_overload_150N": {
+   "F_n": 150.0,
+   "bearing_mpa": 9.25925925925926,
+   "verdict": "SCREEN_PASS"
+  },
+  "mount_proof_240N": "NOT_EVALUATED (mount geometry PR-S4)",
+  "sustained_25N_60s": "NOT_EVALUATED (creep data; seated tabs carry 0 deflection by design)",
+  "puncture_cut_through": "SCREEN ONLY \u2014 physical guarded test mandatory (plan \u00a78.4)"
+ },
+ "rattle_free_play_mm": 0.3,
+ "strength_fail": [],
+ "solid_panel": {
+  "k_ladder": [
+   {
+    "max_area": 2.0,
+    "k_n_mm": 334.9120191485854,
+    "ndof": 12558
+   },
+   {
+    "max_area": 1.0,
+    "k_n_mm": 343.01494482990614,
+    "ndof": 19450
+   },
+   {
+    "max_area": 0.5,
+    "k_n_mm": 346.9424085911137,
+    "ndof": 33284
+   }
+  ],
+  "k_analytic_clamped_circle_n_mm": 773.3541588219134,
+  "a_eq_mm": 6.831812373936783
+ },
+ "integral_vs_collar": {
+  "tab": 29.719050655900162,
+  "collar": 30.40436393590016
+ },
+ "search_bound_hit": {
+  "wall": false,
+  "tab_L": false,
+  "undercut": false,
+  "a_out": false,
+  "tab_b": true
+ },
+ "retention_search_n": 214200,
+ "retention_feature": {
+  "type": "twin U-slot click-tabs, bumps into closed guard hole (both faces)",
+  "hole": {
+   "centroid": [
+    85.00000000413203,
+    -15.000000032063667
+   ],
+   "area_mm2": 28.09256362076787,
+   "eq_radius_mm": 2.9903412395138984
+  },
+  "review_required": true,
+  "bump_r0_mm": 1.794204743708339,
+  "t_local_mm": 3.616666623826265
+ },
+ "k_tab_analytic_n_mm": 21.914446002805047,
+ "k_tab_fem_n_mm": [
+  20.15267216446521,
+  20.154817335985104
+ ],
+ "k_tab_fem_ndof": [
+  7803,
+  23285
+ ],
+ "k_tab_fem_vs_analytic": -0.08029537532432762,
+ "interference_per_side_mm": 1.0083333119131324,
+ "P_per_side_n": 22.09706591674992,
+ "insert_n": 30.727552035660025,
+ "draw_n": 36.63106713368512,
+ "draw_n_fem_k": 33.689761849655234,
+ "curve_peak_n": 61.590803931403514,
+ "draw_work_j": 0.09990028032980858,
+ "strain_est": 0.02100694399819026,
+ "sharp_edge_over_detent": false,
+ "retention_sf": {
+  "inverted_static": 57.60737668192439,
+  "running_sacral_peak": 11.22950812513146,
+  "fall_waist_peak": 12.801639262649864,
+  "jump_waist_peak": 7.6809835575899195,
+  "design_shock": 3.8404917787949597
+ },
+ "retention_sf_p05": {
+  "inverted_static": 36.66108633420291,
+  "running_sacral_peak": 7.146410591462557,
+  "fall_waist_peak": 8.146908074267314,
+  "jump_waist_peak": 4.888144844560389,
+  "design_shock": 2.4440724222801946
+ },
+ "draw_n_no_rot_corr": 55.95795927709677,
+ "ccx_factor": 0.8441216100709524,
+ "ccx": {
+  "solver": "This is Version 2.21",
+  "conv_rel_last2": 0.005276671349176865,
+  "ccx_over_bayer": 0.6284600168333317,
+  "ccx_over_bayer_rot": 0.8441216100709524,
+  "analytic": {
+   "k_beam": 13.758350554455724,
+   "P": 17.3080049975053,
+   "W_bayer": 21.91514118813474,
+   "theta_tip_deg": 8.388933168569997,
+   "W_bayer_rot": 16.31612061068112
+  }
+ },
+ "mc_new": {
+  "p05": 25.136036770159244,
+  "p95": 44.807920750598036,
+  "mu": "U(0.20,0.32) ASSUMED",
+  "wear": 0,
+  "T": "23C"
+ },
+ "mc": {
+  "n": 20000,
+  "p05": 23.31185330859527,
+  "p50": 35.51073244434646,
+  "p95": 52.06391657756779,
+  "p_in_life_window": 0.96015,
+  "p_in_new_window": 0.81005,
+  "p01": 19.69970106674529,
+  "p99": 59.84959575128518,
+  "assumptions": "wall sd0.1, undercut sd0.05, c_face sd0.05, knife t sd0.03, tab L sd0.1, life mu U(0.20,0.45) / new mu U(0.20,0.32), tab-end rotation correction on, wear U(0,0.15)mm (5000 cyc), E x{1.15@-10C,1,0.80@+50C} p{.2,.6,.2}"
+ },
+ "p_in_life_window": 0.96015,
+ "p_in_new_window": 0.81005,
+ "fitness": {
+  "feasible": true,
+  "score": 0.5023522589610362,
+  "gates": [],
+  "mass_g": 29.719050655900162,
+  "s_draw": 0.9184466433157439
+ },
+ "verdicts": {
+  "geometry": "PASS",
+  "withdrawal_clearance": "PASS",
+  "retention_force": "PREDICTED (analytic_proxy+uncalibrated_fea) \u2014 not a measurement",
+  "puncture": "NOT_EVALUATED",
+  "mount": "NOT_EVALUATED",
+  "physical_validation": "NOT_EVALUATED"
+ },
+ "cad_parts": {
+  "shell": {
+   "volume_mm3": 25353.54718636698,
+   "mass_g": 25.607082658230652
+  }
+ },
+ "cad_mass_g": 25.607082658230652,
+ "elapsed_s": 262.38283348083496
+}
