@@ -1,0 +1,92 @@
+{
+ "workload": "bench/fixed_1k",
+ "workload_sha256": "de55bac18eeab2c788a24f390c2dc1cad5861ca9ae8ffea8c1c043f9ddd81922",
+ "host": "xbabe3",
+ "cpu": "x86_64",
+ "nproc": 128,
+ "git": "4cd5ca2eb80a30b071e0399aa23968931cbd4686",
+ "tiers": {
+  "search": {
+   "n": 200,
+   "threads": 8,
+   "reps": [
+    {
+     "checksum": 1930574.2685074266,
+     "core_s_per_design_mean": 2.1515912518250007,
+     "core_s_per_design_p50": 2.118289833,
+     "core_s_per_design_p95": 2.756495676,
+     "fem_evaluated": 158,
+     "n": 200,
+     "threads": 8,
+     "tier": "search",
+     "wall_s": 56.230435275
+    },
+    {
+     "checksum": 1930574.2685074292,
+     "core_s_per_design_mean": 2.1341575958999983,
+     "core_s_per_design_p50": 2.109538298,
+     "core_s_per_design_p95": 2.741290685,
+     "fem_evaluated": 158,
+     "n": 200,
+     "threads": 8,
+     "tier": "search",
+     "wall_s": 55.78475257
+    },
+    {
+     "checksum": 1930574.2685074292,
+     "core_s_per_design_mean": 2.1457946301550006,
+     "core_s_per_design_p50": 2.107519437,
+     "core_s_per_design_p95": 2.747689373,
+     "fem_evaluated": 158,
+     "n": 200,
+     "threads": 8,
+     "tier": "search",
+     "wall_s": 56.130144861
+    }
+   ],
+   "core_s_per_design_median": 2.1457946301550006,
+   "core_s_per_design_spread": 0.017433655925002345
+  },
+  "cert": {
+   "n": 40,
+   "threads": 8,
+   "reps": [
+    {
+     "checksum": 525601.5768540975,
+     "core_s_per_design_mean": 26.892196332224994,
+     "core_s_per_design_p50": 27.753790323,
+     "core_s_per_design_p95": 30.611239837,
+     "fem_evaluated": 40,
+     "n": 40,
+     "threads": 8,
+     "tier": "cert",
+     "wall_s": 137.771482879
+    },
+    {
+     "checksum": 525601.5768540993,
+     "core_s_per_design_mean": 26.308308189574994,
+     "core_s_per_design_p50": 27.033002323,
+     "core_s_per_design_p95": 30.270637518,
+     "fem_evaluated": 40,
+     "n": 40,
+     "threads": 8,
+     "tier": "cert",
+     "wall_s": 134.970851075
+    },
+    {
+     "checksum": 525601.5768540952,
+     "core_s_per_design_mean": 26.203054054775,
+     "core_s_per_design_p50": 27.005416145,
+     "core_s_per_design_p95": 30.278056313,
+     "fem_evaluated": 40,
+     "n": 40,
+     "threads": 8,
+     "tier": "cert",
+     "wall_s": 135.09509167
+    }
+   ],
+   "core_s_per_design_median": 26.308308189574994,
+   "core_s_per_design_spread": 0.6891422774499958
+  }
+ }
+}

@@ -3,6 +3,7 @@
 Policy: major wave N ⇒ `0.N.0`, git tag `v0.N.0`, entry here, WHITEPAPER header bump. Sub-experiments (Wave N.1, N.2 …) ⇒ `docs/WAVE_LOG.md` only (no bump, no tag). `-dev` while a wave is flying; the tag is cut only when that wave's pack (plates + solids) lands.
 
 ## Unreleased
+- PR-0.31.1: frozen benchmark workload `bench/fixed_1k` (1000 genomes from wave16 D1 seeds + c6_repair pass genomes, mutated with `Rng(31)`; sha256-pinned) and timing CLI `jarambit bench-make` / `jarambit bench-fixed --tier search|cert`; `ops/bench/run.py` runs 3 reps per tier and fails on a checksum change. Baseline on xbabe3 (`docs/perf/baseline_0.31.1.md`): T1 search 2.15 core-s/design, T1c cert 26.3 core-s/design. Test: `ops/ci/tests/test_bench_workload.py`.
 
 ## v0.30.0 — 2026-10-12 (v0.30 milestone: solid FEM in repo — docs/v1/jarambit_v1_roadmap.json)
 - PR-0.30.3: 3-level mesh convergence + GCI for the solid tip submodel (`fem_solid/convergence.py`, `gci.py`, `gci_report.py`; evidence `evidence/fem_solid/gci/`; table `docs/calibration/solid_gci.md`). Levels (NSUB, NL) (0,2)→(1,4)→(2,8), up to 3.2 M dofs, solved with dolfinx on xbabe3. GCI_fine on the governing nodal-max σvm is 0.43–1.80 % for 5 designs (bar 3 %). The production setting (1,4) reads about 4 % high, i.e. conservative: wave27 provisional g3_tip+00_t60_tt3 has SF 1.534 at production and 1.600 [1.572, 1.630] at the fine level. Wave27.1 design 11772 converges to SF 0.834 [0.830, 0.838], below the floor. `tip_solid.py DUMP_ONLY` skips the skfem assembly.
