@@ -134,11 +134,16 @@ PLAN_STAMP = ".plan_key"
 
 
 def _record_ok(record, plan_key, index=None):
-    """A completion record binds to the plan when it names the plan (and frame, if it says)."""
+    """A completion record binds to this plan and frame. A record naming another plan, or
+    any frame identity that conflicts with the requested index, is rejected."""
     if plan_key and record.get("plan_key") not in (None, plan_key):
         return False
-    if index is not None and record.get("frame_index") not in (None, int(index)):
-        return False
+    if index is not None:
+        ids = {int(v) for v in (record.get("frame_index"), record.get("index"),
+                                (record.get("frame") or {}).get("index") if isinstance(record.get("frame"), dict) else None)
+               if v is not None}
+        if ids and ids != {int(index)}:
+            return False
     return True
 
 
@@ -157,8 +162,10 @@ def claim_out_dir(out_dir, plan_key):
     if old == plan_key:
         return
     if os.path.isdir(out_dir):
+        # every artifact and record of the previous plan (PNGs, EXRs, masks, receipts) is moved
+        # aside, so finish/mark cannot pick an old-plan PNG up under the new stamp
         names = [n for n in os.listdir(out_dir)
-                 if n.endswith((".done.json", ".receipt.json"))]
+                 if n != PLAN_STAMP and os.path.isfile(os.path.join(out_dir, n))]
         if names:
             stale = os.path.join(out_dir, f"stale_{(old or 'unbound')[:16]}")
             os.makedirs(stale, exist_ok=True)
@@ -190,7 +197,7 @@ def frame_done(out_dir, index, shot_id=None, plan_key=None) -> bool:
         with open(marker, encoding="utf-8") as fh:
             record = json.load(fh)
         png = record.get("png")
-        if (_record_ok(record, plan_key) and png and os.path.isfile(png)
+        if (_record_ok(record, plan_key, index) and png and os.path.isfile(png)
                 and canon.sha256_file(png) == record.get("png_sha256")):
             return True
     receipt_path = os.path.join(out_dir, f"{shot_id}_{int(index):04d}.receipt.json")
@@ -202,7 +209,7 @@ def frame_done(out_dir, index, shot_id=None, plan_key=None) -> bool:
         files = receipt.get("files") or {}
     except (OSError, json.JSONDecodeError):
         return False
-    if not files or not _record_ok(receipt, plan_key):
+    if not files or not _record_ok(receipt, plan_key, index):
         return False
     for _name, pair in files.items():
         if not isinstance(pair, (list, tuple)) or len(pair) != 2:
@@ -668,7 +675,8 @@ def _mark_pngs(local_out, shot_id, frames):
             continue
         canon.atomic_write_json(
             os.path.join(local_out, f"{shot_id}_{int(index):04d}.png.done.json"),
-            {"png": os.path.abspath(png), "png_sha256": canon.sha256_file(png), "index": int(index)},
+            {"png": os.path.abspath(png), "png_sha256": canon.sha256_file(png), "index": int(index),
+             "plan_key": read_plan_stamp(local_out)},
         )
     return ready
 
