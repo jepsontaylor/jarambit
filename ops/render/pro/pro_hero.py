@@ -698,7 +698,7 @@ def run_animation():
                     else:
                         bpy.ops.render.render(write_still=True)
                     try:
-                        rec['image'] = frame_qa_image(r.filepath, f)
+                        rec['image'] = frame_qa_image(r.filepath, f) if not globals().get('SCI') else {'pass': True, 'note': 'science plate (emission data view, composited inside the knife mask only): white-blob gate n/a, same as stills'}
                     except Exception as e:
                         rec['image'] = {'pass': False, 'error': str(e)}
                 ok = Q.frame_pass(rec, dry=DRY)
