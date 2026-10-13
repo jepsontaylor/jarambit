@@ -1,7 +1,7 @@
 """Production CAD gate for the externally staged, pinned hero (plan.HERO_STEP_PATH).
 
 Run from the repo root with the CAD venv:
-  python -m ops.render.marketing.notes.validate_cad --out ~/jarambit_render_scratch/hero_C9.2
+  python -m ops.render.marketing.notes.validate_cad --out ~/jarambit_render_scratch/hero_C10a/codex_v1
 Missing CAD or OCP fails. This gate is separate from portable fixture tests;
 it never substitutes a smoke fixture for the owner-selected hero.
 """
@@ -57,31 +57,38 @@ def main():
                                                   brep_faces=regions.read_brep_faces(HERO_PATH, R, t), N_corner=N)
         assert np.array_equal(labels, z["region_id"]), "region rerun differs"
         assert repeated["area_mm2"]["bevel"] > 0 and repeated["area_mm2"]["ring"] > 0
-        assert repeated["diagnostics"]["ring_center_m"][0] < 0
+        bore = repeated["diagnostics"]["bore_face_id"]
+        assert bore is not None
+        assert regions.read_brep_faces(HERO_PATH, R, t)[bore]["origin_m"][0] < 0
         assert repeated["diagnostics"]["boundary_edges"] == 0
         assert repeated["diagnostics"]["nonmanifold_edges"] == 0
     expected = json.loads((Path(__file__).parents[1] / "fixtures/cube_bevel.expected.json").read_text())
     cube = load_cad(Path(__file__).parents[1] / "fixtures/cube_bevel.step", validated_brep=True)
     from ops.render.marketing.ingest import canonical_pose
     cr, ct = canonical_pose(cube.V, cube.F)
-    cl, _, _, _ = regions.classify(cube.V @ cr.T + ct, cube.F, cube.face_id, cube.surface_types)
+    cl, _, _, _ = regions.classify(cube.V @ cr.T + ct, cube.F, cube.face_id, cube.surface_types,
+                                  brep_faces=regions.read_brep_faces(Path(__file__).parents[1] / "fixtures/cube_bevel.step", cr, ct),
+                                  N_corner=cube.N_corner @ cr.T)
     truth = np.isin(cube.face_id, expected["chamfer_face_ids"])
     _, areas, _ = regions.triangle_geometry(cube.V, cube.F)
     iou = float(areas[truth & (cl == 1)].sum() / areas[truth | (cl == 1)].sum())
     assert iou >= .95
     (mesh_dir / "framing.json").write_text(json.dumps({"camera": camera, "trajectory": frames, **framing}, indent=2, allow_nan=False) + "\n")
     info = json.loads((mesh_dir / "regions.json").read_text())
+    with np.load(mesh_dir / "mesh.npz", allow_pickle=False) as z:
+        regions.debug_overlay_3q(z["V"], z["F"], z["region_id"], mesh_dir / "regions_debug_3q.png")
     receipt = {"schema": "jarambit.render.cad_validation.v1", "pass": True,
         "source": a["source"], "n_vertices": a["n_vertices"], "n_triangles": a["n_triangles"],
         "normal_policy": a["normal_policy"], "validated_brep": True,
         "source_roundtrip_max_abs_error_m": error, "chamfer_iou": iou,
         "identical_repeated_bundle_bytes": True, "identical_repeated_labels": True,
         "labels_sha256": info["labels_sha256"], "area_mm2": info["area_mm2"],
-        "topology": {k: info["diagnostics"][k] for k in ["euler_characteristic", "boundary_edges", "nonmanifold_edges", "genus_one_assumption_met"]},
+        "topology": {**{k: info["diagnostics"][k] for k in ["euler_characteristic", "boundary_edges", "nonmanifold_edges"]},
+                     "genus_one_assumption_met": info["diagnostics"]["euler_characteristic"] == 0},
         "framing_36_angles": framing, "art_review": "pending",
         "tools": {"python": platform.python_version(), **{p: version(p) for p in ["cadquery-ocp", "numpy", "trimesh", "scipy", "pillow"]}},
         "git_base_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
-        "outputs": {name: sha256(mesh_dir / name) for name in ["bundle.json", "mesh.npz", "regions.json", "regions_debug.png", "framing.json"]},
+        "outputs": {name: sha256(mesh_dir / name) for name in ["bundle.json", "mesh.npz", "regions.json", "regions_debug.png", "regions_debug_3q.png", "framing.json"]},
         "seconds": round(time.monotonic() - start, 3)}
     (args.out / "cad_validation.json").write_text(json.dumps(receipt, sort_keys=True, indent=2, allow_nan=False) + "\n")
     print(json.dumps({"pass": True, "bundle": str(mesh_dir / "bundle.json"), "npz_sha256": a["npz_sha256"],

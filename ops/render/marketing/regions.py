@@ -565,7 +565,8 @@ def debug_overlay_3q(V, F, labels, path):
 def write_regions_v2(bundle_path, out):
     """Publish a new directory with immutable NPZ plus external v2 attributes."""
     import shutil
-    from .ingest import HERO_SHA256, sha256
+    from .ingest import sha256
+    from .plan import source_info
 
     bundle_path, out = Path(bundle_path).resolve(), Path(out).resolve()
     base = bundle_path.parent
@@ -573,8 +574,9 @@ def write_regions_v2(bundle_path, out):
         raise ValueError("regions v2 requires a new directory outside the production mesh")
     before = {p.name: sha256(p) for p in base.iterdir() if p.is_file()}
     bundle = json.loads(bundle_path.read_text())
-    if bundle["source"]["sha256"] != HERO_SHA256 or sha256(bundle["source"]["path"]) != HERO_SHA256:
-        raise ValueError("C.9.2 source pin mismatch")
+    source_sha = bundle["source"]["sha256"]
+    if source_info(source_sha) is None or sha256(bundle["source"]["path"]) != source_sha:
+        raise ValueError("registered CAD source pin mismatch")
     if before["mesh.npz"] != bundle["npz_sha256"]:
         raise ValueError("production NPZ hash mismatch")
     with np.load(base / "mesh.npz", allow_pickle=False) as archive:
@@ -589,7 +591,7 @@ def write_regions_v2(bundle_path, out):
     np.save(stage / "region_id.npy", labels, allow_pickle=False)
     np.save(stage / "tangent.npy", tangent, allow_pickle=False)
     info["base_npz_sha256"] = before["mesh.npz"]
-    info["source_cad_sha256"] = HERO_SHA256
+    info["source_cad_sha256"] = source_sha
     info["attribute_overrides"] = {name: {"path": name + ".npy", "sha256": sha256(stage / (name + ".npy"))}
                                    for name in ("region_id", "tangent")}
     (stage / "regions.json").write_text(json.dumps(info, sort_keys=True, indent=2, allow_nan=False) + "\n")

@@ -1,59 +1,37 @@
-# Codex CAD lane status
+The MAJOR-release hero is SWITCHBACK Rev C.10a rc4, 64.841 g reference mass,
+as requested by the owner after main 831818f. It remains a release candidate,
+not the design of record. The pinned STEP is
+`~/jarambit_render/inputs/switchback_C10a/switchback_revC10a_ground.step`, SHA256
+`441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7`.
+Both STEP and STL pins match designs/switchback/C10a/SHA256SUMS on main.
 
-Implemented ingest, region segmentation, camera fit, fixtures and pinned CAD
-dependencies on `render/codex-cad-mesh`. No PR opened or merged.
+The new bundle is `~/jarambit_render_scratch/hero_C10a/codex_v1/mesh/`.
+NPZ SHA256: `85f37bb8ba50b991251761576b22a3049caf6a568ba3cb5a4f153669a5d0a973`.
+Labels SHA256: `6f75f4c29378ea6f103eea125504443b26ba70879ea3e2ffe6afa34aa17302e6`.
+There are 50,680 vertices and 101,372 triangles with analytic B-rep corner normals.
+B-rep regions v2 labels and tangents are embedded in this NPZ; no external
+overrides are needed. Ring details, grinds, serrations and the finite apex are
+labeled. A broad handle remains body unless explicitly tagged.
 
-The production hero is **SWITCHBACK Rev C.9.2**, from the owner-pinned STEP
-`~/jarambit_render/inputs/switchback_C9.2/switchback_revC9_2_ground.step`.
-Source SHA256: `2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307`.
-The separately pinned C.9.2 STL is supported as an explicit input; ingest never
-falls back to it. The legacy g3 source remains only a fixture regression input.
+The production CAD gate passed in 40.581 s under ~/bin/memcap 32G:
+repeated NPZ/manifest/region/overlay bytes identical; geometry round-trip error
+5.55e-17 m; chamfer fixture IoU 1.0; 36 native-4K framing angles with minimum
+margin 14.50% and maximum width fill 70%. V/F/N_corner/face_id arrays match the
+existing C.10a bundle exactly; that directory was untouched. Both overlays were
+inspected; owner art review is pending. The closed source has four holes (Euler
+-6), with no mesh boundary or nonmanifold edges. See
+[C10A_validation.json](C10A_validation.json) and [C10A_bundle.md](C10A_bundle.md).
 
-Regions v2 is ready at `~/jarambit_render_scratch/hero_C9.2/mesh_regions_v2/`.
-The original production `mesh/` directory is untouched. Its `mesh.npz` and
-`bundle.json` are copied byte-identically into v2. Corrected labels/tangents are
-external NPY overrides; Claude/Grok must load them before pose/region targets
-using `region_io.apply_region_overrides`. See `REGIONS_v2.md` for the exact call.
-Labels SHA: `219a10369e9cb3fb02b09f8c4405725a1b48bbe8a6c584f28a16ade7ea6125e0`.
-Both front/back and oblique overlay PNGs are included in v2.
+Old C.9.2 production and regions-v2 bundles remain unchanged. C.9.2 and C.9.3
+source pins remain supported. C.9.2's immutable NPZ plus external overrides are
+documented in [REGIONS_v2.md](REGIONS_v2.md).
 
-Original production bundle: `~/jarambit_render_scratch/hero_C9.2/mesh/` contains `bundle.json`,
-`mesh.npz`, `regions.json`, `regions_debug.png`, and `framing.json`.
-NPZ SHA256: `062be78fe0828a5f0fc5f2e20e2f4ed07f2d9ffa07741b0645fbb053aa232228`.
-There are 50,980 vertices and 101,972 triangles, with analytic B-rep corner normals.
-The final path and hashes are posted in the shared COORD log for Claude/Grok.
+The CAD branch is based on main 831818f and retains its protected-metal, memcap
+and fail-closed rendering/QA. Heavy jobs use memcap 32G; validation uses CPU
+only. Full marketing/pro gate status is recorded in C10A_bundle.md. Rust/D1
+gates passed on the rebased sheath branch with identical Rust source trees.
+The executor owns PR sequencing; this lane opens no PRs. COORD handoffs go
+through the queued sheath PR per the current COORD rule.
 
-Current validation: **57 pytest tests passed, zero skips**, plus all 17 repository gates
-(workspace release tests, Clippy, D1 smoke, version/generated-doc/media/evidence
-checks and existing Python suites). Region v2 annotated STEP face patch IoU is
-**1.0** for body, bevel, ring details, serration and finite apex; label/tangent
-reruns are identical. All five original production file hashes still match.
-See `REGIONS_v2_validation.json`. The earlier production CAD gate passed in 207 s:
-repeated bundle/region/overlay bytes identical; geometry round-trip error
-`5.55e-17 m`; chamfer IoU **1.0**; 36 turntable angles at 3840×2160 have minimum
-margin **14.51%**, with maximum width fill **70%**. See `CAD_validation.json`.
-
-Canonical pose is X length, Z height, blade plane XZ, front -Y, ring left.
-Camera az=0 is on -Y; az=90 is +X; angles/roll are degrees. One distance is used
-for every frame. Width fill targets the widest frame; end-on frames are narrower.
-STEP topology uses a 1 nm tolerance ceiling; mesh-format seam welding is analysis
-only. Source vertex positions are never averaged, smoothed or repaired.
-
-The selected C.9.2 CAD is one closed solid with **four holes** (Euler -6), not
-the plan's genus-one assumption. Geometry is preserved. V2 uses analytic B-rep
-faces first: bore and coaxial ridges, ruled grinds, conical wheel patches, and thin
-edge lands. A broad handle plane stays body; pad labels require exporter tags.
-I inspected the v2 overlays; owner art review remains **pending**.
-
-Environment: Python 3.12 venv `~/jarambit_render/venv-cad`, installed using uv.
-Reproduce portable checks with that venv's `python -m pytest ops/render/marketing/tests`.
-Reproduce v2 validation with `python -m ops.render.marketing.notes.validate_regions_v2
---base ~/jarambit_render_scratch/hero_C9.2/mesh --v2 ~/jarambit_render_scratch/hero_C9.2/mesh_regions_v2`.
-Missing inputs/tools fail. Re-ingest experiments must use a new scratch output.
-Default ingest: `python -m ops.render.marketing.ingest --validated-brep --out DIR`.
-Generic CAD: `python -m ops.render.marketing.ingest INPUT --out DIR [--units mm]`.
-Face tags use `<cad-stem>.regions.json`, `{"faces":{"0":"bevel"}}`, with zero-based
-source face IDs. `--pose pose.json` accepts rigid `R,t`, translation in metres.
-
-The owner-added root `COORD.md` modification is outside this lane's commit.
-The authoritative append-only coordination log is `~/jarambit_v1work/COORD.md`.
+Owner-added root COORD entries are preserved outside the CAD lane's commits,
+with backups in ~/jarambit_render_scratch/codex-c10a/ and a named git stash.
