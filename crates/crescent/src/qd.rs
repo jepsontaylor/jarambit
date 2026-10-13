@@ -151,9 +151,13 @@ pub struct Counters { pub fresh_evals: u64, pub appearances: u64 }
 
 pub fn eval_batch_with(bs: Vec<Birth>, gen: usize, cfg: &RunCfg, ev: &EvalFn) -> Vec<Rec> {
     let n = bs.len(); let th = cfg.threads.max(1).min(n.max(1));
-    let chunks: Vec<Vec<Birth>> = (0..th).map(|t| bs.iter().enumerate().filter(|(i, _)| i % th == t).map(|(_, x)| x.clone()).collect()).collect();
+    // Work-stealing (PR-0.31.2): design costs vary ~3x, so static striping left workers idle.
+    // Output order is fixed by the sort on id, so results are independent of scheduling.
+    let next = std::sync::atomic::AtomicUsize::new(0);
     let mut out: Vec<Rec> = std::thread::scope(|s| {
-        let hs: Vec<_> = chunks.into_iter().map(|c| s.spawn(move || c.into_iter().map(|b| { let mut r = ev(&b.g, b.id, gen, cfg.fem_area); r.parents = b.parents; r.op = b.op; r.op_version = OP_VERSION; r }).collect::<Vec<_>>())).collect();
+        let hs: Vec<_> = (0..th).map(|_| s.spawn(|| { let mut v = Vec::new(); loop {
+            let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed); if i >= n { break v; }
+            let b = &bs[i]; let mut r = ev(&b.g, b.id, gen, cfg.fem_area); r.parents = b.parents.clone(); r.op = b.op; r.op_version = OP_VERSION; v.push(r); } })).collect();
         hs.into_iter().flat_map(|h| h.join().unwrap()).collect()
     });
     out.sort_by_key(|r| r.id); out

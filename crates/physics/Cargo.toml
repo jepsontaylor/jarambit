@@ -8,6 +8,7 @@ license.workspace = true
 jarambit-phenotype = { path = "../phenotype" }
 jarambit-genotype = { path = "../genotype" }
 spade = "2.15"
+faer = { version = "0.24", default-features = false, features = ["std", "linalg", "sparse", "sparse-linalg"] }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

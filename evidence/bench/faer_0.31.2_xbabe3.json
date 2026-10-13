@@ -1,0 +1,104 @@
+{
+ "workload": "bench/fixed_1k",
+ "workload_sha256": "de55bac18eeab2c788a24f390c2dc1cad5861ca9ae8ffea8c1c043f9ddd81922",
+ "host": "xbabe3",
+ "cpu": "x86_64",
+ "nproc": 128,
+ "git": "e1e109d5d88ac689cdde0f2e75e79ba99d6befc4",
+ "tiers": {
+  "search": {
+   "n": 200,
+   "threads": 8,
+   "reps": [
+    {
+     "checksum": 1930574.268427148,
+     "core_s_per_design_mean": 1.9754083744349984,
+     "core_s_per_design_p50": 1.937482251,
+     "core_s_per_design_p95": 2.485599852,
+     "fem_evaluated": 158,
+     "n": 200,
+     "threads": 8,
+     "tier": "search",
+     "wall_s": 52.01582613,
+     "peak_rss_kb_children": 460528,
+     "failures": 42
+    },
+    {
+     "checksum": 1930574.2684271494,
+     "core_s_per_design_mean": 2.0281054821999986,
+     "core_s_per_design_p50": 1.983866397,
+     "core_s_per_design_p95": 2.520413853,
+     "fem_evaluated": 158,
+     "n": 200,
+     "threads": 8,
+     "tier": "search",
+     "wall_s": 53.269737413,
+     "peak_rss_kb_children": 460528,
+     "failures": 42
+    },
+    {
+     "checksum": 1930574.2684271485,
+     "core_s_per_design_mean": 2.048535243985,
+     "core_s_per_design_p50": 1.998497406,
+     "core_s_per_design_p95": 2.58805071,
+     "fem_evaluated": 158,
+     "n": 200,
+     "threads": 8,
+     "tier": "search",
+     "wall_s": 53.717323181,
+     "peak_rss_kb_children": 460528,
+     "failures": 42
+    }
+   ],
+   "core_s_per_design_median": 2.0281054821999986,
+   "core_s_per_design_spread": 0.07312686955000158
+  },
+  "cert": {
+   "n": 40,
+   "threads": 8,
+   "reps": [
+    {
+     "checksum": 525601.572294165,
+     "core_s_per_design_mean": 7.269186732975001,
+     "core_s_per_design_p50": 6.6493944,
+     "core_s_per_design_p95": 10.827211525,
+     "fem_evaluated": 40,
+     "n": 40,
+     "threads": 8,
+     "tier": "cert",
+     "wall_s": 38.384289192,
+     "peak_rss_kb_children": 2500508,
+     "failures": 0
+    },
+    {
+     "checksum": 525601.5722941627,
+     "core_s_per_design_mean": 6.737961533225,
+     "core_s_per_design_p50": 6.317241073,
+     "core_s_per_design_p95": 9.831320605,
+     "fem_evaluated": 40,
+     "n": 40,
+     "threads": 8,
+     "tier": "cert",
+     "wall_s": 36.10373985,
+     "peak_rss_kb_children": 2500508,
+     "failures": 0
+    },
+    {
+     "checksum": 525601.5722941648,
+     "core_s_per_design_mean": 6.10599298925,
+     "core_s_per_design_p50": 6.132494977,
+     "core_s_per_design_p95": 6.612340566,
+     "fem_evaluated": 40,
+     "n": 40,
+     "threads": 8,
+     "tier": "cert",
+     "wall_s": 31.482331583,
+     "peak_rss_kb_children": 2646492,
+     "failures": 0
+    }
+   ],
+   "core_s_per_design_median": 6.737961533225,
+   "core_s_per_design_spread": 1.1631937437250013
+  }
+ }
+}

@@ -227,7 +227,65 @@ fn rcm(n: usize, tris: &[[usize; 3]]) -> Vec<usize> {
     order
 }
 
-struct Skyline { n: usize, first: Vec<usize>, start: Vec<usize>, a: Vec<f64> }
+/// Sparse SPD factor used by Plate / T6. Default backend: faer supernodal sparse Cholesky
+/// (AMD fill-reducing ordering, PR-0.31.2). `JARAMBIT_SOLVER=skyline` selects the original RCM
+/// skyline Cholesky (reference for `tests/solver_parity.rs`). Both reuse one factor for any number of RHS.
+pub(crate) enum Chol { Sky(Skyline), Faer { n: usize, llt: faer::sparse::linalg::solvers::Llt<usize, f64> } }
+
+/// Lower-triangle assembler: triplets for faer, direct skyline adds for the reference backend.
+pub(crate) enum Asm { Sky(Skyline), Trip { n: usize, t: Vec<faer::sparse::Triplet<usize, usize, f64>>, dmax: Vec<f64> } }
+
+pub fn solver_backend() -> &'static str {
+    static B: std::sync::OnceLock<&'static str> = std::sync::OnceLock::new();
+    B.get_or_init(|| if std::env::var("JARAMBIT_SOLVER").as_deref() == Ok("skyline") { "skyline" } else { "faer" })
+}
+
+impl Asm {
+    fn new(n: usize, first: impl FnOnce() -> Vec<usize>, nnz_hint: usize, sky: bool) -> Self {
+        if sky { Asm::Sky(Skyline::new(n, first())) } else { Asm::Trip { n, t: Vec::with_capacity(nnz_hint), dmax: vec![0.0; n] } }
+    }
+    #[inline] fn add(&mut self, i: usize, j: usize, v: f64) {
+        match self {
+            Asm::Sky(s) => s.add(i, j, v),
+            Asm::Trip { t, dmax, .. } => { let (i, j) = if i >= j { (i, j) } else { (j, i) }; if i == j { dmax[i] += v; } t.push(faer::sparse::Triplet::new(i, j, v)); }
+        }
+    }
+    fn factor(self) -> Option<Chol> {
+        match self {
+            Asm::Sky(mut s) => s.factor().then_some(Chol::Sky(s)),
+            Asm::Trip { n, t, dmax } => {
+                let a = faer::sparse::SparseColMat::<usize, f64>::try_new_from_triplets(n, n, &t).ok()?;
+                let llt = a.sp_cholesky(faer::Side::Lower).ok()?;
+                let c = Chol::Faer { n, llt };
+                // Same singularity criterion as the skyline path: a pivot below 1e-13 x max|diag(K)| means a
+                // mechanism. Probe: unit loads on every dof must give finite, bounded displacements.
+                let scale = dmax.iter().fold(0.0f64, |m, d| m.max(d.abs())).max(1e-300);
+                let mut b = vec![1.0; n]; c.solve(&mut b);
+                let lim = 1e13 / scale * (n as f64);
+                b.iter().all(|x| x.is_finite() && x.abs() < lim).then_some(c)
+            }
+        }
+    }
+}
+
+impl Chol {
+    pub(crate) fn n(&self) -> usize { match self { Chol::Sky(s) => s.n, Chol::Faer { n, .. } => *n } }
+    pub(crate) fn solve(&self, b: &mut [f64]) {
+        match self {
+            Chol::Sky(s) => s.solve(b),
+            Chol::Faer { llt, .. } => { use faer::linalg::solvers::SolveCore; let n = b.len(); llt.solve_in_place_with_conj(faer::Conj::No, faer::MatMut::from_column_major_slice_mut(b, n, 1)); }
+        }
+    }
+    /// Multi-RHS solve with one factor: `bs` is column-major n x k.
+    pub(crate) fn solve_many(&self, bs: &mut [f64], k: usize) {
+        match self {
+            Chol::Sky(s) => { for c in bs.chunks_mut(s.n) { s.solve(c); } }
+            Chol::Faer { n, llt } => { use faer::linalg::solvers::SolveCore; llt.solve_in_place_with_conj(faer::Conj::No, faer::MatMut::from_column_major_slice_mut(bs, *n, k)); }
+        }
+    }
+}
+
+pub(crate) struct Skyline { n: usize, first: Vec<usize>, start: Vec<usize>, a: Vec<f64> }
 impl Skyline {
     fn new(n: usize, first: Vec<usize>) -> Self {
         let mut start = vec![0; n + 1];
@@ -289,7 +347,7 @@ impl Skyline {
 /// Added 2026-10-11 for the crescent thickness field (pockets, lattice, fullers, distal taper).
 pub struct Plate { pub mesh: Mesh, pub t: f64, pub cmat: [[f64; 3]; 3], perm: Vec<usize>, pub te: Vec<f64> }
 
-pub struct System { sky: Skyline, map: Vec<isize> }
+pub struct System { sky: Chol, map: Vec<isize> }
 
 impl Plate {
     pub fn new(mesh: Mesh, t: f64, e_mpa: f64, nu: f64) -> Self {
@@ -303,18 +361,20 @@ impl Plate {
     pub fn n(&self) -> usize { self.mesh.xy.len() }
 
     /// Assemble and factor with the dofs in `fixed` (len n*5) removed.
-    pub fn system(&self, fixed: &[bool]) -> Option<System> {
+    pub fn system(&self, fixed: &[bool]) -> Option<System> { self.system_with(fixed, solver_backend() == "skyline") }
+    /// Explicit backend (parity tests): `skyline = true` = reference RCM skyline, else faer.
+    pub fn system_with(&self, fixed: &[bool], skyline: bool) -> Option<System> {
         let n = self.n();
         let mut map = vec![-1isize; n * 5];
         let mut nf = 0usize;
         for &node in &self.perm { for c in 0..5 { if !fixed[node * 5 + c] { map[node * 5 + c] = nf as isize; nf += 1; } } }
         if nf == 0 { return None; }
-        let mut first: Vec<usize> = (0..nf).collect();
+        let first = || { let mut first: Vec<usize> = (0..nf).collect();
         for tri in &self.mesh.tris {
             let ids: Vec<usize> = tri.iter().flat_map(|&nd| (0..5).map(move |c| nd * 5 + c)).filter_map(|d| (map[d] >= 0).then(|| map[d] as usize)).collect();
             if let Some(&mn) = ids.iter().min() { for &i in &ids { first[i] = first[i].min(mn); } }
-        }
-        let mut sky = Skyline::new(nf, first);
+        } first };
+        let mut sky = Asm::new(nf, first, self.mesh.tris.len() * 66, skyline);
         let c = self.cmat;
         for (e, tri) in self.mesh.tris.iter().enumerate() {
             let t = self.t_of(e);
@@ -334,19 +394,28 @@ impl Plate {
             for a in 0..9 { if idb[a] < 0 { continue; } for b in 0..=a { if idb[b] >= 0 { sky.add(idb[a] as usize, idb[b] as usize, kb[a][b]); } } }
         }
         // add() orders (i, j) itself; each local pair b <= a is added once.
-        if !sky.factor() { return None; }
-        Some(System { sky, map })
+        Some(System { sky: sky.factor()?, map })
     }
 
     /// Solve for a full load vector (len n*5); returns full displacement (fixed dofs = 0).
     pub fn solve(&self, sys: &System, f: &[f64]) -> Vec<f64> {
-        let nf = sys.sky.n;
+        let nf = sys.sky.n();
         let mut b = vec![0.0; nf];
         for (d, &g) in sys.map.iter().enumerate() { if g >= 0 { b[g as usize] += f[d]; } }
         sys.sky.solve(&mut b);
         let mut u = vec![0.0; f.len()];
         for (d, &g) in sys.map.iter().enumerate() { if g >= 0 { u[d] = b[g as usize]; } }
         u
+    }
+
+    /// Multi-RHS solve reusing one factor (one triangular sweep pair over all columns).
+    pub fn solve_many(&self, sys: &System, fs: &[&[f64]]) -> Vec<Vec<f64>> {
+        let nf = sys.sky.n(); let k = fs.len();
+        let mut b = vec![0.0; nf * k];
+        for (c, f) in fs.iter().enumerate() { for (d, &g) in sys.map.iter().enumerate() { if g >= 0 { b[c * nf + g as usize] += f[d]; } } }
+        sys.sky.solve_many(&mut b, k);
+        fs.iter().enumerate().map(|(c, f)| { let mut u = vec![0.0; f.len()];
+            for (d, &g) in sys.map.iter().enumerate() { if g >= 0 { u[d] = b[c * nf + g as usize]; } } u }).collect()
     }
 
     /// Per-element (membrane vm, bending surface vm = max over the 3 corners, extrapolated from
@@ -579,7 +648,7 @@ pub fn at_temp(c: &FineCaps, m: &Material, from_c: f64, to_c: f64) -> FineCaps {
 /// Stress is linear in the element, so peaks at fillets and holes converge O(h^2) instead of the
 /// CST's O(h). Used for the in-plane cases (pry, ring pull). Dofs (u, v) per node.
 pub struct T6 { pub xy: Vec<P2>, pub tris: Vec<[usize; 6]>, pub n_corner: usize, pub t: f64, pub cmat: [[f64; 3]; 3], perm: Vec<usize>, pub te: Vec<f64> }
-pub struct T6System { sky: Skyline, map: Vec<isize> }
+pub struct T6System { sky: Chol, map: Vec<isize> }
 
 const T6_GP: [([f64; 3], f64); 3] = [([2.0 / 3.0, 1.0 / 6.0, 1.0 / 6.0], 1.0 / 3.0), ([1.0 / 6.0, 2.0 / 3.0, 1.0 / 6.0], 1.0 / 3.0), ([1.0 / 6.0, 1.0 / 6.0, 2.0 / 3.0], 1.0 / 3.0)];
 const T6_NODES_L: [[f64; 3]; 6] = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.5, 0.5, 0.0], [0.0, 0.5, 0.5], [0.5, 0.0, 0.5]];
@@ -630,18 +699,19 @@ impl T6 {
         bm
     }
 
-    pub fn system(&self, fixed: &[bool]) -> Option<T6System> {
+    pub fn system(&self, fixed: &[bool]) -> Option<T6System> { self.system_with(fixed, solver_backend() == "skyline") }
+    pub fn system_with(&self, fixed: &[bool], skyline: bool) -> Option<T6System> {
         let n = self.n();
         let mut map = vec![-1isize; n * 2];
         let mut nf = 0usize;
         for &node in &self.perm { for c in 0..2 { if !fixed[node * 2 + c] { map[node * 2 + c] = nf as isize; nf += 1; } } }
         if nf == 0 { return None; }
-        let mut first: Vec<usize> = (0..nf).collect();
+        let first = || { let mut first: Vec<usize> = (0..nf).collect();
         for t in &self.tris {
             let ids: Vec<usize> = t.iter().flat_map(|&nd| (0..2).map(move |c| nd * 2 + c)).filter_map(|d| (map[d] >= 0).then(|| map[d] as usize)).collect();
             if let Some(&mn) = ids.iter().min() { for &i in &ids { first[i] = first[i].min(mn); } }
-        }
-        let mut sky = Skyline::new(nf, first);
+        } first };
+        let mut sky = Asm::new(nf, first, self.tris.len() * 78, skyline);
         for (e, t) in self.tris.iter().enumerate() {
             let (b, c, a2) = self.grads(e);
             let area = 0.5 * a2.abs();
@@ -650,12 +720,11 @@ impl T6 {
             let id: [isize; 12] = std::array::from_fn(|q| map[t[q / 2] * 2 + q % 2]);
             for a in 0..12 { if id[a] < 0 { continue; } for bb in 0..=a { if id[bb] >= 0 { sky.add(id[a] as usize, id[bb] as usize, k[a][bb]); } } }
         }
-        if !sky.factor() { return None; }
-        Some(T6System { sky, map })
+        Some(T6System { sky: sky.factor()?, map })
     }
 
     pub fn solve(&self, sys: &T6System, f: &[f64]) -> Vec<f64> {
-        let mut b = vec![0.0; sys.sky.n];
+        let mut b = vec![0.0; sys.sky.n()];
         for (d, &g) in sys.map.iter().enumerate() { if g >= 0 { b[g as usize] += f[d]; } }
         sys.sky.solve(&mut b);
         let mut u = vec![0.0; f.len()];
