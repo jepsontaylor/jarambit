@@ -31,7 +31,9 @@ def cmap(t):
 
 
 def facet_colors(v, mode, d1):
-    if mode == 'fem' and d1:
+    if mode == 'fem':
+        if not d1:
+            raise SystemExit('--color fem requires --d1 <D1 json with mesh SF field>; use --color x for plain shading')
         m = json.load(open(d1))['mesh']; xy = np.array(m['xy']); tr = np.array(m['tris']); sf = np.array(m['sf'], float)
         cen = xy[tr].mean(1); fc = v[:, :, :2].mean(1)
         # nearest plate element by plan position (chunked brute force; ~1e4 x 3e4)
@@ -45,19 +47,45 @@ def facet_colors(v, mode, d1):
     return cmap((x - x.min()) / np.ptp(x)), {'field': 'x position (shading only, no physical meaning)'}
 
 
-def render(v, col, ang, W, H, title, legend=None):
+def project(v, ang):
     c0 = v.reshape(-1, 3).mean(0); p = v - c0
     a = np.radians(ang); tilt = np.radians(-38)
     Rz = np.array([[np.cos(a), -np.sin(a), 0], [np.sin(a), np.cos(a), 0], [0, 0, 1]])
     Rx = np.array([[1, 0, 0], [0, np.cos(tilt), -np.sin(tilt)], [0, np.sin(tilt), np.cos(tilt)]])
-    q = p @ (Rx @ Rz).T  # camera looks along -y' ... use x right, z up, y depth
+    return p @ (Rx @ Rz).T  # x right, z up, y depth
+
+
+# drawable box (fractions of W,H) kept clear of the title (top) and legend (bottom)
+BOX = (0.04, 0.11, 0.96, 0.82)
+
+
+def fit(v, angles, W, H):
+    """One camera scale/offset that keeps the whole part inside BOX for every angle."""
+    lo = np.full(2, np.inf); hi = np.full(2, -np.inf)
+    for ang in angles:
+        q = project(v, ang).reshape(-1, 3)[:, [0, 2]]
+        lo = np.minimum(lo, q.min(0)); hi = np.maximum(hi, q.max(0))
+    bw, bh = (BOX[2] - BOX[0]) * W, (BOX[3] - BOX[1]) * H
+    s = min(bw / (hi[0] - lo[0]), bh / (hi[1] - lo[1]))
+    cx = (BOX[0] + BOX[2]) / 2 * W - (lo[0] + hi[0]) / 2 * s
+    cy = (BOX[1] + BOX[3]) / 2 * H + (lo[1] + hi[1]) / 2 * s
+    return s, cx, cy
+
+
+def screen_bounds(v, ang, cam):
+    s, cx, cy = cam; q = project(v, ang)
+    X = cx + q[:, :, 0] * s; Y = cy - q[:, :, 2] * s
+    return X.min(), Y.min(), X.max(), Y.max()
+
+
+def render(v, col, ang, W, H, title, legend=None, cam=None):
+    q = project(v, ang)
     n = np.cross(q[:, 1] - q[:, 0], q[:, 2] - q[:, 0]); n /= np.linalg.norm(n, axis=1)[:, None] + 1e-12
     Ld = np.array([-0.35, -0.6, 0.72]); Ld /= np.linalg.norm(Ld)
     lam = np.abs(n @ Ld); spec = np.abs(n[:, 1]) ** 24
     shade = np.clip(col * (0.28 + 0.72 * lam)[:, None] + 0.35 * spec[:, None], 0, 1)
-    ext = np.ptp(p.reshape(-1, 3)[:, :2], 0).max() * 1.12
-    s = min(W, H * 1.6) / ext
-    X = W / 2 + q[:, :, 0] * s; Y = H * 0.54 - q[:, :, 2] * s
+    s, cx, cy = cam or fit(v, [ang], W, H)
+    X = cx + q[:, :, 0] * s; Y = cy - q[:, :, 2] * s
     order = np.argsort(q[:, :, 1].mean(1))[::-1]  # far (large y) first
     img = Image.new('RGB', (W, H), (13, 17, 23)); dr = ImageDraw.Draw(img)
     rgb = (shade * 255).astype(np.uint8)
@@ -88,8 +116,10 @@ def main(argv=None):
     v = load_stl(a.stl); col, cinfo = facet_colors(v, a.color, a.d1)
     tmp = tempfile.mkdtemp(prefix='turntable_')
     try:
-        for k in range(a.frames):
-            render(v, col, 360.0 * k / a.frames, a.width, a.height, a.title, 'red: SF < 1   SF 1 -> 3 (D1 envelope, 100 C)' if a.color == 'fem' else None).save(os.path.join(tmp, f'f{k:04d}.png'))
+        angles = [360.0 * k / a.frames for k in range(a.frames)]
+        cam = fit(v, angles, a.width, a.height)
+        for k, ang in enumerate(angles):
+            render(v, col, ang, a.width, a.height, a.title, 'red: SF < 1   SF 1 -> 3 (D1 envelope, 100 C)' if a.color == 'fem' else None, cam).save(os.path.join(tmp, f'f{k:04d}.png'))
         ff = shutil.which('ffmpeg') or sys.exit('ffmpeg required')
         vf = f'fps={a.fps},scale={a.gif_width}:-1:flags=lanczos'
         subprocess.run([ff, '-v', 'error', '-y', '-framerate', str(a.fps), '-i', os.path.join(tmp, 'f%04d.png'),
