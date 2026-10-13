@@ -1,0 +1,37 @@
+{
+ "figures": {
+  "docs/patent/figures/fig01.png": "c6a4135a44c5b99491abc37b33929bc07f27d5db528eb4ac7a4d07c4eb48b3f8",
+  "docs/patent/figures/fig02.png": "27d007486b454e660390b0defcd16eea6d97da79fc29551509c58fa0fed04eb5",
+  "docs/patent/figures/fig03.png": "5ec2cadd316ddc25d4fc437d06ae688f337508d8d6b03ea39943d56c0b490686",
+  "docs/patent/figures/fig04.png": "cf9106f221b111a6ee3df0dc7ad9d809e1b583994701b360cddb2c7410213cc6",
+  "docs/patent/figures/fig05.png": "dedb28fcc3d0493624ad8cacd445f7c4e4956f3e009cc8d16a16d398b63405d4",
+  "docs/patent/figures/fig06.png": "003c23815fc7ad13f75c087264a00bbcc38e93f80c6dfa87c1ae0037aff0e716",
+  "docs/patent/figures/fig07.png": "e5698ab03e967311c7c7ee5bd697726eacfc7b0ecf92b91cbe66b1df2e9d91a6",
+  "docs/patent/figures/fig08.png": "c2f9166602edf40ae8fd38d5ed552788fd769013f37ce36bdca9572a495e49bc"
+ },
+ "inputs": {
+  "evidence/wave27/g3_tip+00_t60_tt3.stl": "04404820cf8385f5e34a42ef9d39a79aecda8eb88895c78aa21f4e3a92fe28c5",
+  "evidence/wave27/g3_tip+00_t60_tt3_D1.json": "49d9ee941f991b016e5ecbad2ee3ac58c020c9e9ffbde3421ccda491957ce666"
+ },
+ "reference_numerals": {
+  "10": "finger ring",
+  "12": "ring bore (finger-bearing surface)",
+  "20": "grip / spine",
+  "30": "concave (inner) sharpened, serrated edge",
+  "32": "convex (outer) sharpened, serrated edge",
+  "40": "tip",
+  "50": "distal thickness taper / relief pockets"
+ },
+ "schema": 1,
+ "script": "ops/render/patent/figures.py",
+ "views": [
+  "FIG. 1: Perspective view",
+  "FIG. 2: Front elevation (left face)",
+  "FIG. 3: Rear elevation (right face)",
+  "FIG. 4: Top view (edge-on)",
+  "FIG. 5: Bottom view (edge-on)",
+  "FIG. 6: Left end view (ring end)",
+  "FIG. 7: Right end view (tip end)",
+  "FIG. 8: Front elevation with reference numerals"
+ ]
+}
