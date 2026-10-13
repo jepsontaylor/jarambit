@@ -1,0 +1,142 @@
+{
+ "schema": "jarambit.render.rig.v1",
+ "name": "rig_product_white",
+ "id": "R3",
+ "use": "e-commerce, pure white cyc",
+ "exposure_ev": -0.3,
+ "lights": [
+  {
+   "name": "dome1",
+   "type": "AREA",
+   "size_D": [
+    1.5,
+    1.5
+   ],
+   "az": 90,
+   "el": 30,
+   "dist_D": 3.0,
+   "power_W": 3.0
+  },
+  {
+   "name": "dome2",
+   "type": "AREA",
+   "size_D": [
+    1.5,
+    1.5
+   ],
+   "az": 180,
+   "el": 30,
+   "dist_D": 3.0,
+   "power_W": 3.0
+  },
+  {
+   "name": "dome3",
+   "type": "AREA",
+   "size_D": [
+    1.5,
+    1.5
+   ],
+   "az": 270,
+   "el": 30,
+   "dist_D": 3.0,
+   "power_W": 3.0
+  },
+  {
+   "name": "dome4",
+   "type": "AREA",
+   "size_D": [
+    1.5,
+    1.5
+   ],
+   "az": 45,
+   "el": 65,
+   "dist_D": 3.0,
+   "power_W": 3.0
+  },
+  {
+   "name": "dome5",
+   "type": "AREA",
+   "size_D": [
+    1.5,
+    1.5
+   ],
+   "az": 135,
+   "el": 65,
+   "dist_D": 3.0,
+   "power_W": 3.0
+  },
+  {
+   "name": "dome6",
+   "type": "AREA",
+   "size_D": [
+    1.5,
+    1.5
+   ],
+   "az": 225,
+   "el": 65,
+   "dist_D": 3.0,
+   "power_W": 3.0
+  },
+  {
+   "name": "dome7",
+   "type": "AREA",
+   "size_D": [
+    1.5,
+    1.5
+   ],
+   "az": 315,
+   "el": 65,
+   "dist_D": 3.0,
+   "power_W": 3.0
+  },
+  {
+   "name": "flag_face",
+   "type": "CARD",
+   "size_D": [
+    2,
+    2
+   ],
+   "aim": "mirror",
+   "region": "body",
+   "normal_filter": "toward_camera",
+   "dist_D": 1.5,
+   "color": [
+    0.005,
+    0.005,
+    0.005
+   ]
+  }
+ ],
+ "world": {
+  "hdri": null,
+  "camera_color": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "fallback_color": [
+   0.8,
+   0.8,
+   0.8
+  ]
+ },
+ "backdrop": {
+  "type": "sweep",
+  "width_D": 10,
+  "front_D": 8,
+  "back_D": 2.5,
+  "radius_D": 1.2,
+  "height_D": 5,
+  "gap_D": 0.0,
+  "material": {
+   "base_color": [
+    0.9,
+    0.9,
+    0.9
+   ],
+   "roughness": 1.0,
+   "specular": 0.0
+  }
+ },
+ "lookdev_note": "v1 lookdev (C.9.2): front dome light replaced by a black flag on the flat-face mirror direction (otherwise the blade reads white-on-white), exposure -0.3 EV."
+}

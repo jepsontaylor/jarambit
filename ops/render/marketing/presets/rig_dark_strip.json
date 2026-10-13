@@ -1,0 +1,102 @@
+{
+ "schema": "jarambit.render.rig.v1",
+ "name": "rig_dark_strip",
+ "id": "R2",
+ "use": "cinematic, black background, floor reflection",
+ "exposure_ev": -4.0,
+ "lights": [
+  {
+   "name": "strip_l",
+   "type": "AREA",
+   "size_D": [
+    0.05,
+    2.5
+   ],
+   "az": -60,
+   "el": 12,
+   "dist_D": 1.8,
+   "power_W": 4.0,
+   "kelvin": 6500,
+   "spread_deg": 90
+  },
+  {
+   "name": "strip_r",
+   "type": "AREA",
+   "size_D": [
+    0.05,
+    2.5
+   ],
+   "az": 60,
+   "el": 12,
+   "dist_D": 1.8,
+   "power_W": 4.0,
+   "kelvin": 6500,
+   "spread_deg": 90
+  },
+  {
+   "name": "rim_top",
+   "type": "AREA",
+   "size_D": [
+    0.05,
+    2.5
+   ],
+   "az": 180,
+   "el": 55,
+   "dist_D": 1.8,
+   "power_W": 3.0,
+   "kelvin": 6500,
+   "roll_deg": 90,
+   "spread_deg": 90
+  },
+  {
+   "name": "bevel_kicker",
+   "type": "AREA",
+   "size_D": [
+    0.08,
+    1.5
+   ],
+   "aim": "mirror",
+   "region": "bevel",
+   "dist_D": 2.0,
+   "power_W": 1.5,
+   "kelvin": 6500
+  }
+ ],
+ "world": {
+  "hdri": {
+   "file": "studio_small_09_4k.hdr",
+   "sha256": "71a876b4315e691cc095e7340228dc9bc48417c26a681b4fc30938161fc85e39",
+   "source": "https://polyhaven.com/a/studio_small_09 (CC0)"
+  },
+  "strength": 0.15,
+  "rotation_deg": 90,
+  "glossy_only": true,
+  "camera_color": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "fallback_color": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "backdrop": {
+  "type": "plane",
+  "size_D": 30,
+  "gap_D": 0.02,
+  "material": {
+   "base_color": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "roughness": 0.08,
+   "coat": 1.0,
+   "coat_roughness": 0.02,
+   "specular": 0.5
+  }
+ },
+ "lookdev_note": "v1 lookdev (C.9.2): exposure -4 EV (at 0 EV the strips flood the bead-blast faces, 29% clipped)."
+}
