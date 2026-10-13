@@ -4,6 +4,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -230,6 +232,64 @@ def test_remote_request_keeps_the_schema_and_moves_under_scratch():
     assert updated["regions_path"].endswith("/inputs/regions.json")
     assert updated["out_dir"].startswith("/home/ubuntu/jarambit_render_scratch/abc/shots/")
     assert set(updated["shot"]["frames"][0]) == {"index", "az", "el", "distance_m", "target", "seed"}
+
+
+def test_launch_shell_starts_a_new_session(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_run(cmd, check, capture_output, text):
+        seen["cmd"] = cmd
+        return type("P", (), {"stdout": "999\n", "returncode": 0})()
+
+    monkeypatch.setattr(farm.subprocess, "run", fake_run)
+    pid = farm.launch_shell(["nice", "-n", "10", "blender"], str(tmp_path / "shard.log"), ssh_host="xbabe1")
+    assert pid == "999"
+    script = seen["cmd"][-1]
+    assert script.startswith("setsid nohup ")
+    assert "< /dev/null" in script
+    assert seen["cmd"][0] == "ssh"
+
+
+def test_remote_sync_ships_signature_brand(tmp_path, monkeypatch):
+    code = tmp_path / "ops" / "render" / "marketing"
+    code.mkdir(parents=True)
+    brand = tmp_path / "ops" / "render" / "brand" / "signature"
+    brand.mkdir(parents=True)
+    (brand / "variants.json").write_text("{}\n")
+    hdri = tmp_path / "studio.hdr"
+    hdri.write_bytes(b"hdr")
+    runs = []
+
+    def fake_ssh(*_args, **_kwargs):
+        return type("P", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+    def fake_run(argv, check=False):
+        runs.append(tuple(argv))
+        return type("P", (), {"returncode": 0})()
+
+    monkeypatch.setattr(farm, "_ssh", fake_ssh)
+    monkeypatch.setattr(farm, "push_files", lambda *_a, **_k: None)
+    monkeypatch.setattr(farm.subprocess, "run", fake_run)
+    farm.sync_render_tree(
+        "xbabe1", str(code), "/scratch/plan",
+        str(tmp_path / "bundle.json"), str(tmp_path / "mesh.npz"),
+        str(tmp_path / "regions.json"), str(hdri),
+    )
+    brand_rsync = [argv for argv in runs if argv[0] == "rsync" and argv[-1].endswith("/brand/")]
+    assert brand_rsync == [(
+        "rsync", "-a", str(tmp_path / "ops" / "render" / "brand") + "/",
+        "xbabe1:/scratch/plan/brand/",
+    )]
+    code_rsync = [argv for argv in runs if argv[0] == "rsync" and "--delete" in argv]
+    assert code_rsync and code_rsync[0][-1] == "xbabe1:/scratch/plan/code/"
+    bare = tmp_path / "bare_marketing"
+    bare.mkdir()
+    with pytest.raises(OSError, match="signature assets missing"):
+        farm.sync_render_tree(
+            "xbabe1", str(bare), "/scratch/plan",
+            str(tmp_path / "bundle.json"), str(tmp_path / "mesh.npz"),
+            str(tmp_path / "regions.json"), str(hdri),
+        )
 
 
 def test_remote_stage_keeps_the_worker_filename(tmp_path):

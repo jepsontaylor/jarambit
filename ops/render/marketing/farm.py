@@ -365,9 +365,15 @@ def assign_hosts(jobs, host_states):
 
 
 def launch_shell(argv, log_path, ssh_host=None):
-    """Detach with nohup. Return the remote or local pid string. Never kills the child."""
+    """Detach in a new session. Return the pid string. Never kills the child.
+
+    ``setsid`` puts Blender outside the dispatcher terminal's process group.
+    Closing that session then cannot deliver SIGHUP to a live shard.
+    """
     os.makedirs(os.path.dirname(log_path) or ".", exist_ok=True)
-    inner = f"nohup {shell_join(argv)} > {shlex.quote(log_path)} 2>&1 & echo $!"
+    inner = (
+        f"setsid nohup {shell_join(argv)} > {shlex.quote(log_path)} 2>&1 < /dev/null & echo $!"
+    )
     if ssh_host:
         cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", ssh_host, inner]
     else:
@@ -619,11 +625,33 @@ def _log_tail(path, ssh_host=None, limit=40) -> str:
     return "".join(lines[-limit:])
 
 
+def signature_brand_dir(code_dir):
+    """Brand tree signature.py loads from beside the marketing package.
+
+    A worker copied to ``{dest}/code`` resolves ``../brand/signature``. The
+    remote tree has to carry that directory or the maker's mark raises
+    FileNotFoundError before the first sample.
+    """
+    return os.path.normpath(os.path.join(code_dir, "..", "brand"))
+
+
 def sync_render_tree(ssh_host, code_dir, root, bundle_path, npz_path, regions_path, hdri_path):
-    """Copy the worker, presets, mesh, and pinned HDRI onto a render host."""
+    """Copy the worker, presets, signature brand, mesh, and pinned HDRI onto a render host."""
     if ssh_host:
-        _ssh(ssh_host, f"mkdir -p {shlex.quote(root)}/code {shlex.quote(root)}/inputs {shlex.quote(os.path.dirname(hdri_path))}", check=True)
+        brand_dir = signature_brand_dir(code_dir)
+        variants = os.path.join(brand_dir, "signature", "variants.json")
+        if not os.path.isfile(variants):
+            raise OSError(f"signature assets missing: {variants}")
+        _ssh(
+            ssh_host,
+            "mkdir -p "
+            f"{shlex.quote(root)}/code {shlex.quote(root)}/brand {shlex.quote(root)}/inputs "
+            f"{shlex.quote(os.path.dirname(hdri_path))}",
+            check=True,
+        )
         subprocess.run(["rsync", "-a", "--delete", code_dir + "/", f"{ssh_host}:{root}/code/"], check=True)
+        # No --delete: a short brand tree must not wipe masks already on the host.
+        subprocess.run(["rsync", "-a", brand_dir + "/", f"{ssh_host}:{root}/brand/"], check=True)
         inputs = [bundle_path, npz_path, regions_path]
         push_files(ssh_host, inputs, os.path.join(root, "inputs"))
         if hdri_path and os.path.isfile(hdri_path):
