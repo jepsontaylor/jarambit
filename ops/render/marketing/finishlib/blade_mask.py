@@ -158,7 +158,7 @@ def arc_params(V, P2, S, lo, res_m, s0_hint):
 
 def compute(bundle_path, regions_path=None, out_dir='.', params=None, allow_warn=False):
     p = {'apex_band_mm': 0.3, 'bevel_min_deg': 8.0, 'bevel_max_deg': 80.0, 'raster_mm': 0.1,
-         'max_flat_mm': 30.0, 'guard_mm': 0.6, 'blade_frac_range': [0.12, 0.65]}
+         'max_flat_mm': 30.0, 'guard_mm': 0.6, 'wall_mm': 0.6, 'tip_guard_mm': 6.0, 'tip_check_mm': 10.0, 'blade_frac_range': [0.12, 0.65]}
     p.update(params or {})
     os.makedirs(out_dir, exist_ok=True)
     bundle, mesh, labels_src = load_mesh(bundle_path, regions_path)
@@ -213,8 +213,18 @@ def compute(bundle_path, regions_path=None, out_dir='.', params=None, allow_warn
             if lab in names:
                 flat &= rid != names.index(lab)
     zone[flat] = 1
-    blade = zone > 0
-    # arc params
+    # perimeter walls / spine / point faces lying on the blade outline (sandwich test cannot see them:
+    # their centroids sit ON the outline). Any non-pad/ring face whose centroid lies within wall_mm of the
+    # blade footprint and whose normal is near-perpendicular to the blade plane is bare (bevel finish).
+    tilt = np.degrees(np.arccos(np.clip(np.abs(fn @ n), 0, 1)))
+    Bfoot = dilate(B | E, max(1, int(round(p['wall_mm'] / p['raster_mm'])))) 
+    wall = (zone == 0) & (tilt > p['bevel_max_deg'] - 10) & Bfoot[ij[:, 1], ij[:, 0]]
+    if 'region_id' in mesh:
+        rid = np.asarray(mesh['region_id'])
+        for lab in ('ring', 'pad'):
+            if lab in names:
+                wall &= rid != names.index(lab)
+    zone[wall] = 2
     hint = None
     if 'region_id' in mesh and 'ring' in names and (np.asarray(mesh['region_id']) == names.index('ring')).any():
         rid = np.asarray(mesh['region_id'])
@@ -224,6 +234,13 @@ def compute(bundle_path, regions_path=None, out_dir='.', params=None, allow_warn
         ends = [P2[P2[:, 0].argmin()], P2[P2[:, 0].argmax()]]
         hint = max(ends, key=lambda e: np.linalg.norm(e - ec))
     sv, tv, arc_len = arc_params(V, P2, S, lo, r, hint)
+    # point guard: everything within tip_guard_mm (3-D) of the point is bare, whatever the labels say
+    tip = V[np.argmax(sv)]
+    cen3 = V[F].mean(1)
+    near_tip = np.linalg.norm(cen3 - tip, axis=1) < p['tip_guard_mm'] * 1e-3
+    tip_forced = int(((zone == 0) & near_tip).sum())
+    zone[(zone == 0) & near_tip] = 2
+    blade = zone > 0
     # ---------------- validation
     tot = area.sum()
     frac = {z: float(area[zone == i].sum() / tot) for i, z in enumerate(ZONE_NAMES)}
@@ -235,6 +252,7 @@ def compute(bundle_path, regions_path=None, out_dir='.', params=None, allow_warn
         'all_thin_apex_in_blade': bool(blade[geo_apex].all()) if geo_apex.any() else False,
         'flats_both_sides': bool(area[(zone == 1) & (side > 0.9)].sum() > 0 and area[(zone == 1) & (side < -0.9)].sum() > 0),
         'coat_area_ok': frac['coat'] > 0.2,
+        'tip_region_bare': bool((zone[np.linalg.norm(cen3 - tip, axis=1) < p['tip_check_mm'] * 1e-3] > 0).all()),
         'labels_agree_geometry': (label_iou is None) or label_iou >= 0.5,
     }
     warnings = [] if (apex_label_cov is None or apex_label_cov >= 0.9) else [
@@ -243,7 +261,7 @@ def compute(bundle_path, regions_path=None, out_dir='.', params=None, allow_warn
     rep = {'schema': 'jarambit.finish.blade_mask.v1', 'bundle': os.path.abspath(bundle_path),
            'npz_sha256': bundle.get('npz_sha256'), 'regions': regions_path, 'labels_source': labels_src,
            'method': method, 'label_vs_geometric_edge_iou': label_iou, 'thin_apex_area_covered_by_labels': apex_label_cov, 'area_frac': frac,
-           'blade_frac': blade_frac, 'arc_length_mm': arc_len * 1e3, 'params': p, 'checks': checks, 'warnings': warnings, 'ok': ok}
+           'blade_frac': blade_frac, 'tip_point_m': tip.tolist(), 'tip_faces_forced_bare': tip_forced, 'wall_faces_bare': int(wall.sum()), 'arc_length_mm': arc_len * 1e3, 'params': p, 'checks': checks, 'warnings': warnings, 'ok': ok}
     zpath = os.path.join(out_dir, 'finish_masks.npz')
     np.savez_compressed(zpath, zone=zone, s=sv.astype(np.float32), t=tv.astype(np.float32))
     rep['masks_npz'] = zpath

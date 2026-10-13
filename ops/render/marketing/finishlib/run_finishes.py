@@ -16,6 +16,8 @@ Camera, rig and framing come verbatim from presets/shots_default.json via lookde
 """
 import argparse, json, os, subprocess, sys, time
 
+# hero_3q camera is always reused; only the rig/backdrop changes. dark = dark_hero's reflective black base
+BACKDROPS = {'dark': 'rig_dark_strip', 'studio': None}
 HERE = os.path.dirname(os.path.abspath(__file__))
 MKT = os.path.dirname(HERE)
 sys.path.insert(0, MKT); sys.path.insert(0, HERE)
@@ -44,7 +46,7 @@ def render(entry, args, masks, lut_path, arc_m, out_root, bare_specs=None):
     shots = json.load(open(os.path.join(MKT, 'presets', 'shots_default.json')))
     by_id = {s['id']: s for s in shots['stills']}
     ns = argparse.Namespace(bundle=args.bundle, regions=args.regions, out=os.path.join(out_root, entry['id']),
-                            finish_override=None, rig_override=None, accents=None, res=args.res, spp=args.spp, spp_min=args.spp_min,
+                            finish_override=None, rig_override=BACKDROPS[args.backdrop], accents=None, res=args.res, spp=args.spp, spp_min=args.spp_min,
                             threshold=args.threshold, no_adaptive=False, device=args.device, hdri='required')
     req = lookdev.build_request(by_id[args.shot], shots['defaults'], ns, f'finishlib:{entry["id"]}:{args.shot}')
     req['finish_library'] = {'entry': entry, 'masks_npz': masks, 'lut_npy': lut_path,
@@ -76,7 +78,34 @@ def render(entry, args, masks, lut_path, arc_m, out_root, bare_specs=None):
                     stem + '.png', '--jpeg', stem + '.jpg', '--record', stem + '.finish.json'], check=True,
                    stdout=subprocess.DEVNULL)
     return {'id': entry['id'], 'label': entry.get('label', entry['id']), 'jpg': stem + '.jpg', 'png': stem + '.png',
-            'seconds': round(time.time() - t0, 1), 'assignment': res['finish']['assignment']}
+            'seconds': round(time.time() - t0, 1), 'rig': req['rig_preset'], 'assignment': res['finish']['assignment']}
+
+
+def tip_closeups(results, out, box_frac=0.12):
+    """tip crop per finish: tip = right-most product-mask pixel (mask.exr pass, excludes reflection)."""
+    import numpy as np
+    from PIL import Image, ImageDraw
+    crops = []
+    for r in results:
+        mexr = r['png'][:-len('.png')] + '.mask.exr'
+        npy = mexr + '.npy'
+        subprocess.run([sys.executable, os.path.join(MKT, 'finish.py'), 'npy', mexr, npy], check=True,
+                       stdout=subprocess.DEVNULL)
+        m = np.load(npy); m = m[..., 0] if m.ndim == 3 else m
+        os.remove(npy)
+        ys, xs = np.nonzero(m > 0.5)
+        k = np.argmax(xs); cx, cy = xs[k], ys[k]
+        im = Image.open(r['jpg']).convert('RGB')
+        h = int(im.width * box_frac)
+        x0, y0 = max(0, cx - int(h * 0.8)), max(0, cy - h // 3)
+        c = im.crop((x0, y0, x0 + h, y0 + h)).resize((360, 360), Image.LANCZOS)
+        ImageDraw.Draw(c).text((6, 6), r['id'], fill=(255, 255, 255))
+        crops.append(c)
+    W = 360 * min(5, len(crops)); rows = (len(crops) + 4) // 5
+    sheet = Image.new('RGB', (W, 360 * rows), (10, 10, 10))
+    for i, c in enumerate(crops):
+        sheet.paste(c, ((i % 5) * 360, (i // 5) * 360))
+    sheet.save(os.path.join(out, 'tip_closeups.jpg'), quality=92)
 
 
 def main():
@@ -92,6 +121,8 @@ def main():
     ap.add_argument('--threshold', type=float, default=0.02)
     ap.add_argument('--device', default='OPTIX', help='OPTIX (waits for idle GPU + flock) or CPU (niced)')
     ap.add_argument('--threads', type=int, default=48)
+    ap.add_argument('--backdrop', choices=list(BACKDROPS), default='dark',
+                    help='dark (default): glossy black base with reflection (rig_dark_strip); studio: original grey softbox')
     ap.add_argument('--masks-only', action='store_true'); ap.add_argument('--allow-mask-warn', action='store_true')
     ap.add_argument('--no-mask-render', action='store_true')
     args = ap.parse_args()
@@ -140,6 +171,7 @@ def main():
         print(f'[finishlib] {fid} done {results[-1]["seconds"]} s', flush=True)
     finish.contact_sheet(os.path.join(out, 'contact_sheet.jpg'), [r['jpg'] for r in results], cols=3, width=960,
                          labels=[f"{r['id']}: {r['label']}" for r in results])
+    tip_closeups(results, out)
     json.dump({'mask': rep, 'results': results, 'args': vars(args)}, open(os.path.join(out, 'run_summary.json'), 'w'), indent=1)
     print(os.path.join(out, 'contact_sheet.jpg'))
 
