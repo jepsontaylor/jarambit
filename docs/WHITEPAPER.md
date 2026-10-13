@@ -6,12 +6,16 @@
 
 **Abstract** — *jarambit* is a Rust-native pipeline that evolves fixed-blade titanium hiking/utility karambits (SWITCHBACK class) under hard manufacturability and safety constraints, verified by a plate FEM screen plus a solid tip submodel, made robust by Monte Carlo over tolerances, temperature (−10…100 °C) and cut media, and ranked across waves by a single GLOBAL metric **G** that combines solid-tip safety factor, strength-per-gram, aesthetics, mass and failure sequence. Hard limits are rejections, never penalties; G never overrides a gate.
 
+<!-- GEN:WP_STATUS:BEGIN -->
+**Honest status (v0.31.0, generated from `evidence/rs_v2/*.json`).** 0 of 4 named designs meet every RS-karambit-v2 hard gate; no design is promoted and this version is a release candidate, not v1.0.0. The v1 gate set (RS-karambit-v2) adds human-maximum loads, seq ≥ 1.2 as a hard gate, fatigue and ring handling to the v1 screen; Table IV-A lists every shortfall.
+<!-- GEN:WP_STATUS:END -->
+
 *Index Terms* — evolutionary design, finite element analysis, Monte Carlo robustness, titanium, karambit, NSGA-II, design-for-manufacture.
 
-**Hero figures.** 3D CAD (watertight STEP): ![g3_tip+00_t60_tt3 3D](figures/whitepaper/wave27_g3_tip+00_t60_tt3_STEP_3D.png) — FEM plate: see §III-G.
+**Hero figures.** 360° turntable, colour = D1 certified envelope SF: ![g3_tip+00_t60_tt3 turntable](media/g3_tip+00_t60_tt3_turntable.gif) — 3D CAD: ![g3_tip+00_t60_tt3 3D](figures/whitepaper/wave27_g3_tip+00_t60_tt3_STEP_3D.png) — FEM plate: §III-G; key components: §III-H.
 
 ## I. Introduction
-Utility cutting (cord, webbing, packaging) with a ring-retained hooked blade. Contributions: (1) constrained genotype with validators; (2) watertight CAD phenotype; (3) two-level FEM (plate screen + solid tip submodel); (4) MC robustness; (5) island/novelty evolution; (6) a locked global metric and versioned, figure-backed wave reporting. Code map: `TECHNOLOGY_MAP.md`.
+Utility cutting (cord, webbing, packaging) with a ring-retained hooked blade. Contributions: (1) constrained genotype with validators; (2) a faceted STEP/STL CAD phenotype (watertight mesh; the STEP is not a sewn B-rep); (3) two-level FEM (plate screen + solid tip submodel); (4) MC robustness; (5) island/novelty evolution; (6) a locked global metric and versioned, figure-backed wave reporting; (7) an evidence layer where every published number is generated from committed data and CI-checked; (8) a v1 requirement set (RS-karambit-v2) with human-maximum loads, evaluated honestly per design. Code map: `TECHNOLOGY_MAP.md`.
 
 ## I-A. Related work
 Multi-objective evolutionary design (NSGA-II [1]), DKT plate elements [2], topology/shape optimisation, robust design under tolerance, and knife-edge mechanics in Ti alloys. jarambit differs by treating legal/manufacturing limits as hard rejections and by ranking across waves with one locked metric.
@@ -30,6 +34,26 @@ Every PASS/FAIL names a requirement set (here RS-karambit-v1) and group. **Scree
 ### II-D. Versioning
 Major wave N ⇒ version 0.N.0 + tag `v0.N.0` + `docs/RELEASES.md` entry + this header. Sub-experiments (Wave N.1, …) ⇒ `docs/WAVE_LOG.md` only. Earlier versions in the callouts are retro-assigned by wave (wave N ↔ 0.N.0); only `v0.1.0-g3neckrail` exists as a tag before v0.27.0.
 
+### II-E. Methods added in v0.28–v0.31 (evidence layer, solid FEM, faer, RS-karambit-v2)
+**Evidence layer (v0.28).** Every public number is generated from committed evidence: README and the data blocks of this paper are produced by `ops/ci/gen_readme.py` and `ops/ci/gen_whitepaper.py` and checked in CI (`--check`); `ops/ci/check_claims.py` rejects any pass verdict that does not name its requirement set; figure and media manifests carry input and output sha256 (`verify_figures.py`, `verify_media.py`).
+**Solid FEM (v0.30).** A quadratic-tetrahedron solid model (DOLFINx, cross-checked against scikit-fem on the same mesh) certifies the tip submodel and meshes the whole part; three-level grid-convergence (GCI, Roache [3]) studies bound the discretisation error.
+**Sparse direct solver (v0.31).** The plate tier can factor with faer's sparse Cholesky [4] (symbolic + numeric LLᵀ with a pivot sentinel at the same threshold as the skyline criterion, pivot ≤ 1e-13·max|diag K|). Equal thresholds do not give identical rejection: elimination orders differ, and a refined T6 fixture with one clamped node is rejected by faer but accepted by skyline (a known skyline limitation, not fixed here). The regression `both_backends_reject_partially_constrained_rotation` covers the tested plate/T6 cases only. faer is several times faster at the certification tier but drifts above the 1e-9 parity bar, so skyline stays the default.
+**RS-karambit-v2 (v0.31).** Human-maximum static loads (twist about the ring→tip chord, in-plane tip, spine, ring-back impact as DAF 2 × ring pull, provisional), seq ≥ 1.2 as a hard gate, L7 fatigue (Marin-corrected endurance limit, modified Goodman [5]) and finger-bearing width (bore length along the finger axis). `jarambit rs-v2-eval` writes one verdict file per named design (`evidence/rs_v2/`).
+
+<!-- GEN:WP_METHODS:BEGIN -->
+| method (version) | evidence | result |
+|---|---|---|
+| Solid FEM cross-check (v0.30) | `evidence/fem_solid/verify_0.30.2.json` | ghcr.io/fenics/dolfinx/dolfinx:v0.9.0 vs scikit-fem on the g3_tip+00_t60_tt3 tip submodel (422955 DOF): SF nodal max 1.5341 vs 1.5340 (rel. err 6.5e-05) |
+| Whole-part solid mesh (v0.30) | same | 35972 TET10, 195312 DOF at h = 2.0 mm; mass 84.86 g vs 84.8 g reference |
+| GCI mesh study (v0.30) | `evidence/fem_solid/gci/a0_tip+00_t60_tt3_gci.json` | a0_tip+00_t60_tt3: 3 levels to 3192243 DOF; GCI_fine (vM max) 0.4 %, p = 3.15; SF nodal max 1.5925 [1.5856, 1.5994] |
+| GCI mesh study (v0.30) | `evidence/fem_solid/gci/g3_tip+00_t58_tt3_gci.json` | g3_tip+00_t58_tt3: 3 levels to 3169395 DOF; GCI_fine (vM max) 1.6 %, p = 2.06; SF nodal max 1.5984 [1.5727, 1.6250] |
+| GCI mesh study (v0.30) | `evidence/fem_solid/gci/g3_tip+00_t60_tt0_gci.json` | g3_tip+00_t60_tt0: 3 levels to 3169395 DOF; GCI_fine (vM max) 1.2 %, p = 2.31; SF nodal max 1.5840 [1.5649, 1.6036] |
+| GCI mesh study (v0.30) | `evidence/fem_solid/gci/g3_tip+00_t60_tt3_gci.json` | g3_tip+00_t60_tt3: 3 levels to 3169395 DOF; GCI_fine (vM max) 1.8 %, p = 2.00; SF nodal max 1.6002 [1.5719, 1.6296] |
+| GCI mesh study (v0.30) | `evidence/fem_solid/gci/w271b_11772_gci.json` | w271b_11772: 3 levels to 2590443 DOF; GCI_fine (vM max) 0.5 %, p = n/a; SF nodal max 0.8337 [0.8297, 0.8378] |
+| faer sparse Cholesky (v0.31) | `evidence/bench/faer_0.31.2_xbabe3.json` | cert tier 26.31 → 6.74 core-s/design (3.90×) on `bench/fixed_1k` (xbabe3) |
+| faer vs skyline parity (v0.31, issue #32) | `evidence/bench/issue32_drift.json` | max drift 2.6e-08 per design > 1e-09 bar → default solver skyline, faer opt-in |
+<!-- GEN:WP_METHODS:END -->
+
 ## III. Core technologies (callouts)
 Each callout: (a) 3D CAD/STEP figure, (b) FEM colormap/mesh figure, (c) metrics table including G, (d) version that introduced it. Figures are the best-G design of the cited wave that passes the RS-karambit-v1 screen (`docs/figures/whitepaper/`).
 
@@ -47,8 +71,8 @@ Each callout: (a) 3D CAD/STEP figure, (b) FEM colormap/mesh figure, (c) metrics 
 
 **(d) Introduced in:** v0.1.0 (wave1); crescent C.4/C.6 anchor v0.6.0→v0.13.0 (no stick-figure priors)
 
-### III-B. Phenotype → watertight STEP/CAD, grinds, tip outline/stock (phenotype/)
-Outline → watertight extrusion → faceted MANIFOLD_SOLID_BREP STEP + STL; 0.1 mm stock; grind law per edge; holder envelope +1 mm.
+### III-B. Phenotype → faceted STEP/STL CAD, grinds, tip outline/stock (phenotype/)
+Outline → watertight extrusion → faceted MANIFOLD_SOLID_BREP STEP + STL (OCC imports the STEP as an unsewable shell; solid meshing uses the STL, `evidence/fem_solid/verify_0.30.2.json`); 0.1 mm stock; grind law per edge; holder envelope +1 mm.
 
 **(a) 3D CAD/STEP** — ![wave25 c01 3D CAD](figures/whitepaper/wave25_c01_STEP_3D.png)
 
@@ -134,6 +158,38 @@ tip×SPG = 1.534 × 4.147 = **6.362**; ring ID 25.46 mm; seq soft. Engineering p
 
 **(d) Introduced in:** v0.27.0
 
+### III-H. Key components of the provisional design — 3D CAD + FEM + metrics (v0.32)
+Each key component (reference numerals as in `docs/PATENT_DRAFT.md`) is shown as (a) a 3D CAD view with the component highlighted and (b) the plan FEM colormap zoomed to it, with its metrics. Generated by `ops/render/components.py`; data in `docs/figures/components/components.json`.
+
+<!-- GEN:WP_COMPONENTS:BEGIN -->
+Design `g3_tip+00_t60_tt3` (84.80 g). Plan partition (`ops/render/components.py`): ring = within bore radius + 1.6 × ring band (12.40 + 1.6 × 5.74 mm) of the ring centre; grip/spine = next 61 mm; tip = within 12 mm of the tip; blade = rest. (b) panels show the D1 certified envelope SF (100 C, joint), plate tier; that field is the RS-karambit-v1 screen field. The last column lists the design's RS-karambit-v2 gate values from `evidence/rs_v2/` (tip: strict 0.0625 mm² tip-submodel twist SF and the genome-bound solid tip SF, which are the locked gate values; the plate min element SF is the screen field only).
+
+![Fig. C1](figures/components/g3_tip+00_t60_tt3_D1_ring.png)
+
+*Fig. C1. Finger ring (10): (a) 3D CAD view (faceted STL, component highlighted); (b) plan FEM colormap.*
+
+![Fig. C2](figures/components/g3_tip+00_t60_tt3_D1_grip_spine.png)
+
+*Fig. C2. Grip / spine (20): (a) 3D CAD view (faceted STL, component highlighted); (b) plan FEM colormap.*
+
+![Fig. C3](figures/components/g3_tip+00_t60_tt3_D1_blade.png)
+
+*Fig. C3. Blade, sharpened + serrated edges (30, 32): (a) 3D CAD view (faceted STL, component highlighted); (b) plan FEM colormap.*
+
+![Fig. C4](figures/components/g3_tip+00_t60_tt3_D1_tip.png)
+
+*Fig. C4. Tip zone (40): (a) 3D CAD view (faceted STL, component highlighted); (b) plan FEM colormap.*
+
+| component | elements | area share | min element SF (D1, 100 °C) | median element SF | area SF < 1 | RS-karambit-v2 gate values |
+|---|---|---|---|---|---|---|
+| Finger ring (10) | 4135 | 17.1 % | 1.362 | 21.347 | 0.0 % | `hm_ringback_sf` 2.660; `ring_band_mm` 5.739; `ring_bearing_w_mm` 5.879; `ring_rob_n` 17463.976 |
+| Grip / spine (20) | 8963 | 34.8 % | 1.425 | 2.333 | 0.0 % | `fat_sf` 0.982; `hm_spine_sf` 0.419; `twist_body_sf` 4.400 |
+| Blade, sharpened + serrated edges (30, 32) | 12305 | 45.1 % | 1.395 | 2.605 | 0.0 % | `hm_twist_sf` 0.132; `lat_rob_n` 351.663; `seq_ratio` 0.959 |
+| Tip zone (40) | 734 | 3.0 % | 1.176 | 4.009 | 0.0 % | `hm_tip_inplane_sf` 0.565; `solid_tip_sf` 1.600; `twist_tipzone_sf_strict` 1.224 |
+<!-- GEN:WP_COMPONENTS:END -->
+
+The plate-tier envelope SF is ≥ 1 in every component, yet the same design fails the RS-karambit-v2 human-maximum cases: those loads are several times the v1 screen loads, and they are what blocks v1.0.0 (§IV-A).
+
 ## IV. Results — waves 20–27 (best G per wave, RS-karambit-v1 screen PASS designs)
 | design | G | SF_tip | SPG N/g | aes | mass g | seq | RS-karambit-v1 screen |
 |---|---|---|---|---|---|---|---|
@@ -148,17 +204,46 @@ tip×SPG = 1.534 × 4.147 = **6.362**; ring ID 25.46 mm; seq soft. Engineering p
 | wave27e g3t58_S05_rw-05_D1 | 0.977 | 1.594 | 3.859 | 0.593 | 81.8 | 0.888 | PASS |
 | wave27b a0_S08_dr+05_D1 | **0.979*** | screen 1.636 | 3.747 | 0.591 | 81.9 | 0.842 | FAIL |
 
-**Trend.** Solid tip SF rose from 1.16 (wave20) to 1.53–1.59 (waves24–27) while SPG held near 3.7–4.1 N/g; G rose 0.85 → 0.97. No design reaches seq ≥ 1.2 or the 74–77 g band yet. Those two gaps stop promotion.
+**Trend (historical, RS-karambit-v1 screen, waves 20–27).** Solid tip SF rose from 1.16 (wave20) to 1.53–1.59 (waves24–27) while SPG held near 3.7–4.1 N/g; G rose 0.85 → 0.97. No design reached seq ≥ 1.2 (a hard gate). Mass is soft (G penalty, target < 80 g then < 70 g), so the 74–77 g band is reported only and never stops promotion. The current v1 status is §IV-A.
 
 *Wave26 figure: PLACEHOLDER (plates pending). Wave27 figures: final pack in `docs/wave27_diversity/plates/` + `plates_e/`; the engineering provisional g3_tip+00_t60_tt3 is shown in III-G.*
 
 **Pareto note (v0.27.0).** No wave27 tip arm reaches an RS-karambit-v1 screen PASS at ≤ 82 g with tip×SPG ≥ 6 (the ≤ 82 g, ≥ 6 points a0_tip+10_t58_tt3/tt0 fail the screen). The mass king remains the a0_c02fit_ref class (~81.4 g, tip×SPG ~5.58). seq < 1.2 everywhere (a promotion requirement). The next major wave (v0.28.0) starts only after a hard-PASS design beats G1 0.9804, or reaches ≤ 82 g at tip×SPG ≥ 6 with an RS-karambit-v1 screen PASS. (Superseded for versioning by the v1 roadmap; see docs/RELEASES.md.)
 
+### IV-A. Honest status under RS-karambit-v2 (v1 gate set)
+<!-- GEN:WP_RSV2:BEGIN -->
+| design (RS-karambit-v2) | mass g | v1 screen | strict lateral N (≥ 260) | strict tip-sub twist SF | solid tip SF | seq (≥ 1.2) | twist SF | tip SF | spine SF | ring-back SF | fatigue SF | bearing mm (≥ 10) | all hard gates |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| g3_tip+00_t60_tt3 | 84.80 | FAIL | 340.8 | 1.224 | 1.600 (PASS) | 0.959 | 0.132 | 0.565 | 0.419 | 2.660 | 0.982 | 5.88 | **FAIL** |
+| w271b_11772 | 78.55 | FAIL | 277.7 | 0.668 | 0.834 (FAIL) | 0.882 | 0.076 | 0.597 | 0.418 | 2.419 | 0.856 | 5.11 | **FAIL** |
+| w271b_11860 | 73.33 | FAIL | 264.5 | 0.716 | — (unverified) | 0.892 | 0.075 | 0.528 | 0.384 | 1.911 | 0.756 | 4.75 | **FAIL** |
+| w271c_11522 | 79.96 | FAIL | 266.4 | 0.842 | — (unverified) | 0.778 | 0.097 | 0.574 | 0.419 | 1.992 | 0.767 | 4.79 | **FAIL** |
+
+**0 of 4 designs pass every RS-karambit-v2 hard gate.** An unverified gate (no evidence) never counts as met. Screen rejects: `g3_tip+00_t60_tt3`: Holder envelope: best oriented box 200.9 x 100.4 > 200 x 100
+<!-- GEN:WP_RSV2:END -->
+
+Reading the table: the best designs carry the RS-karambit-v1 screen loads with margin, ring-back is met by all, but human-maximum twist and spine/tip loads exceed first yield by a large factor and seq stays below 1.2. The finger-bearing width needs the ring flare planned in roadmap PR-0.33.4. Closing these gaps needs genotype changes (ring flare, thicker or 3D-shaped tip and spine sections), not tuning; v1.0.0 is not cut until one design meets every gate.
+
 ## V. Limitations and ethics
-828 MPa is a provisional screening yield; seq is soft; the aesthetic score does not replace human sign-off; no design is promoted. The tool covers utility/hiking use only.
+828 MPa is a provisional screening yield; seq ≥ 1.2 is a hard gate (search legality and RS-karambit-v2) and no current design meets it; the ring-back load (3000 N) is provisional; plate-tier fields are the RS-karambit-v1 screen, while human-maximum loads are evaluated separately (§IV-A); the aesthetic score does not replace human sign-off; no design is promoted. The tool covers utility/hiking use only.
 
 ## VI. Conclusion
-Wave27 (v0.27.0) set the engineering provisional to **g3_tip+00_t60_tt3** (G1 0.9804, tip×SPG 6.362 @ 84.80 g, ring 25.46 mm; RS-karambit-v1 screen PASS, promotion FAIL on seq 0.959 < 1.2; mass 84.80 g is over the soft 80 g target and penalised in G). A +0.3 mm tip-stock law beat the g3_neckrail baseline at +0.21 g; tip-outline shifts of ±1 mm failed hard gates. Open gaps: seq ≥ 1.2, mass (soft: < 80 g, then < 70 g), and human aesthetic sign-off. Artefacts: watertight STEP (release asset `g3_tip+00_t60_tt3.step`, generator `crates/crescent/examples/export_step.rs`), FEM plate, pack. Patent draft (not filed): `docs/PATENT_DRAFT.md`.
+*Historical (v0.27.0):* Wave27 (v0.27.0) set the engineering provisional to **g3_tip+00_t60_tt3** (G1 0.9804, tip×SPG 6.362 @ 84.80 g, ring 25.46 mm; RS-karambit-v1 screen PASS, promotion FAIL on seq 0.959 < 1.2; mass 84.80 g is over the soft 80 g target and penalised in G). A +0.3 mm tip-stock law beat the g3_neckrail baseline at +0.21 g; tip-outline shifts of ±1 mm failed hard gates. Open gaps: seq ≥ 1.2, mass (soft: < 80 g, then < 70 g), and human aesthetic sign-off. Artefacts: faceted STEP export (release asset `g3_tip+00_t60_tt3.step`, generator `crates/crescent/examples/export_step.rs`); it imports into OCC as an unsewable shell, so the whole-part solid mesh uses the STL twin (`evidence/fem_solid/verify_0.30.2.json`); FEM plate; pack. Patent draft (not filed): `docs/PATENT_DRAFT.md`.
+
+**v0.32 status.** Under the v1 gate set RS-karambit-v2 no named design meets every hard gate (§IV-A): human-maximum twist, tip and spine loads exceed first yield, seq < 1.2, finger-bearing width < 10 mm, and the g3 provisional also fails the holder envelope. v0.32.0 is therefore a release candidate, not v1.0.0. Next: ring flare (PR-0.33.4), thicker / 3D-shaped tip and spine sections, and search under RS-karambit-v2.
+
+## References
+[1] K. Deb, A. Pratap, S. Agarwal, and T. Meyarivan, "A fast and elitist multiobjective genetic algorithm: NSGA-II," *IEEE Trans. Evol. Comput.*, vol. 6, no. 2, pp. 182–197, 2002.
+
+[2] J.-L. Batoz, K.-J. Bathe, and L.-W. Ho, "A study of three-node triangular plate bending elements," *Int. J. Numer. Methods Eng.*, vol. 15, no. 12, pp. 1771–1812, 1980.
+
+[3] P. J. Roache, "Perspective: A method for uniform reporting of grid refinement studies," *J. Fluids Eng.*, vol. 116, no. 3, pp. 405–413, 1994.
+
+[4] S. El Kazdadi, "faer: a linear algebra library for the Rust programming language," https://github.com/sarah-quinones/faer-rs.
+
+[5] R. G. Budynas and J. K. Nisbett, *Shigley's Mechanical Engineering Design*, 10th ed. New York, NY, USA: McGraw-Hill, 2015.
+
+[6] I. A. Baratta *et al.*, "DOLFINx: The next generation FEniCS problem solving environment," Zenodo, 2023, doi:10.5281/zenodo.10447666.
 
 ---
 ## Appendix A — prior draft v0.3 body (retained verbatim for traceability)
