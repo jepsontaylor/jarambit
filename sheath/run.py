@@ -1,6 +1,6 @@
 """End-to-end v1: knife STEP/STL -> interface -> path search -> sheath CAD -> draw-force (analytic + plate FEM) -> MC -> metrics.
 
-usage: python -m sheath.run --step K.step --stl K.stl --out OUT [--workers 32]
+usage: python -m sheath.run --step K.step --stl K.stl --out OUT [--workers N]  (default: safe_workers(); clamped by free memory)
 Evidence level of every force here: analytic_proxy / uncalibrated_fea. NOT a measurement.
 """
 import argparse, json, math, os, sys, time
@@ -37,6 +37,51 @@ def _try(p):
         return (p, ok, g["outline"].area, float(depth))
     except Exception as e:
         return (p, False, math.inf, None)
+
+
+PER_WORKER_GB = float(os.environ.get("SHEATH_PER_WORKER_GB", "3.0"))  # measured: 32 workers -> ~92 GB RSS (~2.6-2.9 GB each, fork COW of ~10 GB parent)
+
+
+def _avail_gb():
+    try:
+        for ln in open("/proc/meminfo"):
+            if ln.startswith("MemAvailable:"):
+                return int(ln.split()[1]) / 1048576.0
+    except OSError:
+        pass
+    return None
+
+
+def _cgroup_limit_gb():
+    """Memory headroom left in our cgroup (e.g. memcap / systemd-run MemoryMax), if any."""
+    try:
+        cg = open("/proc/self/cgroup").read().strip().split("::")[-1]
+        base = "/sys/fs/cgroup" + cg
+        mx = open(base + "/memory.max").read().strip()
+        if mx == "max":
+            return None
+        return (int(mx) - int(open(base + "/memory.current").read())) / 2**30
+    except (OSError, ValueError):
+        return None
+
+
+def safe_workers(requested=None, per_worker_gb=PER_WORKER_GB):
+    """min(requested, cores/4, free_GB*0.5/per_worker_GB), >= 1. Warns on stderr when clamped."""
+    cores = os.cpu_count() or 4
+    caps = {"cores/4": max(1, cores // 4)}
+    free = _avail_gb()
+    if free is not None:
+        caps["mem_available"] = max(1, int(free * 0.5 / per_worker_gb))
+    cg = _cgroup_limit_gb()
+    if cg is not None:
+        caps["cgroup_headroom"] = max(1, int(cg * 0.8 / per_worker_gb))
+    n = min(caps.values())
+    if requested is not None and requested < n:
+        return requested
+    if requested is not None and requested > n:
+        print(f"[sheath.run] WARNING: --workers {requested} clamped to {n} ({caps}, free={free and round(free,1)} GB, "
+              f"{per_worker_gb} GB/worker)", file=sys.stderr, flush=True)
+    return n
 
 
 def search_path(K, base, workers, S):
@@ -130,10 +175,12 @@ def main():
         import faulthandler; faulthandler.dump_traceback_later(float(os.environ["SHEATH_TB_AFTER"]), repeat=True)
     ap = argparse.ArgumentParser()
     ap.add_argument("--step", required=True); ap.add_argument("--stl", required=True); ap.add_argument("--out", required=True)
-    ap.add_argument("--workers", type=int, default=32); ap.add_argument("--mc", type=int, default=20000)
+    ap.add_argument("--workers", type=int, default=None, help="pool size; default and upper bound = safe_workers()"); ap.add_argument("--mc", type=int, default=20000)
     ap.add_argument("--annotations", default=None); ap.add_argument("--ccx", default=None, help="ccx_tab results json (axial-force correction)")
     ap.add_argument("--no-rot-corr", action="store_true", help="disable the tab-end rotation correction of the Bayer release angle")
     a = ap.parse_args()
+    a.workers = safe_workers(a.workers)
+    print(f"[sheath.run] workers={a.workers}", file=sys.stderr, flush=True)
     os.makedirs(a.out, exist_ok=True)
     t0 = time.time()
     iface, mesh, Kp = from_step(a.step, a.stl, a.annotations)
