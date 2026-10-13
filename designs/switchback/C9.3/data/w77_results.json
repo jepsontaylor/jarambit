@@ -1,0 +1,273 @@
+{
+ "wave": "W77",
+ "logged": "2026-10-13 MDT",
+ "rev": "C.9.3",
+ "step": "analysis/w76/switchback_revC9_3_cand_ground.step",
+ "sha16": "3a818183bcb5b9a9",
+ "mass_g": 66.773,
+ "fea_step": "analysis/w76/switchback_revC9_3_cand_ground_fea.step",
+ "gate": 1.5,
+ "owner_margin_rule_pct": 5.0,
+ "V3": {
+  "case": "b1_baton_ricasso 800 N x 3427/800 [Walilko via W69]",
+  "mesh": "c93_g2 (HMAX 2 / BOXV 0.8, W71 g2 recipe)",
+  "n_tet": 94804,
+  "SF_global_3427N": 1.597,
+  "SF_scallop_3427N": 1.704,
+  "zones": {
+   "all": {
+    "vm_800N_MPa": 121.0,
+    "vm_3427N_MPa": 518.5,
+    "SF_3427N": 1.597,
+    "xyz": [
+     153.97,
+     -23.21,
+     0.1
+    ]
+   },
+   "handle_x12_88": {
+    "vm_800N_MPa": 38.3,
+    "vm_3427N_MPa": 164.1,
+    "SF_3427N": 5.046,
+    "xyz": [
+     81.33,
+     2.51,
+     -0.63
+    ]
+   },
+   "ring_r<20": {
+    "vm_800N_MPa": 3.4,
+    "vm_3427N_MPa": 14.5,
+    "SF_3427N": 57.256,
+    "xyz": [
+     19.75,
+     -1.39,
+     0.58
+    ]
+   },
+   "eye_heel_x88_101": {
+    "vm_800N_MPa": 97.2,
+    "vm_3427N_MPa": 416.5,
+    "SF_3427N": 1.988,
+    "xyz": [
+     96.95,
+     0.88,
+     1.78
+    ]
+   },
+   "blade_x>=101": {
+    "vm_800N_MPa": 121.0,
+    "vm_3427N_MPa": 518.5,
+    "SF_3427N": 1.597,
+    "xyz": [
+     153.97,
+     -23.21,
+     0.1
+    ]
+   },
+   "scallop_x100_140": {
+    "vm_800N_MPa": 113.4,
+    "vm_3427N_MPa": 485.9,
+    "SF_3427N": 1.704,
+    "xyz": [
+     139.7,
+     6.07,
+     -0.07
+    ]
+   },
+   "spine_ricasso_band": {
+    "vm_800N_MPa": 108.3,
+    "vm_3427N_MPa": 463.9,
+    "SF_3427N": 1.785,
+    "xyz": [
+     105.56,
+     10.99,
+     -0.06
+    ]
+   }
+  },
+  "C9_W71": 1.597,
+  "PASS": true,
+  "note": "first attempt RSS-guard killed at 7731 MB > 7600; re-run with 11500 limit peaked 7450 MB"
+ },
+ "V7": {
+  "case": "a3_twist_torque soft wedge 0.3,8; 6 N.m x 2.7 = 16.2 N.m [O'Sullivan & Gallwey 2002 via W69]",
+  "global_mesh": "c93n HMAX 2 / BOXV 1.0 / LOC 63.6,4.6 r3 h0.25 (W72)",
+  "global_n_tet": 81979,
+  "global_zones": {
+   "all": 1.657,
+   "handle_x12_88": 1.657,
+   "ring_r<20": 4.606,
+   "eye_heel_x88_101": 1.859,
+   "blade_x>=101": 2.016,
+   "blade_x101_150": 2.477,
+   "tip_strip_x150_180": 2.016,
+   "point_x>=180": 3.817
+  },
+  "global_handle_peak": [
+   64.98,
+   2.94,
+   1.54
+  ],
+  "nose_submodel_centre": [
+   64.98,
+   2.94
+  ],
+  "RS": 4.0,
+  "RL": 1.6,
+  "ladder_box": [
+   {
+    "h": 0.2,
+    "n_tet": 16390,
+    "vm_inner_MPa_6Nm": 186.2,
+    "SF_16p2": 1.647,
+    "peak": [
+     65.02,
+     2.94,
+     1.55
+    ],
+    "vm_cut_layer_MPa": 994.8
+   },
+   {
+    "h": 0.15,
+    "n_tet": 30130,
+    "vm_inner_MPa_6Nm": 188.4,
+    "SF_16p2": 1.6277,
+    "peak": [
+     64.92,
+     3.25,
+     -1.56
+    ],
+    "vm_cut_layer_MPa": 1001.4
+   },
+   {
+    "h": 0.12,
+    "n_tet": 51613,
+    "vm_inner_MPa_6Nm": 189.5,
+    "SF_16p2": 1.6183,
+    "peak": [
+     64.98,
+     2.9,
+     -1.57
+    ],
+    "vm_cut_layer_MPa": 922.0
+   }
+  ],
+  "ladder_xbabe3": [
+   {
+    "h": 0.12,
+    "n_tet": 51778,
+    "vm_inner_MPa_6Nm": 189.1,
+    "SF_16p2": 1.6217,
+    "peak": [
+     65.07,
+     2.93,
+     -1.57
+    ],
+    "vm_cut_layer_MPa": 958.0
+   },
+   {
+    "h": 0.1,
+    "n_tet": 83028,
+    "vm_inner_MPa_6Nm": 189.3,
+    "SF_16p2": 1.62,
+    "peak": [
+     65.02,
+     2.93,
+     1.57
+    ],
+    "vm_cut_layer_MPa": 1065.6
+   }
+  ],
+  "conv_box_W72_recipe": {
+   "finest": 1.6183,
+   "h_finest": 0.12,
+   "extrap_p1p2": 1.5877,
+   "observed_order": 1.805,
+   "extrap_observed": 1.5993,
+   "SF_converged_design": 1.588
+  },
+  "conv_with_finer": {
+   "finest": 1.62,
+   "h_finest": 0.1,
+   "extrap_p1p2": 1.613,
+   "SF_converged_design": 1.613,
+   "rule": "min(xbabe3 0.12/0.1 min(finest,p1.2), box finest observed h0.12); box-only p1.2 (from the 0.15->0.12 step) superseded: h0.1 shows the ladder flat (xbabe3 0.12->0.1: 189.1->189.3 MPa, +0.1 %)"
+  },
+  "SF_converged_design": 1.613,
+  "C91_W72": 1.624,
+  "PASS": true,
+  "jimping_submodel": {
+   "centre": [
+    76.98,
+    12.6
+   ],
+   "ladder": [
+    {
+     "h": 0.2,
+     "n_tet": 15182,
+     "vm_inner_MPa_6Nm": 127.5,
+     "SF_16p2": 2.4052,
+     "peak": [
+      79.07,
+      12.68,
+      0.04
+     ],
+     "vm_cut_layer_MPa": 8226.6
+    },
+    {
+     "h": 0.15,
+     "n_tet": 24994,
+     "vm_inner_MPa_6Nm": 126.7,
+     "SF_16p2": 2.4204,
+     "peak": [
+      78.84,
+      12.69,
+      0.02
+     ],
+     "vm_cut_layer_MPa": 7652.6
+    }
+   ],
+   "note": "twist peak does NOT migrate to the R1.0/D0.35 jimping (inner SF >> nose)"
+  }
+ },
+ "board": {
+  "V1": 2.016,
+  "V2": 1.644,
+  "V3": 1.597,
+  "V4": 1.755,
+  "V5": 8.2,
+  "V6_a1": 1.632,
+  "V6_a2": 1.697,
+  "V7": 1.613,
+  "V8_g": 66.773,
+  "governor": "V3",
+  "governor_SF": 1.597,
+  "governor_note": "V3 1.597 (W77 all V1\u2013V8 PASS)",
+  "fitness": 2.392,
+  "margins_pct": {
+   "V1": 34.4,
+   "V2": 9.6,
+   "V3": 6.5,
+   "V4": 17.0,
+   "V6_a1": 8.8,
+   "V6_a2": 13.1,
+   "V7": 7.5
+  }
+ },
+ "promote": true,
+ "checks": {
+  "anchors": "twist_c8 global_save/sub_solve build loads from master gen.py (C.8 lineage); TIP (188,-54), heel, ricasso and the fixed grip box x16-80 are identical to gen_revC9 C.9.3 (checked), yc recentred from the mesh -> anchors valid"
+ },
+ "flags": {
+  "material_improvement": true,
+  "correction": false,
+  "decision_needed": false,
+  "promote": true
+ },
+ "next": "W78: plastic bend-vs-break on C.9.3 (detached xbabe2/3) + V3 mesh ladder; a1b handle hot spot; mass recovery from rc3 with all gates >= 1.575",
+ "notes": {
+  "template_missing": "docs/WAVE_FIGURE_TEMPLATE.md not in repo; wave76 layout used",
+  "h0p085": "held on xbabe3 (RAM shared with another 92 GB job); ladder flat 0.12->0.1"
+ }
+}
