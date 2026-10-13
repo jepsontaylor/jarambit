@@ -12,5 +12,8 @@
  "cad": "SWITCHBACK Rev C.9.2",
  "note": "physically based visualization under stated material assumptions",
  "width": 3840,
- "height": 2160
+ "height": 2160,
+ "figure": "docs/media/marketing/dark_hero.jpg",
+ "figure_sha256": "1967d378da266de70c7d6cd9074ba957a81eabe2e5400afac55aba91e2403afe",
+ "script": "ops/render/marketing/pipeline.py"
 }

@@ -12,5 +12,8 @@
  "cad": "SWITCHBACK Rev C.9.2",
  "note": "physically based visualization under stated material assumptions",
  "width": 3840,
- "height": 2160
+ "height": 2160,
+ "figure": "docs/media/marketing/hero_3q.jpg",
+ "figure_sha256": "ed3d00648d93f75db28769e32e397f28bf0538270f235f369dba87a552209e17",
+ "script": "ops/render/marketing/pipeline.py"
 }

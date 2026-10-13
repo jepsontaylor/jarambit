@@ -12,5 +12,8 @@
  "cad": "SWITCHBACK Rev C.9.2",
  "note": "physically based visualization under stated material assumptions",
  "width": 3840,
- "height": 2160
+ "height": 2160,
+ "figure": "docs/media/marketing/spine_top.jpg",
+ "figure_sha256": "d4a70c9487e37e7a739948493f938362afcc35504e0962bf2568999ee2081ab4",
+ "script": "ops/render/marketing/pipeline.py"
 }

@@ -14,5 +14,8 @@
  "frames": 240,
  "fps": 30,
  "color_space": "bt709",
- "color_range": "tv"
+ "color_range": "tv",
+ "figure": "docs/media/marketing/turntable_2160p_h264.mp4",
+ "figure_sha256": "f49dd33b5c7dfa26a0a29924be5781947fec8b67bbb1789ef18efd4b41580b4c",
+ "script": "ops/render/marketing/pipeline.py"
 }

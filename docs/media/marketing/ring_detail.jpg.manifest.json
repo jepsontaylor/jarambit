@@ -12,5 +12,8 @@
  "cad": "SWITCHBACK Rev C.9.2",
  "note": "physically based visualization under stated material assumptions",
  "width": 3840,
- "height": 2160
+ "height": 2160,
+ "figure": "docs/media/marketing/ring_detail.jpg",
+ "figure_sha256": "3e7c82b37bbb9e183a5b4fb4d654b461723acee9e2664b40e9f94a1b60a25f0c",
+ "script": "ops/render/marketing/pipeline.py"
 }

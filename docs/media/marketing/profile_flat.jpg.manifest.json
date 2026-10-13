@@ -12,5 +12,8 @@
  "cad": "SWITCHBACK Rev C.9.2",
  "note": "physically based visualization under stated material assumptions",
  "width": 3840,
- "height": 2160
+ "height": 2160,
+ "figure": "docs/media/marketing/profile_flat.jpg",
+ "figure_sha256": "1a8f64ae410ecbcbecdb8e0d22b859085f5b5597ec885138c4d9b1357d41354d",
+ "script": "ops/render/marketing/pipeline.py"
 }

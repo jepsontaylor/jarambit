@@ -12,5 +12,8 @@
  "cad": "SWITCHBACK Rev C.9.2",
  "note": "physically based visualization under stated material assumptions",
  "width": 3840,
- "height": 2160
+ "height": 2160,
+ "figure": "docs/media/marketing/edge_macro.jpg",
+ "figure_sha256": "84c78e8e55458fe55d3cb4f7b2152ee9ea186d76f1b48bcb0df32c1a6f32a202",
+ "script": "ops/render/marketing/pipeline.py"
 }
