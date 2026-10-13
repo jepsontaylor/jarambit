@@ -1,0 +1,32 @@
+{
+ "bytes": 5765725,
+ "color": "fem",
+ "color_info": {
+  "below_1": "red",
+  "field": "D1 certified envelope SF (100 C, joint)",
+  "range": [
+   1.0,
+   3.0
+  ]
+ },
+ "degrees": 360,
+ "dither": "sierra2_4a",
+ "figure": "docs/media/g3_tip+00_t60_tt3_turntable.gif",
+ "figure_sha256": "b17c46a8a8fff4725258516447da6df2235bf70414e297be38b82c4d54dea435",
+ "fps": 18,
+ "frames": 72,
+ "inputs": {
+  "evidence/wave27/g3_tip+00_t60_tt3.stl": "04404820cf8385f5e34a42ef9d39a79aecda8eb88895c78aa21f4e3a92fe28c5",
+  "evidence/wave27/g3_tip+00_t60_tt3_D1.json": "49d9ee941f991b016e5ecbad2ee3ac58c020c9e9ffbde3421ccda491957ce666"
+ },
+ "lossy": true,
+ "output": "docs/media/g3_tip+00_t60_tt3_turntable.gif",
+ "output_sha256": "b17c46a8a8fff4725258516447da6df2235bf70414e297be38b82c4d54dea435",
+ "palette_colors": 128,
+ "schema": 1,
+ "script": "ops/render/turntable.py",
+ "size": [
+  1920,
+  1080
+ ]
+}
