@@ -37,6 +37,8 @@ class Contract(unittest.TestCase):
         from sheath.interface import load_annotations
         p = os.path.join(os.path.dirname(__file__), "..", "..", "designs", "switchback", "C9.3", "sheath", "knife_interface_annotations.json")
         a, st = load_annotations(p, "3a818183bcb5b9a9093da947e00414ed29aa9bfebbb614046b8fb0b16dcbe919")
-        self.assertIsNotNone(a); self.assertTrue(st.startswith("INCOMPLETE"))       # proposed, not approved
+        self.assertIsNotNone(a); self.assertTrue(st.startswith("APPROVED"))         # delegated review 2026-10-13
+        self.assertIn("hook_back_edge_sp", [d["name"] for d in a["declared_sharp"]])
+        self.assertNotIn("hook_back", [b["name"] for b in a.get("bumper_lands", [])])
         a2, st2 = load_annotations(p, "0" * 64)
         self.assertIsNone(a2)

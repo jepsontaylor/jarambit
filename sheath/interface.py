@@ -35,11 +35,22 @@ def from_step(step_path, stl_path, annotation_path=None):
     sha = raw["source"]["step_sha256"]
     ann, status = load_annotations(annotation_path, sha)
     tess = tessellation_error(step_path, mesh)
+    # declared-sharp boundary arcs from the annotation (geometry that is modelled with an edge flat but is a cutting edge:
+    # rule — every cutting edge is sharp with ~0 edge width, so only explicitly non-cutting geometry can be a land)
+    extra = []
+    if ann:
+        ring = P.exterior
+        bnd = np.array([ring.interpolate(t).coords[0] for t in np.arange(0, ring.length, 0.5)])
+        for d in ann.get("declared_sharp") or []:
+            (x0, x1), (y0, y1) = d["x_range"], d["y_range"]
+            sel = bnd[(bnd[:, 0] >= x0) & (bnd[:, 0] <= x1) & (bnd[:, 1] >= y0) & (bnd[:, 1] <= y1)]
+            if len(sel):
+                extra.append({"name": d["name"], "origin": "annotation.declared_sharp: " + d.get("why", ""), "pts": sel.tolist()})
     iface = {
         "schema": SCHEMA, "source": {"kind": "step", **raw["source"]}, "units": "mm", "frame": raw["frame"],
         "planform": raw["planform"], "holes": raw["holes"], "ring": raw["ring"], "tip": raw["tip"], "t_max_mm": raw["t_max_mm"],
         "sharp_regions": [{"name": "auto_%d" % i, "origin": "thickness_probe<1.0mm@0.6mm + 6mm tip zone", "pts": r["pts"]}
-                          for i, r in enumerate(raw["sharp_runs"])],
+                          for i, r in enumerate(raw["sharp_runs"])] + extra,
         "retention_lands": ann.get("retention_lands") if ann else None,
         "seating_lands": ann.get("seating_lands") if ann else None,
         "keepouts": (ann.get("keepouts") if ann else None) or [{"name": "grip+ring", "x_max": 60.0, "origin": "default"}],
