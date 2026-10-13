@@ -14,7 +14,8 @@ Date: 2026-10-13. Branch pushed. No pull request opened.
 ## Checks this session
 
 - `final_4k` is adaptive 0.02, 512 max / 64 min spp, `auto_tile` false (measured 54 s median on a 3090).
-- Dispatch runs one shard per free GPU: xbabe1, then xbabe3 when it is under the yield line, then xbabe2 only under that same line. Raw, depth, and normal EXR are removed after the PNG exists.
+- Dispatch runs one shard per free GPU: xbabe1, then xbabe3 when it is under the yield line, then xbabe2 only under that same line. A host with any Blender process is left alone, including between samples. Raw, depth, and normal EXR are removed after the PNG exists.
+- The remote request file keeps the worker basename (`turntable_final_4k_NNN.json`). The GPU flock is `exec`'d into the Blender pid. After the turntable PNGs exist, `deliver.sh` encodes, packages the C.9.2 manifest, and writes QA. Q14 stays pending and nothing is uploaded.
 - `actionlint .github/workflows/render-marketing-smoke.yml`: exit 0.
 - `doctor --require ffmpeg,zscale,libx264,libx265,libwebp,blender,gifski --hosts`: `missing` [].
 

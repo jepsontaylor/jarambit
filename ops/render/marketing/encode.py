@@ -53,7 +53,7 @@ def h264_cmd(src, out_path, *, width=1920, height=1080, fps=30, crf=16, preset="
         cmd += ["-i", src]
     cmd += [
         "-vf", zscale_limited(width, height, ten_bit=False),
-        "-c:v", "libx264", "-preset", preset, "-crf", str(crf),
+        "-c:v", "libx264", "-threads", "16", "-preset", preset, "-crf", str(crf),
         "-profile:v", "high", "-pix_fmt", "yuv420p",
         "-color_primaries", "bt709", "-color_trc", "bt709",
         "-colorspace", "bt709", "-color_range", "tv",
@@ -76,7 +76,7 @@ def h265_cmd(src, out_path, *, width=3840, height=2160, fps=30, crf=18, preset="
         cmd += ["-i", src]
     cmd += [
         "-vf", zscale_limited(width, height, ten_bit=True),
-        "-c:v", "libx265", "-preset", preset, "-crf", str(crf),
+        "-c:v", "libx265", "-threads", "16", "-preset", preset, "-crf", str(crf),
         "-pix_fmt", "yuv420p10le", "-tag:v", "hvc1",
         "-color_primaries", "bt709", "-color_trc", "bt709",
         "-colorspace", "bt709", "-color_range", "tv",

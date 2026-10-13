@@ -422,6 +422,35 @@ def write_qa(path, report):
     return path
 
 
+def framing_rows(plan):
+    """Q3 rows from a resolved plan. A margin list uses its minimum."""
+    rows = []
+    for shot in (plan or {}).get("shots") or []:
+        framing = shot.get("framing") or {}
+        margin = framing.get("per_frame_margin_min")
+        if isinstance(margin, (list, tuple)):
+            margin = min(margin) if margin else None
+        rows.append({
+            "id": shot.get("id"),
+            "hero": bool(shot.get("hero")),
+            "margin_min": margin,
+            "fill_worst": framing.get("fill_worst"),
+            "pass": bool(framing.get("pass")),
+        })
+    return rows
+
+
+def seconds_from_receipts(receipts):
+    """Render seconds recorded by the worker. Missing seconds are left out."""
+    values = []
+    for receipt in receipts or []:
+        frame = receipt.get("frame") or {}
+        if frame.get("seconds") is None:
+            continue
+        values.append(float(frame["seconds"]))
+    return values
+
+
 def contact_sheet(image_paths, out_path, columns=4, thumb=320):
     """Montage of delivery stills. Returns the path, or None when there is nothing to show."""
     paths = [path for path in image_paths if path and os.path.isfile(path)]

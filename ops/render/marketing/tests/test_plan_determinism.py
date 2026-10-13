@@ -1,5 +1,6 @@
 """Resolved plans are byte-identical, and the farm shards, yields and resumes."""
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -229,6 +230,67 @@ def test_remote_request_keeps_the_schema_and_moves_under_scratch():
     assert updated["regions_path"].endswith("/inputs/regions.json")
     assert updated["out_dir"].startswith("/home/ubuntu/jarambit_render_scratch/abc/shots/")
     assert set(updated["shot"]["frames"][0]) == {"index", "az", "el", "distance_m", "target"}
+
+
+def test_remote_stage_keeps_the_worker_filename(tmp_path):
+    staged = farm.stage_remote_request(
+        str(tmp_path), "xbabe1", "turntable_final_4k_000.json",
+        {"schema": "jarambit.render.request.v1"},
+    )
+    assert os.path.basename(staged) == "turntable_final_4k_000.json"
+    assert "remote_" not in os.path.basename(staged)
+    assert staged.endswith(os.path.join("staged", "xbabe1", "turntable_final_4k_000.json"))
+
+
+def test_gpu_lock_wrapper_execs_blender_in_place():
+    argv = farm.wrap_gpu_lock(["nice", "-n", "10", "blender"], "GPU-test")
+    script = argv[2]
+    assert script.count("exec ") == 2
+    assert "GPU_LOCK_BUSY" in script
+    assert "exec nice -n 10 blender" in script
+
+
+def test_adopt_running_keeps_the_live_shard():
+    jobs = [{
+        "status": "pending",
+        "request_path": "/r/turntable_final_4k_002.json",
+        "shot_id": "turntable",
+        "profile": "final_4k",
+        "shard": 2,
+    }]
+    found = farm.adopt_running(
+        jobs, {"turntable_final_4k_002.json": "420693"}, "xbabe2", None, "/logs",
+    )
+    assert found == ["turntable_final_4k_002.json"]
+    assert jobs[0]["status"] == "launched"
+    assert jobs[0]["pid"] == "420693"
+    assert jobs[0]["host"] == "xbabe2"
+    assert jobs[0]["log"].endswith("turntable_final_4k_002.log")
+
+
+def test_host_slot_stays_closed_while_blender_is_up():
+    state = {"name": "xbabe3", "reachable": True, "yield": False}
+    assert farm.host_slot_free(state, [], blender_present=True) is False
+    assert farm.host_slot_free(state, [], blender_present=False) is True
+    assert farm.host_slot_free(state, ["xbabe3"], blender_present=False) is False
+    yielding = {"name": "xbabe2", "reachable": True, "yield": True}
+    assert farm.host_slot_free(yielding, [], blender_present=False) is False
+
+
+def test_qa_reads_frame_seconds_and_framing():
+    import qa
+    seconds = qa.seconds_from_receipts([{"frame": {"seconds": 40.0}}, {"frame": {}}])
+    assert seconds == [40.0]
+    rows = qa.framing_rows({
+        "shots": [{
+            "id": "turntable",
+            "hero": True,
+            "framing": {"per_frame_margin_min": [0.2, 0.1], "fill_worst": 0.7, "pass": True},
+        }],
+    })
+    assert rows[0]["margin_min"] == 0.1
+    assert rows[0]["fill_worst"] == 0.7
+    assert rows[0]["hero"] is True
 
 
 def test_blender_argv_pins_threads_and_factory_startup():

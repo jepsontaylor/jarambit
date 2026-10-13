@@ -641,6 +641,103 @@ def _shrink_denoised(ssh_host, out_dir, limit_bytes):
     _ssh(ssh_host, script)
 
 
+def stage_remote_request(request_dir, host_name, request_basename, payload):
+    """Write a host copy whose basename is the name the worker opens.
+
+    rsync keeps the source basename. A `remote_<host>_` prefix made Blender
+    look for `turntable_final_4k_000.json` and exit on FileNotFoundError.
+    """
+    if not request_basename or request_basename != os.path.basename(request_basename):
+        raise ValueError("request basename must be a file name")
+    if request_basename.startswith("remote_"):
+        raise ValueError("remote request must keep the worker file name")
+    staged = os.path.join(request_dir, "staged", host_name, request_basename)
+    canon.atomic_write_json(staged, payload)
+    return staged
+
+
+def wrap_gpu_lock(argv, gpu_uuid):
+    """Hold the flock in the Blender process itself.
+
+    `exec` keeps the pid launch_shell records. A child Blender that outlived
+    the shell was reaped as a failure and the next shard started beside it.
+    """
+    lock = lock_path(gpu_uuid)
+    inner = (
+        f"exec 9>{shlex.quote(lock)}; "
+        f"flock -n 9 || {{ echo GPU_LOCK_BUSY; exit 75; }}; "
+        f"exec {shell_join(argv)}"
+    )
+    return ["bash", "-c", inner]
+
+
+def blender_processes(ssh_host):
+    """(pid, request basename) for every blender on the host.
+
+    The checker skips its own pid. A cmdline without a request json yields
+    an empty basename so the host still counts as busy.
+    """
+    code = (
+        "import os\n"
+        "me=str(os.getpid())\n"
+        "for pid in os.listdir('/proc'):\n"
+        "    if not pid.isdigit() or pid==me: continue\n"
+        "    try: raw=open('/proc/'+pid+'/cmdline','rb').read()\n"
+        "    except OSError: continue\n"
+        "    try: comm=open('/proc/'+pid+'/comm').read().strip()\n"
+        "    except OSError: continue\n"
+        "    if comm != 'blender': continue\n"
+        "    text=raw.replace(bytes([0]), b' ').decode('utf-8','replace')\n"
+        "    name=''\n"
+        "    for token in text.split():\n"
+        "        if token.endswith('.json'):\n"
+        "            name=token.rsplit('/',1)[-1]\n"
+        "    print(pid+' '+(name or '-'))\n"
+    )
+    if ssh_host is None:
+        proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    else:
+        proc = _ssh(ssh_host, "python3 -c " + shlex.quote(code))
+    found = []
+    for line in (proc.stdout or "").splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and parts[0].isdigit():
+            name = "" if parts[1] == "-" else parts[1]
+            found.append((parts[0], name))
+    return found
+
+
+def adopt_running(jobs, pid_by_basename, host_name, ssh_host, log_dir):
+    """Attach a supervisor to a Blender that is already rendering a shard."""
+    adopted = []
+    for job in jobs:
+        if job.get("status") not in ("pending", "failed"):
+            continue
+        base = os.path.basename(job["request_path"])
+        pid = (pid_by_basename or {}).get(base)
+        if not pid:
+            continue
+        job["status"] = "launched"
+        job["pid"] = str(pid)
+        job["ssh"] = ssh_host
+        job["host"] = host_name
+        job["log"] = os.path.join(log_dir, f"{job['shot_id']}_{job['profile']}_{int(job['shard']):03d}.log")
+        job["adopted"] = True
+        adopted.append(base)
+    return adopted
+
+
+def host_slot_free(state, busy_names, blender_present):
+    """One shard per GPU. A live Blender closes the slot even between samples."""
+    if not state.get("reachable") or state.get("yield"):
+        return False
+    if state.get("name") in set(busy_names or []):
+        return False
+    if blender_present:
+        return False
+    return True
+
+
 def launch_prepared_shard(job, state, root, bundle_path, regions_path, npz_path,
                           blender, worker, code_dir, hdri_path):
     """Nohup one shard on one host. The GPU flock is taken inside that process."""
@@ -656,9 +753,14 @@ def launch_prepared_shard(job, state, root, bundle_path, regions_path, npz_path,
         updated["out_dir"] = os.path.join(root, "shots", job["shot_id"], job["profile"])
         launch_worker = os.path.join(root, "code", "blender", "worker.py")
         launch_request = os.path.join(root, "requests", os.path.basename(job["request_path"]))
-        staged = os.path.join(os.path.dirname(job["request_path"]), "remote_" + state["name"] + "_" + os.path.basename(job["request_path"]))
-        canon.atomic_write_json(staged, updated)
+        staged = stage_remote_request(
+            os.path.dirname(job["request_path"]), state["name"],
+            os.path.basename(job["request_path"]), updated,
+        )
         push_files(ssh_host, [staged], os.path.join(root, "requests"))
+        present = _ssh(ssh_host, f"test -s {shlex.quote(launch_request)}")
+        if present.returncode != 0:
+            raise OSError(f"request missing on {ssh_host}: {launch_request}")
         log_path = os.path.join(root, "logs", f"{job['shot_id']}_{job['profile']}_{job['shard']:03d}.log")
         _ssh(ssh_host, f"mkdir -p {shlex.quote(os.path.dirname(log_path))} {shlex.quote(updated['out_dir'])}", check=True)
     else:
@@ -668,13 +770,7 @@ def launch_prepared_shard(job, state, root, bundle_path, regions_path, npz_path,
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
     argv = blender_argv(blender, launch_worker, launch_request)
     if state.get("gpu_uuid"):
-        lock = lock_path(state["gpu_uuid"])
-        inner = (
-            f"exec 9>{shlex.quote(lock)}; "
-            f"flock -n 9 || {{ echo GPU_LOCK_BUSY; exit 75; }}; "
-            f"{shell_join(argv)}"
-        )
-        argv = ["bash", "-c", inner]
+        argv = wrap_gpu_lock(argv, state["gpu_uuid"])
     job["pid"] = launch_shell(argv, log_path, ssh_host=ssh_host)
     job["ssh"] = ssh_host
     job["log"] = log_path
@@ -734,13 +830,20 @@ def supervise(plan, dest, bundle_path, regions_path, npz_path, blender, worker,
             _shrink_denoised(job.get("ssh"), remote_out, 12 * 1024 ** 3)
             job["status"] = "done"
         states = [probe(host) for host in hosts]
+        log_dir = os.path.join(dest, "logs")
+        for state in states:
+            procs = blender_processes(state.get("ssh"))
+            state["blender_pids"] = procs
+            adopt_running(
+                jobs, {name: pid for pid, name in procs if name},
+                state.get("name"), state.get("ssh"), log_dir,
+            )
+        busy = [job["host"] for job in jobs if job["status"] == "launched"]
         pending = [job for job in jobs if job["status"] == "pending"]
         for state in states:
             if not pending:
                 break
-            if state.get("name") in busy:
-                continue
-            if not (state.get("reachable") and not state.get("yield")):
+            if not host_slot_free(state, busy, bool(state.get("blender_pids"))):
                 continue
             scratch = dest
             if not remote_disk_ok(state.get("ssh"), scratch):
@@ -753,8 +856,9 @@ def supervise(plan, dest, bundle_path, regions_path, npz_path, blender, worker,
                 )
                 busy.append(state.get("name"))
             except (OSError, subprocess.CalledProcessError) as exc:
-                job["status"] = "pending"
+                job["tries"] = int(job.get("tries") or 0) + 1
                 job["error"] = str(exc)[-300:]
+                job["status"] = "pending" if job["tries"] < 2 else "failed"
         summary = {
             "plan_key": plan["plan_key"],
             "done": sum(1 for job in jobs if job["status"] == "done"),

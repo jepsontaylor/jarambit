@@ -20,6 +20,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
@@ -227,24 +228,35 @@ def _vertices(bundle_path, npz_path):
     return np.load(path)["V"], path
 
 
-def _start_delivery(dest, png_dir, pipeline_path):
-    """Encode, QA, and package after the PNGs exist. Does not upload."""
-    script = os.path.join(dest, "deliver.sh")
-    out = os.path.join(dest, "delivery")
+def _start_delivery(dest, png_dir, pipeline_path, *, pattern="turntable_%04d.png", label="deliver"):
+    """Encode, then QA and package. Does not upload. Q14 stays pending."""
+    script = os.path.join(dest, label + ".sh")
+    out = os.path.join(dest, label)
+    package_root = os.path.join(dest, label + "_package")
+    plan_path = os.path.join(dest, "render_plan.resolved.json")
     text = "\n".join([
         "#!/bin/bash",
         "set -euo pipefail",
-        f"mkdir -p {json.dumps(out)}",
+        f"mkdir -p {json.dumps(out)} {json.dumps(package_root)}",
         " ".join([
             "nice", "-n", "10", sys.executable, json.dumps(pipeline_path), "encode",
-            "--frames", json.dumps(png_dir), "--pattern", "turntable_%04d.png",
+            "--frames", json.dumps(png_dir), "--pattern", pattern,
             "--out", json.dumps(out),
         ]),
         "echo DELIVERY_ENCODE_OK",
+        " ".join([
+            "nice", "-n", "10", sys.executable, json.dumps(pipeline_path), "post",
+            "--dest", json.dumps(dest),
+            "--delivery", json.dumps(out),
+            "--package", json.dumps(package_root),
+            "--plan", json.dumps(plan_path),
+            "--png-dir", json.dumps(png_dir),
+        ]),
+        "echo DELIVERY_POST_OK",
     ]) + "\n"
     canon.atomic_write_text(script, text)
     os.chmod(script, 0o755)
-    log = os.path.join(dest, "logs", "deliver.log")
+    log = os.path.join(dest, "logs", label + ".log")
     os.makedirs(os.path.dirname(log), exist_ok=True)
     subprocess.Popen(
         ["bash", script],
@@ -253,6 +265,112 @@ def _start_delivery(dest, png_dir, pipeline_path):
         start_new_session=True,
     )
     print(f"delivery started {script}", flush=True)
+
+
+def _decode_probe(path):
+    """Full decode of one video. Returns (probe, decoded) for Q10."""
+    proc = subprocess.run(
+        [
+            encode_mod.FFPROBE, "-v", "error", "-count_frames",
+            "-select_streams", "v:0",
+            "-show_entries",
+            "stream=nb_read_frames,r_frame_rate,avg_frame_rate,color_space,"
+            "color_transfer,color_primaries,color_range",
+            "-of", "json", path,
+        ],
+        capture_output=True, text=True,
+    )
+    if proc.returncode != 0 or not proc.stdout:
+        return None, False
+    data = json.loads(proc.stdout)
+    stream = (data.get("streams") or [{}])[0]
+    try:
+        count = int(stream.get("nb_read_frames") or 0)
+    except (TypeError, ValueError):
+        count = 0
+    return {"video": stream, "frames_decoded": count}, count > 0
+
+
+def cmd_post(args):
+    """Package the encoded turntable and write QA. Release stays blocked on Q14."""
+    plan = _load_json(args.plan)
+    receipts = []
+    if os.path.isdir(args.png_dir):
+        for name in sorted(os.listdir(args.png_dir)):
+            if name.startswith("turntable_") and name.endswith(".receipt.json"):
+                receipts.append(_load_json(os.path.join(args.png_dir, name)))
+    seconds = qa_mod.seconds_from_receipts(receipts)
+    wall = None
+    stamp = os.path.join(args.dest, "started_at.txt")
+    if os.path.isfile(stamp):
+        try:
+            wall = time.time() - float(open(stamp, encoding="utf-8").read().strip())
+        except ValueError:
+            wall = None
+    sizes = {}
+    if os.path.isdir(args.delivery):
+        for name in os.listdir(args.delivery):
+            path = os.path.join(args.delivery, name)
+            if os.path.isfile(path):
+                sizes[name] = os.path.getsize(path)
+    video = os.path.join(args.delivery, "turntable_1080p_h264.mp4")
+    probe, decoded = (None, False)
+    faststart = None
+    if os.path.isfile(video):
+        probe, decoded = _decode_probe(video)
+        faststart = encode_mod.moov_before_mdat(video)
+    files = []
+    for name, role in (
+        ("turntable_1080p_h264.mp4", "turntable"),
+        ("turntable_2160p_h264.mp4", "turntable"),
+        ("turntable_2160p_h265.mp4", "turntable"),
+        ("turntable_720p.webp", "turntable"),
+        ("turntable_640.gif", "turntable"),
+    ):
+        src = os.path.join(args.delivery, name)
+        if os.path.isfile(src):
+            files.append({"src": src, "dest_name": name, "role": role})
+    if not files:
+        _die("post needs at least one encoded turntable file")
+    bundle = plan.get("bundle") or {}
+    git = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=_HERE)
+    toolchain = _load_json(LOCK_PATH) if os.path.isfile(LOCK_PATH) else {}
+    try:
+        staged = package_mod.stage(
+            args.package,
+            mesh_bundle_sha256=bundle.get("npz_sha256"),
+            toolchain=toolchain,
+            git_sha=(git.stdout or "").strip() or "unknown",
+            plan_key=plan.get("plan_key"),
+            files=files,
+            normal_policy=bundle.get("normal_policy"),
+        )
+    except package_mod.PackageError as exc:
+        _die(str(exc))
+    manifest = _load_json(staged["manifest"])
+    measurements = {
+        "seconds": seconds,
+        "wall_seconds": wall,
+        "framing": qa_mod.framing_rows(plan),
+        "sizes": sizes,
+        "probe": probe,
+        "decoded": decoded,
+        "faststart": faststart,
+        "frame_count": 240,
+        "manifest": manifest,
+        "sums_ok": package_mod.verify_sums(args.package),
+        "source_sha256": (manifest.get("source_cad") or {}).get("sha256"),
+    }
+    report = qa_mod.evaluate(measurements)
+    qa_path = os.path.join(args.dest, "qa.json")
+    qa_mod.write_qa(qa_path, report)
+    print(json.dumps({
+        "qa": qa_path,
+        "manifest": staged["manifest"],
+        "release_blocked": report["release_blocked"],
+        "failed": report["failed"],
+        "art_review": report["art_review"],
+    }), flush=True)
 
 
 def cmd_dispatch(args):
@@ -280,6 +398,9 @@ def cmd_dispatch(args):
     dest = os.path.abspath(args.dest or farm_mod.scratch_root(resolved["plan_key"]))
     os.makedirs(dest, exist_ok=True)
     canon.atomic_write_bytes(os.path.join(dest, "render_plan.resolved.json"), plan_mod.dumps(resolved))
+    stamp = os.path.join(dest, "started_at.txt")
+    if not os.path.isfile(stamp):
+        canon.atomic_write_text(stamp, f"{time.time():.3f}\n")
     hosts = (
         {"name": "xbabe1", "ssh": "xbabe1"},
         {"name": "xbabe3", "ssh": "xbabe3"},
@@ -317,6 +438,15 @@ def cmd_dispatch(args):
         deadline_utc=deadline,
         on_primary_done=deliver,
     )
+    dark_dir = os.path.join(dest, "shots", "turntable_dark", "final_4k")
+    dark_pngs = [
+        os.path.join(dark_dir, f"turntable_dark_{index:04d}.png") for index in range(240)
+    ]
+    if dark_pngs and all(os.path.isfile(path) and os.path.getsize(path) > 32 for path in dark_pngs):
+        _start_delivery(
+            dest, dark_dir, os.path.abspath(__file__),
+            pattern="turntable_dark_%04d.png", label="deliver_dark",
+        )
 
 
 def cmd_all(args):
@@ -414,6 +544,14 @@ def build_parser():
     pkg.add_argument("--raw", action="append")
     pkg.add_argument("--keep-raw", action="store_true")
     pkg.set_defaults(func=cmd_package)
+
+    post = sub.add_parser("post")
+    post.add_argument("--dest", required=True)
+    post.add_argument("--delivery", required=True)
+    post.add_argument("--package", required=True)
+    post.add_argument("--plan", required=True)
+    post.add_argument("--png-dir", required=True)
+    post.set_defaults(func=cmd_post)
 
     entire = sub.add_parser("all")
     entire.add_argument("--bundle")
