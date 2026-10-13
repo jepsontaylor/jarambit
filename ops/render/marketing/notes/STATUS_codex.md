@@ -43,3 +43,14 @@ jr_grok's farm alone, and stops after its READY handoff.
 
 The two owner-added root COORD entries are preserved outside this lane's
 commits, with a named stash and backups in `target/cadmesh-rebase-6853184/`.
+
+PR #59 review 5508074795: the B-rep blade gate now follows the surface-area
+PCA length axis, oriented away from the bore, so it follows the part through
+rigid poses. Public CLI regressions on the pinned C.10a STEP cover identity,
+180/90-degree Z rotations, and an oblique proper rotation plus translation.
+All labels are byte-identical to the published canonical labels; posed
+geometry and analytic normals remain correct. All 218 marketing/pro tests
+pass with zero skips, and 18 local gates pass under memcap 32G/nice19/CPU.
+All six canonical C.10a artifact hashes and the C.9.2 v2 label/tangent pins
+remain unchanged; live bundles and the farm were untouched. Signature and
+shader code are unchanged. See [POSE_59_validation.json](POSE_59_validation.json).

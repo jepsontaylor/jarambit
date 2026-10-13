@@ -286,6 +286,21 @@ def read_brep_faces(path, R=None, t=None):
     return records
 
 
+def _blade_half(V, F, area, center, bore_origin):
+    """Surface-area PCA length axis, pointing away from the handle's bore."""
+    centroid = np.sum(center * area[:, None], axis=0) / area.sum()
+    tri = (V - centroid)[F]
+    sums = tri.sum(axis=1)
+    covariance = (np.einsum("m,mki,mkj->ij", area, tri, tri)
+                  + np.einsum("m,mi,mj->ij", area, sums, sums)) / (12 * area.sum())
+    _, vectors = np.linalg.eigh(covariance)
+    axis = vectors[:, -1]
+    if np.dot(centroid - bore_origin, axis) < 0:
+        axis = -axis
+    length = V @ axis
+    return center @ axis > (length.min() + length.max()) / 2
+
+
 def classify_brep(V, F, face_id, faces, N_corner=None, tags=None, analysis=None):
     """Classify analytic B-rep features before any triangle-level refinement.
 
@@ -337,7 +352,8 @@ def classify_brep(V, F, face_id, faces, N_corner=None, tags=None, analysis=None)
             if np.linalg.norm(delta - axis * np.dot(delta, axis)) < 1e-6 and abs(np.dot(rec["axis"], axis)) > .995:
                 ring_ids.append(int(fid))
     ring = np.isin(face_id, ring_ids)
-    blade = center[:, 0] > (V[:, 0].min() + V[:, 0].max()) / 2 if bore is not None else np.ones(len(F), bool)
+    blade = (_blade_half(V, F, area, center, np.asarray(faces[bore]["origin_m"]))
+             if bore is not None else np.ones(len(F), bool))
     labels = np.zeros(len(F), np.uint8)
     labels[(angle > 75) & ~ring] = 6
     oblique = (angle > 12) & (angle <= 75)
