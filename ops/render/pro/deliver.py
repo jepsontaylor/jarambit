@@ -1,4 +1,4 @@
-"""Deliverables from rendered stills: 16-bit PNG (lossless master copy), 8-bit RGB PNG for chat (< 25 MB,
+"""Deliverables from rendered stills: 16-bit PNG (lossless master copy), 8-bit RGB PNG for chat (< 20 MB,
 blue-noise-like dither), 100 % signature crop (16-bit PNG, from the `sig` AOV bbox), small JPG thumbnail.
 python deliver.py RENDER_DIR OUT_DIR"""
 import glob, json, os, sys, hashlib
@@ -30,7 +30,7 @@ for qa_p in sorted(glob.glob(os.path.join(src, '*.qa.json'))):
     v8 = im16 / 257.0 + blue_noise(h, w)[:, :, None]
     im8 = np.clip(np.round(v8), 0, 255).astype(np.uint8)
     out8 = os.path.join(dst, tag + '_8bit.png'); Image.fromarray(im8).save(out8, optimize=True)
-    if os.path.getsize(out8) > 25e6:   # 8K: halve with Lanczos for the chat copy
+    if os.path.getsize(out8) > 20e6:   # 8K: halve with Lanczos for the chat copy
         Image.fromarray(im8).resize((w // 2, h // 2), Image.LANCZOS).save(out8, optimize=True)
     Image.fromarray(im8).resize((640, int(640 * h / w)), Image.LANCZOS).save(os.path.join(dst, tag + '_thumb.jpg'), quality=92)
     rec = {'shot': tag, 'png16': out16, 'png8': out8, 'png8_mb': round(os.path.getsize(out8) / 1e6, 2), 'qa': qa_p}

@@ -217,5 +217,64 @@
  },
  "world": {
   "strength": 0.0
+ },
+ "flame": {
+  "lut": "film_lut_12_62nm.json",
+  "d_start_nm": 21.0,
+  "d_end_nm": 60.0,
+  "lick_freq": 180.0,
+  "lick_amp": 0.04,
+  "rough": 0.07,
+  "coat": 1.0,
+  "coat_rough": 0.02,
+  "exposure_ev": 0.55,
+  "bevel_flamed": true,
+  "note": "ti_flame_heat: straw(14nm)->bronze(25-30)->purple(40)->blue(45-56) along the arc; clearcoat on, +0.55 EV",
+  "extra_lights": [
+   {
+    "name": "flat_reflector",
+    "type": "AREA",
+    "size_D": [
+     1.8,
+     0.7
+    ],
+    "az": 0,
+    "el": 20,
+    "dist_D": 3.2,
+    "power_W": 2.2,
+    "kelvin": 5600,
+    "spread_deg": 90,
+    "mirror_flat": true,
+    "offset_deg": [
+     8,
+     0
+    ]
+   }
+  ],
+  "look": {
+   "gold": [
+    0.98,
+    0.56,
+    0.1
+   ],
+   "gold_emit": 0.3,
+   "gold_rough": 0.05
+  },
+  "floor": {
+   "coat": 0.15,
+   "roughness": 0.09
+  },
+  "shot_overrides": {
+   "01_hero_34": {
+    "el": 4.0,
+    "az": -26
+   },
+   "04_macro_edge": {
+    "el": 5.0
+   },
+   "05_macro_signature": {
+    "el": 3.0
+   }
+  }
  }
 }

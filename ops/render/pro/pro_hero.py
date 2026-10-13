@@ -150,17 +150,65 @@ def ti_material():
     return m
 
 
-ART_M, TI_M = art_material(), ti_material()
+def lut_image(name, rows):
+    im = bpy.data.images.new(name, len(rows), 1, float_buffer=True)
+    im.colorspace_settings.name = 'Non-Color'
+    im.pixels = [c for rgb in rows for c in (*rgb, 1.0)]; return im
+
+
+def flame_material():
+    """Heat-anodized Ti flame: oxide thickness d(s) along the arc (ring end -> tip), interference colour
+    baked into the conductor F0 (Base Color) and F82 tint (Specular Tint) by anodize.film_metal."""
+    F = CFG['flame']; lut = json.load(open(os.path.join(HERE, F['lut'])))
+    m, nt, N, L = mk('pro_flame_heat'); out = N('ShaderNodeOutputMaterial')
+    xyz = obj_xyz(N, L); back, face = side_select(N, L)
+    x0, x1 = float(lo[0]), float(hi[0])
+    s = math_node(N, L, 'MULTIPLY_ADD', xyz.outputs['X'], 1.0 / (x1 - x0)); s.node.inputs[2].default_value = -x0 / (x1 - x0)
+    # gentle flame licks: thickness also rises toward the spine/edge (z) a little
+    lick = math_node(N, L, 'MULTIPLY', math_node(N, L, 'SINE', math_node(N, L, 'MULTIPLY', xyz.outputs['Z'], F['lick_freq'])), F['lick_amp'])
+    s = math_node(N, L, 'ADD', s, lick)
+    d0, d1 = F['d_start_nm'], F['d_end_nm']; ld0, ld1 = lut['d_nm'][0], lut['d_nm'][-1]
+    # s -> d -> lut u
+    dn = math_node(N, L, 'MULTIPLY_ADD', s, (d1 - d0) / (ld1 - ld0)); dn.node.inputs[2].default_value = (d0 - ld0) / (ld1 - ld0)
+    dn = math_node(N, L, 'MINIMUM', math_node(N, L, 'MAXIMUM', dn, 0.0), 1.0)
+    cmb = N('ShaderNodeCombineXYZ'); L(dn, cmb.inputs['X']); cmb.inputs['Y'].default_value = 0.5
+    def lut_tex(name, rows):
+        t = N('ShaderNodeTexImage'); t.image = lut_image(name, rows); t.interpolation = 'Linear'; t.extension = 'EXTEND'
+        L(cmb.outputs[0], t.inputs['Vector']); return t.outputs['Color']
+    f0 = lut_tex('lut_f0', lut['f0']); f82 = lut_tex('lut_f82', lut['f82'])
+    sig = mix_f(N, L, back, sig_mask(N, L, xyz, 'front'), sig_mask(N, L, xyz, 'back'))
+    sig = math_node(N, L, 'MULTIPLY', sig, face)
+    gold = tuple(LOOK['gold']) + (1,)
+    bs = N('ShaderNodeBsdfPrincipled'); bs.inputs['Metallic'].default_value = 1.0
+    L(mix_rgb(N, L, sig, f0, gold), bs.inputs['Base Color'])
+    L(mix_rgb(N, L, sig, f82, gold), bs.inputs['Specular Tint'])
+    L(mix_f(N, L, sig, F['rough'], LOOK['gold_rough']), bs.inputs['Roughness'])
+    bs.inputs['Coat Weight'].default_value = F['coat']; bs.inputs['Coat Roughness'].default_value = F['coat_rough']
+    L(mix_rgb(N, L, sig, (0, 0, 0, 1), gold), bs.inputs['Emission Color'])
+    bs.inputs['Emission Strength'].default_value = LOOK['gold_emit']
+    L(bs.outputs[0], out.inputs['Surface'])
+    aov = N('ShaderNodeOutputAOV'); aov.aov_name = 'sig'; L(sig, aov.inputs['Value'])
+    return m
+
+
+FINISH = A.get('--finish', CFG.get('finish', 'art'))
+if FINISH == 'flame':
+    LOOK['exposure'] = CFG['flame'].get('exposure_ev', LOOK['exposure']); LOOK.update(CFG['flame'].get('look', {}))
+    ART_M = flame_material(); TI_M = ART_M if CFG['flame'].get('bevel_flamed', True) else ti_material()
+else:
+    ART_M, TI_M = art_material(), ti_material()
 for i in range(len(labels)):
-    part.data.materials.append(TI_M if labels[str(i)] in ('bevel', 'edge_apex', 'serration') else ART_M)
+    lab = labels[str(i)]
+    part.data.materials.append((ti_material() if (FINISH == 'flame' and lab == 'edge_apex') else TI_M) if lab in ('bevel', 'edge_apex', 'serration') else ART_M)
 part.data.update()
 
 sc = bpy.context.scene
 vl = sc.view_layers[0]; a = vl.aovs.add(); a.name = 'sig'; a.type = 'VALUE'
 vl.use_pass_normal = vl.use_pass_z = vl.use_pass_object_index = True
 rig = json.load(open(os.path.join(MK, 'presets', 'rig_dark_arc_key.json')))
-rig['lights'] = rig['lights'] + CFG['extra_lights']
+rig['lights'] = rig['lights'] + CFG['extra_lights'] + (CFG['flame'].get('extra_lights', []) if A.get('--finish', CFG.get('finish', 'art')) == 'flame' else [])
 rig['backdrop']['material'].update(CFG.get('floor', {}))
+if A.get('--finish', CFG.get('finish', 'art')) == 'flame': rig['backdrop']['material'].update(CFG['flame'].get('floor', {}))
 z_floor = float(lo[2])
 scene.build_backdrop(rig['backdrop'], D, z_floor, materials.floor_material(rig['backdrop']['material']))
 hdri = scene.find_hdri(rig['world']['hdri']['file'], rig['world']['hdri']['sha256'],
@@ -177,7 +225,7 @@ cy.use_denoising = True; cy.denoiser = 'OPENIMAGEDENOISE'; cy.denoising_input_pa
 cy.denoising_prefilter = 'ACCURATE'; cy.denoising_quality = 'HIGH'
 cy.glossy_bounces = 12; cy.max_bounces = 16; cy.sample_clamp_indirect = 10; cy.blur_glossy = 0.2
 cy.use_animated_seed = False; cy.seed = 0
-r.use_persistent_data = True; r.film_transparent = False; r.dither_intensity = 0.0
+r.use_persistent_data = True; r.film_transparent = False; r.dither_intensity = 1.0  # applied in the float->16-bit PNG conversion
 sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = LOOK['agx_look']
 sc.view_settings.exposure = LOOK['exposure']
 sc.sequencer_colorspace_settings.name = 'sRGB'
@@ -319,6 +367,24 @@ def qa_lights():
     return {'emitters_in_frame': sorted(set(hits)), 'pass': not hits}
 
 
+def aim_mirror_lights(sh):
+    """Reflector lights flagged mirror_flat sit on the mirror direction of the broad face (normal -Y of
+    the visible side, rotated with the part) so the polished flats reflect them; offset_deg nudges it."""
+    tgt = Vector(((lo + hi) / 2).tolist()); tgt = part.matrix_world @ tgt
+    for Lc in rig['lights']:
+        if not Lc.get('mirror_flat'): continue
+        ob = sc.objects[Lc['name']]
+        n = part.matrix_world.to_3x3() @ Vector((0, 1 if sh['sig_side'] == 'back' else -1, 0)); n.normalize()
+        v = (cam.location - tgt).normalized()
+        r_ = 2 * n.dot(v) * n - v
+        el_off, az_off = [math.radians(x) for x in Lc.get('offset_deg', [0, 0])]
+        r_ = __import__('mathutils').Matrix.Rotation(az_off, 3, 'Z') @ r_
+        r_.z += math.sin(el_off); r_.normalize()
+        ob.location = tgt + r_ * Lc['dist_D'] * D
+        ob.rotation_euler = (tgt - ob.location).to_track_quat('-Z', 'Y').to_euler()
+    dg.update()
+
+
 def clear_lights(max_steps=40, step_deg=3.0):
     """Deterministic fix-up: any emitter (or its floor mirror) inside the frame is raised in elevation
     about the part centre, keeping its aim, until clear. Returns the per-light adjustments."""
@@ -388,7 +454,7 @@ if '--anim' in A:
                 for n, (l_, r_) in lt0.items():
                     ob = sc.objects[n]; ob.matrix_world = Rz @ ob.matrix_world
                 dg.update()
-            place_camera(sh); adj = clear_lights()
+            place_camera(sh); aim_mirror_lights(sh); adj = clear_lights()
             ql = qa_lights(); qs = qa_sig_frame(sh['sig_side'])
             rec = {'frame': f, 'shot': S['name'], 'lights_pass': ql['pass'], 'raised': adj, 'sig': qs}
             log.append(rec)
@@ -402,11 +468,13 @@ if '--anim' in A:
 
 only = set(A['--shots'].split(',')) if '--shots' in A else None
 for sh in CFG['shots']:
+    if FINISH == 'flame': sh = {**sh, **CFG['flame'].get('shot_overrides', {}).get(sh['name'], {})}
     if only and sh['name'] not in only: continue
     if RES not in sh.get('res', ['4k']): continue
     reset_lights()
     dist = place_camera(sh)
-    tag = f"{sh['name']}_{RES}"
+    aim_mirror_lights(sh)
+    tag = f"{sh['name']}_{RES}" + ('' if FINISH == 'art' else '_' + FINISH)
     light_adj = clear_lights()
     ql = qa_lights(); ql['raised_el_deg'] = light_adj; qs = qa_sig_frame(sh['sig_side'])
     qa = {'shot': tag, 'lights': ql, 'signature_frame': qs, 'signature_mesh': mesh_qa,

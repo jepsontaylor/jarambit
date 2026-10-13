@@ -34,9 +34,10 @@ isolated bevel run-out. Geometry is never altered to make an edge look sharp.
 
 ## Art and look
 - Planar XZ mapping, the same world mapping on both faces (through-print). The art's dark starfield lands on the blade.
-- Material: Principled. Art is sRGB 16-bit 8K with Cubic filtering and sat ×1.35 / val ×1.45, metallic 0.55, rough 0.22,
-  **clearcoat 1.0 @ 0.025**, thin film 320 nm / IOR 2.3, and a view-angle hue drift (Layer-Weight facing → hue) for an anodized-Ti look.
-  Art blacks become polished dark Ti (0.022), side walls are a dark polished Ti band, and ground bevels/edge are polished raw Ti (0.72, rough 0.06).
+- Material: Principled. Art is sRGB 16-bit 8K with Cubic filtering and sat ×1.35 / val ×1.45, metallic 0.82 (blacks 1.0), rough 0.16,
+  **clearcoat 0.8 @ 0.025**, and a view-angle hue drift (Layer-Weight facing → hue ±0.06) for an anodized-Ti interference look.
+  v4 tried dielectric thin film (320 nm) with 0.15-metallic blacks. It went milky under the broad sweep light, so it was rejected and metallic blacks restored.
+  Art blacks become polished dark mirror Ti (0.022, metallic 1), side walls are a dark polished Ti band, and ground bevels/edge are polished raw Ti (0.72, rough 0.06).
 - AgX with the Punchy look, no exposure offset. Glossy 12 / max 16 bounces. OIDN with albedo+normal at high quality and adaptive threshold 0.004.
 - Stage: R4 dark arc key + 2 face softboxes + blade sweep. The world HDRI is OFF because its studio boxes showed in
   the floor mirror. The floor is near-black with coat 0.6 and roughness 0.06.
@@ -45,7 +46,7 @@ isolated bevel run-out. Geometry is never altered to make an edge look sharp.
 `prep.py` solves each side's placement on a 0.1 mm layout grid. The ink footprint is dilated by 1.5 mm margin
 plus a 0.3 mm raster guard. It must sit entirely on flat broad-face pixels (no bevel, edge, serration or wall within
 the margin) and on dark art (dilated luminance < 0.10). The solver takes the largest size, then the left end closest to the blade start.
-It's rendered as polished gold (1.0/0.70/0.26, rough 0.06, metallic, clearcoat, emission 0.9) with an AOV `sig`.
+It's rendered as polished gold (1.0/0.66/0.22, rough 0.06, metallic, clearcoat, emission 1.4 for legibility) with an AOV `sig`.
 
 ## QA (fails the shot/frame)
 1. **Mesh glyph check:** 1,500 ink samples plus an 8-point 1.5 mm margin ring each, ray-cast onto the mesh. Every hit must be a flat face (|n·y| > 0.95) in a flat region.
