@@ -192,7 +192,7 @@ fn write_progress(out: &str, gen: usize, all: &[qd::Rec], archive: &std::collect
     std::fs::write(format!("{out}/qd_archive.csv"), ac).ok();
     let mut leg: Vec<&qd::Rec> = all.iter().filter(|r| r.legal()).collect();
     leg.sort_by(|a, b| a.mass_g.partial_cmp(&b.mass_g).unwrap());
-    let mut s = format!("# progress gen {gen}: evals {}, LEGAL (search level) {}, legal under cap {}\n\nlightest LEGAL (search-level, NOT yet certified):\n", all.len(), leg.len(), leg.iter().filter(|r| qd::under_cap(r)).count());
+    let mut s = format!("# progress gen {gen}: evals {}, LEGAL (search level) {}, FEASIBLE (all strength floors) {}\n\nlightest LEGAL (search-level, NOT yet certified):\n", all.len(), leg.len(), leg.iter().filter(|r| qd::feasible(r)).count());
     for r in leg.iter().take(12) { let f = r.fem.as_ref().unwrap(); let _ = writeln!(s, "- id {} gen {} mass {:.2} g t {:.1} SPG {:.3} lat_rob {:.0} ring_rob {:.0} A {:.3} nov {:.3} relief {:.3} win {} fit {:.3}", r.id, r.gen, r.mass_g, r.t, r.spg, f.lat_rob, f.ring_rob, r.aes.score, r.novelty, qd::relief_frac(r), r.n_win, r.fit); }
     std::fs::write(format!("{out}/progress.md"), s).ok();
 }
@@ -207,13 +207,13 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     // D1 P1 (JARAMBIT_P1=1): seeds are clamped so the continuous-rail layer is ON and every through-feature OFF
     let seeds = { let mut s = load_seeds(seeds_csv, seed_top); s.push(Genome::c6_seed(5.7)); if p1_env() { for g in s.iter_mut() { g.clamp(); } } s };
     let mut rep = String::new();
-    let _ = writeln!(rep, "# {wave} — crescent internal-machining evolve (island GA + QD) — author Jepson Taylor\n\nislands {islands} x pop {pop}, gens {gens}, migrate every {migrate}, threads {threads}, seed {seed}, FEM search area {fem_area} mm^2 (search bias lat/ring {:?}, JARAMBIT_SEARCH_BIAS_* override), certification min(0.25, 0.125 mm^2) no bias, T_MAX {:.1}, mass target {:?} g (JARAMBIT_MASS_CAP; target only, every hard item unchanged), seeds {} (from {seeds_csv} + {}), aesthetic anchor SWITCHBACK Rev {} (C.5 jimping R0.8/0.45 + C.6 two-sided ring-face groove 0.6/face, 1.6 mm rims), machining kick {kick}, min through-features {} (JARAMBIT_MIN_THROUGH)\n", fem::search_bias(), t_max(), qd::mass_cap(), seeds.len(), jarambit_crescent::c6_ref::rev(), jarambit_crescent::c6_ref::rev(), qd::min_through());
+    let _ = writeln!(rep, "# {wave} — crescent internal-machining evolve (island GA + QD) — author Jepson Taylor\n\nislands {islands} x pop {pop}, gens {gens}, migrate every {migrate}, threads {threads}, seed {seed}, FEM search area {fem_area} mm^2 (search bias lat/ring {:?}, JARAMBIT_SEARCH_BIAS_* override), certification min(0.25, 0.125 mm^2) no bias, T_MAX {:.1}, fitness cap-free v2 (no mass cap; ln(84.8/m) reward, knee 70 g; strength floors hard){:?}, seeds {} (from {seeds_csv} + {}), aesthetic anchor SWITCHBACK Rev {} (C.5 jimping R0.8/0.45 + C.6 two-sided ring-face groove 0.6/face, 1.6 mm rims), machining kick {kick}, min through-features {} (JARAMBIT_MIN_THROUGH)\n", fem::search_bias(), t_max(), "", seeds.len(), jarambit_crescent::c6_ref::rev(), jarambit_crescent::c6_ref::rev(), qd::min_through());
     let cfg = qd::IslandCfg { base: qd::RunCfg { pop, gens, threads, seed, fem_area, t_seed: 5.7 }, islands, migrate_every: migrate, migrants: 2, seeds, kick_frac: kick };
     let t0 = std::time::Instant::now();
     let mut hist_f = String::new();
     let man = jarambit_evidence::RunManifest::new("crescent-evolve", seed, fem::REQUIREMENT_SET_ID).param("wave", wave).param("pop", pop).param("islands", islands).param("gens", gens).param("threads", threads)
         .param("fem_area", fem_area).param("seeds_csv", seeds_csv).param("seed_top", seed_top).param("migrate", migrate).param("kick", kick).param("n_cert", n_cert).param("p1_env", p1_env())
-        .param("mass_cap", qd::mass_cap()).param("min_through", qd::min_through()).param("search_bias", format!("{:?}", fem::search_bias()));
+        .param("fitness", "capfree-v2").param("min_through", qd::min_through()).param("search_bias", format!("{:?}", fem::search_bias()));
     let mut evl = open_evidence(out, &man);
     let ro = qd::run_islands_with(&cfg, &qd::evaluate, |l| { eprintln!("{l}  ({:.0}s)", t0.elapsed().as_secs_f64()); hist_f.push_str(l); hist_f.push('\n'); std::fs::write(format!("{out}/history_live.csv"), &hist_f).ok(); },
         |gen, all, arch| { if gen % 5 == 0 { write_progress(out, gen, all, arch); } }, evl.as_mut().map_or(&mut jarambit_evidence::NullSink as &mut dyn jarambit_evidence::Sink, |l| l as &mut dyn jarambit_evidence::Sink));
@@ -229,12 +229,12 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     let mut cnt: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
     for r in &ro.all { for x in r.aes.fails.iter().chain(r.rejects.iter()) { let k: String = x.split(|c: char| c.is_ascii_digit() || c == '(').next().unwrap_or("").trim().to_string(); *cnt.entry(k).or_default() += 1; } }
     let n_all = ro.all.len(); let n_aes = ro.all.iter().filter(|r| r.aes.pass).count(); let n_gate = ro.all.iter().filter(|r| r.aes.pass && r.rejects.is_empty()).count();
-    let n_leg = ro.all.iter().filter(|r| r.legal()).count(); let n_cap = ro.all.iter().filter(|r| r.legal() && qd::under_cap(r)).count();
-    let _ = writeln!(rep, "## Census\nevaluations {n_all}; aesthetic passers {n_aes}; aesthetic + all hard gates {n_gate}; LEGAL (search level) {n_leg}; LEGAL and under the mass target {n_cap}\n\nreject reasons (count):");
+    let n_leg = ro.all.iter().filter(|r| r.legal()).count(); let n_cap = ro.all.iter().filter(|r| qd::feasible(r)).count();
+    let _ = writeln!(rep, "## Census\nevaluations {n_all}; aesthetic passers {n_aes}; aesthetic + all hard gates {n_gate}; LEGAL (search level) {n_leg}; FEASIBLE (all strength floors incl. seq + twist) {n_cap}\n\nreject reasons (count):");
     for (k, v) in &cnt { let _ = writeln!(rep, "- {k}: {v}"); }
     // ---- certification: LEGAL+under-cap first (by fit), then lightest LEGAL, then most novel; distinct genomes ----
     let mut cand: Vec<&qd::Rec> = ro.all.iter().filter(|r| r.aes.pass && r.rejects.is_empty() && r.fem.is_some()).collect();
-    cand.sort_by(|a, b| { let ka = (a.legal() && qd::under_cap(a), a.legal(), a.fit); let kb = (b.legal() && qd::under_cap(b), b.legal(), b.fit); kb.partial_cmp(&ka).unwrap() });
+    cand.sort_by(|a, b| { let ka = (a.legal() && qd::feasible(a), a.legal(), a.fit); let kb = (b.legal() && qd::feasible(b), b.legal(), b.fit); kb.partial_cmp(&ka).unwrap() });
     let mut light: Vec<&qd::Rec> = ro.all.iter().filter(|r| r.legal()).collect(); light.sort_by(|a, b| a.mass_g.partial_cmp(&b.mass_g).unwrap());
     let mut novel: Vec<&qd::Rec> = ro.all.iter().filter(|r| r.legal()).collect(); novel.sort_by(|a, b| b.novelty.partial_cmp(&a.novelty).unwrap());
     let mut order: Vec<(&str, &qd::Rec)> = Vec::new();
@@ -282,7 +282,7 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     std::fs::write(format!("{out}/certification.csv"), cert_rows).unwrap();
     let _ = writeln!(rep, "\n## Certification (min over 0.25 / 0.125 mm^2, no bias)\ncandidates certified {n_try}, rejected at the converged mesh {n_fail}\n\n## Plate designs (aesthetic passers only; certified metrics; twist SF = advisory)");
     // rank certified: under-cap by fitness first
-    picked.sort_by(|a, b| { let ka = (strict_ok_ids.contains(&a.1.id), qd::under_cap(&a.1), a.1.fit); let kb = (strict_ok_ids.contains(&b.1.id), qd::under_cap(&b.1), b.1.fit); kb.partial_cmp(&ka).unwrap() });
+    picked.sort_by(|a, b| { let ka = (strict_ok_ids.contains(&a.1.id), qd::feasible(&a.1), a.1.fit); let kb = (strict_ok_ids.contains(&b.1.id), qd::feasible(&b.1), b.1.fit); kb.partial_cmp(&ka).unwrap() });
     let mut plates = Vec::new();
     for (k, (kind, r, cf, fl)) in picked.into_iter().enumerate() {
         let label = format!("{wave}_c{:02}_{kind}", k + 1);

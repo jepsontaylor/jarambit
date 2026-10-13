@@ -1,4 +1,4 @@
-//! PR-0.30.1c: JARAMBIT_TIPTWIST_GATE makes the twist floor constraint-dominated for non-P1 genomes.
+//! PR-0.30.1c -> PR-0.31.2: the twist floor (body AND tip submodel) is now always hard (constraint-dominated).
 use jarambit_crescent::{aesthetic::Aes, fem::Fem, genome::Genome, pheno::{Blade, NREM}, qd};
 
 fn rec(mass: f64, lat: f64, body: f64, tip: f64) -> qd::Rec {
@@ -10,18 +10,16 @@ fn rec(mass: f64, lat: f64, body: f64, tip: f64) -> qd::Rec {
 }
 
 #[test]
-fn off_by_default_matches_legacy() {
-    let thin_tip = rec(73.0, 280.0, 2.9, 0.7);
-    assert!(qd::fitness_opt(&thin_tip, false) > 0.0, "legacy: tip twist not in non-P1 fitness");
+fn tip_twist_always_hard() {
+    assert!(qd::fitness_opt(&rec(73.0, 280.0, 2.9, 0.7), false) < 0.0, "tip twist is a hard floor even with the legacy flag off");
 }
 
 #[test]
 fn tip_twist_dominates_mass_and_spg() {
-    let light_thin_tip = rec(73.0, 300.0, 2.9, 0.7);   // lighter + higher SPG, tip SF 0.7
-    let heavy_ok_tip = rec(84.0, 280.0, 4.4, 1.2);     // heavier, tip SF 1.2
+    let light_thin_tip = rec(73.0, 300.0, 2.9, 0.7);
+    let heavy_ok_tip = rec(84.0, 280.0, 4.4, 1.2);
     let (a, b) = (qd::fitness_opt(&light_thin_tip, true), qd::fitness_opt(&heavy_ok_tip, true));
     assert!(a < -0.1 && a > -1.0, "graded constraint band, got {a}");
-    assert!(b > 0.0 && b > a, "a design meeting the twist floor must outrank any that misses it ({b} vs {a})");
-    // graded: closer to the floor ranks higher
+    assert!(b > 0.0 && b > a);
     assert!(qd::fitness_opt(&rec(73.0, 300.0, 2.9, 0.9), true) > a);
 }
