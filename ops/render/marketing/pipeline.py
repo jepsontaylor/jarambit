@@ -14,9 +14,11 @@ ingest and finish delegate to the Codex and Claude modules when those files exis
 This process never imports bpy. It does not upload a release.
 """
 import argparse
+import datetime
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -217,6 +219,106 @@ def cmd_package(args):
     print(result["manifest"])
 
 
+def _vertices(bundle_path, npz_path):
+    import numpy as np
+    path = npz_path or os.path.join(os.path.dirname(os.path.abspath(bundle_path)), "mesh.npz")
+    if not os.path.isfile(path):
+        return None, path
+    return np.load(path)["V"], path
+
+
+def _start_delivery(dest, png_dir, pipeline_path):
+    """Encode, QA, and package after the PNGs exist. Does not upload."""
+    script = os.path.join(dest, "deliver.sh")
+    out = os.path.join(dest, "delivery")
+    text = "\n".join([
+        "#!/bin/bash",
+        "set -euo pipefail",
+        f"mkdir -p {json.dumps(out)}",
+        " ".join([
+            "nice", "-n", "10", sys.executable, json.dumps(pipeline_path), "encode",
+            "--frames", json.dumps(png_dir), "--pattern", "turntable_%04d.png",
+            "--out", json.dumps(out),
+        ]),
+        "echo DELIVERY_ENCODE_OK",
+    ]) + "\n"
+    canon.atomic_write_text(script, text)
+    os.chmod(script, 0o755)
+    log = os.path.join(dest, "logs", "deliver.log")
+    os.makedirs(os.path.dirname(log), exist_ok=True)
+    subprocess.Popen(
+        ["bash", script],
+        stdout=open(log, "a"),
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
+    )
+    print(f"delivery started {script}", flush=True)
+
+
+def cmd_dispatch(args):
+    """One shard per free GPU. xbabe1 first, then xbabe3, then xbabe2 if it is under the yield line."""
+    bundle = _load_json(args.bundle)
+    source_sha = (bundle.get("source") or {}).get("sha256")
+    plan_mod.assert_hero_source(source_sha)
+    npz_sha = bundle.get("npz_sha256")
+    if npz_sha != "062be78fe0828a5f0fc5f2e20e2f4ed07f2d9ffa07741b0645fbb053aa232228":
+        _die(f"refusing to dispatch: bundle npz sha is {npz_sha}")
+    vertices, npz_path = _vertices(args.bundle, args.npz)
+    if vertices is None:
+        _die(f"mesh npz is missing: {npz_path}")
+    if canon.sha256_file(npz_path) != npz_sha:
+        _die("mesh.npz sha256 does not match bundle.json")
+    regions_sha = canon.sha256_file(args.regions) if args.regions else None
+    resolved = plan_mod.resolve(
+        bundle,
+        regions_sha256=regions_sha,
+        finish_preset=args.finish,
+        profiles=("final_4k",),
+        include_dark_turntable=True,
+        vertices=vertices,
+    )
+    dest = os.path.abspath(args.dest or farm_mod.scratch_root(resolved["plan_key"]))
+    os.makedirs(dest, exist_ok=True)
+    canon.atomic_write_bytes(os.path.join(dest, "render_plan.resolved.json"), plan_mod.dumps(resolved))
+    hosts = (
+        {"name": "xbabe1", "ssh": "xbabe1"},
+        {"name": "xbabe3", "ssh": "xbabe3"},
+        {"name": "xbabe2", "ssh": None},
+    )
+    deadline = datetime.datetime(2026, 10, 13, 16, 0, tzinfo=datetime.timezone.utc).timestamp()
+    png_dir = os.path.join(dest, "shots", "turntable", "final_4k")
+
+    def deliver(_dest):
+        _start_delivery(_dest, png_dir, os.path.abspath(__file__))
+
+    print(json.dumps({
+        "plan_key": resolved["plan_key"],
+        "dest": dest,
+        "frames": 240,
+        "spp_max": resolved["profiles"]["final_4k"]["spp_max"],
+        "adaptive_threshold": resolved["profiles"]["final_4k"]["adaptive_threshold"],
+        "auto_tile": resolved["profiles"]["final_4k"]["auto_tile"],
+        "deadline_utc": "2026-10-13T16:00:00Z",
+    }), flush=True)
+    farm_mod.supervise(
+        resolved,
+        dest,
+        os.path.abspath(args.bundle),
+        os.path.abspath(args.regions) if args.regions else "",
+        npz_path,
+        args.blender or toolchain_mod.find_blender(),
+        args.worker or os.path.join(_HERE, "blender", "worker.py"),
+        hosts,
+        _HERE,
+        os.path.expanduser("~/jarambit_render_scratch/hdri/studio_small_09_4k.hdr"),
+        os.path.join(_HERE, "finish.py"),
+        shots=("turntable",),
+        later_shots=("turntable_dark",),
+        deadline_utc=deadline,
+        on_primary_done=deliver,
+    )
+
+
 def cmd_all(args):
     """Run the stages whose inputs were passed. Peer gaps fail instead of being skipped."""
     if args.cad and not args.bundle:
@@ -268,6 +370,16 @@ def build_parser():
     render.add_argument("--worker")
     render.add_argument("--execute", action="store_true")
     render.set_defaults(func=cmd_render)
+
+    dispatch = sub.add_parser("dispatch")
+    dispatch.add_argument("--bundle", required=True)
+    dispatch.add_argument("--regions", required=True)
+    dispatch.add_argument("--npz")
+    dispatch.add_argument("--dest")
+    dispatch.add_argument("--finish", default="bead_blast")
+    dispatch.add_argument("--blender")
+    dispatch.add_argument("--worker")
+    dispatch.set_defaults(func=cmd_dispatch)
 
     finish = sub.add_parser("finish")
     finish.add_argument("rest", nargs=argparse.REMAINDER)

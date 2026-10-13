@@ -14,6 +14,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
@@ -129,16 +130,73 @@ def write_receipt(out_dir, index, artifact_path, host, device_uuid, spp, seconds
     return receipt
 
 
-def frame_done(out_dir, index) -> bool:
+def frame_done(out_dir, index, shot_id=None) -> bool:
     path = frame_receipt_path(out_dir, index)
-    if not os.path.isfile(path):
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as fh:
+            receipt = json.load(fh)
+        artifact = receipt.get("path")
+        if artifact and os.path.isfile(artifact) and canon.sha256_file(artifact) == receipt.get("sha256"):
+            return True
+    if not shot_id:
         return False
-    with open(path, encoding="utf-8") as fh:
-        receipt = json.load(fh)
-    artifact = receipt.get("path")
-    if not artifact or not os.path.isfile(artifact):
+    marker = os.path.join(out_dir, f"{shot_id}_{int(index):04d}.png.done.json")
+    if os.path.isfile(marker):
+        with open(marker, encoding="utf-8") as fh:
+            record = json.load(fh)
+        png = record.get("png")
+        if png and os.path.isfile(png) and canon.sha256_file(png) == record.get("png_sha256"):
+            return True
+    receipt_path = os.path.join(out_dir, f"{shot_id}_{int(index):04d}.receipt.json")
+    if not os.path.isfile(receipt_path):
         return False
-    return canon.sha256_file(artifact) == receipt.get("sha256")
+    try:
+        with open(receipt_path, encoding="utf-8") as fh:
+            receipt = json.load(fh)
+        files = receipt.get("files") or {}
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not files:
+        return False
+    for _name, pair in files.items():
+        if not isinstance(pair, (list, tuple)) or len(pair) != 2:
+            return False
+        artifact, digest = pair
+        if not artifact or not os.path.isfile(artifact) or canon.sha256_file(artifact) != digest:
+            return False
+    return True
+
+
+def purge_passes(out_dir):
+    """Delete raw, depth, and normal EXR once that frame has a finished PNG.
+
+    Denoised EXR and the mask are left in place. Nothing is removed unless the
+    PNG for the same stem exists.
+    """
+    removed = []
+    if not os.path.isdir(out_dir):
+        return removed
+    for name in os.listdir(out_dir):
+        if not name.endswith(".png"):
+            continue
+        stem = os.path.join(out_dir, name[:-4])
+        for suffix in (".raw.exr", ".depth.exr", ".normal.exr"):
+            path = stem + suffix
+            if os.path.isfile(path):
+                os.remove(path)
+                removed.append(path)
+    return removed
+
+
+def pick_host(states, busy_names):
+    """First reachable host under the yield line that is not already rendering."""
+    busy = set(busy_names or [])
+    for state in states:
+        if state.get("name") in busy:
+            continue
+        if state.get("reachable") and not state.get("yield"):
+            return state
+    return None
 
 
 def profile_for_request(profile, seed):
@@ -150,6 +208,8 @@ def profile_for_request(profile, seed):
         "denoise": bool(profile["denoise"]),
         "device": profile["device"],
         "seed": int(seed),
+        # Worker default is already false. Pin it so a 4K frame stays one tile.
+        "auto_tile": bool(profile.get("auto_tile", False)),
     }
 
 
@@ -215,7 +275,7 @@ def prepare_jobs(plan, dest, bundle_path, regions_path, hosts=None):
     for shot, profile_name, shard_i, frames in iter_shards(plan):
         out_dir = os.path.join(dest, "shots", shot["id"], profile_name)
         os.makedirs(out_dir, exist_ok=True)
-        done = all(frame_done(out_dir, frame["index"]) for frame in frames)
+        done = all(frame_done(out_dir, frame["index"], shot["id"]) for frame in frames)
         request = build_request(plan, shot, frames, profile_name, out_dir, bundle_path, regions_path)
         request_path = os.path.join(dest, "requests", f"{shot['id']}_{profile_name}_{shard_i:03d}.json")
         canon.atomic_write_json(request_path, request)
@@ -462,5 +522,284 @@ def render_jobs(plan, dest, bundle_path, regions_path, blender, worker, hosts=No
     }
     canon.atomic_write_json(os.path.join(dest, "farm_jobs.json"), summary)
     return summary
+
+
+def _pid_alive(pid, ssh_host=None) -> bool:
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return False
+    if ssh_host:
+        proc = _ssh(ssh_host, f"kill -0 {pid}")
+        return proc.returncode == 0
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def _log_tail(path, ssh_host=None, limit=40) -> str:
+    if ssh_host:
+        proc = _ssh(ssh_host, f"tail -n {int(limit)} {shlex.quote(path)} 2>/dev/null")
+        return proc.stdout or ""
+    if not os.path.isfile(path):
+        return ""
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        lines = fh.readlines()
+    return "".join(lines[-limit:])
+
+
+def sync_render_tree(ssh_host, code_dir, root, bundle_path, npz_path, regions_path, hdri_path):
+    """Copy the worker, presets, mesh, and pinned HDRI onto a render host."""
+    if ssh_host:
+        _ssh(ssh_host, f"mkdir -p {shlex.quote(root)}/code {shlex.quote(root)}/inputs {shlex.quote(os.path.dirname(hdri_path))}", check=True)
+        subprocess.run(["rsync", "-a", "--delete", code_dir + "/", f"{ssh_host}:{root}/code/"], check=True)
+        inputs = [bundle_path, npz_path, regions_path]
+        push_files(ssh_host, inputs, os.path.join(root, "inputs"))
+        if hdri_path and os.path.isfile(hdri_path):
+            remote_hdri = os.path.dirname(hdri_path)
+            _ssh(ssh_host, f"mkdir -p {shlex.quote(remote_hdri)}", check=True)
+            subprocess.run(["rsync", "-a", hdri_path, f"{ssh_host}:{remote_hdri}/"], check=True)
+        return
+    os.makedirs(os.path.join(root, "inputs"), exist_ok=True)
+    for path in (bundle_path, npz_path, regions_path):
+        if path and os.path.isfile(path):
+            target = os.path.join(root, "inputs", os.path.basename(path))
+            if os.path.abspath(path) != os.path.abspath(target):
+                shutil.copy2(path, target)
+
+
+def _finish_remote_pngs(ssh_host, out_dir, shot_id, frames, finish_py):
+    lines = []
+    for index in frames:
+        stem = f"{shot_id}_{int(index):04d}"
+        exr = os.path.join(out_dir, stem + ".denoised.exr")
+        png = os.path.join(out_dir, stem + ".png")
+        lines.append(
+            f"test -f {shlex.quote(png)} || python3 {shlex.quote(finish_py)} png {shlex.quote(exr)} {shlex.quote(png)}"
+        )
+    script = "set -e\n" + "\n".join(lines) + "\n"
+    if ssh_host:
+        proc = _ssh(ssh_host, script)
+    else:
+        proc = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+    return proc.returncode == 0, (proc.stderr or "")[-500:]
+
+
+def _purge_remote(ssh_host, out_dir):
+    """Drop raw, depth, and normal EXR on the host that rendered them."""
+    script = (
+        f"cd {shlex.quote(out_dir)} && "
+        "for png in *.png; do "
+        "[ -f \"$png\" ] || continue; "
+        "stem=${png%.png}; "
+        "rm -f \"$stem.raw.exr\" \"$stem.depth.exr\" \"$stem.normal.exr\"; "
+        "done"
+    )
+    if ssh_host:
+        _ssh(ssh_host, script)
+    else:
+        purge_passes(out_dir)
+
+
+def _mark_pngs(local_out, shot_id, frames):
+    """Record a local PNG receipt. Returns False when any frame is missing."""
+    ready = True
+    for index in frames:
+        png = os.path.join(local_out, f"{shot_id}_{int(index):04d}.png")
+        if not os.path.isfile(png) or os.path.getsize(png) < 32:
+            ready = False
+            continue
+        canon.atomic_write_json(
+            os.path.join(local_out, f"{shot_id}_{int(index):04d}.png.done.json"),
+            {"png": os.path.abspath(png), "png_sha256": canon.sha256_file(png), "index": int(index)},
+        )
+    return ready
+
+
+def _shrink_denoised(ssh_host, out_dir, limit_bytes):
+    """Keep the run under the scratch cap once the PNG for a frame exists."""
+    if ssh_host is None:
+        used = scratch_bytes(out_dir)
+        if used < limit_bytes:
+            return
+        for name in os.listdir(out_dir):
+            if not name.endswith(".denoised.exr"):
+                continue
+            png = os.path.join(out_dir, name[: -len(".denoised.exr")] + ".png")
+            if os.path.isfile(png):
+                os.remove(os.path.join(out_dir, name))
+        return
+    script = (
+        f"used=$(du -sb {shlex.quote(out_dir)} | awk '{{print $1}}'); "
+        f"if [ \"$used\" -gt {int(limit_bytes)} ]; then "
+        f"cd {shlex.quote(out_dir)} && for exr in *.denoised.exr; do "
+        "[ -f \"$exr\" ] || continue; stem=${exr%.denoised.exr}; "
+        "[ -f \"$stem.png\" ] && rm -f \"$exr\"; done; fi"
+    )
+    _ssh(ssh_host, script)
+
+
+def launch_prepared_shard(job, state, root, bundle_path, regions_path, npz_path,
+                          blender, worker, code_dir, hdri_path):
+    """Nohup one shard on one host. The GPU flock is taken inside that process."""
+    ssh_host = state.get("ssh")
+    sync_render_tree(ssh_host, code_dir, root, bundle_path, npz_path, regions_path, hdri_path)
+    with open(job["request_path"], encoding="utf-8") as fh:
+        request = json.load(fh)
+    if ssh_host:
+        updated = rewrite_request(request, root, bundle_path, regions_path)
+        updated["bundle_path"] = os.path.join(root, "inputs", os.path.basename(bundle_path))
+        if regions_path:
+            updated["regions_path"] = os.path.join(root, "inputs", os.path.basename(regions_path))
+        updated["out_dir"] = os.path.join(root, "shots", job["shot_id"], job["profile"])
+        launch_worker = os.path.join(root, "code", "blender", "worker.py")
+        launch_request = os.path.join(root, "requests", os.path.basename(job["request_path"]))
+        staged = os.path.join(os.path.dirname(job["request_path"]), "remote_" + state["name"] + "_" + os.path.basename(job["request_path"]))
+        canon.atomic_write_json(staged, updated)
+        push_files(ssh_host, [staged], os.path.join(root, "requests"))
+        log_path = os.path.join(root, "logs", f"{job['shot_id']}_{job['profile']}_{job['shard']:03d}.log")
+        _ssh(ssh_host, f"mkdir -p {shlex.quote(os.path.dirname(log_path))} {shlex.quote(updated['out_dir'])}", check=True)
+    else:
+        launch_worker = worker
+        launch_request = job["request_path"]
+        log_path = os.path.join(root, "logs", f"{job['shot_id']}_{job['profile']}_{job['shard']:03d}.log")
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    argv = blender_argv(blender, launch_worker, launch_request)
+    if state.get("gpu_uuid"):
+        lock = lock_path(state["gpu_uuid"])
+        inner = (
+            f"exec 9>{shlex.quote(lock)}; "
+            f"flock -n 9 || {{ echo GPU_LOCK_BUSY; exit 75; }}; "
+            f"{shell_join(argv)}"
+        )
+        argv = ["bash", "-c", inner]
+    job["pid"] = launch_shell(argv, log_path, ssh_host=ssh_host)
+    job["ssh"] = ssh_host
+    job["log"] = log_path
+    job["status"] = "launched"
+    job["host"] = state.get("name")
+    return job
+
+
+def supervise(plan, dest, bundle_path, regions_path, npz_path, blender, worker,
+              hosts, code_dir, hdri_path, finish_py, *, shots=("turntable",),
+              later_shots=(), deadline_utc=None, poll_s=20, max_passes=None,
+              probe=None, sleep=None, on_primary_done=None):
+    """Launch at most one shard per free GPU, then the next when it exits.
+
+    `later_shots` (turntable_dark) start only after `shots` are done and the
+    estimated finish is still an hour inside `deadline_utc`. This function
+    does not kill a running Blender. A host over the yield line is skipped.
+    """
+    probe = probe or probe_host_gpu
+    sleep = sleep or time.sleep
+    os.makedirs(dest, exist_ok=True)
+    wanted = set(shots)
+    jobs = [job for job in prepare_jobs(plan, dest, bundle_path, regions_path)
+            if job["shot_id"] in wanted]
+    later = []
+    delivered = False
+    passes = 0
+    while True:
+        passes += 1
+        busy = []
+        for job in jobs:
+            if job["status"] != "launched":
+                continue
+            if _pid_alive(job.get("pid"), job.get("ssh")):
+                busy.append(job["host"])
+                continue
+            tail = _log_tail(job.get("log") or "", job.get("ssh"))
+            if "GPU_LOCK_BUSY" in tail:
+                job["status"] = "pending"
+                job["pid"] = None
+                continue
+            remote_out = os.path.join(dest, "shots", job["shot_id"], job["profile"])
+            local_out = remote_out
+            finish_bin = os.path.join(dest, "code", "finish.py") if job.get("ssh") else finish_py
+            ok, err = _finish_remote_pngs(job.get("ssh"), remote_out, job["shot_id"], job["frames"], finish_bin)
+            if ok:
+                _purge_remote(job.get("ssh"), remote_out)
+                if job.get("ssh"):
+                    pull_dir(job["ssh"], remote_out, local_out)
+                ok = _mark_pngs(local_out, job["shot_id"], job["frames"])
+            if not ok:
+                job["tries"] = int(job.get("tries") or 0) + 1
+                job["error"] = err or tail[-400:]
+                job["pid"] = None
+                job["status"] = "pending" if job["tries"] < 2 else "failed"
+                continue
+            _shrink_denoised(job.get("ssh"), remote_out, 12 * 1024 ** 3)
+            job["status"] = "done"
+        states = [probe(host) for host in hosts]
+        pending = [job for job in jobs if job["status"] == "pending"]
+        for state in states:
+            if not pending:
+                break
+            if state.get("name") in busy:
+                continue
+            if not (state.get("reachable") and not state.get("yield")):
+                continue
+            scratch = dest
+            if not remote_disk_ok(state.get("ssh"), scratch):
+                continue
+            job = pending.pop(0)
+            try:
+                launch_prepared_shard(
+                    job, state, dest, bundle_path, regions_path, npz_path,
+                    blender, worker, code_dir, hdri_path,
+                )
+                busy.append(state.get("name"))
+            except (OSError, subprocess.CalledProcessError) as exc:
+                job["status"] = "pending"
+                job["error"] = str(exc)[-300:]
+        summary = {
+            "plan_key": plan["plan_key"],
+            "done": sum(1 for job in jobs if job["status"] == "done"),
+            "launched": sum(1 for job in jobs if job["status"] == "launched"),
+            "pending": sum(1 for job in jobs if job["status"] == "pending"),
+            "failed": sum(1 for job in jobs if job["status"] == "failed"),
+            "hosts": [{k: state.get(k) for k in ("name", "reachable", "yield", "gpu_uuid")} for state in states],
+        }
+        canon.atomic_write_json(os.path.join(dest, "dispatch_status.json"), summary)
+        print(json.dumps(summary), flush=True)
+        primary_done = all(
+            job["status"] in ("done", "skip") for job in jobs if job["shot_id"] in wanted
+        )
+        if primary_done and on_primary_done and not delivered:
+            delivered = True
+            on_primary_done(dest)
+        if summary["launched"] == 0 and summary["pending"] == 0:
+            if later_shots and not later:
+                failed = summary["failed"]
+                if failed == 0 and _later_fits(deadline_utc, jobs, later_shots, plan):
+                    later = [job for job in prepare_jobs(plan, dest, bundle_path, regions_path)
+                             if job["shot_id"] in set(later_shots) and job["status"] == "pending"]
+                    jobs.extend(later)
+                    if later:
+                        continue
+            break
+        if max_passes is not None and passes >= max_passes:
+            break
+        sleep(poll_s)
+    return summary
+
+
+def _later_fits(deadline_utc, done_jobs, later_shots, plan):
+    if not deadline_utc or not later_shots:
+        return False
+    seconds = []
+    for job in done_jobs:
+        if job["status"] == "done":
+            seconds.append(54.0 * len(job["frames"]))
+    rate = 54.0
+    frames = 0
+    for shot in plan["shots"]:
+        if shot["id"] in set(later_shots):
+            frames += len(shot["frames"])
+    eta = frames * rate
+    return time.time() + eta < float(deadline_utc) - 3600
 
 

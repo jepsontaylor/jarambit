@@ -34,6 +34,52 @@ def test_hero_source_pin_rejects_a_superseded_cad():
     raise AssertionError("a superseded source hash was accepted")
 
 
+def test_final_4k_uses_the_measured_sample_budget():
+    profile = plan.PROFILES["final_4k"]
+    assert profile["spp_max"] == 512
+    assert profile["spp_min"] == 64
+    assert profile["adaptive_threshold"] == 0.02
+    assert profile["auto_tile"] is False
+    resolved = plan.resolve(bundle(), profiles=("final_4k",))
+    turn = next(shot for shot in resolved["shots"] if shot["id"] == "turntable")
+    request = farm.build_request(
+        resolved, turn, turn["frames"][:1], "final_4k", "/tmp/out", "mesh.npz", "regions.json",
+    )
+    assert request["profile"]["spp_max"] == 512
+    assert request["profile"]["spp_min"] == 64
+    assert request["profile"]["adaptive_threshold"] == 0.02
+    assert request["profile"]["auto_tile"] is False
+
+
+def test_purge_passes_waits_for_the_png(tmp_path):
+    raw = tmp_path / "turntable_0000.raw.exr"
+    depth = tmp_path / "turntable_0000.depth.exr"
+    normal = tmp_path / "turntable_0000.normal.exr"
+    denoised = tmp_path / "turntable_0000.denoised.exr"
+    for path in (raw, depth, normal, denoised):
+        path.write_bytes(b"exr")
+    assert farm.purge_passes(str(tmp_path)) == []
+    assert raw.exists()
+    (tmp_path / "turntable_0000.png").write_bytes(b"png")
+    removed = farm.purge_passes(str(tmp_path))
+    assert raw.exists() is False and depth.exists() is False and normal.exists() is False
+    assert denoised.exists() is True
+    assert len(removed) == 3
+
+
+def test_pick_host_skips_a_busy_or_yielding_gpu():
+    states = [
+        {"name": "xbabe1", "reachable": True, "yield": False},
+        {"name": "xbabe3", "reachable": True, "yield": True},
+        {"name": "xbabe2", "reachable": True, "yield": False},
+    ]
+    assert farm.pick_host(states, [])["name"] == "xbabe1"
+    assert farm.pick_host(states, ["xbabe1"])["name"] == "xbabe2"
+    assert farm.pick_host(
+        [{"name": "xbabe3", "reachable": True, "yield": True}], [],
+    ) is None
+
+
 def test_azimuth_zero_is_on_minus_y():
     origin = [0.0, 0.0, 0.0]
     front = plan.camera_position(2.0, 0.0, 0.0, origin)
@@ -117,7 +163,9 @@ def test_request_matches_the_frozen_schema():
     assert set(request["shot"]["frames"][0]) == {"index", "az", "el", "distance_m", "target"}
     assert set(request["profile"]) == {
         "res", "spp_max", "spp_min", "adaptive_threshold", "denoise", "device", "seed",
+        "auto_tile",
     }
+    assert request["profile"]["auto_tile"] is False
     assert request["profile"]["device"] == "CPU"
     assert request["profile"]["res"] == [160, 90]
 

@@ -13,7 +13,8 @@ Date: 2026-10-13. Branch pushed. No pull request opened.
 
 ## Checks this session
 
-- `pytest ops/render/marketing/tests`: 32 passed in 31.19s. The two new tests pin package defaults to the C.9.2 STEP and reject the retired g3 sha on hero deliveries.
+- `final_4k` is adaptive 0.02, 512 max / 64 min spp, `auto_tile` false (measured 54 s median on a 3090).
+- Dispatch runs one shard per free GPU: xbabe1, then xbabe3 when it is under the yield line, then xbabe2 only under that same line. Raw, depth, and normal EXR are removed after the PNG exists.
 - `actionlint .github/workflows/render-marketing-smoke.yml`: exit 0.
 - `doctor --require ffmpeg,zscale,libx264,libx265,libwebp,blender,gifski --hosts`: `missing` [].
 

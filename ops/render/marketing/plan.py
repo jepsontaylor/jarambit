@@ -54,11 +54,14 @@ CYCLES = {
 }
 
 PROFILES = {
+    # Q1 on a 3090 was 54 s median at this budget. 0.005 / 1024 spp did not
+    # converge on the bead-blast bump and ran about 160 s per 4K frame.
     "final_4k": {
         "res": [3840, 2160],
-        "spp_max": 1024,
+        "spp_max": 512,
         "spp_min": 64,
-        "adaptive_threshold": 0.005,
+        "adaptive_threshold": 0.02,
+        "auto_tile": False,
         "denoise": True,
         "device": "OPTIX",
     },
@@ -398,6 +401,7 @@ def resolve(bundle, regions_sha256=None, finish_preset="bead_blast", accents=Non
         "include_dark_turntable": bool(include_dark_turntable),
         "margin": MARGIN,
         "profiles": profiles,
+        "profile_bodies": {name: PROFILES[name] for name in profiles},
         "regions_sha256": regions_sha,
         "shot_specs": shot_specs,
     }
