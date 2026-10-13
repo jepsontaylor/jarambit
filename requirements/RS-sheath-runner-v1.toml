@@ -1,0 +1,27 @@
+# RS-sheath-runner-v1 — SWITCHBACK C.9.3 fixed-sheath carry (utility/hiking). Legacy crates/redteam proxy left unchanged.
+[draw_force_N]
+new_lo = 28
+target = 35
+new_hi = 45
+life_lo = 20
+life_hi = 55
+insert_max = 50
+gate_p_in_new_window = 0.80   # currently FAILS (0.758) - mu split fix pending
+[retention]
+design_shock_g = 15   # ASSUMPTION: 2x jump 7.5 g (PMC4101685)
+sf_min_at_p05 = 2.0
+[containment]
+edge_sp_never_safe = true
+spine_never_safe = true
+retention_only_on_approved_land = true
+annotation_status_required = "APPROVED"
+tip_reserve_mm = [1.0, 2.0]
+wobble_dir_deg = 2
+wobble_rot_deg = 2
+[evidence]
+missing = "null+INCOMPLETE, never PASS"
+puncture_note = "elastic contact cannot prove puncture/cut resistance; guarded physical test mandatory"
+[fem]
+solver = "CalculiX ccx 2.21 (pinned, docker jarambit-sheath:s1)"
+mesh_convergence_max = 0.05
+status = "INCOMPLETE - contact benchmark not converged"

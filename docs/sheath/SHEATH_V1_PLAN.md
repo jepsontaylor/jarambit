@@ -392,3 +392,33 @@ Queued after the render/release PRs (COORD).
 10. CadQuery import/export docs https://cadquery.readthedocs.io/en/latest/importexport.html ; Gmsh manual https://gmsh.info/doc/texinfo/ ; CalculiX https://www.dhondt.de/ ; scikit-fem (Morley element) https://scikit-fem.readthedocs.io/
 
 Assumptions are labelled ASSUMPTION in the text; each has a closing milestone in the roadmap.
+
+## v1.1 — Reviews 3–4 synthesis (2026-10-13)
+**What we adopted:**
+- Integral tabs for production, plus a swappable collar module for tuning (+0.67 g).
+- Ring-actuated positive catch, recommended but pending M5 one-handed draw-time trials. The cost is ~0–0.13 s: HPTC 2018 measured 1.84 s for Level II vs 1.71 s for Level I. Pull-only stays the fallback.
+- RS-sheath-runner-v1. The legacy proxy stays unchanged; it is inadequate because its 9 mm rule gives a max of ~9.6 N.
+- KnifeInterface v1 with INCOMPLETE semantics.
+- edge_sp and spine are never safe. The annotation file is PROPOSED, and Jepson must confirm the hook-back land.
+- Swept cavity with ±2° wobble, a seating stop on the choil lobe, and 1.5 mm design tip reserve.
+- Physical test matrix as specified in the reviews; Kydex is the fast comparator.
+- Render labelling: kinematic preview vs solver-derived animation.
+
+**What we rejected:**
+- The 50–80 N window. The 5th-percentile female index-on-ring capacity is ~24 N, against a median of 59.5±21.4 N (Int J Ind Ergon 2010).
+- New window: 35 N target, 28–45 N new, 20–55 N life, insertion ≤50 N.
+- Lower bound: 15 g design shock (assumption: 2× the 7.5 g jump peak, PMC4101685), requiring SF ≥ 2 at p05.
+
+**Calibration:**
+- Bench coupons will measure Ti vs PA12 friction (ASTM D1894: dry/wet/ISO 12103-1 A2 grit) and E(T) (ISO 178). These narrow the μ and E priors in the Monte Carlo.
+
+**C.9.3 v1.1 results:**
+- Mass: 24.97 g shell; 29.1 g including mount.
+- Draw: 34.2 N nominal. Monte Carlo p05/p50/p95 = 21.7/33.2/49.0 N.
+- Window probability: 0.963 for the life window, 0.758 for the new window. The new-window gate (0.80) FAILS.
+- Containment: minimum edge clearance 1.41 mm under wobble (R3 improved); tip reserve 2.8 mm.
+
+**Open items:**
+- CalculiX contact benchmark: the N2S master/slave roles were swapped so the convex knife corner is now the slave, but neither μ case converges yet. The FEM status is INCOMPLETE, so the draw window rests on analytic + plate-FEA results only.
+- The drop-edge screen has a spurious FAIL: the mouth is counted as a wall.
+- Puncture: elastic contact cannot prove cut-through resistance, so a guarded physical test is mandatory.
