@@ -1,57 +1,39 @@
 #!/usr/bin/env python3
-"""PR-0.31.1 accounting runner for bench/fixed_1k (wall, CPU-s, peak RSS, failures)."""
-from __future__ import annotations
-import argparse, csv, json, os, resource, subprocess, sys, time
-from pathlib import Path
+"""Run the frozen bench (bench/fixed_1k) for T1 search and T1c cert, REPS reps each; write one JSON record.
 
-ROOT = Path(__file__).resolve().parents[2]
+usage: run.py [--bin target/release/jarambit] [--search-n 200] [--cert-n 40] [--threads 8] [--reps 3] [--out FILE]
+Checksums must be identical across reps (determinism); the run fails otherwise.
+"""
+import argparse, hashlib, json, platform, resource, socket, statistics, subprocess, sys, os
 
-def peak_rss_kb() -> int:
-    return resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+def one(b, tier, n, th):
+    p = subprocess.run([b, "bench-fixed", "--tier", tier, "--n", str(n), "--threads", str(th)], capture_output=True, text=True)
+    if p.returncode != 0: sys.exit(f"bench-fixed {tier} failed: {p.stderr[-500:]}")
+    r = json.loads(p.stdout.strip().splitlines()[-1])
+    r["peak_rss_kb_children"] = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+    r["failures"] = r["n"] - r["fem_evaluated"]
+    return r
 
-def main() -> int:
+def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--workload", default=str(ROOT / "bench/fixed_1k"))
-    ap.add_argument("--reps", type=int, default=3)
-    ap.add_argument("--bin", default=str(ROOT / "target/release/jarambit"))
-    ap.add_argument("--mode", choices=["t1", "t1c"], default="t1")
-    ap.add_argument("--out", default=str(ROOT / "bench/fixed_1k/results"))
-    args = ap.parse_args()
-    wl = Path(args.workload)
-    genomes = wl / "genomes.csv"
-    if not genomes.exists():
-        print(f"missing {genomes}; generate/freeze genomes first", file=sys.stderr)
-        return 2
-    out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
-    rows = []
-    for rep in range(1, args.reps + 1):
-        env = os.environ.copy()
-        env["JARAMBIT_BENCH_MODE"] = args.mode
-        env["JARAMBIT_BENCH_GENOMES"] = str(genomes)
-        t0 = time.perf_counter()
-        # Placeholder until jarambit gains `bench-fixed` subcommand: time a no-op marker.
-        cmd = [args.bin, "--help"]
-        p = subprocess.run(cmd, env=env, capture_output=True, text=True)
-        wall = time.perf_counter() - t0
-        rss = peak_rss_kb()
-        rows.append({
-            "rep": rep,
-            "mode": args.mode,
-            "wall_s": round(wall, 4),
-            "peak_rss_kb": rss,
-            "returncode": p.returncode,
-            "failures": 0 if p.returncode == 0 else 1,
-            "note": "stub until jarambit bench-fixed lands",
-        })
-        print(json.dumps(rows[-1]))
-    (out / f"{args.mode}_reps.json").write_text(json.dumps(rows, indent=2) + "\n")
-    with (out / f"{args.mode}_reps.csv").open("w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
-        w.writeheader()
-        w.writerows(rows)
-    print(f"wrote {out}")
-    return 0
+    ap.add_argument("--bin", default="target/release/jarambit"); ap.add_argument("--search-n", type=int, default=200)
+    ap.add_argument("--cert-n", type=int, default=40); ap.add_argument("--threads", type=int, default=8)
+    ap.add_argument("--reps", type=int, default=3); ap.add_argument("--out")
+    a = ap.parse_args(argv)
+    sha = hashlib.sha256(open("bench/fixed_1k/genomes.csv", "rb").read()).hexdigest()
+    want = open("bench/fixed_1k/SHA256SUMS").read().split()[0]
+    if sha != want: sys.exit(f"workload sha mismatch {sha} != {want}")
+    rec = {"workload": "bench/fixed_1k", "workload_sha256": sha, "host": socket.gethostname(), "cpu": platform.processor() or platform.machine(),
+           "nproc": os.cpu_count(), "git": subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip(), "tiers": {}}
+    for tier, n in (("search", a.search_n), ("cert", a.cert_n)):
+        reps = [one(a.bin, tier, n, a.threads) for _ in range(a.reps)]
+        if len({round(r["checksum"], 6) for r in reps}) != 1: sys.exit(f"{tier}: nondeterministic checksum")
+        m = [r["core_s_per_design_mean"] for r in reps]
+        rec["tiers"][tier] = {"n": n, "threads": a.threads, "reps": reps, "core_s_per_design_median": statistics.median(m),
+                              "core_s_per_design_spread": max(m) - min(m)}
+    s = json.dumps(rec, indent=1)
+    if a.out: open(a.out, "w").write(s + "\n")
+    print(s)
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
