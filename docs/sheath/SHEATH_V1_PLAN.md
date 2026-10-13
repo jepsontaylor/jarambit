@@ -346,16 +346,16 @@ Queued after the render/release PRs (COORD).
 
 | # | Attack | Status / mitigation |
 |---|---|---|
-| R1 | Fall/jump shock (25 g assumed) gives SF 1.0 at p05 — knife may leave on a hard landing | OPEN. M6 IMU data; if real, raise floor or add second detent; V-K keeper last |
+| R1 | Fall/jump shock | RESOLVED (analytic): cited 4.1–4.5 g falls / 7.5 g jump (PMC4101685) → 15 g design shock (assumed 2× jump); C.10a SF at p05 = 2.44 (jump 4.9). Confirm with M6 IMU |
 | R2 | μ dominates variance; wet/grit could push > 50 N or < 15 N | MC covers U(0.2,0.45); measure (ASTM D1894); consider low-μ PTFE-filled PA or a return angle with lower μ sensitivity |
-| R3 | Sharp spine edge slides at 0.8 mm from the wall over the whole draw → any lateral hand force scrapes/cuts the wall | OPEN. Add a "lateral wobble" clearance budget (± 2°) to the sweep in PR-S4; prefer paths whose edges separate from walls (normal velocity) |
+| R3 | Sharp edges near the wall during draw | RESOLVED (geometric): ±2° direction + ±2° rotation wobble swept into the cavity; c_edge 1.3 → min edge clearance 1.91 mm over all wobble poses (C.10a) |
 | R4 | Guard hole detent is a single point — rocking/rattle about it | 2-D planar sheath + tight face clearance; rattle model M6 |
 | R5 | Kirchhoff plate ignores bump contact stiffness, ramp geometry, large deflection | Contact FEA M3; tab strain is only 1.5 % so linearity is plausible |
 | R6 | Planform from z-projection hides undercuts in a non-planar knife | Current knives are planar plates; ingest asserts the bbox z-range ≤ 12 mm and flags non-planar parts (PR-S4) |
 | R7 | Sharp detection threshold could miss a thick-ground secondary bevel | Tip zone always hazard; reviewer sign-off; threshold sweep test |
 | R8 | Diagonal mouth (34 mm opening) also covers part of the handle top (x 76–92 mm) | Grip keep-out keeps ≥ 60 mm exposed; owner check on hand fit (M5) |
 | R9 | Thermal mismatch: PA12 shrinks ≈ 0.6 mm more than Ti over 80 K at 100 mm → tip pocket could bind cold | PR-S4 explicit cold-shrink clearance check at the tip pocket |
-| R10 | Optimiser games the window with fragile designs (e.g. max bump height 1.3 mm at search bound) | Bound hit flagged; widen bounds or add strain/set penalties; physical held-out validation |
+| R10 | Optimiser games the window with fragile designs (e.g. max bump height at a search bound) | MITIGATED v1.2: lexicographic feasible-first fitness (no mass credit for a failed gate); strain gate; bounds widened (wall 1.0–2.8) and `search_bound_hit` reported — C.10a optimum is interior on wall/L/undercut/α, only tab_b sits at its 9 mm cap (geometric, not fragile); held-out physical variant still required (M5) |
 | R11 | Mass 27 g dominated by the large planar envelope; variable gap could save 15–25 % | PR-S4 |
 | R12 | Emergency draw ergonomics unknown (direction 140°, force 30 N) | M5 user trials gate any "fast draw" claim |
 | R13 | Gmsh unavailable → no 3-D tet FEM of the full shell yet | Owner decision: apt install libglu1-mesa on xbabe2, or run in the dolfinx container |
@@ -422,3 +422,32 @@ Assumptions are labelled ASSUMPTION in the text; each has a closing milestone in
 - CalculiX contact benchmark: the N2S master/slave roles were swapped so the convex knife corner is now the slave, but neither μ case converges yet. The FEM status is INCOMPLETE, so the draw window rests on analytic + plate-FEA results only.
 - The drop-edge screen has a spurious FAIL: the mouth is counted as a wall.
 - Puncture: elastic contact cannot prove cut-through resistance, so a guarded physical test is mandatory.
+
+
+## v1.2 — open items closed (2026-10-13, design of record C.10a rc4)
+**Knife.** C.10a rc4 (`hiking-karambit analysis/w79/ground_c10a.step`, sha 441cfabc284efd63…, true-sharp 0.15 mm apex, 64.84 g) is the design of record; C.9.3 kept as comparison. Rule: every cutting edge is sharp (~0 edge width) — only explicitly non-cutting geometry may be a land.
+**Hook back = SHARP** (determined from drawings 01/02/04 + STATUS_C10A_RC.md): the outer convex back is the continuation of the spine edge to the point; C.9.3 only had a modelled tip-zone flat that C.10a removes. It is now an annotation `declared_sharp` region and is no longer a bumper land. Retention/bearing lands: guard-hole rim (closed hole) and choil lobe only. Annotation review: delegated by Jepson 2026-10-13 (revocable).
+
+**CalculiX tab benchmark (ccx 2.21, docker jarambit-sheath:s1).** Node-to-surface failed: chatter of the knife corner between master facets (μ=0 stalled at t=0.075; earlier 204 N spike was a corner poking through the slave face). Fix: SURFACE TO SURFACE large-sliding penalty contact, filleted knife corner r 0.3 mm, increment 0.002–0.005. Penalty-insensitive (K 9 000 vs 90 000 N/mm³: 7.98 vs 8.05 N). 4-mesh ladder (μ 0.3): 13.98 / 13.92 / 13.85 / 13.77 N per tab, last-two change 0.53 % (< 5 % gate). Reconciliation with the ~22 N hand calc: plain Bayer 21.9 N assumes the ramp keeps its angle; the tab end rotates θ = 1.5 i/a = 8.4°, so α_eff = 26.6° → 16.3 N (rotation-corrected Bayer). ccx / corrected = 0.844 (μ 0: 0.91); residual from load-point offset and bump compliance. `run.py` now applies the rotation correction × 0.844 to draw, insertion and MC (evidence `evidence/sheath/ccx_tab_v1`). Still uncalibrated_fea until coupon bench (M5).
+
+**Drop-edge false FAIL fixed.** First-contact screen removes the open mouth from the wall and reports exit directions separately. Then a REAL finding: without the hook-back land, in-plane shifts at 50°/100° put the sharp spine edge first on the wall. Fix: the sheath bumps in the closed guard hole become the in-plane land — ramps only within ±20° of the draw/insert axis, lateral flanks ≥75° (non-camming, new drawing requirement), bump/hole clearance 0.3 mm; c_edge 0.8 → 1.3 mm. Result: land-first in 100 % of wall directions. Drop 1.5 m edge screen = MARGINAL (upper-bound energy: flank crush 2.6 mm > margin 1.63 mm; residual cut depth 1.2–7.2 mm for R 30–5 N/mm, assumed) → mandatory guarded physical drop/cut test; not claimed safe.
+
+**Friction split + wall cap.** New (23 °C, unworn, clean dry) μ U(0.20,0.32) ASSUMED; life (dry/wet/grit, 5000 cycles) μ U(0.20,0.45). Wall search 1.0–2.8 mm.
+
+**Results (v1.2, 20k MC).**
+
+| | C.10a rc4 (record) | C.9.3 |
+|---|---|---|
+| mass incl. 4 g mount | 29.72 g (shell 25.72) | 29.84 g |
+| retention | tabs wall 2.0, L 14, b 9 (cap), undercut 1.7, α_out 35 / α_in 30 | same |
+| draw nominal / insertion | 36.6 / 30.7 N | 36.6 / 30.7 N |
+| MC life p05/p50/p95 | 23.3 / 35.5 / 52.1 N | same |
+| P(new window 28–45) | **0.810** (gate 0.80 PASS, thin margin) | 0.810 |
+| P(life window 20–55) | 0.960 | 0.960 |
+| min edge clearance / rim / mouth depth / tip reserve | 1.91 / 4.91 / 6.98 / 3.30 mm | 1.91 / 4.91 / 8.24 / 3.30 mm |
+| land-first | 100 % | 100 % |
+| retention SF p05 @15 g | 2.44 | 2.37 |
+| screens | tip-on-stop PASS, crush PASS, 150 N overload PASS, drop-edge MARGINAL | same |
+| fitness | feasible, 0.502 | feasible, 0.501 |
+
+Caveats: draw_curve.csv peak (61.6 N) is the UNcorrected track profile (rotation/ccx correction applied only to the scalar/MC forces). The C.9.3 solid-panel plate ladder is null (Triangle refinement ran away; now capped child, INCOMPLETE). Collar variant +0.69 g.

@@ -6,7 +6,7 @@ new_hi = 45
 life_lo = 20
 life_hi = 55
 insert_max = 50
-gate_p_in_new_window = 0.80   # currently FAILS (0.758) - mu split fix pending
+gate_p_in_new_window = 0.80   # C.10a v1.2: 0.810 PASS (new mu U(0.20,0.32) ASSUMED)
 [retention]
 design_shock_g = 15   # ASSUMPTION: 2x jump 7.5 g (PMC4101685)
 sf_min_at_p05 = 2.0
@@ -24,4 +24,12 @@ puncture_note = "elastic contact cannot prove puncture/cut resistance; guarded p
 [fem]
 solver = "CalculiX ccx 2.21 (pinned, docker jarambit-sheath:s1)"
 mesh_convergence_max = 0.05
-status = "INCOMPLETE - contact benchmark not converged"
+status = "tab benchmark converged: S2S, 4 levels, 0.53% last-two; ccx/Bayer_rot 0.844 (uncalibrated_fea)"
+
+[knife]
+design_of_record = "C.10a rc4 sha16 441cfabc284efd63"
+all_cutting_edges_sharp = true
+[retention_bump]
+cam_half_deg = 20
+flank_min_deg = 75
+hole_clearance_mm = 0.3

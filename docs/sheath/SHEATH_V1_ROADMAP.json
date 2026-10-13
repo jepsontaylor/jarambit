@@ -5,18 +5,19 @@
  "branch": "feat/sheath-v1",
  "queue_note": "Queues AFTER the in-flight render/release PRs (COORD.md). One PR at a time, rebased on main, neverhuman APPROVE + green self-hosted CI; never self-merged.",
  "draw_force_window_n": {
-  "nominal": 30,
+  "nominal": 35,
   "new_23C_dry": [
-   22,
-   40
+   28,
+   45
   ],
   "life_envelope": [
-   15,
-   50
+   20,
+   55
   ],
   "life_probability_min": 0.95,
-  "insert_max": 45,
-  "basis": "docs/sheath/SHEATH_V1_PLAN.md \u00a75; lower side from sacral running peak 5.13 g (MSSE) x2 + assumed 25 g shock; upper side ergonomics ASSUMPTION closed by M5"
+  "new_probability_min": 0.8,
+  "insert_max": 50,
+  "basis": "plan v1.1/v1.2: upper from index-on-thin-ring 59.5\u00b121.4 N (Int J Ind Ergon 2010) p05 ~24 N grip-limited; lower from 15 g design shock (ASSUMED 2x 7.5 g jump, PMC4101685) SF>=2 at p05"
  },
  "metrics": [
   {
@@ -142,7 +143,8 @@
     "mesh/increment convergence <5%",
     "analytic/plate within \u00b115% or calibration factor recorded",
     "tet meshing env decided (libGLU / container)"
-   ]
+   ],
+   "status": "ccx tab benchmark converged (uncalibrated_fea); full sheath contact pending"
   },
   {
    "id": "M4",
@@ -277,7 +279,69 @@
   "R1 shock retention SF 1.0 @p05 (assumed 25 g)",
   "R3 spine edge 0.8 mm from wall during draw",
   "R12 ergonomics unmeasured",
-  "R13 gmsh needs libGLU on xbabe2"
+  "R13 gmsh needs libGLU on xbabe2",
+  {
+   "id": "R1",
+   "status": "resolved_analytic",
+   "note": "SF 2.44 @15 g p05; M6 IMU confirm"
+  },
+  {
+   "id": "R3",
+   "status": "resolved_geometric",
+   "note": "wobble \u00b12\u00b0/\u00b12\u00b0, clearance 1.91 mm"
+  },
+  {
+   "id": "R10",
+   "status": "mitigated",
+   "note": "lexicographic fitness, bounds widened, bound hits reported (tab_b at 9 mm cap)"
+  },
+  {
+   "id": "R11",
+   "status": "open",
+   "note": "drop 1.5 m in-plane edge screen MARGINAL; guarded physical drop+cut test mandatory; bump flank >=75 deg requirement"
+  },
+  {
+   "id": "R12",
+   "status": "open",
+   "note": "friction priors ASSUMED; p_new 0.810 thin margin -> ASTM D1894 Ti/PA12 coupons"
+  }
  ],
- "references": "docs/sheath/SHEATH_V1_PLAN.md \u00a713"
+ "references": "docs/sheath/SHEATH_V1_PLAN.md \u00a713",
+ "design_of_record_knife": {
+  "rev": "C.10a rc4",
+  "step": "hiking-karambit analysis/w79/ground_c10a.step",
+  "sha16": "441cfabc284efd63"
+ },
+ "results_v12": {
+  "c10a": {
+   "mass_g": 29.72,
+   "draw_n": 36.6,
+   "insert_n": 30.7,
+   "mc_p05_p50_p95": [
+    23.3,
+    35.5,
+    52.1
+   ],
+   "p_new": 0.81,
+   "p_life": 0.96,
+   "min_edge_clearance_mm": 1.91,
+   "tip_reserve_mm": 3.3,
+   "land_first": 1.0,
+   "sf_p05_15g": 2.44,
+   "drop_edge": "SCREEN_MARGINAL",
+   "feasible": true
+  },
+  "ccx_tab": {
+   "formulation": "S2S large-sliding penalty, fillet r0.3",
+   "levels_peak_n": [
+    13.98,
+    13.92,
+    13.85,
+    13.77
+   ],
+   "conv_last2": 0.0053,
+   "ccx_over_bayer": 0.628,
+   "ccx_over_bayer_rot": 0.844
+  }
+ }
 }
