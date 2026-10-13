@@ -75,10 +75,16 @@ fn gate(v: Option<bool>) -> &'static str { match v { Some(true) => "pass", Some(
 /// True only when every gate was observed and met (a missing observation can never pass).
 fn all_met(g: &[Option<bool>]) -> bool { !g.is_empty() && g.iter().all(|v| *v == Some(true)) }
 
-/// Validated solid tip-submodel SF for a named design: `<solid_dir>/<label>_gci.json`, finest-mesh `SF_nodal_max.fine`
-/// (SF at the max-stress node, 828 MPa). None when no evidence exists for that label.
-fn solid_tip_sf(solid_dir: &str, label: &str) -> Option<(f64, String)> {
-    let path = format!("{solid_dir}/{label}_gci.json");
+/// Validated solid tip-submodel SF for the genome being evaluated. `<solid_dir>/bindings.json` maps a label to
+/// `{ "gci": <label>_gci.json, "genome": <CSV of the genome the solid study was run on> }`. Evidence counts only if
+/// the bound genome is identical (all genes + material) to `g` and the GCI file names the same design; finest-mesh
+/// `SF_nodal_max.fine` (SF at the max-stress node, 828 MPa). Anything absent or mismatched -> None (unverified).
+fn solid_tip_sf(solid_dir: &str, label: &str, g: &Genome) -> Option<(f64, String)> {
+    let b: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(format!("{solid_dir}/bindings.json")).ok()?).ok()?;
+    let e = &b[label];
+    let bound = crate::crescent::load_seeds(e["genome"].as_str()?, 1).into_iter().next()?;
+    if bound != *g { return None; }
+    let path = e["gci"].as_str()?.to_string();
     let j: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).ok()?).ok()?;
     if j["design"].as_str() != Some(label) { return None; }
     Some((j["SF_nodal_max"]["fine"].as_f64()?, path))
@@ -103,7 +109,7 @@ pub fn rs_v2_eval(genomes: &str, out_dir: &str, solid_dir: &str) -> bool {
         if strict.is_none() { eprintln!("rs-v2-eval: {label}: strict 0.0625 mm^2 solve failed (gates reported unverified)"); }
         let strict_lat = strict.as_ref().map(|s| s.lat20 * fem::joint_k(m, g.t_joint(), 2));
         let strict_tz = strict.as_ref().map(|s| s.twist_tipzone_sf);
-        let solid = solid_tip_sf(solid_dir, label);
+        let solid = solid_tip_sf(solid_dir, label, &g);
         let (bw, band) = fem::ring_bearing(&p);
         let hunter = jarambit_physics::floors::HUNTER_LATERAL_N;
         let gates = [
@@ -125,7 +131,7 @@ pub fn rs_v2_eval(genomes: &str, out_dir: &str, solid_dir: &str) -> bool {
             "lat_rob_n": f.lat_rob, "ring_rob_n": f.ring_rob, "twist_body_sf": f.twist_body_sf, "twist_tipzone_sf": f.twist_tipzone_sf,
             "strict_lat_rob_0p0625_n": strict_lat, "twist_tipzone_sf_strict": strict_tz,
             "solid_tip_sf": solid.as_ref().map(|s| s.0), "solid_tip_source": solid.as_ref().map(|s| s.1.clone()),
-            "solid_tip_note": "matched by design label (<label>_gci.json, finest mesh SF_nodal_max); missing evidence = unverified",
+            "solid_tip_note": "bound by evidence/fem_solid/gci/bindings.json: identical genome + design label required (finest mesh SF_nodal_max); absent or mismatched = unverified",
             "seq_ratio": f.seq_ratio, "hm_twist_sf": f.hm_twist_sf, "hm_tip_inplane_sf": f.hm_tip_inplane_sf, "hm_spine_sf": f.hm_spine_sf,
             "hm_ringback_sf": f.hm_ringback_sf, "fat_sf": f.fat_sf, "ring_bearing_w_mm": bw, "ring_band_mm": band,
             "gates": groups, "screen": gate(screen), "unverified": unverified, "all_hard": all_hard,
@@ -153,17 +159,35 @@ mod rs_v2_tests {
         assert_eq!(gate(Some(false)), "fail");
     }
 
+    fn repo(rel: &str) -> String { format!("{}/../../{rel}", env!("CARGO_MANIFEST_DIR")) }
+
     #[test]
-    fn solid_evidence_missing_or_mismatched_is_none() {
+    fn solid_evidence_bound_to_genome() {
+        let g3 = crate::crescent::load_seeds(&repo("evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv"), 1).remove(0);
+        let w = crate::crescent::load_seeds(&repo("evidence/rs_v2/genomes/w271b_11772_genome.csv"), 1).remove(0);
         let d = std::env::temp_dir().join(format!("rsv2_solid_{}", std::process::id()));
-        std::fs::create_dir_all(&d).unwrap();
-        let ds = d.to_str().unwrap();
-        assert!(solid_tip_sf(ds, "nope").is_none());
-        std::fs::write(d.join("a_gci.json"), r#"{"design":"b","SF_nodal_max":{"fine":1.5}}"#).unwrap();
-        assert!(solid_tip_sf(ds, "a").is_none(), "evidence for another design must not be used");
-        std::fs::write(d.join("c_gci.json"), r#"{"design":"c","SF_nodal_max":{"fine":0.83}}"#).unwrap();
-        assert_eq!(solid_tip_sf(ds, "c").map(|x| x.0), Some(0.83));
+        std::fs::create_dir_all(&d).unwrap(); let ds = d.to_str().unwrap();
+        assert!(solid_tip_sf(ds, "g3", &g3).is_none(), "no bindings -> unverified");
+        let gci = d.join("g3_gci.json"); std::fs::write(&gci, r#"{"design":"g3","SF_nodal_max":{"fine":1.6}}"#).unwrap();
+        let bind = serde_json::json!({"g3": {"gci": gci, "genome": repo("evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv")},
+                                      "x": {"gci": gci, "genome": repo("evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv")}});
+        std::fs::write(d.join("bindings.json"), bind.to_string()).unwrap();
+        assert_eq!(solid_tip_sf(ds, "g3", &g3).map(|x| x.0), Some(1.6));
+        assert!(solid_tip_sf(ds, "g3", &w).is_none(), "same label, different genome must be unverified");
+        assert!(solid_tip_sf(ds, "x", &g3).is_none(), "GCI file naming another design must be unverified");
         std::fs::remove_dir_all(&d).ok();
+    }
+
+    #[test]
+    fn committed_bindings_resolve() {
+        let dir = repo("evidence/fem_solid/gci");
+        let b: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(format!("{dir}/bindings.json")).unwrap()).unwrap();
+        for (label, e) in b.as_object().unwrap().iter().filter(|(k, _)| !k.starts_with('_')) {
+            let g = crate::crescent::load_seeds(&repo(e["genome"].as_str().unwrap()), 1).remove(0);
+            let j: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(repo(e["gci"].as_str().unwrap())).unwrap()).unwrap();
+            assert_eq!(j["design"].as_str(), Some(label.as_str()));
+            assert!(g.v.iter().all(|x| x.is_finite()), "{label}: bound genome must load");
+        }
     }
 
     #[test]
