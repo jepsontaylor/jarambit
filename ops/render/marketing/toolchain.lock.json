@@ -1,0 +1,89 @@
+{
+  "binary_sha256": "d41fdcd0d5e2a60698011126cf33ebaa448cf9a5f77e88e216c8be71b15e7c92",
+  "blender": {
+    "binary": {
+      "ok": true,
+      "path": "/home/ubuntu/opt/blender-4.2.23-linux-x64/blender",
+      "sha256": "d41fdcd0d5e2a60698011126cf33ebaa448cf9a5f77e88e216c8be71b15e7c92",
+      "version_line": "Blender 4.2.23 LTS"
+    },
+    "channel": "lts",
+    "tarball_path": "/home/ubuntu/opt/src/blender-4.2.23-linux-x64.tar.xz",
+    "tarball_sha256": "bea0eb3146be13eae6225409a117b215184f41b7f79e799f97cb3abb8f6dc404",
+    "url": "https://download.blender.org/release/Blender4.2/blender-4.2.23-linux-x64.tar.xz",
+    "version": "4.2.23"
+  },
+  "ffmpeg": {
+    "libwebp": true,
+    "libx264": true,
+    "libx265": true,
+    "ok": true,
+    "path": "ffmpeg",
+    "version_line": "ffmpeg version 7.0.2-static https://johnvansickle.com/ffmpeg/  Copyright (c) 2000-2024 the FFmpeg developers",
+    "zscale": true
+  },
+  "gifski": {
+    "ok": true,
+    "path": "/home/ubuntu/opt/gifski/bin/gifski",
+    "version_line": "gifski 1.34.0"
+  },
+  "gifski_sha256": "c7334a746f753b82148c08d5b671d1486b0984d78f7e20ba26ad1a16b860313a",
+  "hosts": [
+    {
+      "hostname": "xbabe2",
+      "name": "xbabe2",
+      "reachable": true,
+      "ssh": null
+    },
+    {
+      "detail": "",
+      "hostname": "xbabe3",
+      "name": "xbabe3",
+      "reachable": true,
+      "ssh": "xbabe3"
+    },
+    {
+      "detail": "",
+      "hostname": "xbabe1",
+      "name": "xbabe1",
+      "reachable": true,
+      "ssh": "xbabe1"
+    }
+  ],
+  "install_path": {
+    "xbabe1": "/home/ubuntu/opt/blender-4.2.23-linux-x64/blender",
+    "xbabe2": "/home/ubuntu/opt/blender-4.2.23-linux-x64/blender",
+    "xbabe3": "/home/ubuntu/opt/blender-4.2.23-linux-x64/blender"
+  },
+  "optix_probe": {
+    "xbabe1": {
+      "device": "OPTIX",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "res": [
+        16,
+        16
+      ],
+      "samples": 1,
+      "status": "rendered",
+      "uuid": "GPU-784030c4-b1f9-d5a3-f0eb-9337f133f503"
+    },
+    "xbabe2": {
+      "detail": "util 62% with another python process at 6702 MiB; 16x16 probe not started",
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "status": "yield",
+      "uuid": "GPU-44c63d19-492a-ab46-cc6a-56e12a2ef51b"
+    },
+    "xbabe3": {
+      "device": "OPTIX",
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "note": "other process was under the 50% util and 50% VRAM yield lines",
+      "res": [
+        16,
+        16
+      ],
+      "samples": 1,
+      "status": "rendered"
+    }
+  },
+  "schema": "jarambit.render.toolchain.v1"
+}

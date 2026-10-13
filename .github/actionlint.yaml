@@ -1,0 +1,6 @@
+# Custom labels on the neverhuman-lan self-hosted pool.
+self-hosted-runner:
+  labels:
+    - lan-ci
+    - ubuntu24
+    - jarambit

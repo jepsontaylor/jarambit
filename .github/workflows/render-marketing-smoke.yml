@@ -1,0 +1,30 @@
+name: render-marketing-smoke
+
+on:
+  pull_request:
+    paths:
+      - 'ops/render/marketing/**'
+      - '.github/workflows/render-marketing-smoke.yml'
+  push:
+    branches: [main, 'render/**']
+    paths:
+      - 'ops/render/marketing/**'
+      - '.github/workflows/render-marketing-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: marketing render smoke
+    runs-on: [self-hosted, linux, x64, jarambit]  # jarambit-xbabe2/3 carry ffmpeg (zscale/x264/x265/webp) + pinned Blender 4.2.23 in ~/opt; the shared lan-ci pool has neither
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: required tools fail instead of skip
+        run: python3 ops/render/marketing/pipeline.py doctor --require ffmpeg,zscale,libx264,libx265,libwebp,blender
+      - name: pytest
+        run: python3 -m pytest -q ops/render/marketing/tests
