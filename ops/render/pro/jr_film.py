@@ -152,7 +152,7 @@ def main():
     film = work / 'film'
     nfr = film_plan['shots'][-1]['frames'][1]
     if not S.done('film', [film / 'anim_qa.json']):
-        run([*B, *base, '--out', film, '--spp', R['spp']['film'], '--anim', HERE / R['film'], '--step', 1], logs / 'film.log')
+        run([*B, *base, '--out', film, '--spp', R['spp']['film'], '--anim', HERE / R['film'], '--step', 1, '--resume', 1], logs / 'film.log')
         S.mark('film', [film / 'anim_qa.json'])
     got = len(list(film.glob('f[0-9]*.png'))); need(got == nfr, f'film has {got} frames, plan says {nfr}')
     if stop('film'): return

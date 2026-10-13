@@ -144,8 +144,9 @@ def art_material():
 
 def ti_material():
     m, nt, N, L = mk('pro_ground_ti'); out = N('ShaderNodeOutputMaterial'); bs = N('ShaderNodeBsdfPrincipled')
-    bs.inputs['Base Color'].default_value = (0.72, 0.70, 0.67, 1); bs.inputs['Metallic'].default_value = 1
-    bs.inputs['Roughness'].default_value = 0.06
+    G_ = CFG['protected']   # design-wide ground-Ti look (#53: identical in every finish)
+    bs.inputs['Base Color'].default_value = (*G_['grind_rgb'], 1); bs.inputs['Metallic'].default_value = 1
+    bs.inputs['Roughness'].default_value = G_['grind_roughness']
     for key in ('Coat Weight', 'Thin Film Thickness', 'Anisotropic', 'Emission Strength'):
         bs.inputs[key].default_value = 0
     L(bs.outputs[0], out.inputs['Surface'])
@@ -590,9 +591,11 @@ def apply_fault(kind):
     dg.update()
 
 
-def image_pixels(png):
-    """Copy pixels without a Python-float list; release Blender's buffer even on errors."""
+def image_pixels(png, raw=False):
+    """Copy pixels without a Python-float list; release Blender's buffer even on errors.
+    raw=True reads data passes (object index / AOV) without the sRGB->linear decode (0.5 stays 0.5)."""
     im = bpy.data.images.load(png)
+    if raw: im.colorspace_settings.name = 'Non-Color'
     try:
         values = np.empty(len(im.pixels), np.float32)
         im.pixels.foreach_get(values)
@@ -689,7 +692,11 @@ def run_animation():
                     rec['status'] = 'FAIL_PRE_RENDER'; receipt.add(rec)
                     print('QAFAIL', json.dumps(rec), flush=True); return 1
                 if not DRY:
-                    r.filepath = os.path.join(OUT, f'f{f:05d}.png'); bpy.ops.render.render(write_still=True)
+                    r.filepath = os.path.join(OUT, f'f{f:05d}.png')
+                    if A.get('--resume') == '1' and os.path.isfile(r.filepath) and os.path.getsize(r.filepath) > 0:
+                        rec['resumed'] = True   # same state hash path; image QA re-run on the existing frame below
+                    else:
+                        bpy.ops.render.render(write_still=True)
                     try:
                         rec['image'] = frame_qa_image(r.filepath, f)
                     except Exception as e:
@@ -794,7 +801,7 @@ def run_stills():
         png = os.path.join(OUT, tag + '.png'); img.save_render(png, scene=sc)
         try:
             px_ = image_pixels(png)[:, :, :3]
-            idx = image_pixels(os.path.join(OUT, f'qa_idx_{tag}_0001.png'))[:, :, 0]
+            idx = image_pixels(os.path.join(OUT, f'qa_idx_{tag}_0001.png'), raw=True)[:, :, 0]
             partm = (idx > 0.4) & (idx < 0.6)
             if not partm.any() or not np.isfinite(px_).all():
                 raise ValueError('missing part mask or non-finite pixels')

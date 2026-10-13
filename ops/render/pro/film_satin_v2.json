@@ -270,8 +270,8 @@
     "focal_mm": 85,
     "fstop": 0,
     "sig_side": "auto",
-    "exposure_ev_add": 0.8,
-    "light_ev_all": 0.6,
+    "exposure_ev_add": 0.6,
+    "light_ev_all": 0.35,
     "enable_lights": [
      "sci_rim_L",
      "sci_rim_R",
@@ -598,8 +598,8 @@
     "focal_mm": 85,
     "fstop": 0,
     "sig_side": "auto",
-    "exposure_ev_add": 0.8,
-    "light_ev_all": 0.6,
+    "exposure_ev_add": 0.6,
+    "light_ev_all": 0.35,
     "enable_lights": [
      "sci_rim_L",
      "sci_rim_R",
@@ -926,8 +926,8 @@
     "focal_mm": 85,
     "fstop": 0,
     "sig_side": "auto",
-    "exposure_ev_add": 0.8,
-    "light_ev_all": 0.6,
+    "exposure_ev_add": 0.6,
+    "light_ev_all": 0.35,
     "enable_lights": [
      "sci_rim_L",
      "sci_rim_R",

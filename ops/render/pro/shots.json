@@ -370,6 +370,11 @@
    "note": "owner 10:39: true glossy BLACK ink, design-wide (#53/#55: identical in every finish). Dielectric, base 0.01, rough 0.15, IOR 1.5. Specular IOR Level 0.06 (F0 ~0.5 %): measured on the satin macro, a full 4 % dielectric mirrors the macro softbox to sRGB 0.37 (reads grey); 0.06 keeps a crisp gloss highlight and reads black (~0.15 vs 0.46 body). Coat stays 0 (#53 test)."
   },
   "grind_roughness": 0.24,
-  "note": "#53 protected regions: values are design-wide, never finish-dependent"
+  "note": "#53 protected regions: values are design-wide, never finish-dependent. Grinds: satin-ground raw Ti (rough 0.24, F0 ~0.6) instead of mirror 0.06/0.72, which blew the serration scallops to white in the satin hero (clipping gate).",
+  "grind_rgb": [
+   0.6,
+   0.59,
+   0.57
+  ]
  }
 }
