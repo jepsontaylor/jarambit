@@ -30,10 +30,13 @@ CPU_THREADS = 16
 REQUEST_SCHEMA = "jarambit.render.request.v1"
 
 # ssh Host xbabe2 is a different machine (the Mac alias). The coordinator is local.
+# One host table for cmd_render and cmd_dispatch. Dope block B owns the
+# xbabe1 4090 until it reaches 400/400: adopt a Blender that is already
+# rendering there, and do not start another shard.
 DEFAULT_HOSTS = (
-    {"name": "xbabe2", "ssh": None},
+    {"name": "xbabe1", "ssh": "xbabe1", "drain": True},
     {"name": "xbabe3", "ssh": "xbabe3"},
-    {"name": "xbabe1", "ssh": "xbabe1"},
+    {"name": "xbabe2", "ssh": None},
 )
 
 
@@ -242,10 +245,13 @@ def purge_passes(out_dir):
 
 
 def pick_host(states, busy_names):
-    """First reachable host under the yield line that is not already rendering."""
+    """First reachable host under the yield line that is not already rendering.
+
+    A drained host is never chosen for new work.
+    """
     busy = set(busy_names or [])
     for state in states:
-        if state.get("name") in busy:
+        if state.get("name") in busy or state.get("drain"):
             continue
         if state.get("reachable") and not state.get("yield"):
             return state
@@ -350,8 +356,15 @@ def prepare_jobs(plan, dest, bundle_path, regions_path, hosts=None):
 
 
 def assign_hosts(jobs, host_states):
-    """Round-robin pending shards onto hosts that are not yielding."""
-    usable = [state for state in host_states if state.get("reachable") and not state.get("yield")]
+    """Round-robin pending shards onto hosts that are up and not yielding.
+
+    A drained host is not usable. The supervisor may still adopt a Blender
+    that is already rendering there; this function only assigns new work.
+    """
+    usable = [
+        state for state in host_states
+        if state.get("reachable") and not state.get("yield") and not state.get("drain")
+    ]
     cursor = 0
     for job in jobs:
         if job["status"] != "pending":
@@ -365,9 +378,15 @@ def assign_hosts(jobs, host_states):
 
 
 def launch_shell(argv, log_path, ssh_host=None):
-    """Detach with nohup. Return the remote or local pid string. Never kills the child."""
+    """Detach in a new session. Return the pid string. Never kills the child.
+
+    ``setsid`` puts Blender outside the dispatcher terminal's process group.
+    Closing that session then cannot deliver SIGHUP to a live shard.
+    """
     os.makedirs(os.path.dirname(log_path) or ".", exist_ok=True)
-    inner = f"nohup {shell_join(argv)} > {shlex.quote(log_path)} 2>&1 & echo $!"
+    inner = (
+        f"setsid nohup {shell_join(argv)} > {shlex.quote(log_path)} 2>&1 < /dev/null & echo $!"
+    )
     if ssh_host:
         cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", ssh_host, inner]
     else:
@@ -409,7 +428,11 @@ def parse_nvidia_query(gpu_csv: str, apps_csv: str, our_pids):
 
 
 def probe_host_gpu(host):
-    """Reachability plus the yield rule. Unreachable hosts are not scheduled."""
+    """Reachability plus the yield rule. Unreachable hosts are not scheduled.
+
+    ``drain`` is copied from the host record. A drained host is still probed
+    and can adopt a Blender that is already rendering, but it gets no new shard.
+    """
     gpu_cmd = (
         "nvidia-smi --query-gpu=uuid,utilization.gpu,memory.used,memory.total "
         "--format=csv,noheader,nounits && echo '---' && "
@@ -424,22 +447,33 @@ def probe_host_gpu(host):
                 capture_output=True, text=True, timeout=25,
             )
     except subprocess.TimeoutExpired:
-        return {"name": host["name"], "reachable": False, "yield": True, "ssh": host["ssh"], "detail": "timeout"}
+        return _probed_host(host, reachable=False, yield_=True, detail="timeout")
     if proc.returncode != 0:
-        return {"name": host["name"], "reachable": False, "yield": True, "ssh": host["ssh"],
-                "detail": (proc.stderr or "")[-300:]}
+        return _probed_host(host, reachable=False, yield_=True, detail=(proc.stderr or "")[-300:])
     gpu_text, _, apps = proc.stdout.partition("---")
     first = gpu_text.strip().splitlines()[0]
     uuid, util, used, total = [part.strip() for part in first.split(",")]
     parsed = parse_nvidia_query(f"{util}, {used}, {total}", apps, our_pids=())
-    return {
+    return _probed_host(
+        host, reachable=True, yield_=parsed["yield"], gpu_uuid=uuid, gpu=parsed,
+    )
+
+
+def _probed_host(host, *, reachable, yield_, detail=None, gpu_uuid=None, gpu=None):
+    state = {
         "name": host["name"],
-        "reachable": True,
-        "yield": parsed["yield"],
-        "ssh": host["ssh"],
-        "gpu_uuid": uuid,
-        "gpu": parsed,
+        "reachable": reachable,
+        "yield": yield_,
+        "ssh": host.get("ssh"),
+        "drain": bool(host.get("drain")),
     }
+    if detail is not None:
+        state["detail"] = detail
+    if gpu_uuid is not None:
+        state["gpu_uuid"] = gpu_uuid
+    if gpu is not None:
+        state["gpu"] = gpu
+    return state
 
 
 def scratch_root(plan_key):
@@ -501,8 +535,11 @@ def remote_disk_ok(ssh_host, path):
 def render_jobs(plan, dest, bundle_path, regions_path, blender, worker, hosts=None, execute=False):
     """Prepare requests and, when execute is set, nohup one Blender per pending shard.
 
-    execute probes each host first. A host over the yield line is left idle.
-    This function does not kill, renice, or wait out a busy GPU.
+    execute probes each host first. A host over the yield line, or one marked
+    drain, is left idle: no pull, stage, ssh, or launch. Dry-run host states
+    keep the drain flag so assignment matches execute. This function does not
+    kill, renice, or wait out a busy GPU, and it does not adopt a live Blender
+    (supervise does).
     """
     if execute and not os.path.isfile(worker):
         raise RuntimeError(f"blender worker is not present: {worker}")
@@ -512,28 +549,48 @@ def render_jobs(plan, dest, bundle_path, regions_path, blender, worker, hosts=No
     root = scratch_root(plan["plan_key"])
     if execute:
         for host in host_list:
+            if host.get("drain"):
+                continue
             if host["ssh"]:
                 pull_dir(host["ssh"], os.path.join(root, "shots"), os.path.join(dest, "shots"))
     jobs = prepare_jobs(plan, dest, bundle_path, regions_path, host_list)
     if execute:
-        host_states = [probe_host_gpu(host) for host in host_list]
+        host_states = []
+        for host in host_list:
+            state = probe_host_gpu(host)
+            # The host record wins if a probe omits the flag. Drain is closed
+            # before any staging or launch below.
+            if host.get("drain"):
+                state["drain"] = True
+            host_states.append(state)
     else:
-        host_states = [{"name": host["name"], "reachable": True, "yield": False, "ssh": host["ssh"]}
-                       for host in host_list]
+        host_states = [
+            {
+                "name": host["name"],
+                "reachable": True,
+                "yield": False,
+                "ssh": host["ssh"],
+                "drain": bool(host.get("drain")),
+            }
+            for host in host_list
+        ]
     assign_hosts(jobs, host_states)
     by_name = {state["name"]: state for state in host_states}
     if execute:
         # One Blender per GPU: launch at most one shard per host in this call. The rest stay
-        # "queued" (not "launched"); rerun render --execute or use supervise() to drain them.
+        # "queued" (not "launched"); rerun render --execute or use supervise() to finish them.
         busy_hosts = set()
         for job in jobs:
             if job["status"] != "pending" or not job.get("host"):
+                continue
+            state = by_name[job["host"]]
+            if state.get("drain"):
+                job["host"] = None
                 continue
             if job["host"] in busy_hosts:
                 job["status"] = "queued"
                 continue
             busy_hosts.add(job["host"])
-            state = by_name[job["host"]]
             ssh_host = state.get("ssh")
             if not remote_disk_ok(ssh_host, root if ssh_host else dest):
                 job["status"] = "disk"
@@ -619,11 +676,33 @@ def _log_tail(path, ssh_host=None, limit=40) -> str:
     return "".join(lines[-limit:])
 
 
+def signature_brand_dir(code_dir):
+    """Brand tree signature.py loads from beside the marketing package.
+
+    A worker copied to ``{dest}/code`` resolves ``../brand/signature``. The
+    remote tree has to carry that directory or the maker's mark raises
+    FileNotFoundError before the first sample.
+    """
+    return os.path.normpath(os.path.join(code_dir, "..", "brand"))
+
+
 def sync_render_tree(ssh_host, code_dir, root, bundle_path, npz_path, regions_path, hdri_path):
-    """Copy the worker, presets, mesh, and pinned HDRI onto a render host."""
+    """Copy the worker, presets, signature brand, mesh, and pinned HDRI onto a render host."""
     if ssh_host:
-        _ssh(ssh_host, f"mkdir -p {shlex.quote(root)}/code {shlex.quote(root)}/inputs {shlex.quote(os.path.dirname(hdri_path))}", check=True)
+        brand_dir = signature_brand_dir(code_dir)
+        variants = os.path.join(brand_dir, "signature", "variants.json")
+        if not os.path.isfile(variants):
+            raise OSError(f"signature assets missing: {variants}")
+        _ssh(
+            ssh_host,
+            "mkdir -p "
+            f"{shlex.quote(root)}/code {shlex.quote(root)}/brand {shlex.quote(root)}/inputs "
+            f"{shlex.quote(os.path.dirname(hdri_path))}",
+            check=True,
+        )
         subprocess.run(["rsync", "-a", "--delete", code_dir + "/", f"{ssh_host}:{root}/code/"], check=True)
+        # No --delete: a short brand tree must not wipe masks already on the host.
+        subprocess.run(["rsync", "-a", brand_dir + "/", f"{ssh_host}:{root}/brand/"], check=True)
         inputs = [bundle_path, npz_path, regions_path]
         push_files(ssh_host, inputs, os.path.join(root, "inputs"))
         if hdri_path and os.path.isfile(hdri_path):
@@ -798,7 +877,12 @@ def adopt_running(jobs, pid_by_basename, host_name, ssh_host, log_dir):
 
 
 def host_slot_free(state, busy_names, blender_present):
-    """One shard per GPU. A live Blender closes the slot even between samples."""
+    """One shard per GPU. A live Blender closes the slot even between samples.
+
+    A drained host keeps a shard that is already running and accepts no new one.
+    """
+    if state.get("drain"):
+        return False
     if not state.get("reachable") or state.get("yield"):
         return False
     if state.get("name") in set(busy_names or []):
@@ -935,7 +1019,7 @@ def supervise(plan, dest, bundle_path, regions_path, npz_path, blender, worker,
             "launched": sum(1 for job in jobs if job["status"] == "launched"),
             "pending": sum(1 for job in jobs if job["status"] == "pending"),
             "failed": sum(1 for job in jobs if job["status"] == "failed"),
-            "hosts": [{k: state.get(k) for k in ("name", "reachable", "yield", "gpu_uuid")} for state in states],
+            "hosts": [{k: state.get(k) for k in ("name", "reachable", "yield", "drain", "gpu_uuid")} for state in states],
         }
         canon.atomic_write_json(os.path.join(dest, "dispatch_status.json"), summary)
         print(json.dumps(summary), flush=True)

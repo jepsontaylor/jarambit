@@ -1,0 +1,70 @@
+{
+  "annotated_patch_iou": {
+    "bevel": 1.0,
+    "body": 1.0,
+    "edge_apex": 1.0,
+    "ring": 1.0,
+    "serration": 1.0
+  },
+  "area_mm2": {
+    "bevel": 1842.7349900410968,
+    "body": 5835.254365729686,
+    "edge_apex": 9.39965075256785,
+    "pad": 0.0,
+    "ring": 2096.1695972701255,
+    "serration": 639.9007092891113,
+    "spine": 1629.1562268370603
+  },
+  "art_review": "pending",
+  "bundle_byte_identical": true,
+  "deterministic_labels_and_tangent": true,
+  "fixture_tests": {
+    "passed": 57,
+    "skipped": 0
+  },
+  "iou_threshold": 0.95,
+  "labels_sha256": "219a10369e9cb3fb02b09f8c4405725a1b48bbe8a6c584f28a16ade7ea6125e0",
+  "npz_byte_identical": true,
+  "oracle_sha256": "efde001b9f07c7238dba60a5911616f4f4e8c8e7357873bcfebcf45d4d371b2f",
+  "outputs_sha256": {
+    "brep_faces.json": "27d6d60aafef87f367efad9bde4d419a617e888512e22d698a19887af9549b41",
+    "bundle.json": "a0b59140ff443d8cf81bab21714f017e10bc7f2656e88ed2966cfb7a857eb787",
+    "framing.json": "a862e6f3d18cd6ec19a61daf8be644350269f52f432807b4ffadde7955cadb4a",
+    "mesh.npz": "062be78fe0828a5f0fc5f2e20e2f4ed07f2d9ffa07741b0645fbb053aa232228",
+    "region_id.npy": "6f4ff0929eb33331f21d01a19b87176da33cda8cb2754c1cf28dd1b593f7c0ae",
+    "regions.json": "c4da165914f76d14781fc4bdaadd176602cd3994a36dc6fa364dfca2c257c762",
+    "regions_debug.png": "da7a147758b4e6647d560f4ec92fba2231b8d92a5e98348653e36ba5e34fc707",
+    "regions_debug_3q.png": "77e5cd107b1cc182826cec93e255429dac99e0e07ff4c48b10f8166733ba3106",
+    "tangent.npy": "ec5aeaca457dbc2d6b8853f9606c589cb23cb4c04845e823e31cc110e33afadf",
+    "validation.json": "e4b209c1691073316ee871ce323ab597b985afb1300db97ba2412dda904d06de"
+  },
+  "pass": true,
+  "production_files_sha256": {
+    "bundle.json": "a0b59140ff443d8cf81bab21714f017e10bc7f2656e88ed2966cfb7a857eb787",
+    "framing.json": "a862e6f3d18cd6ec19a61daf8be644350269f52f432807b4ffadde7955cadb4a",
+    "mesh.npz": "062be78fe0828a5f0fc5f2e20e2f4ed07f2d9ffa07741b0645fbb053aa232228",
+    "regions.json": "76ad677b173f3e09285fd8a2bcc054481e26d2e207cbfe4c7ffa0bff246a2c86",
+    "regions_debug.png": "6498cc32331a25ab56f474c66a958ba4151354a0ea77d0c8aea6ea84f1200ba2"
+  },
+  "production_unchanged": true,
+  "repository_gates": {
+    "cargo-test": 0,
+    "ci-tests": 0,
+    "claims": 0,
+    "cli-build": 0,
+    "clippy": 0,
+    "d1-lock": 0,
+    "d1-smoke-check": 0,
+    "d1-smoke-run": 0,
+    "fem-tests": 0,
+    "figures": 0,
+    "global-metric-smoke": 0,
+    "json-strict": 0,
+    "media": 0,
+    "metrics": 0,
+    "readme": 0,
+    "status": 0,
+    "version": 0
+  },
+  "standalone_numpy_only_worker_loader": true
+}

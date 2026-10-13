@@ -6,6 +6,8 @@ is Z. Labels are appearance segmentation, not a claim about manufactured CAD.
 from __future__ import annotations
 
 import hashlib
+import json
+from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw
@@ -243,13 +245,177 @@ def plane_frame(V):
     return np.eye(3)
 
 
-def classify(V, F, face_id=None, surface_types=None, tags=None, analysis=None):
+def read_brep_faces(path, R=None, t=None):
+    """Read analytic surface descriptors in STEP explorer face order, without meshing."""
+    from OCP.BRepAdaptor import BRepAdaptor_Surface
+    from OCP.IFSelect import IFSelect_RetDone
+    from OCP.STEPControl import STEPControl_Reader
+    from OCP.TopAbs import TopAbs_FACE
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopoDS import TopoDS
+
+    R = np.eye(3) if R is None else np.asarray(R)
+    t = np.zeros(3) if t is None else np.asarray(t)
+    reader = STEPControl_Reader()
+    if reader.ReadFile(str(path)) != IFSelect_RetDone:
+        raise ValueError("STEP reader rejected region source")
+    reader.SetSystemLengthUnit(1.0)
+    if not reader.TransferRoots():
+        raise ValueError("no B-rep region source faces")
+    explorer = TopExp_Explorer(reader.OneShape(), TopAbs_FACE)
+    records = {}
+    while explorer.More():
+        surface = BRepAdaptor_Surface(TopoDS.Face_s(explorer.Current()))
+        kind = str(surface.GetType()).split(".")[-1].replace("GeomAbs_", "").lower()
+        rec = {"type": kind}
+        if kind in ("cylinder", "cone", "torus", "plane"):
+            analytic = getattr(surface, {"cylinder": "Cylinder", "cone": "Cone", "torus": "Torus", "plane": "Plane"}[kind])()
+            axis = analytic.Axis()
+            origin, direction = axis.Location(), axis.Direction()
+            rec["origin_m"] = (R @ (np.array([origin.X(), origin.Y(), origin.Z()]) * .001) + t).tolist()
+            rec["axis"] = (R @ np.array([direction.X(), direction.Y(), direction.Z()])).tolist()
+            if kind == "cylinder":
+                rec["radius_m"] = analytic.Radius() * .001
+            if kind == "torus":
+                rec["major_radius_m"] = analytic.MajorRadius() * .001
+                rec["minor_radius_m"] = analytic.MinorRadius() * .001
+            if kind != "plane":
+                rec["u_span_rad"] = surface.LastUParameter() - surface.FirstUParameter()
+        records[len(records)] = rec
+        explorer.Next()
+    return records
+
+
+def _blade_half(V, F, area, center, bore_origin):
+    """Surface-area PCA length axis, pointing away from the handle's bore."""
+    centroid = np.sum(center * area[:, None], axis=0) / area.sum()
+    tri = (V - centroid)[F]
+    sums = tri.sum(axis=1)
+    covariance = (np.einsum("m,mki,mkj->ij", area, tri, tri)
+                  + np.einsum("m,mi,mj->ij", area, sums, sums)) / (12 * area.sum())
+    _, vectors = np.linalg.eigh(covariance)
+    axis = vectors[:, -1]
+    if np.dot(centroid - bore_origin, axis) < 0:
+        axis = -axis
+    length = V @ axis
+    return center @ axis > (length.min() + length.max()) / 2
+
+
+def classify_brep(V, F, face_id, faces, N_corner=None, tags=None, analysis=None):
+    """Classify analytic B-rep features before any triangle-level refinement.
+
+    Full concave cylinders identify the bore; coaxial tori/cones/cylinders are
+    ring details, never blade bevels. Conical wheel patches identify serration
+    grinds. BSpline ruled grind patches use analytic corner normals, so triangle
+    count and faceting cannot change their finish. A finite thin edge land is
+    the apex even when its dihedral is below the STL sharp-crease threshold.
+    """
+    V, F, face_id = np.asarray(V), np.asarray(F), np.asarray(face_id)
+    geom_normal, area, center = triangle_geometry(V, F)
+    normals = geom_normal if N_corner is None else np.asarray(N_corner).mean(axis=1).astype(float)
+    normals /= np.linalg.norm(normals, axis=1)[:, None]
+    ids = np.unique(face_id)
+    if any(int(fid) not in faces for fid in ids):
+        raise ValueError("B-rep descriptors do not cover mesh face IDs")
+    kinds = np.array([faces[int(fid)]["type"] for fid in face_id])
+    planes = [int(fid) for fid in ids if faces[int(fid)]["type"] == "plane"]
+    if planes:
+        largest = max(planes, key=lambda fid: float(area[face_id == fid].sum()))
+        plate = np.asarray(faces[largest]["axis"], dtype=float)
+    else:
+        plate = plane_frame(V)[2]
+    plate /= np.linalg.norm(plate)
+    angle = np.degrees(np.arccos(np.clip(abs(normals @ plate), 0, 1)))
+    mid = (np.min(V @ plate) + np.max(V @ plate)) / 2
+    candidates = []
+    for fid in ids:
+        rec = faces[int(fid)]
+        if rec["type"] != "cylinder" or rec["u_span_rad"] < 2 * np.pi - .01 or abs(np.dot(rec["axis"], plate)) < .995:
+            continue
+        s = face_id == fid
+        axis = np.asarray(rec["axis"])
+        radial = center[s] - rec["origin_m"]
+        radial -= np.outer(radial @ axis, axis)
+        inward = np.average(np.einsum("ij,ij->i", normals[s], radial), weights=area[s]) < 0
+        if inward:
+            candidates.append((float(area[s].sum()), int(fid)))
+    bore = max(candidates)[1] if candidates else None
+    ring_ids = []
+    if bore is not None:
+        origin = np.asarray(faces[bore]["origin_m"])
+        axis = np.asarray(faces[bore]["axis"])
+        for fid in ids:
+            rec = faces[int(fid)]
+            if rec["type"] not in ("cylinder", "cone", "torus"):
+                continue
+            delta = np.asarray(rec["origin_m"]) - origin
+            if np.linalg.norm(delta - axis * np.dot(delta, axis)) < 1e-6 and abs(np.dot(rec["axis"], axis)) > .995:
+                ring_ids.append(int(fid))
+    ring = np.isin(face_id, ring_ids)
+    blade = (_blade_half(V, F, area, center, np.asarray(faces[bore]["origin_m"]))
+             if bore is not None else np.ones(len(F), bool))
+    labels = np.zeros(len(F), np.uint8)
+    labels[(angle > 75) & ~ring] = 6
+    oblique = (angle > 12) & (angle <= 75)
+    # Planar chamfers are explicit CAD faces. Curved ruled grinds are restricted
+    # to the blade when a bore establishes the handle side.
+    labels[oblique & (kinds == "plane") & ~ring] = 1
+    labels[oblique & np.isin(kinds, ["bsplinesurface", "beziersurface", "surfaceofextrusion", "surfaceofrevolution"]) & blade & ~ring] = 1
+    cone = (kinds == "cone") & blade & ~ring
+    labels[cone & oblique] = 3
+    labels[ring] = 4
+    topo = analysis if analysis is not None else topology(V, F, min(np.linalg.norm(np.ptp(V, axis=0)) * 1e-6, 1e-9))
+    grind = np.isin(labels, [1, 3])
+    adjacent = np.zeros(len(F), bool)
+    pairs = topo["pairs"]
+    near_grind = pairs[np.any(grind[pairs], axis=1)]
+    adjacent[near_grind.ravel()] = True
+    thin_land = np.max(abs(V[F] @ plate - mid), axis=1) <= .00025 + 1e-9
+    apex = thin_land & (angle > 75) & blade & ~ring & adjacent
+    labels[apex] = 2
+    # A broad connected handle plane remains body unless the exporter explicitly
+    # tags a brand pad. Calling the entire handle a glossy pad hides the finish.
+    if tags is not None:
+        for key, value in tags.items():
+            label = {v: k for k, v in LABELS.items()}.get(value, value) if isinstance(value, str) else value
+            if int(key) not in ids or label not in LABELS:
+                raise ValueError(f"unknown face ID or region tag: {key}={value}")
+            labels[face_id == int(key)] = label
+    tangent = plate - normals * (normals @ plate)[:, None]
+    flat = np.linalg.norm(tangent, axis=1) < 1e-8
+    tangent[flat] = [1, 0, 0]
+    if bore is not None:
+        radial = center - np.asarray(faces[bore]["origin_m"])
+        tangent[ring] = np.cross(np.asarray(faces[bore]["axis"]), radial[ring])
+    tangent -= normals * np.einsum("ij,ij->i", tangent, normals)[:, None]
+    zero = np.linalg.norm(tangent, axis=1) < 1e-12
+    tangent[zero] = V[F[zero, 1]] - V[F[zero, 0]]
+    tangent /= np.linalg.norm(tangent, axis=1)[:, None]
+    delta = V[F] - center[:, None]
+    uv = np.stack([np.einsum("mki,mi->mk", delta, tangent), np.einsum("mki,mi->mk", delta, np.cross(normals, tangent))], axis=2)
+    info = {"schema": "jarambit.render.regions.v1", "revision": 2, "labels": LABELS,
+            "method": "tags" if tags is not None else "brep",
+            "params": {"classification_priority": ["exporter_tags", "analytic_brep_features", "analytic_corner_normals"],
+                       "body_angle_deg": 12, "bevel_angle_max_deg": 75, "apex_land_half_thickness_mm": .25,
+                       "blade_plane_normal": plate.tolist(), "ring_policy": "concave_bore_and_coaxial_analytic_details",
+                       "serration_policy": "conical_wheel_grinds", "pad_policy": "explicit_face_tags_only"},
+            "area_mm2": {name: float(area[labels == key].sum() * 1e6) for key, name in LABELS.items()},
+            "labels_sha256": hashlib.sha256(labels.tobytes()).hexdigest(),
+            "diagnostics": {"bore_face_id": bore, "ring_face_ids": ring_ids, "finite_edge_land_triangles": int(apex.sum()),
+                            "boundary_edges": topo["boundary_edges"], "nonmanifold_edges": topo["nonmanifold_edges"],
+                            "euler_characteristic": topo["euler"], "review": "pending"}}
+    return labels, tangent.astype(np.float32), uv.astype(np.float32), info
+
+
+def classify(V, F, face_id=None, surface_types=None, tags=None, analysis=None, *, brep_faces=None, N_corner=None):
     """Return region_id, tangent, uv and the frozen regions.json record.
 
     `tags` maps zero-based face IDs to label names or integer IDs. Partial
     tags override B-rep/heuristic results only for the named faces.
     """
     V, F = np.asarray(V), np.asarray(F)
+    if brep_faces is not None:
+        return classify_brep(V, F, face_id, brep_faces, N_corner, tags, analysis)
     Q = plane_frame(V)
     planar_analysis = None
     if analysis is not None:
@@ -386,3 +552,88 @@ def debug_overlay(V, F, labels, path):
         draw.rectangle((x, height - 28, x + 16, height - 12), fill=COLORS[i])
         draw.text((x + 22, height - 28), name, fill="white")
     image.save(path, format="PNG")
+
+
+def debug_overlay_3q(V, F, labels, path):
+    """Oblique false-color view shows bore walls and finite edge lands."""
+    from .framing import camera_basis
+    basis = camera_basis(35, 20)
+    points = V @ basis.T
+    normals, _, center = triangle_geometry(V, F)
+    width, height = 1600, 900
+    image = Image.new("RGB", (width, height), (24, 28, 34))
+    draw = ImageDraw.Draw(image)
+    lo, hi = points[:, :2].min(0), points[:, :2].max(0)
+    scale = min((width - 80) / (hi[0] - lo[0]), (height - 80) / (hi[1] - lo[1]))
+    xy = (points[:, :2] - (lo + hi) / 2) * scale
+    xy[:, 0] += width / 2
+    xy[:, 1] = height / 2 - xy[:, 1]
+    for i in np.argsort(center @ basis[2], kind="stable"):
+        if normals[i] @ basis[2] > 0:
+            draw.polygon([tuple(p) for p in xy[F[i]]], fill=COLORS[int(labels[i])])
+    for i, name in LABELS.items():
+        x = 20 + i * 215
+        draw.rectangle((x, height - 28, x + 16, height - 12), fill=COLORS[i])
+        draw.text((x + 22, height - 28), name, fill="white")
+    image.save(path, format="PNG")
+
+
+def write_regions_v2(bundle_path, out):
+    """Publish a new directory with immutable NPZ plus external v2 attributes."""
+    import shutil
+    from .ingest import sha256
+    from .plan import source_info
+
+    bundle_path, out = Path(bundle_path).resolve(), Path(out).resolve()
+    base = bundle_path.parent
+    if out == base or base in out.parents or out.exists():
+        raise ValueError("regions v2 requires a new directory outside the production mesh")
+    before = {p.name: sha256(p) for p in base.iterdir() if p.is_file()}
+    bundle = json.loads(bundle_path.read_text())
+    source_sha = bundle["source"]["sha256"]
+    if source_info(source_sha) is None or sha256(bundle["source"]["path"]) != source_sha:
+        raise ValueError("registered CAD source pin mismatch")
+    if before["mesh.npz"] != bundle["npz_sha256"]:
+        raise ValueError("production NPZ hash mismatch")
+    with np.load(base / "mesh.npz", allow_pickle=False) as archive:
+        mesh = {key: archive[key] for key in archive.files}
+    faces = read_brep_faces(bundle["source"]["path"], bundle["pose"]["R"], bundle["pose"]["t"])
+    labels, tangent, _, info = classify_brep(mesh["V"], mesh["F"], mesh["face_id"], faces, mesh["N_corner"])
+    stage = out.with_name(out.name + ".staging")
+    stage.mkdir(parents=True, exist_ok=False)
+    for name in ("mesh.npz", "bundle.json", "framing.json"):
+        if (base / name).exists():
+            shutil.copy2(base / name, stage / name)
+    np.save(stage / "region_id.npy", labels, allow_pickle=False)
+    np.save(stage / "tangent.npy", tangent, allow_pickle=False)
+    info["base_npz_sha256"] = before["mesh.npz"]
+    info["source_cad_sha256"] = source_sha
+    info["attribute_overrides"] = {name: {"path": name + ".npy", "sha256": sha256(stage / (name + ".npy"))}
+                                   for name in ("region_id", "tangent")}
+    (stage / "regions.json").write_text(json.dumps(info, sort_keys=True, indent=2, allow_nan=False) + "\n")
+    (stage / "brep_faces.json").write_text(json.dumps(faces, sort_keys=True, indent=2, allow_nan=False) + "\n")
+    debug_overlay(mesh["V"], mesh["F"], labels, stage / "regions_debug.png")
+    debug_overlay_3q(mesh["V"], mesh["F"], labels, stage / "regions_debug_3q.png")
+    from .region_io import apply_region_overrides
+    applied = apply_region_overrides(mesh, stage / "regions.json", before["mesh.npz"])
+    assert np.array_equal(applied["region_id"], labels)
+    assert sha256(stage / "mesh.npz") == before["mesh.npz"]
+    assert before == {p.name: sha256(p) for p in base.iterdir() if p.is_file()}, "production directory changed"
+    (stage / "validation.json").write_text(json.dumps({"production_files_sha256": before, "production_unchanged": True,
+        "npz_byte_identical": True, "labels_sha256": info["labels_sha256"], "art_review": "pending"}, indent=2) + "\n")
+    stage.rename(out)
+    return info
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Publish B-rep regions v2 with a byte-identical production NPZ")
+    parser.add_argument("--bundle", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    args = parser.parse_args()
+    info = write_regions_v2(args.bundle, args.out)
+    print(json.dumps({"out": str(args.out), "labels_sha256": info["labels_sha256"], "area_mm2": info["area_mm2"]}))
+
+
+if __name__ == "__main__":
+    main()

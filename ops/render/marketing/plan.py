@@ -27,38 +27,40 @@ INPUT_SCHEMA = "jarambit.render.plan.inputs.v1"
 CAMERA_FRAME = "z_up_az0_minus_y"
 MARGIN = 0.06
 HERO_FILL = (0.62, 0.78)
-# Owner lock 2026-10-13: hero stills and the turntable use SWITCHBACK Rev C.9.3
-# (supersedes the 2026-10-12 C.9.2 lock; C.9.2 hashes stay accepted for re-renders of old stills).
+# Owner lock 2026-10-13: MAJOR-release hero stills and turntable use C.10a rc4.
+# Previous C.9.2/C.9.3 hashes remain accepted for their existing render plans.
 # The earlier scratch bundle under ~/jarambit_render_scratch/hero is superseded.
-HERO_STEP_SHA256 = "3a818183bcb5b9a9093da947e00414ed29aa9bfebbb614046b8fb0b16dcbe919"
-HERO_STL_SHA256 = "1aeda17eba396bcec7380ac27f7d20886d64d234f70ad8d3d0cc57aaf63d74ca"
+C93_STEP_SHA256 = "3a818183bcb5b9a9093da947e00414ed29aa9bfebbb614046b8fb0b16dcbe919"
+C93_STL_SHA256 = "1aeda17eba396bcec7380ac27f7d20886d64d234f70ad8d3d0cc57aaf63d74ca"
 C92_STEP_SHA256 = "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307"
 C92_STL_SHA256 = "10b8c41f80b898c255cc090a349559722258f87f8af849ce9a605e14d762e847"
-# Owner 2026-10-13 (Sharpness Gate S): true-sharp Rev C.10a (EDGE_T 0.15 mm, no tip flat; hiking-karambit 0b7ef2e
-# analysis/w79/ground_c10a.step). Pro-hero lane renders this; it is a DESIGN CANDIDATE, NOT CERTIFIED (V2-S tip SF fails).
+# C.10a rc4 source pins match designs/switchback/C10a/SHA256SUMS on main.
+# Release candidate, not the design of record; V2 tip strength is record-only.
 C10A_STEP_SHA256 = "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7"
+C10A_STL_SHA256 = "0bcadad61bff550d9c527266e183440e8242c3a0222b9a89755cdc682b214411"
 C10A_STEP_PATH = os.path.expanduser("~/jarambit_render/inputs/switchback_C10a/switchback_revC10a_ground.step")
-HERO_SOURCE_SHA256 = frozenset({HERO_STEP_SHA256, HERO_STL_SHA256, C92_STEP_SHA256, C92_STL_SHA256, C10A_STEP_SHA256})
-HERO_STEP_PATH = os.path.expanduser(
-    "~/jarambit_render/inputs/switchback_C9.3/switchback_revC9_3_ground.step"
-)
-HERO_STL_PATH = os.path.expanduser(
-    "~/jarambit_render/inputs/switchback_C9.3/switchback_revC9_3_ground.stl"
-)
+C10A_STL_PATH = os.path.expanduser("~/jarambit_render/inputs/switchback_C10a/switchback_revC10a_ground.stl")
+HERO_STEP_SHA256, HERO_STL_SHA256 = C10A_STEP_SHA256, C10A_STL_SHA256
+HERO_SOURCE_SHA256 = frozenset({HERO_STEP_SHA256, HERO_STL_SHA256, C93_STEP_SHA256, C93_STL_SHA256, C92_STEP_SHA256, C92_STL_SHA256})
+HERO_STEP_PATH = C10A_STEP_PATH
+HERO_STL_PATH = C10A_STL_PATH
 # Source registry: the model name, file name and reference mass for each pinned CAD hash.
 # Ingest, package and QA read model names from here keyed by the actual source sha256 (from
 # --cad / the plan's bundle), so nothing downstream hardcodes a revision. A new hero (e.g. a
 # sharpened Rev C.10) is one entry here plus HERO_STEP/STL_* above.
 KNOWN_SOURCES = {
-    HERO_STEP_SHA256: {"model": "SWITCHBACK Rev C.9.3", "name": "switchback_revC9_3_ground.step",
-                       "reference_mass_g": 66.773, "role": "hero"},
-    HERO_STL_SHA256: {"model": "SWITCHBACK Rev C.9.3", "name": "switchback_revC9_3_ground.stl",
-                      "reference_mass_g": 66.773, "role": "hero"},
+    C93_STEP_SHA256: {"model": "SWITCHBACK Rev C.9.3", "name": "switchback_revC9_3_ground.step",
+                       "reference_mass_g": 66.773, "role": "previous"},
+    C93_STL_SHA256: {"model": "SWITCHBACK Rev C.9.3", "name": "switchback_revC9_3_ground.stl",
+                      "reference_mass_g": 66.773, "role": "previous"},
     C92_STEP_SHA256: {"model": "SWITCHBACK Rev C.9.2", "name": "switchback_revC9_2_ground.step",
                       "reference_mass_g": 66.764, "role": "previous"},
     C10A_STEP_SHA256: {"model": "SWITCHBACK Rev C.10a", "name": "switchback_revC10a_ground.step",
-                       "reference_mass_g": 64.841, "role": "candidate",
-                       "status_label": "design candidate, not certified"},
+                       "reference_mass_g": 64.841, "role": "hero",
+                       "status_label": "release candidate rc4, not the design of record"},
+    C10A_STL_SHA256: {"model": "SWITCHBACK Rev C.10a", "name": "switchback_revC10a_ground.stl",
+                      "reference_mass_g": 64.841, "role": "hero",
+                      "status_label": "release candidate rc4, not the design of record"},
     C92_STL_SHA256: {"model": "SWITCHBACK Rev C.9.2", "name": "switchback_revC9_2_ground.stl",
                      "reference_mass_g": 66.764, "role": "previous"},
 }

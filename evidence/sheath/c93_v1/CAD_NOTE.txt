@@ -1,1 +1,5 @@
-sheath_v1.step (1.0 MB, not committed: gitignored) at xbabe2:~/jarambit_render_scratch/sheath_c93_v1/ — regenerate with python -m sheath.run
+PR #56 withdrawal of the initial unapproved-annotation result.
+This directory now records a real runner invocation without --annotations: INCOMPLETE, null geometry, zero fitness.
+Search, force prediction and CAD export did not run; draw_curve.csv has a header and no observations.
+The figure explicitly records rejection. Historical positive diagnostics remain in the previous git revision.
+Current annotated comparison: ../c93_v12/, also INCOMPLETE until directional retention CAD is implemented.

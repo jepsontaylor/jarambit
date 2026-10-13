@@ -37,7 +37,8 @@ class Window(unittest.TestCase):
 
     def test_fitness_lexicographic(self):
         ok = {"path_feasible": True, "min_edge_clearance_mm": 1, "rim_min_mm": 3, "insert_n": 30, "strain_est": 0.01,
-              "p_in_life_window": 0.97, "p_in_new_window": 0.9, "draw_n": 35}
+              "p_in_life_window": 0.97, "p_in_new_window": 0.9, "draw_n": 35,
+              "annotation_status": "APPROVED", "retention_sf_p05": {"design_shock": 3.0}}
         light_bad = dict(ok, mass_g=5.0, rim_min_mm=1.0)
         heavy_ok = dict(ok, mass_g=40.0)
         self.assertEqual(M.fitness(light_bad)["score"], 0.0)

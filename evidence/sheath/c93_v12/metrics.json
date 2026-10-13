@@ -22,14 +22,14 @@
   "c_face": 0.25,
   "c_edge": 1.3,
   "rim": 3.0,
-  "wall": 2.0,
-  "detent_undercut": 1.7,
+  "wall": 2.8,
+  "detent_undercut": 1.95,
   "detent_a_in": 30.0,
-  "detent_a_out": 35.0,
+  "detent_a_out": 30.0,
   "detent_hole": "guard",
   "retention": "tab",
-  "tab_L": 14.0,
-  "tab_b": 9.0,
+  "tab_L": 18.0,
+  "tab_b": 7.0,
   "slot_w": 0.8,
   "grip_keepout_x": 60.0,
   "mount_mass_g": 4.0,
@@ -157,8 +157,8 @@
  "rim_min_mm": 4.908454149392218,
  "edge_mouth_depth_mm": 8.237893509762582,
  "uncovered_sharp_mm": 0.0,
- "shell_mass_g": 25.839983473917666,
- "mass_g": 29.839983473917666,
+ "shell_mass_g": 34.44374131697258,
+ "mass_g": 38.44374131697258,
  "eps_allow": 0.04,
  "interface_verdict": {
   "outcome": "pass"
@@ -181,36 +181,32 @@
  "stop_land_n": 9,
  "stop_bearing_area_mm2": 16.2,
  "first_contact": {
-  "frac_land_first": 1.0,
-  "worst": {
-   "dir_deg": 50.0,
-   "gap_sharp": 1.9338864664603668,
-   "gap_land": 0.3,
-   "margin": 1.6338864664603667,
-   "exit": false
-  },
-  "n_exit": 4,
+  "status": "INCOMPLETE",
+  "reason": "directional bump land is not supported by exported CAD",
+  "dirs": [],
+  "worst": null,
+  "n_exit": null,
+  "frac_land_first": null,
   "hole_land": {
-   "draw_deg": 140.0,
-   "gap_mm": 0.3,
-   "cam_half_deg": 20.0,
-   "r_bump_mm": 2.6903412395138986,
-   "flank_bearing_mm2": 7.6094341366643965,
-   "requirement": "bump lateral flanks >= 75 deg (non-camming); ramps only on the draw/insert axis +-20 deg"
+   "status": "INCOMPLETE",
+   "geometry": "spherical_cap",
+   "directional_land_modeled": false,
+   "nominal_base_radius_mm": 1.6,
+   "max_projected_radius_mm": 1.6314102564102566,
+   "projected_hole_radius_mm": 2.9903412395138984,
+   "projected_radial_clearance_mm": 1.3589309831036418,
+   "requested_clearance_mm": 0.3,
+   "requested_cam_half_deg": 20.0,
+   "reason": "exported spherical cap has no directional cam sector or non-camming flank"
   }
  },
+ "incomplete_evidence": [
+  "directional_bump_CAD"
+ ],
  "strength_screens": {
   "drop_1.5m_edge": {
-   "E_nmm": 982.2247325911104,
-   "land_crush_mm": 2.6891638582845774,
-   "edge_reached": true,
-   "residual_nmm": 385.4430628318713,
-   "cut_depth_mm_pess_opt": [
-    7.708861256637427,
-    1.284810209439571
-   ],
-   "rim_mm": 3.0,
-   "verdict": "SCREEN_MARGINAL"
+   "verdict": "INCOMPLETE",
+   "reason": "directional_bump_CAD not implemented"
   },
   "drop_1.5m_tip_on_stop": {
    "E_nmm": 982.2247325911104,
@@ -239,23 +235,41 @@
   "sustained_25N_60s": "NOT_EVALUATED (creep data; seated tabs carry 0 deflection by design)",
   "puncture_cut_through": "SCREEN ONLY \u2014 physical guarded test mandatory (plan \u00a78.4)"
  },
- "rattle_free_play_mm": 0.3,
+ "rattle_free_play_mm": null,
+ "rattle_status": "INCOMPLETE: directional bump is not modeled",
+ "force_model_status": "INCOMPLETE: proposed ramp angles differ from exported spherical cap",
  "strength_fail": [],
  "solid_panel": {
-  "k_ladder": null,
+  "k_ladder": [
+   {
+    "max_area": 2.0,
+    "k_n_mm": 341.3093545668337,
+    "ndof": 12626
+   },
+   {
+    "max_area": 1.0,
+    "k_n_mm": 344.32506144054696,
+    "ndof": 19491
+   },
+   {
+    "max_area": 0.5,
+    "k_n_mm": 354.6102163541184,
+    "ndof": 33333
+   }
+  ],
   "k_analytic_clamped_circle_n_mm": 773.3541588219138,
   "a_eq_mm": 6.831812373936781
  },
  "integral_vs_collar": {
-  "tab": 29.839983473917666,
-  "collar": 30.525296753917665
+  "tab": 38.44374131697258,
+  "collar": 39.16266739697258
  },
  "search_bound_hit": {
-  "wall": false,
+  "wall": true,
   "tab_L": false,
   "undercut": false,
   "a_out": false,
-  "tab_b": true
+  "tab_b": false
  },
  "retention_search_n": 214200,
  "retention_feature": {
@@ -272,46 +286,224 @@
   "bump_r0_mm": 1.794204743708339,
   "t_local_mm": 3.6166666238262657
  },
- "k_tab_analytic_n_mm": 21.914446002805047,
+ "k_tab_analytic_n_mm": 19.73121931977559,
  "k_tab_fem_n_mm": [
-  20.15267216446521,
-  20.154817335985104
+  17.893642083619525,
+  17.8334120083874
  ],
  "k_tab_fem_ndof": [
-  7803,
-  23285
+  7072,
+  20976
  ],
- "k_tab_fem_vs_analytic": -0.08029537532432762,
- "interference_per_side_mm": 1.0083333119131328,
- "P_per_side_n": 22.097065916749926,
- "insert_n": 30.727552035660043,
- "draw_n": 36.631067133685136,
- "draw_n_fem_k": 33.68976184965524,
- "curve_peak_n": 61.590803931403514,
- "draw_work_j": 0.09990028032980867,
- "strain_est": 0.021006943998190267,
+ "k_tab_fem_vs_analytic": -0.09618297179871271,
+ "interference_per_side_mm": 1.2583333119131328,
+ "P_per_side_n": 24.82845055473761,
+ "insert_n": 35.097519253303304,
+ "draw_n": 35.097519253303304,
+ "draw_n_fem_k": 31.721735548758055,
+ "curve_peak_n": 56.94362452592375,
+ "draw_work_j": 0.1038173133913089,
+ "strain_est": 0.02064453089857483,
  "sharp_edge_over_detent": false,
  "retention_sf": {
-  "inverted_static": 55.940966336266534,
-  "running_sacral_peak": 10.904671800441818,
-  "fall_waist_peak": 12.431325852503674,
-  "jump_waist_peak": 7.458795511502204,
-  "design_shock": 3.729397755751102
+  "inverted_static": 53.599015717181125,
+  "running_sacral_peak": 10.448151211926145,
+  "fall_waist_peak": 11.910892381595806,
+  "jump_waist_peak": 7.146535428957484,
+  "design_shock": 3.573267714478742
  },
  "retention_sf_p05": {
-  "inverted_static": 35.600589969515276,
-  "running_sacral_peak": 6.939686153901612,
-  "fall_waist_peak": 7.911242215447839,
-  "jump_waist_peak": 4.746745329268704,
-  "design_shock": 2.373372664634352
+  "inverted_static": 36.3669624248709,
+  "running_sacral_peak": 7.089076496076199,
+  "fall_waist_peak": 8.081547205526867,
+  "jump_waist_peak": 4.8489283233161204,
+  "design_shock": 2.4244641616580602
  },
- "draw_n_no_rot_corr": 55.95795927709678,
+ "draw_n_no_rot_corr": 52.69323086238068,
  "ccx_factor": 0.8441216100709524,
  "ccx": {
+  "schema": "jarambit.sheath.ccx_calibration.v1",
+  "status": "COMPLETE",
+  "run_id": "add03050a7f243c79d14f62a21042f4d",
+  "evidence_level": "uncalibrated_fea",
   "solver": "This is Version 2.21",
-  "conv_rel_last2": 0.005276671349176865,
+  "levels": [
+   {
+    "level": 3,
+    "meta": {
+     "L": 16,
+     "b": 7,
+     "t": 2.0,
+     "h": 1.508,
+     "c_face": 0.25,
+     "a_in": 30,
+     "a_out": 35,
+     "wb": 0.6,
+     "mu": 0.3,
+     "E": 1800.0,
+     "nu": 0.38,
+     "level": 3,
+     "travel": 4.253647194167109,
+     "n_nodes": 364,
+     "n_el": 133,
+     "xb": 12.888067382186133,
+     "K_pen": 9000.0,
+     "element": "C3D8I plane-strain slab",
+     "ctype": "S2S",
+     "fillet_r": 0.3
+    },
+    "ccx_rc": 0,
+    "log_tail": "argest increment of disp= 1.488808e-02\n largest correction to disp= 1.544398e-07 in node 286 and dof 1\n\n convergence; the increment size is increased to 5.250000e-03\n\n the increment size exceeds the maximum allowed and is decreased to 5.000000e-03\n\n the increment size exceeds the remainder of the step and is decreased to 0.000000e+00\n\n pressure ratio (smallest/largest pressure over all contact areas) =0.000000e+00\n\n Using up to 1 cpu(s) for the stress calculation.\n\n\n Job finished\n\n________________________________________\n\nTotal CalculiX Time: 23.135401\n________________________________________\n",
+    "started_ns": 1791905596341060836,
+    "completed": true,
+    "fresh_output": true,
+    "peak_n_per_tab": 13.98183,
+    "work_nmm": 41.75389043401391,
+    "n_inc": 202,
+    "artifacts": {
+     "inp": {
+      "path": "runs/add03050a7f243c79d14f62a21042f4d/tab_l3.inp",
+      "sha256": "6ee28287b214f1920c4c5e4aa5071c9b05262500d4f5d63fe28fa919cd8d7b08"
+     },
+     "dat": {
+      "path": "runs/add03050a7f243c79d14f62a21042f4d/tab_l3.dat",
+      "sha256": "b1c361a809d9a4f5aee9788bdafd09542d7b29131b3dd6cdea979bf7d35f9c48"
+     }
+    }
+   },
+   {
+    "level": 4,
+    "meta": {
+     "L": 16,
+     "b": 7,
+     "t": 2.0,
+     "h": 1.508,
+     "c_face": 0.25,
+     "a_in": 30,
+     "a_out": 35,
+     "wb": 0.6,
+     "mu": 0.3,
+     "E": 1800.0,
+     "nu": 0.38,
+     "level": 4,
+     "travel": 4.253647194167109,
+     "n_nodes": 564,
+     "n_el": 219,
+     "xb": 12.888067382186133,
+     "K_pen": 9000.0,
+     "element": "C3D8I plane-strain slab",
+     "ctype": "S2S",
+     "fillet_r": 0.3
+    },
+    "ccx_rc": 0,
+    "log_tail": "argest increment of disp= 1.488813e-02\n largest correction to disp= 7.581116e-10 in node 477 and dof 1\n\n convergence; the increment size is increased to 5.250000e-03\n\n the increment size exceeds the maximum allowed and is decreased to 5.000000e-03\n\n the increment size exceeds the remainder of the step and is decreased to 0.000000e+00\n\n pressure ratio (smallest/largest pressure over all contact areas) =0.000000e+00\n\n Using up to 1 cpu(s) for the stress calculation.\n\n\n Job finished\n\n________________________________________\n\nTotal CalculiX Time: 37.788840\n________________________________________\n",
+    "started_ns": 1791905619503952121,
+    "completed": true,
+    "fresh_output": true,
+    "peak_n_per_tab": 13.92015,
+    "work_nmm": 41.87050672211615,
+    "n_inc": 202,
+    "artifacts": {
+     "inp": {
+      "path": "runs/add03050a7f243c79d14f62a21042f4d/tab_l4.inp",
+      "sha256": "b27c40a51d827ba33b73a7f7f1beb00f64c4b937c0563f10d94bf9b5204694fe"
+     },
+     "dat": {
+      "path": "runs/add03050a7f243c79d14f62a21042f4d/tab_l4.dat",
+      "sha256": "bee71a6b6579222ea0ca20bd95dd1a17a9d87a2a7a237e6e30bf1178c2110187"
+     }
+    }
+   },
+   {
+    "level": 6,
+    "meta": {
+     "L": 16,
+     "b": 7,
+     "t": 2.0,
+     "h": 1.508,
+     "c_face": 0.25,
+     "a_in": 30,
+     "a_out": 35,
+     "wb": 0.6,
+     "mu": 0.3,
+     "E": 1800.0,
+     "nu": 0.38,
+     "level": 6,
+     "travel": 4.253647194167109,
+     "n_nodes": 1146,
+     "n_el": 480,
+     "xb": 12.888067382186133,
+     "K_pen": 9000.0,
+     "element": "C3D8I plane-strain slab",
+     "ctype": "S2S",
+     "fillet_r": 0.3
+    },
+    "ccx_rc": 0,
+    "log_tail": "argest increment of disp= 1.488774e-02\n largest correction to disp= 9.796355e-12 in node 343 and dof 2\n\n convergence; the increment size is increased to 5.250000e-03\n\n the increment size exceeds the maximum allowed and is decreased to 5.000000e-03\n\n the increment size exceeds the remainder of the step and is decreased to 0.000000e+00\n\n pressure ratio (smallest/largest pressure over all contact areas) =0.000000e+00\n\n Using up to 1 cpu(s) for the stress calculation.\n\n\n Job finished\n\n________________________________________\n\nTotal CalculiX Time: 89.730486\n________________________________________\n",
+    "started_ns": 1791905657316982172,
+    "completed": true,
+    "fresh_output": true,
+    "peak_n_per_tab": 13.84585,
+    "work_nmm": 42.11357451628446,
+    "n_inc": 202,
+    "artifacts": {
+     "inp": {
+      "path": "runs/add03050a7f243c79d14f62a21042f4d/tab_l6.inp",
+      "sha256": "b0388142776256a9eb4489150c55940e360d72ccb6ada5dbb7f025b55bf2e13a"
+     },
+     "dat": {
+      "path": "runs/add03050a7f243c79d14f62a21042f4d/tab_l6.dat",
+      "sha256": "e3761fff5d099b60816e3f5383b658aec3fcc3a862a992fcdf7c2f0ac9178581"
+     }
+    }
+   },
+   {
+    "level": 8,
+    "meta": {
+     "L": 16,
+     "b": 7,
+     "t": 2.0,
+     "h": 1.508,
+     "c_face": 0.25,
+     "a_in": 30,
+     "a_out": 35,
+     "wb": 0.6,
+     "mu": 0.3,
+     "E": 1800.0,
+     "nu": 0.38,
+     "level": 8,
+     "travel": 4.253647194167109,
+     "n_nodes": 1890,
+     "n_el": 823,
+     "xb": 12.888067382186133,
+     "K_pen": 9000.0,
+     "element": "C3D8I plane-strain slab",
+     "ctype": "S2S",
+     "fillet_r": 0.3
+    },
+    "ccx_rc": 0,
+    "log_tail": "rgest increment of disp= 1.488828e-02\n largest correction to disp= 1.582904e-08 in node 585 and dof 2\n\n convergence; the increment size is increased to 5.250000e-03\n\n the increment size exceeds the maximum allowed and is decreased to 5.000000e-03\n\n the increment size exceeds the remainder of the step and is decreased to 0.000000e+00\n\n pressure ratio (smallest/largest pressure over all contact areas) =0.000000e+00\n\n Using up to 1 cpu(s) for the stress calculation.\n\n\n Job finished\n\n________________________________________\n\nTotal CalculiX Time: 196.850172\n________________________________________\n",
+    "started_ns": 1791905747075539270,
+    "completed": true,
+    "fresh_output": true,
+    "peak_n_per_tab": 13.77279,
+    "work_nmm": 42.59254237050301,
+    "n_inc": 202,
+    "artifacts": {
+     "inp": {
+      "path": "runs/add03050a7f243c79d14f62a21042f4d/tab_l8.inp",
+      "sha256": "3028362dac180e1794eddf00a8bbd8f9c5bd89fc5e5fc975fe2683ebb297e454"
+     },
+     "dat": {
+      "path": "runs/add03050a7f243c79d14f62a21042f4d/tab_l8.dat",
+      "sha256": "f0b6b654fb4a28399ff258e480bebf3f1f911f0f00ba61b5c7ae75db1953de65"
+     }
+    }
+   }
+  ],
   "ccx_over_bayer": 0.6284600168333317,
   "ccx_over_bayer_rot": 0.8441216100709524,
+  "conv_rel_last2": 0.005276671349176865,
   "analytic": {
    "k_beam": 13.758350554455724,
    "P": 17.3080049975053,
@@ -321,46 +513,51 @@
   }
  },
  "mc_new": {
-  "p05": 25.136036770159244,
-  "p95": 44.80792075059806,
+  "p05": 25.75679886659501,
+  "p95": 40.37839219633282,
   "mu": "U(0.20,0.32) ASSUMED",
   "wear": 0,
   "T": "23C"
  },
  "mc": {
   "n": 20000,
-  "p05": 23.31185330859527,
-  "p50": 35.51073244434646,
-  "p95": 52.0639165775678,
-  "p_in_life_window": 0.96015,
-  "p_in_new_window": 0.81005,
-  "p01": 19.6997010667453,
-  "p99": 59.84959575128521,
+  "p05": 23.813686628613187,
+  "p50": 34.47432853777033,
+  "p95": 48.26623642449275,
+  "p_in_life_window": 0.9848,
+  "p_in_new_window": 0.85145,
+  "p01": 20.6098932734859,
+  "p99": 54.078819547776774,
   "assumptions": "wall sd0.1, undercut sd0.05, c_face sd0.05, knife t sd0.03, tab L sd0.1, life mu U(0.20,0.45) / new mu U(0.20,0.32), tab-end rotation correction on, wear U(0,0.15)mm (5000 cyc), E x{1.15@-10C,1,0.80@+50C} p{.2,.6,.2}"
  },
- "p_in_life_window": 0.96015,
- "p_in_new_window": 0.81005,
+ "retention_search_status": "INCOMPLETE: diagnostic candidates only until directional bump CAD is implemented",
+ "p_in_life_window": 0.9848,
+ "p_in_new_window": 0.85145,
+ "status": "INCOMPLETE",
  "fitness": {
-  "feasible": true,
-  "score": 0.501337036850554,
-  "gates": [],
-  "mass_g": 29.839983473917666,
-  "s_draw": 0.9184466433157432
+  "feasible": false,
+  "score": 0.0,
+  "gates": [
+   "INCOMPLETE:directional_bump_CAD"
+  ],
+  "mass_g": 38.44374131697258,
+  "s_draw": 0.9951240373348348
  },
  "verdicts": {
   "geometry": "PASS",
   "withdrawal_clearance": "PASS",
-  "retention_force": "PREDICTED (analytic_proxy+uncalibrated_fea) \u2014 not a measurement",
+  "containment": "INCOMPLETE",
+  "retention_force": "INCOMPLETE: proposed ramp angles differ from exported spherical cap",
   "puncture": "NOT_EVALUATED",
   "mount": "NOT_EVALUATED",
   "physical_validation": "NOT_EVALUATED"
  },
  "cad_parts": {
   "shell": {
-   "volume_mm3": 25464.78855193781,
-   "mass_g": 25.71943643745719
+   "volume_mm3": 33940.380994719424,
+   "mass_g": 34.27978480466662
   }
  },
- "cad_mass_g": 25.71943643745719,
- "elapsed_s": 219.63649368286133
+ "cad_mass_g": 34.27978480466662,
+ "elapsed_s": 279.87362265586853
 }

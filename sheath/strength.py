@@ -19,6 +19,9 @@ def first_contact_screen(K, C, sharp_pts, land_pts, ndir=36, mouth=None, L=10.0,
     Returns per-direction gaps and the worst edge margin (gap_sharp - gap_land, >0 means a non-sharp land hits first).
     The mouth line is open (not a wall): it is removed from the boundary, and directions in which the sharp points meet
     no wall within L (they leave through the mouth = the draw direction) are reported as 'exit', not as a margin."""
+    if hole_land is not None and hole_land.get("status") != "COMPLETE":
+        return {"status": "INCOMPLETE", "reason": "directional bump land is not supported by exported CAD",
+                "dirs": [], "worst": None, "n_exit": None, "frac_land_first": None}
     from sheath.generate import ray_dist
     from shapely.geometry import LineString as LS
     ring = C.exterior
@@ -43,7 +46,7 @@ def first_contact_screen(K, C, sharp_pts, land_pts, ndir=36, mouth=None, L=10.0,
         out.append({"dir_deg": math.degrees(a), "gap_sharp": gs, "gap_land": gl, "margin": gs - gl, "exit": False})
     walls = [r for r in out if not r["exit"]]
     worst = min(walls, key=lambda r: r["margin"])
-    return {"dirs": out, "worst": worst, "n_exit": len(out) - len(walls),
+    return {"status": "COMPLETE", "dirs": out, "worst": worst, "n_exit": len(out) - len(walls),
             "frac_land_first": float(np.mean([r["margin"] > 0 for r in walls]))}
 
 

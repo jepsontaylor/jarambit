@@ -1,251 +1,32 @@
 {
  "schema": "jarambit.sheath.metrics.v1",
- "evidence_level": "analytic_proxy+uncalibrated_fea",
+ "status": "INCOMPLETE",
  "knife": {
+  "kind": "step",
   "step": "designs/switchback/C9.3/cad/switchback_revC9_3_ground.step",
   "step_sha256": "3a818183bcb5b9a9093da947e00414ed29aa9bfebbb614046b8fb0b16dcbe919",
   "stl": "designs/switchback/C9.3/cad/switchback_revC9_3_ground.stl",
   "stl_sha256": "1aeda17eba396bcec7380ac27f7d20886d64d234f70ad8d3d0cc57aaf63d74ca"
  },
- "knife_mass_g_brep": 66.77269897407102,
- "params": {
-  "material": "PA12_MJF",
-  "mouth_x": 76.0,
-  "path": "trans",
-  "centre": [
-   120.0,
-   40.0
-  ],
-  "direction_deg": 140.0,
-  "sweep_max": 200.0,
-  "c_face": 0.25,
-  "c_edge": 0.8,
-  "rim": 3.0,
-  "wall": 2.0,
-  "detent_undercut": 1.2999999999999998,
-  "detent_a_in": 30.0,
-  "detent_a_out": 25.0,
-  "detent_hole": "guard",
-  "retention": "tab",
-  "tab_L": 13.0,
-  "tab_b": 9.0,
-  "slot_w": 0.8,
-  "grip_keepout_x": 60.0,
-  "mount_mass_g": 4.0
+ "annotation_status": "INCOMPLETE: no annotation file",
+ "interface_verdict": {
+  "outcome": "incomplete",
+  "missing": [
+   "retention_lands",
+   "seating_lands",
+   "approved_annotations"
+  ]
  },
- "material": {
-  "name": "PA12_MJF",
-  "E_mpa": 1800.0,
-  "rho_g_cm3": 1.01,
-  "mu_steel": 0.3,
-  "eps_allow": 0.04,
-  "E_temp": [
-   1.25,
-   0.7
-  ],
-  "source": "HP 3D HP PA12 datasheet (tensile modulus ~1800 MPa, part density 1.01 g/cm3); mu: Covestro snap-fit guide Table 3 PA 0.25-0.30 (x1.5 vs self)"
- },
- "n_path_candidates": 377,
- "n_feasible": 53,
- "top_paths": [
-  {
-   "path": "trans",
-   "centre": [
-    120.0,
-    40.0
-   ],
-   "dir": 140.0,
-   "sweep": 200.0,
-   "outline_mm2": 4661.8254632505295,
-   "edge_mouth_depth_mm": 8.237893509762582
-  },
-  {
-   "path": "trans",
-   "centre": [
-    120.0,
-    40.0
-   ],
-   "dir": 150.0,
-   "sweep": 200.0,
-   "outline_mm2": 4849.968737052741,
-   "edge_mouth_depth_mm": 12.27588504615786
-  },
-  {
-   "path": "trans",
-   "centre": [
-    120.0,
-    40.0
-   ],
-   "dir": 160.0,
-   "sweep": 200.0,
-   "outline_mm2": 5418.325429812981,
-   "edge_mouth_depth_mm": 15.940880027323182
-  },
-  {
-   "path": "rot",
-   "centre": [
-    180.0,
-    110.0
-   ],
-   "dir": 180.0,
-   "sweep": -150.0,
-   "outline_mm2": 6322.639895208854,
-   "edge_mouth_depth_mm": 6.973109486048408
-  },
-  {
-   "path": "rot",
-   "centre": [
-    180.0,
-    120.0
-   ],
-   "dir": 180.0,
-   "sweep": -150.0,
-   "outline_mm2": 6412.5450700602005,
-   "edge_mouth_depth_mm": 8.005844330363129
-  },
-  {
-   "path": "trans",
-   "centre": [
-    120.0,
-    40.0
-   ],
-   "dir": 170.0,
-   "sweep": 200.0,
-   "outline_mm2": 6417.398242699925,
-   "edge_mouth_depth_mm": 19.121519435332807
-  },
-  {
-   "path": "rot",
-   "centre": [
-    170.0,
-    100.0
-   ],
-   "dir": 180.0,
-   "sweep": -150.0,
-   "outline_mm2": 6722.901338664044,
-   "edge_mouth_depth_mm": 7.060126907033537
-  },
-  {
-   "path": "rot",
-   "centre": [
-    170.0,
-    110.0
-   ],
-   "dir": 180.0,
-   "sweep": -150.0,
-   "outline_mm2": 6811.966575039152,
-   "edge_mouth_depth_mm": 8.186409886128253
-  }
+ "path_feasible": null,
+ "incomplete_evidence": [
+  "approved_source_bound_annotations"
  ],
- "path_feasible": true,
- "left_at": 120.0,
- "mouth_len_mm": 33.899683226705555,
- "mouth_note": "length of cavity edge on the mouth line",
- "outline_mm2": 4663.702340512307,
- "cavity_mm2": 3829.684596656177,
- "t_gap_knife_mm": 4.5,
- "min_edge_clearance_mm": 0.7999999999999843,
- "rim_min_mm": 3.7990371983516233,
- "edge_mouth_depth_mm": 8.237893509762582,
- "uncovered_sharp_mm": 0.0,
- "shell_mass_g": 23.053147062143175,
- "mass_g": 27.053147062143175,
- "eps_allow": 0.04,
- "solid_panel": {
-  "k_ladder": [
-   {
-    "max_area": 2.0,
-    "k_n_mm": 318.97668032810026,
-    "ndof": 12394
-   },
-   {
-    "max_area": 1.0,
-    "k_n_mm": 325.65802790426534,
-    "ndof": 18554
-   },
-   {
-    "max_area": 0.5,
-    "k_n_mm": 325.80642453942596,
-    "ndof": 30556
-   }
-  ],
-  "k_analytic_clamped_circle_n_mm": 671.471526642131,
-  "a_eq_mm": 7.331812373936781
- },
- "retention_search_n": 38556,
- "retention_feature": {
-  "type": "twin U-slot click-tabs, bumps into closed guard hole (both faces)",
-  "hole": {
-   "centroid": [
-    85.00000000413205,
-    -15.000000032063667
-   ],
-   "area_mm2": 28.092563620767866,
-   "eq_radius_mm": 2.9903412395138984
-  },
-  "review_required": true,
-  "bump_r0_mm": 1.794204743708339,
-  "t_local_mm": 3.6166666238262657
- },
- "k_tab_analytic_n_mm": 28.45091111408499,
- "k_tab_fem_n_mm": [
-  26.4701141527545,
-  26.225660695760133
- ],
- "k_tab_fem_ndof": [
-  7779,
-  23267
- ],
- "k_tab_fem_vs_analytic": -0.07821367862005724,
- "interference_per_side_mm": 0.6083333119131327,
- "P_per_side_n": 17.307636984977478,
- "insert_n": 36.73186570064379,
- "draw_n": 30.84026506629255,
- "draw_n_fem_k": 28.428134485840168,
- "curve_peak_n": 35.985989496312285,
- "draw_work_j": 0.07742907297647392,
- "strain_est": 0.015082644097019818,
- "sharp_edge_over_detent": false,
- "retention_sf": {
-  "inverted_static": 47.09756949145826,
-  "running_sacral_peak": 9.234817547344758,
-  "running_x2_margin": 4.617408773672379,
-  "fall_or_jump_landing": 1.8839027796583303
- },
- "retention_sf_p05": {
-  "inverted_static": 25.354961385313064,
-  "running_sacral_peak": 4.971561055943739,
-  "running_x2_margin": 2.4857805279718694,
-  "fall_or_jump_landing": 1.0141984554125227
- },
- "mc": {
-  "n": 20000,
-  "p05": 16.602846777698037,
-  "p50": 28.805467610352586,
-  "p95": 46.20869530118892,
-  "p_in_life_window": 0.95,
-  "p_in_new_window": 0.7851037851037851,
-  "assumptions": "wall sd0.1, undercut sd0.05, c_face sd0.05, knife t sd0.03, tab L sd0.1, mu U(0.20,0.45), wear U(0,0.10)mm, E x{1.25@-20C,1,0.70@+60C} p{.2,.6,.2}"
- },
- "p_in_life_window": 0.95,
- "p_in_new_window": 0.7851037851037851,
+ "reason": null,
  "fitness": {
-  "score": 0.8125478735263694,
-  "raw": 0.8125478735263694,
-  "gates": [],
-  "s_draw": 0.9579867466853725,
-  "s_mass": 0.5491142156309471,
-  "s_robust": 0.7851037851037851
- },
- "verdicts": {
-  "geometry": "PASS",
-  "withdrawal_clearance": "PASS",
-  "retention_force": "PREDICTED (analytic_proxy+uncalibrated_fea) \u2014 not a measurement",
-  "puncture": "NOT_EVALUATED",
-  "mount": "NOT_EVALUATED",
-  "physical_validation": "NOT_EVALUATED"
- },
- "cad_volume_mm3": 22711.34906792006,
- "cad_mass_g": 22.93846255859926,
- "elapsed_s": 70.5235538482666
+  "feasible": false,
+  "score": 0.0,
+  "gates": [
+   "INCOMPLETE:approved_source_bound_annotations"
+  ]
+ }
 }

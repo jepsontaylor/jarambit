@@ -1,0 +1,1417 @@
+
+                        S T E P       1
+
+
+                                INCREMENT     1
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2000000E-02
+
+        2.961631E-12 -2.985344E-13 -5.909040E-15
+
+                                INCREMENT     2
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4000000E-02
+
+        3.915211E-12 -1.854884E-13 -3.590858E-16
+
+                                INCREMENT     3
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7000000E-02
+
+       -2.649595E-12 -3.574121E-15 -2.051240E-15
+
+                                INCREMENT     4
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1150000E-01
+
+        3.215976E-12 -7.337918E-13  1.286291E-14
+
+                                INCREMENT     5
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1650000E-01
+
+       -1.085573E-11 -5.134955E-13  6.143598E-15
+
+                                INCREMENT     6
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2150000E-01
+
+       -1.061269E-11  1.507171E-12  4.885194E-14
+
+                                INCREMENT     7
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2650000E-01
+
+       -1.272812E-11 -9.931739E-13  3.047908E-15
+
+                                INCREMENT     8
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3150000E-01
+
+       -1.877142E-11 -1.075355E-12  5.264278E-15
+
+                                INCREMENT     9
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3650000E-01
+
+       -1.934604E-11 -1.969280E-12  2.423092E-14
+
+                                INCREMENT    10
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4150000E-01
+
+       -3.150172E-11 -8.426476E-13  1.865896E-14
+
+                                INCREMENT    11
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4650000E-01
+
+       -4.024274E-11  5.334682E-13 -1.008805E-14
+
+                                INCREMENT    12
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5150000E-01
+
+       -1.292065E-11 -3.690582E-12  1.074280E-14
+
+                                INCREMENT    13
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5650000E-01
+
+       -3.674748E-11  9.370811E-13 -1.268410E-13
+
+                                INCREMENT    14
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6150000E-01
+
+        2.150028E-01  1.698034E-01 -2.168185E-13
+
+                                INCREMENT    15
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6650000E-01
+
+        4.802181E-01  3.802830E-01  2.371804E-13
+
+                                INCREMENT    16
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7150000E-01
+
+        7.347776E-01  5.838308E-01  1.977208E-11
+
+                                INCREMENT    17
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7650000E-01
+
+        9.819744E-01  7.828282E-01  2.944128E-12
+
+                                INCREMENT    18
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8150000E-01
+
+        1.238234E+00  9.903588E-01  1.449695E-13
+
+                                INCREMENT    19
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8650000E-01
+
+        1.487637E+00  1.193990E+00 -3.643287E-13
+
+                                INCREMENT    20
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9150000E-01
+
+        1.736644E+00  1.398650E+00 -7.406032E-13
+
+                                INCREMENT    21
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9650000E-01
+
+        1.983080E+00  1.602765E+00  2.795678E-11
+
+                                INCREMENT    22
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1015000E+00
+
+        2.223435E+00  1.803418E+00  4.835546E-11
+
+                                INCREMENT    23
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1065000E+00
+
+        2.457590E+00  2.000369E+00 -2.345258E-11
+
+                                INCREMENT    24
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1115000E+00
+
+        2.685762E+00  2.193752E+00 -7.428648E-11
+
+                                INCREMENT    25
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1165000E+00
+
+        2.908174E+00  2.383694E+00 -1.977019E-11
+
+                                INCREMENT    26
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1215000E+00
+
+        3.125036E+00  2.570315E+00 -5.484703E-12
+
+                                INCREMENT    27
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1265000E+00
+
+        3.340518E+00  2.757009E+00 -7.492163E-11
+
+                                INCREMENT    28
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1315000E+00
+
+        3.553553E+00  2.943296E+00 -7.155019E-11
+
+                                INCREMENT    29
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1365000E+00
+
+        3.762749E+00  3.127546E+00  7.613942E-11
+
+                                INCREMENT    30
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1415000E+00
+
+        3.968125E+00  3.309956E+00 -1.286131E-10
+
+                                INCREMENT    31
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1465000E+00
+
+        4.168987E+00  3.489773E+00  6.883386E-11
+
+                                INCREMENT    32
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1515000E+00
+
+        4.363860E+00  3.665681E+00 -3.243069E-11
+
+                                INCREMENT    33
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1565000E+00
+
+        4.559072E+00  3.842966E+00 -6.329829E-11
+
+                                INCREMENT    34
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1615000E+00
+
+        4.761878E+00  4.028069E+00 -5.740882E-13
+
+                                INCREMENT    35
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1665000E+00
+
+        4.949784E+00  4.194297E+00 -5.675573E-11
+
+                                INCREMENT    36
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1715000E+00
+
+        5.146728E+00  4.369266E+00  4.749828E-11
+
+                                INCREMENT    37
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1765000E+00
+
+        5.346286E+00  4.551187E+00  2.614456E-11
+
+                                INCREMENT    38
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1815000E+00
+
+        5.533732E+00  4.716480E+00  4.965735E-11
+
+                                INCREMENT    39
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1865000E+00
+
+        5.719794E+00  4.891509E+00  2.559057E-11
+
+                                INCREMENT    40
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1915000E+00
+
+        5.896144E+00  5.058983E+00 -8.484989E-11
+
+                                INCREMENT    41
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1965000E+00
+
+        6.072334E+00  5.227892E+00 -1.082304E-10
+
+                                INCREMENT    42
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2015000E+00
+
+        6.245985E+00  5.395395E+00 -5.605599E-11
+
+                                INCREMENT    43
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2065000E+00
+
+        6.430591E+00  5.573755E+00 -3.615583E-11
+
+                                INCREMENT    44
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2115000E+00
+
+        6.568947E+00  5.710586E+00 -1.314316E-11
+
+                                INCREMENT    45
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2165000E+00
+
+        6.720790E+00  5.863094E+00 -8.277894E-12
+
+                                INCREMENT    46
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2215000E+00
+
+        6.875071E+00  6.016870E+00  1.235128E-12
+
+                                INCREMENT    47
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2265000E+00
+
+        7.028375E+00  6.170748E+00 -6.877092E-11
+
+                                INCREMENT    48
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2315000E+00
+
+        7.179097E+00  6.323441E+00  3.396504E-11
+
+                                INCREMENT    49
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2365000E+00
+
+        7.322070E+00  6.470422E+00 -1.685756E-10
+
+                                INCREMENT    50
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2415000E+00
+
+        7.467806E+00  6.621238E+00 -1.436853E-10
+
+                                INCREMENT    51
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2465000E+00
+
+        7.612370E+00  6.771448E+00 -1.189993E-11
+
+                                INCREMENT    52
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2515000E+00
+
+        7.755099E+00  6.921036E+00 -1.499880E-10
+
+                                INCREMENT    53
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2565000E+00
+
+        7.895912E+00  7.069904E+00 -9.832603E-11
+
+                                INCREMENT    54
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2615000E+00
+
+        8.034742E+00  7.217974E+00 -1.178478E-10
+
+                                INCREMENT    55
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2665000E+00
+
+        8.170411E+00  7.364158E+00  2.334131E-10
+
+                                INCREMENT    56
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2715000E+00
+
+        8.299760E+00  7.505660E+00  2.226859E-10
+
+                                INCREMENT    57
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2765000E+00
+
+        8.425720E+00  7.645352E+00 -4.359937E-10
+
+                                INCREMENT    58
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2815000E+00
+
+        8.548781E+00  7.783206E+00 -3.451733E-10
+
+                                INCREMENT    59
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2865000E+00
+
+        8.675413E+00  7.925121E+00  4.999928E-10
+
+                                INCREMENT    60
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2915000E+00
+
+        8.813328E+00  8.067453E+00  1.882043E-11
+
+                                INCREMENT    61
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.2965000E+00
+
+        8.937213E+00  8.194233E+00  5.429605E-11
+
+                                INCREMENT    62
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3015000E+00
+
+        9.074267E+00  8.334571E+00 -9.358639E-11
+
+                                INCREMENT    63
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3065000E+00
+
+        9.198333E+00  8.462109E+00 -7.144794E-11
+
+                                INCREMENT    64
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3115000E+00
+
+        9.328731E+00  8.595362E+00  6.058829E-11
+
+                                INCREMENT    65
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3165000E+00
+
+        9.451570E+00  8.720067E+00 -5.879257E-11
+
+                                INCREMENT    66
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3215000E+00
+
+        9.577677E+00  8.860748E+00 -2.015870E-12
+
+                                INCREMENT    67
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3265000E+00
+
+        9.696953E+00  8.987947E+00 -3.237971E-11
+
+                                INCREMENT    68
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3315000E+00
+
+        9.804245E+00  9.117029E+00 -8.682574E-11
+
+                                INCREMENT    69
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3365000E+00
+
+        9.903280E+00  9.239273E+00  8.377412E-11
+
+                                INCREMENT    70
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3415000E+00
+
+        1.001172E+01  9.371891E+00  1.353400E-10
+
+                                INCREMENT    71
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3465000E+00
+
+        1.011402E+01  9.497319E+00  1.233130E-10
+
+                                INCREMENT    72
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3515000E+00
+
+        1.020795E+01  9.616777E+00 -5.023782E-12
+
+                                INCREMENT    73
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3565000E+00
+
+        1.031173E+01  9.747077E+00  1.151912E-10
+
+                                INCREMENT    74
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3615000E+00
+
+        1.041664E+01  9.876876E+00  1.644966E-10
+
+                                INCREMENT    75
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3665000E+00
+
+        1.051322E+01  9.999523E+00  1.967305E-11
+
+                                INCREMENT    76
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3715000E+00
+
+        1.061289E+01  1.012710E+01 -9.886285E-11
+
+                                INCREMENT    77
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3765000E+00
+
+        1.071234E+01  1.025405E+01  1.355120E-10
+
+                                INCREMENT    78
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3815000E+00
+
+        1.081026E+01  1.038026E+01  2.218166E-10
+
+                                INCREMENT    79
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3865000E+00
+
+        1.090273E+01  1.050196E+01  7.558876E-11
+
+                                INCREMENT    80
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3915000E+00
+
+        1.098776E+01  1.061791E+01  4.820310E-11
+
+                                INCREMENT    81
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.3965000E+00
+
+        1.106944E+01  1.073223E+01 -2.941986E-10
+
+                                INCREMENT    82
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4015000E+00
+
+        1.114898E+01  1.084510E+01 -9.647139E-11
+
+                                INCREMENT    83
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4065000E+00
+
+        1.122956E+01  1.095957E+01  5.680321E-10
+
+                                INCREMENT    84
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4115000E+00
+
+        1.128426E+01  1.104142E+01  2.816430E-10
+
+                                INCREMENT    85
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4165000E+00
+
+        1.133736E+01  1.111596E+01  4.296451E-11
+
+                                INCREMENT    86
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4215000E+00
+
+        1.142804E+01  1.122496E+01  1.253308E-10
+
+                                INCREMENT    87
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4265000E+00
+
+        1.152621E+01  1.133391E+01 -1.578376E-10
+
+                                INCREMENT    88
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4315000E+00
+
+        1.161766E+01  1.144437E+01  1.726330E-10
+
+                                INCREMENT    89
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4365000E+00
+
+        1.170309E+01  1.154829E+01  2.799504E-10
+
+                                INCREMENT    90
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4415000E+00
+
+        1.179629E+01  1.165847E+01  1.433793E-10
+
+                                INCREMENT    91
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4465000E+00
+
+        1.187800E+01  1.176001E+01  1.232002E-10
+
+                                INCREMENT    92
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4515000E+00
+
+        1.196260E+01  1.186607E+01  2.271066E-10
+
+                                INCREMENT    93
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4565000E+00
+
+        1.204171E+01  1.197118E+01  2.198890E-10
+
+                                INCREMENT    94
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4615000E+00
+
+        1.211613E+01  1.207165E+01  1.486605E-10
+
+                                INCREMENT    95
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4665000E+00
+
+        1.218853E+01  1.217478E+01  1.546343E-10
+
+                                INCREMENT    96
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4715000E+00
+
+        1.224502E+01  1.226978E+01  1.487431E-10
+
+                                INCREMENT    97
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4765000E+00
+
+        1.231355E+01  1.237989E+01  2.424616E-10
+
+                                INCREMENT    98
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4815000E+00
+
+        1.236075E+01  1.246445E+01  4.308431E-10
+
+                                INCREMENT    99
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4865000E+00
+
+        1.242187E+01  1.257040E+01  3.206908E-10
+
+                                INCREMENT   100
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4915000E+00
+
+        1.247258E+01  1.265989E+01  1.255544E-10
+
+                                INCREMENT   101
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.4965000E+00
+
+        1.253219E+01  1.276316E+01  1.277943E-10
+
+                                INCREMENT   102
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5015000E+00
+
+        1.257672E+01  1.284732E+01  1.171236E-10
+
+                                INCREMENT   103
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5065000E+00
+
+        1.262816E+01  1.294409E+01 -1.664939E-10
+
+                                INCREMENT   104
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5115000E+00
+
+        1.267702E+01  1.303469E+01 -9.683986E-11
+
+                                INCREMENT   105
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5165000E+00
+
+        1.272283E+01  1.312395E+01 -3.045211E-10
+
+                                INCREMENT   106
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5215000E+00
+
+        1.276708E+01  1.321206E+01 -1.694869E-10
+
+                                INCREMENT   107
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5265000E+00
+
+        1.281527E+01  1.330464E+01 -2.013367E-10
+
+                                INCREMENT   108
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5315000E+00
+
+        1.288090E+01  1.341387E+01 -1.127258E-11
+
+                                INCREMENT   109
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5365000E+00
+
+        2.382235E+00  1.484833E+01 -1.767097E-08
+
+                                INCREMENT   110
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5415000E+00
+
+        1.269329E+01  1.343364E+01  8.371152E-06
+
+                                INCREMENT   111
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5465000E+00
+
+        1.295862E+01  1.348032E+01  2.259385E-06
+
+                                INCREMENT   112
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5515000E+00
+
+        1.302462E+01  1.359312E+01  1.469920E-06
+
+                                INCREMENT   113
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5565000E+00
+
+        1.309864E+01  1.370617E+01  1.133814E-06
+
+                                INCREMENT   114
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5615000E+00
+
+        1.316621E+01  1.381174E+01  8.319716E-07
+
+                                INCREMENT   115
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5665000E+00
+
+        1.323365E+01  1.391891E+01  5.938540E-07
+
+                                INCREMENT   116
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5715000E+00
+
+        1.329571E+01  1.401943E+01  4.152544E-07
+
+                                INCREMENT   117
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5765000E+00
+
+        1.335279E+01  1.411592E+01  2.836262E-07
+
+                                INCREMENT   118
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5815000E+00
+
+        1.340639E+01  1.420899E+01  1.890492E-07
+
+                                INCREMENT   119
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5865000E+00
+
+        1.345656E+01  1.429818E+01  1.220631E-07
+
+                                INCREMENT   120
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5915000E+00
+
+        1.351202E+01  1.439257E+01  7.548241E-08
+
+                                INCREMENT   121
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.5965000E+00
+
+        1.356046E+01  1.447650E+01  4.436819E-08
+
+                                INCREMENT   122
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6015000E+00
+
+        1.361837E+01  1.457168E+01  2.018684E-08
+
+                                INCREMENT   123
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6065000E+00
+
+        1.366714E+01  1.465280E+01  1.124845E-07
+
+                                INCREMENT   124
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6115000E+00
+
+        1.370321E+01  1.472264E+01  6.884719E-08
+
+                                INCREMENT   125
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6165000E+00
+
+        1.372094E+01  1.477261E+01  2.294982E-08
+
+                                INCREMENT   126
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6215000E+00
+
+        1.371493E+01  1.476842E+01  7.681331E-09
+
+                                INCREMENT   127
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6265000E+00
+
+        1.371545E+01  1.479153E+01  1.299370E-09
+
+                                INCREMENT   128
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6315000E+00
+
+        1.372700E+01  1.482257E+01  6.666937E-10
+
+                                INCREMENT   129
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6365000E+00
+
+        1.374188E+01  1.485136E+01  2.265369E-10
+
+                                INCREMENT   130
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6415000E+00
+
+        5.302872E+00  1.606890E+01  5.958745E-06
+
+                                INCREMENT   131
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6465000E+00
+
+        1.304090E+01  1.486403E+01  2.126107E-05
+
+                                INCREMENT   132
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6515000E+00
+
+        1.376662E+01  1.483515E+01  7.462000E-06
+
+                                INCREMENT   133
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6565000E+00
+
+        1.376474E+01  1.486104E+01  2.697982E-06
+
+                                INCREMENT   134
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6615000E+00
+
+        1.376524E+01  1.488086E+01  5.163104E-07
+
+                                INCREMENT   135
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6665000E+00
+
+        1.377044E+01  1.489836E+01  9.573004E-08
+
+                                INCREMENT   136
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6715000E+00
+
+        1.377748E+01  1.491366E+01  1.705901E-08
+
+                                INCREMENT   137
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6765000E+00
+
+        1.378453E+01  1.492695E+01  2.974543E-09
+
+                                INCREMENT   138
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6815000E+00
+
+        1.379072E+01  1.493825E+01  4.949855E-10
+
+                                INCREMENT   139
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6865000E+00
+
+        1.379554E+01  1.494743E+01  2.171716E-10
+
+                                INCREMENT   140
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6915000E+00
+
+        1.379856E+01  1.495416E+01  2.408317E-10
+
+                                INCREMENT   141
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.6965000E+00
+
+        1.379935E+01  1.495794E+01 -4.679830E-11
+
+                                INCREMENT   142
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7015000E+00
+
+        1.380220E+01  1.496331E+01  9.469634E-11
+
+                                INCREMENT   143
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7065000E+00
+
+        1.380504E+01  1.496837E+01  6.922596E-11
+
+                                INCREMENT   144
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7115000E+00
+
+        1.380601E+01  1.497164E+01  6.419093E-11
+
+                                INCREMENT   145
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7165000E+00
+
+        1.380274E+01  1.496991E+01 -4.671088E-11
+
+                                INCREMENT   146
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7215000E+00
+
+        1.379330E+01  1.496025E+01 -7.839668E-11
+
+                                INCREMENT   147
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7265000E+00
+
+        1.379791E+01  1.496376E+01  3.092541E-11
+
+                                INCREMENT   148
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7315000E+00
+
+        6.295324E+00  1.608039E+01  2.009785E-10
+
+                                INCREMENT   149
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7365000E+00
+
+        1.288428E+01  1.501210E+01 -7.502068E-05
+
+                                INCREMENT   150
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7415000E+00
+
+        1.377446E+01  1.487571E+01  3.338238E-02
+
+                                INCREMENT   151
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7465000E+00
+
+        1.376192E+01  1.489344E+01  1.193975E-02
+
+                                INCREMENT   152
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7515000E+00
+
+        1.376809E+01  1.490733E+01  4.113429E-03
+
+                                INCREMENT   153
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7565000E+00
+
+        5.413359E+00  1.611507E+01  1.495589E-03
+
+                                INCREMENT   154
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7615000E+00
+
+        1.251196E+01  1.499590E+01  8.336435E-04
+
+                                INCREMENT   155
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7665000E+00
+
+        1.377098E+01  1.485204E+01  2.093730E-04
+
+                                INCREMENT   156
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7715000E+00
+
+        1.376638E+01  1.488155E+01 -1.511620E-03
+
+                                INCREMENT   157
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7765000E+00
+
+        1.377453E+01  1.490184E+01 -9.323661E-04
+
+                                INCREMENT   158
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7815000E+00
+
+        1.377746E+01  1.491504E+01 -2.726554E-04
+
+                                INCREMENT   159
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7865000E+00
+
+        1.377973E+01  1.492406E+01 -8.027047E-05
+
+                                INCREMENT   160
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7915000E+00
+
+        1.378101E+01  1.492950E+01 -2.228661E-05
+
+                                INCREMENT   161
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.7965000E+00
+
+        1.378579E+01  1.493718E+01 -7.061210E-06
+
+                                INCREMENT   162
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8015000E+00
+
+        1.379250E+01  1.494565E+01 -2.197028E-06
+
+                                INCREMENT   163
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8065000E+00
+
+        1.379712E+01  1.495267E+01 -3.433701E-07
+
+                                INCREMENT   164
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8115000E+00
+
+        1.379937E+01  1.495753E+01 -4.988258E-08
+
+                                INCREMENT   165
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8165000E+00
+
+        1.379939E+01  1.495981E+01 -6.286530E-09
+
+                                INCREMENT   166
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8215000E+00
+
+        1.380404E+01  1.496658E+01 -7.624016E-10
+
+                                INCREMENT   167
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8265000E+00
+
+        1.380506E+01  1.496967E+01 -7.056786E-11
+
+                                INCREMENT   168
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8315000E+00
+
+        1.380571E+01  1.497249E+01 -3.184442E-11
+
+                                INCREMENT   169
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8365000E+00
+
+        1.379906E+01  1.496660E+01 -4.235282E-12
+
+                                INCREMENT   170
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8415000E+00
+
+        1.379485E+01  1.496176E+01 -1.430108E-10
+
+                                INCREMENT   171
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8465000E+00
+
+        1.379777E+01  1.496298E+01  1.168958E-11
+
+                                INCREMENT   172
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8515000E+00
+
+        8.577802E+00  1.574603E+01  1.919319E-10
+
+                                INCREMENT   173
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8565000E+00
+
+        1.384585E+01  1.487592E+01  8.137129E-11
+
+                                INCREMENT   174
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8615000E+00
+
+        1.378677E+01  1.491898E+01 -1.497031E-10
+
+                                INCREMENT   175
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8665000E+00
+
+        1.380684E+01  1.495273E+01  3.143653E-10
+
+                                INCREMENT   176
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8715000E+00
+
+        1.382179E+01  1.497993E+01  1.398505E-10
+
+                                INCREMENT   177
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8765000E+00
+
+        3.437241E+00  1.651217E+01 -2.351158E-09
+
+                                INCREMENT   178
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8815000E+00
+
+        1.083328E+01  1.528518E+01 -1.094945E-09
+
+                                INCREMENT   179
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8865000E+00
+
+        1.377079E+01  1.483152E+01 -7.173125E-11
+
+                                INCREMENT   180
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8915000E+00
+
+        1.375271E+01  1.487270E+01 -2.184470E-11
+
+                                INCREMENT   181
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.8965000E+00
+
+        1.376212E+01  1.488907E+01 -7.122136E-11
+
+                                INCREMENT   182
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9015000E+00
+
+        1.376791E+01  1.490288E+01  1.038123E-11
+
+                                INCREMENT   183
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9065000E+00
+
+        1.377576E+01  1.491660E+01  5.773135E-12
+
+                                INCREMENT   184
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9115000E+00
+
+        1.378390E+01  1.492943E+01  2.676991E-12
+
+                                INCREMENT   185
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9165000E+00
+
+        1.379078E+01  1.494057E+01 -7.216959E-11
+
+                                INCREMENT   186
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9215000E+00
+
+        1.379604E+01  1.494979E+01  2.462389E-11
+
+                                INCREMENT   187
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9265000E+00
+
+        1.379943E+01  1.495670E+01  4.598811E-12
+
+                                INCREMENT   188
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9315000E+00
+
+        1.380058E+01  1.496076E+01  9.885021E-11
+
+                                INCREMENT   189
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9365000E+00
+
+        1.380256E+01  1.496515E+01 -2.005416E-11
+
+                                INCREMENT   190
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9415000E+00
+
+        1.380577E+01  1.497049E+01  1.322950E-11
+
+                                INCREMENT   191
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9465000E+00
+
+        1.380690E+01  1.497381E+01  1.841929E-12
+
+                                INCREMENT   192
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9515000E+00
+
+        1.380487E+01  1.497349E+01 -6.284654E-11
+
+                                INCREMENT   193
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9565000E+00
+
+        1.379631E+01  1.496506E+01  1.424933E-12
+
+                                INCREMENT   194
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9615000E+00
+
+        1.380000E+01  1.496797E+01 -2.986531E-11
+
+                                INCREMENT   195
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9665000E+00
+
+        1.380021E+01  1.496705E+01  5.066017E-11
+
+                                INCREMENT   196
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9715000E+00
+
+        1.039704E+01  1.548838E+01  4.242654E-11
+
+                                INCREMENT   197
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9765000E+00
+
+        1.384525E+01  1.492134E+01 -1.767103E-11
+
+                                INCREMENT   198
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9815000E+00
+
+        1.382104E+01  1.497584E+01  3.724104E-12
+
+                                INCREMENT   199
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9865000E+00
+
+        1.383267E+01  1.499919E+01  4.415090E-12
+
+                                INCREMENT   200
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9915000E+00
+
+        3.634198E+00  1.652514E+01  1.931067E-06
+
+                                INCREMENT   201
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.9965000E+00
+
+        1.105276E+01  1.534617E+01  4.300872E-07
+
+                                INCREMENT   202
+
+
+ total force (fx,fy,fz) for set KDRV and time  0.1000000E+01
+
+        1.235313E+01  1.519971E+01 -2.399731E-10
