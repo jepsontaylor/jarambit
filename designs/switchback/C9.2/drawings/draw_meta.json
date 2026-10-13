@@ -1,0 +1,17 @@
+{
+ "step": "/workspace/hiking-karambit/analysis/w74/switchback_revC9_2_ground.step",
+ "sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
+ "mass_g": 66.764,
+ "OAL": 209.49,
+ "H": 73.0,
+ "point": [
+  190.49,
+  -47.82,
+  0.0
+ ],
+ "bbox": [
+  209.490944351461,
+  72.99964243036956,
+  10.0
+ ]
+}
