@@ -335,6 +335,8 @@ def test_host_slot_stays_closed_while_blender_is_up():
     assert farm.host_slot_free(state, ["xbabe3"], blender_present=False) is False
     yielding = {"name": "xbabe2", "reachable": True, "yield": True}
     assert farm.host_slot_free(yielding, [], blender_present=False) is False
+    drained = {"name": "xbabe1", "reachable": True, "yield": False, "drain": True}
+    assert farm.host_slot_free(drained, [], blender_present=False) is False
 
 
 def test_qa_reads_frame_seconds_and_framing():

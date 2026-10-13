@@ -415,7 +415,11 @@ def parse_nvidia_query(gpu_csv: str, apps_csv: str, our_pids):
 
 
 def probe_host_gpu(host):
-    """Reachability plus the yield rule. Unreachable hosts are not scheduled."""
+    """Reachability plus the yield rule. Unreachable hosts are not scheduled.
+
+    ``drain`` is copied from the host record. A drained host is still probed
+    and can adopt a Blender that is already rendering, but it gets no new shard.
+    """
     gpu_cmd = (
         "nvidia-smi --query-gpu=uuid,utilization.gpu,memory.used,memory.total "
         "--format=csv,noheader,nounits && echo '---' && "
@@ -430,22 +434,33 @@ def probe_host_gpu(host):
                 capture_output=True, text=True, timeout=25,
             )
     except subprocess.TimeoutExpired:
-        return {"name": host["name"], "reachable": False, "yield": True, "ssh": host["ssh"], "detail": "timeout"}
+        return _probed_host(host, reachable=False, yield_=True, detail="timeout")
     if proc.returncode != 0:
-        return {"name": host["name"], "reachable": False, "yield": True, "ssh": host["ssh"],
-                "detail": (proc.stderr or "")[-300:]}
+        return _probed_host(host, reachable=False, yield_=True, detail=(proc.stderr or "")[-300:])
     gpu_text, _, apps = proc.stdout.partition("---")
     first = gpu_text.strip().splitlines()[0]
     uuid, util, used, total = [part.strip() for part in first.split(",")]
     parsed = parse_nvidia_query(f"{util}, {used}, {total}", apps, our_pids=())
-    return {
+    return _probed_host(
+        host, reachable=True, yield_=parsed["yield"], gpu_uuid=uuid, gpu=parsed,
+    )
+
+
+def _probed_host(host, *, reachable, yield_, detail=None, gpu_uuid=None, gpu=None):
+    state = {
         "name": host["name"],
-        "reachable": True,
-        "yield": parsed["yield"],
-        "ssh": host["ssh"],
-        "gpu_uuid": uuid,
-        "gpu": parsed,
+        "reachable": reachable,
+        "yield": yield_,
+        "ssh": host.get("ssh"),
+        "drain": bool(host.get("drain")),
     }
+    if detail is not None:
+        state["detail"] = detail
+    if gpu_uuid is not None:
+        state["gpu_uuid"] = gpu_uuid
+    if gpu is not None:
+        state["gpu"] = gpu
+    return state
 
 
 def scratch_root(plan_key):
@@ -826,7 +841,12 @@ def adopt_running(jobs, pid_by_basename, host_name, ssh_host, log_dir):
 
 
 def host_slot_free(state, busy_names, blender_present):
-    """One shard per GPU. A live Blender closes the slot even between samples."""
+    """One shard per GPU. A live Blender closes the slot even between samples.
+
+    A drained host keeps a shard that is already running and accepts no new one.
+    """
+    if state.get("drain"):
+        return False
     if not state.get("reachable") or state.get("yield"):
         return False
     if state.get("name") in set(busy_names or []):
@@ -963,7 +983,7 @@ def supervise(plan, dest, bundle_path, regions_path, npz_path, blender, worker,
             "launched": sum(1 for job in jobs if job["status"] == "launched"),
             "pending": sum(1 for job in jobs if job["status"] == "pending"),
             "failed": sum(1 for job in jobs if job["status"] == "failed"),
-            "hosts": [{k: state.get(k) for k in ("name", "reachable", "yield", "gpu_uuid")} for state in states],
+            "hosts": [{k: state.get(k) for k in ("name", "reachable", "yield", "drain", "gpu_uuid")} for state in states],
         }
         canon.atomic_write_json(os.path.join(dest, "dispatch_status.json"), summary)
         print(json.dumps(summary), flush=True)

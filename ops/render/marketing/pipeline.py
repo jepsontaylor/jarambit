@@ -454,8 +454,10 @@ def cmd_dispatch(args):
     stamp = os.path.join(dest, "started_at.txt")
     if not os.path.isfile(stamp):
         canon.atomic_write_text(stamp, f"{time.time():.3f}\n")
+    # Dope block B owns the xbabe1 4090 until it reaches 400/400. Adopt a shard
+    # that is already rendering there, and do not start another one.
     hosts = (
-        {"name": "xbabe1", "ssh": "xbabe1"},
+        {"name": "xbabe1", "ssh": "xbabe1", "drain": True},
         {"name": "xbabe3", "ssh": "xbabe3"},
         {"name": "xbabe2", "ssh": None},
     )
