@@ -88,6 +88,8 @@ for finish in ('art', 'flame', 'satin_blue'):
         for i, poly in enumerate(part.data.polygons):
             poly.material_index = i
         protected = part.data.materials[0].node_tree.nodes['protected_laser_etched_ti']
+        metallic = protected.inputs['Metallic']
+        assert metallic.default_value == 1 and not metallic.is_linked
         properties = {key: {'value': protected.inputs[key].default_value, 'linked': protected.inputs[key].is_linked}
                       for key in ('Coat Weight', 'Thin Film Thickness', 'Anisotropic', 'Emission Strength')}
         assert all(p['value'] == 0 and not p['linked'] for p in properties.values())
@@ -108,6 +110,7 @@ for finish in ('art', 'flame', 'satin_blue'):
         fringe_error = float(np.max(np.abs(pixels[56:58, 62:66] - baseline[56:58, 62:66])))
         grind_error = float(np.max(np.abs(pixels[[44, 64, 83], 19] - baseline[[44, 64, 83], 19])))
         results.append({'finish': finish, 'override': override, 'protected_inputs': properties,
+                        'mark_metallic': metallic.default_value, 'mark_metallic_linked': metallic.is_linked,
                         'mark_pixel_max_diff': mark_error, 'grind_pixel_max_diff': grind_error,
                         'antialiased_mark_pixel_max_diff': fringe_error,
                         'body_pixel_diff': float(np.max(np.abs(pixels[64, 87] - baseline[64, 87])))})

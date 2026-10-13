@@ -40,9 +40,16 @@ chat-copy budget) holds only how-to-render settings, never design data.
 
 ## Stages
 
-Each stage writes `<work>/.stages/<stage>.json` with the manifest sha it was built for. A rerun skips any
-stage whose outputs exist under the same manifest. A new design or rc changes the sha, so everything
-rebuilds. Use `--force <stage>` to redo one stage and `--until <stage>` to stop after it.
+Each stage writes `<work>/.stages/<stage>.json` with its input key and output hashes. Keys include the
+resolved recipe (including `--res` and `--spp-scale`), film/config/asset contents and pipeline sources.
+Render keys include CAD and solver provenance; assembly/encode keys also include the design manifest
+and render receipts. Reuse requires matching keys and output hashes. The resolved recipe is saved as
+`render_recipe.resolved.json` and passed to assembly. Use `--force <stage>` to redo one stage and
+`--until <stage>` to stop after it. `--force film` renders every film frame again.
+
+The direct entry point establishes a verified 32G/no-swap cgroup before any child runs. Blender and
+encoders inherit that scope. Worker admission bounds codec/filter threads; x265 has no NUMA pools and
+uses admitted frame threads. Native math pools remain limited to one thread.
 
 1. **manifest**: `design_manifest.py` (above).
 2. **ingest**: `ops/render/marketing/ingest.py` STEP → mesh bundle. Fails unless the bundle's source sha equals
@@ -55,6 +62,9 @@ rebuilds. Use `--force <stage>` to redo one stage and `--until <stage>` to stop 
 5. **film**: `pro_hero.py --anim <film json>`. The photoreal cut. Per frame: light-clearance QA,
    signature QA wherever the mark is presented to camera (`sig_side: auto`), edge gate, image QA, and the
    object-index and signature passes saved for the overlay QA.
+   `--resume 1` requires a per-frame `.png.provenance.json` matching code/material/prep inputs, effective
+   sampling/film settings, physical state and the hashes of the PNG plus both QA plates. Legacy,
+   incompatible, missing or changed frames/plates are rendered again; image QA runs on reused frames.
 6. **sci**: the same animation over `science_range` (the 3 × 360° turntable), rendered twice more:
    `--sci_mode wire` (the solver's surface tets) and `--sci_mode heat` (von Mises, inferno, 0 … Sy). Camera and
    spin are identical, so the passes are pixel-registered and the cross-fades never slip.

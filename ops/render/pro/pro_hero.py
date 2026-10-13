@@ -155,9 +155,10 @@ def ti_material():
 
 
 def protect_signature(N, L, sig, finish):
-    """The maker mark is its own protected region: one design-wide glossy BLACK ink (dielectric), independent of
-    every finish knob (#53/#55). Values come from CFG['protected']['mark']; missing keys are a hard failure."""
+    """The laser-etched mark is its own bare-metal region, independent of every finish knob (#53/#55)."""
     M = CFG['protected']['mark']
+    if M['metallic'] != 1:
+        raise ValueError('the protected laser-etched mark must remain bare metal (Metallic=1)')
     bare = N('ShaderNodeBsdfPrincipled'); bare.name = 'protected_laser_etched_ti'   # node name pinned by #53 tests
     bare.inputs['Base Color'].default_value = (*M['base_rgb'], 1)
     bare.inputs['Metallic'].default_value = M['metallic']
@@ -167,7 +168,7 @@ def protect_signature(N, L, sig, finish):
     for key in ('Coat Weight', 'Thin Film Thickness', 'Anisotropic', 'Emission Strength'):
         bare.inputs[key].default_value = 0
     mix = N('ShaderNodeMixShader')
-    # Any ink coverage is protected, including antialiased stroke boundaries.
+    # Any mask coverage is protected, including antialiased stroke boundaries.
     L(math_node(N, L, 'GREATER_THAN', sig, 0.0), mix.inputs[0])
     L(finish, mix.inputs[1]); L(bare.outputs[0], mix.inputs[2])
     return mix.outputs[0]
@@ -551,7 +552,10 @@ def qa_sig_frame(side):
 
 
 def sha(p):
-    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+    h = hashlib.sha256()
+    with open(p, 'rb') as f:
+        for block in iter(lambda: f.read(1 << 20), b''): h.update(block)
+    return h.hexdigest()
 
 
 def r6(v):
@@ -576,6 +580,14 @@ MATERIAL_STATE = {'finish': None, 'look': LOOK, 'flame': CFG.get('flame'), 'prep
                   'art_sha256': MAN['art']['sha256']}
 CODE_ID = {'pro_hero_sha256': sha(os.path.abspath(__file__)), 'cfg_sha256': hashlib.sha256(json.dumps(CFG, sort_keys=True).encode()).hexdigest(),
            'prep_sha256': sha(os.path.join(PREP, 'prep.json')), 'source': MAN['source']}
+CODE_ID['inputs'] = {p: sha(p) for p in [os.path.join(PREP, 'mesh.npz'), os.path.join(PREP, 'regions.json'),
+                    MAN['art']['path'], MAN['signature']['mask'], os.path.join(MK, 'presets', 'rig_dark_arc_key.json'),
+                    *[os.path.join(root, name) for root in (HERE, MK, os.path.join(MK, 'blender'))
+                      for name in sorted(os.listdir(root)) if name.endswith('.py')],
+                    *([os.path.join(HERE, CFG['flame']['lut'])] if FILM_PATH else []),
+                    *([os.path.join(HERE, '..', 'brand', 'signature', CFG['flame']['sig_inner_mask'])]
+                      if FILM_PATH and CFG['flame'].get('sig_inner_mask') else []),
+                    *([hdri] if hdri else []), *([A['--sci']] if '--sci' in A else [])]}
 sc.render.use_motion_blur = False   # stills/animatic: no shutter blending of states (books: disable blur unless subframes are evaluated)
 
 
@@ -659,10 +671,15 @@ def run_animation():
         a0, b0 = map(int, A['--frame_range'].split(':')); want = set(range(a0, b0))
     DRY = A.get('--dry') == '1'
     header = {'schema': 'jarambit.render.pro.anim_qa.v1', 'fps': AN['fps'], 'film': AN.get('title'), 'finish': FINISH,
+              'blender_version': bpy.app.version_string,
               'code': CODE_ID, 'material_state_sha256': hashlib.sha256(json.dumps({**MATERIAL_STATE, 'finish': FINISH}, sort_keys=True, default=str).encode()).hexdigest(),
               'fault': A.get('--fault'), 'release_ready': False,
               'release_note': 'human creative + presentation sign-off required; C.10a = design candidate, not certified'}
     path = os.path.join(OUT, A.get('--receipt', 'anim_qa.json'))
+    cache = Q.FrameCache({**header, 'film_plan': AN, 'spp': SPP, 'size': [RX, RY],
+                         'options': {k: v for k, v in A.items() if k not in
+                                     ('--out', '--resume', '--receipt', '--frames', '--frame_range', '--step', '--dry')}})
+    header['render_provenance_sha256'] = cache.key
     with Q.AnimationReceipt(path, header, dry=DRY) as receipt:
         for S in AN['shots']:
             fr = range(S['frames'][0], S['frames'][1], step) if want is None else sorted(x for x in want if S['frames'][0] <= x < S['frames'][1])
@@ -693,8 +710,10 @@ def run_animation():
                     print('QAFAIL', json.dumps(rec), flush=True); return 1
                 if not DRY:
                     r.filepath = os.path.join(OUT, f'f{f:05d}.png')
-                    if A.get('--resume') == '1' and os.path.isfile(r.filepath) and os.path.getsize(r.filepath) > 0:
-                        rec['resumed'] = True   # same state hash path; image QA re-run on the existing frame below
+                    outputs = [r.filepath, *[os.path.join(OUT, f'qa_{plate}_f{f:05d}_0001.png')
+                                            for plate in ('sig', 'idx')]]
+                    if A.get('--resume') == '1' and cache.matches(r.filepath, h, outputs):
+                        rec['resumed'] = True
                     else:
                         bpy.ops.render.render(write_still=True)
                     try:
@@ -702,6 +721,8 @@ def run_animation():
                     except Exception as e:
                         rec['image'] = {'pass': False, 'error': str(e)}
                 ok = Q.frame_pass(rec, dry=DRY)
+                if ok and not DRY:
+                    cache.mark(r.filepath, h, outputs)
                 rec['status'] = ('QA_DRY' if DRY else 'RENDERED') if ok else 'FAIL_POST_RENDER'
                 receipt.add(rec)
                 if not ok:
