@@ -350,8 +350,15 @@ def prepare_jobs(plan, dest, bundle_path, regions_path, hosts=None):
 
 
 def assign_hosts(jobs, host_states):
-    """Round-robin pending shards onto hosts that are not yielding."""
-    usable = [state for state in host_states if state.get("reachable") and not state.get("yield")]
+    """Round-robin pending shards onto hosts that are up and not yielding.
+
+    A drained host is not usable. The supervisor may still adopt a Blender
+    that is already rendering there; this function only assigns new work.
+    """
+    usable = [
+        state for state in host_states
+        if state.get("reachable") and not state.get("yield") and not state.get("drain")
+    ]
     cursor = 0
     for job in jobs:
         if job["status"] != "pending":
@@ -522,8 +529,11 @@ def remote_disk_ok(ssh_host, path):
 def render_jobs(plan, dest, bundle_path, regions_path, blender, worker, hosts=None, execute=False):
     """Prepare requests and, when execute is set, nohup one Blender per pending shard.
 
-    execute probes each host first. A host over the yield line is left idle.
-    This function does not kill, renice, or wait out a busy GPU.
+    execute probes each host first. A host over the yield line, or one marked
+    drain, is left idle: no pull, stage, ssh, or launch. Dry-run host states
+    keep the drain flag so assignment matches execute. This function does not
+    kill, renice, or wait out a busy GPU, and it does not adopt a live Blender
+    (supervise does).
     """
     if execute and not os.path.isfile(worker):
         raise RuntimeError(f"blender worker is not present: {worker}")
@@ -533,28 +543,48 @@ def render_jobs(plan, dest, bundle_path, regions_path, blender, worker, hosts=No
     root = scratch_root(plan["plan_key"])
     if execute:
         for host in host_list:
+            if host.get("drain"):
+                continue
             if host["ssh"]:
                 pull_dir(host["ssh"], os.path.join(root, "shots"), os.path.join(dest, "shots"))
     jobs = prepare_jobs(plan, dest, bundle_path, regions_path, host_list)
     if execute:
-        host_states = [probe_host_gpu(host) for host in host_list]
+        host_states = []
+        for host in host_list:
+            state = probe_host_gpu(host)
+            # The host record wins if a probe omits the flag. Drain is closed
+            # before any staging or launch below.
+            if host.get("drain"):
+                state["drain"] = True
+            host_states.append(state)
     else:
-        host_states = [{"name": host["name"], "reachable": True, "yield": False, "ssh": host["ssh"]}
-                       for host in host_list]
+        host_states = [
+            {
+                "name": host["name"],
+                "reachable": True,
+                "yield": False,
+                "ssh": host["ssh"],
+                "drain": bool(host.get("drain")),
+            }
+            for host in host_list
+        ]
     assign_hosts(jobs, host_states)
     by_name = {state["name"]: state for state in host_states}
     if execute:
         # One Blender per GPU: launch at most one shard per host in this call. The rest stay
-        # "queued" (not "launched"); rerun render --execute or use supervise() to drain them.
+        # "queued" (not "launched"); rerun render --execute or use supervise() to finish them.
         busy_hosts = set()
         for job in jobs:
             if job["status"] != "pending" or not job.get("host"):
+                continue
+            state = by_name[job["host"]]
+            if state.get("drain"):
+                job["host"] = None
                 continue
             if job["host"] in busy_hosts:
                 job["status"] = "queued"
                 continue
             busy_hosts.add(job["host"])
-            state = by_name[job["host"]]
             ssh_host = state.get("ssh")
             if not remote_disk_ok(ssh_host, root if ssh_host else dest):
                 job["status"] = "disk"
