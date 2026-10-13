@@ -7,7 +7,7 @@
   pipeline.py finish --in DIR --out DIR
   pipeline.py encode --frames DIR --out DIR
   pipeline.py qa --measurements measurements.json --out qa.json [--stills a.png]
-  pipeline.py package --root DIR [--cad C.9.3.step] [--cad-sha 3a818183...] --bundle-sha SHA --plan-key KEY --file SRC=NAME:ROLE
+  pipeline.py package --root DIR [--cad C.10a.step] [--cad-sha 441cfabc...] --bundle-sha SHA --plan-key KEY --file SRC=NAME:ROLE
   pipeline.py all ...   runs the stages that have their inputs; a missing peer tool fails the stage
 
 ingest and finish delegate to the Codex and Claude modules when those files exist.
@@ -426,9 +426,14 @@ def cmd_dispatch(args):
     bundle = _load_json(args.bundle)
     source_sha = (bundle.get("source") or {}).get("sha256")
     plan_mod.assert_hero_source(source_sha)
+    if source_sha not in (plan_mod.HERO_STEP_SHA256, plan_mod.HERO_STL_SHA256):
+        _die(
+            "refusing to dispatch: this farm is SWITCHBACK Rev C.10a "
+            f"{plan_mod.HERO_STEP_SHA256}; got {source_sha}"
+        )
     npz_sha = bundle.get("npz_sha256")
-    if npz_sha != "062be78fe0828a5f0fc5f2e20e2f4ed07f2d9ffa07741b0645fbb053aa232228":
-        _die(f"refusing to dispatch: bundle npz sha is {npz_sha}")
+    if not isinstance(npz_sha, str) or len(npz_sha) != 64:
+        _die(f"refusing to dispatch: bundle npz sha256 is missing ({npz_sha})")
     vertices, npz_path = _vertices(args.bundle, args.npz)
     if vertices is None:
         _die(f"mesh npz is missing: {npz_path}")
@@ -454,7 +459,7 @@ def cmd_dispatch(args):
         {"name": "xbabe3", "ssh": "xbabe3"},
         {"name": "xbabe2", "ssh": None},
     )
-    deadline = datetime.datetime(2026, 10, 13, 16, 0, tzinfo=datetime.timezone.utc).timestamp()
+    deadline = datetime.datetime(2026, 10, 14, 6, 0, tzinfo=datetime.timezone.utc).timestamp()
     png_dir = os.path.join(dest, "shots", "turntable", "final_4k")
 
     def deliver(_dest):
@@ -467,7 +472,7 @@ def cmd_dispatch(args):
         "spp_max": resolved["profiles"]["final_4k"]["spp_max"],
         "adaptive_threshold": resolved["profiles"]["final_4k"]["adaptive_threshold"],
         "auto_tile": resolved["profiles"]["final_4k"]["auto_tile"],
-        "deadline_utc": "2026-10-13T16:00:00Z",
+        "deadline_utc": "2026-10-14T06:00:00Z",
     }), flush=True)
     farm_mod.supervise(
         resolved,
@@ -581,9 +586,9 @@ def build_parser():
     pkg = sub.add_parser("package")
     pkg.add_argument("--root", required=True)
     pkg.add_argument("--cad", default=plan_mod.HERO_STEP_PATH,
-                     help="defaults to the SWITCHBACK Rev C.9.3 STEP")
+                     help="defaults to the SWITCHBACK Rev C.10a STEP")
     pkg.add_argument("--cad-sha", default=plan_mod.HERO_STEP_SHA256,
-                     help="defaults to the C.9.3 STEP sha256")
+                     help="defaults to the C.10a STEP sha256")
     pkg.add_argument("--bundle-sha", required=True)
     pkg.add_argument("--plan-key", required=True)
     pkg.add_argument("--file", action="append", required=True)
