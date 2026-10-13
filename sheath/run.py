@@ -100,6 +100,31 @@ def _stage(name):
 _T0 = time.time()
 
 
+def _ladder_child(q, args):
+    import resource
+    resource.setrlimit(resource.RLIMIT_AS, (8 << 30, 8 << 30))
+    from sheath.fem_plate import plate_stiffness
+    panel, bump, E, wall, r0, fl = args
+    out = []
+    for ma in (2.0, 1.0, 0.5):
+        kp, w, nd, _ = plate_stiffness(panel, bump, E, wall, r0=r0, free_line=fl, max_area=ma)
+        out.append({"max_area": ma, "k_n_mm": kp, "ndof": int(nd)})
+    q.put(out)
+
+
+def _guarded_ladder(*args, timeout=240):
+    """Solid-panel plate ladder (record only) in a child with an 8 GB address-space cap and a timeout: Triangle quality
+    refinement ran away on the C.9.3 c_edge-1.3 cavity (>90 GB). On failure -> null + INCOMPLETE, never a number."""
+    import multiprocessing as mp
+    q = mp.Queue(); pr = mp.Process(target=_ladder_child, args=(q, args)); pr.start(); pr.join(timeout)
+    if pr.is_alive():
+        pr.kill(); pr.join(); return None
+    try:
+        return q.get(timeout=1)
+    except Exception:
+        return None
+
+
 def main():
     if os.environ.get("SHEATH_TB_AFTER"):
         import faulthandler; faulthandler.dump_traceback_later(float(os.environ["SHEATH_TB_AFTER"]), repeat=True)
@@ -229,10 +254,7 @@ def main():
         t_local = float(np.median(thickness_at(mesh, ring_pts)))
         a_eq = panel.exterior.distance(Point(bump))
         # --- solid-panel stiffness (FEM ladder) — reported for the record (too stiff for a tunable click)
-        ladder = []
-        for ma in (2.0, 1.0, 0.5):
-            kp, w, nd, _ = plate_stiffness(panel, bump, mat.E_mpa, p.wall, r0=r0, free_line=(mpt, n), max_area=ma)
-            ladder.append({"max_area": ma, "k_n_mm": kp, "ndof": int(nd)})
+        ladder = _guarded_ladder(panel, bump, mat.E_mpa, p.wall, r0, (mpt, n))
         res["solid_panel"] = {"k_ladder": ladder, "k_analytic_clamped_circle_n_mm": M.clamped_circ_plate_k(mat.E_mpa, p.wall, a_eq), "a_eq_mm": a_eq}
 
         def tab_k_fem(q, ma=0.15):
