@@ -23,6 +23,10 @@ Verdicts are scoped to a requirement set (`requirements/RS-karambit-v1.toml`): *
 <!-- GEN:FIGS:BEGIN -->
 📄 [White paper](docs/WHITEPAPER.md) · ⚖️ [Patent draft (not filed)](docs/PATENT_DRAFT.md) · 📦 [Release v0.31.0](https://github.com/neverhuman/jarambit/releases/tag/v0.31.0) · 🗺️ [Technology map](TECHNOLOGY_MAP.md)
 
+<img src="docs/media/g3_tip+00_t60_tt3_turntable.gif" width="100%" alt="360 degree turntable of g3_tip+00_t60_tt3: faceted STL, colour = D1 certified envelope SF"/>
+
+*360° turntable (`ops/render/turntable.py`, manifest `docs/media/g3_tip+00_t60_tt3_turntable.gif.manifest.json`): faceted STL, colour = D1 certified envelope SF at 100 °C (red < 1).*
+
 <img src="docs/figures/whitepaper/wave27_g3_tip+00_t60_tt3_STEP_3D.png" width="88%" alt="3D render of g3_tip+00_t60_tt3: faceted STL preview (STEP not validated)"/>
 
 <img src="docs/figures/whitepaper/wave27_g3_tip+00_t60_tt3_W27HARDPASS_SPG4p15_wgt84p8g_D1_FEM_metrics.png" width="88%" alt="historical wave27 D1 FEM plate for g3_tip+00_t60_tt3"/>

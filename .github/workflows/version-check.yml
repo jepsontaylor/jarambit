@@ -27,6 +27,8 @@ jobs:
         run: python3 ops/ci/check_claims.py
       - name: STATUS.md is generated and current (PR-0.28.5)
         run: python3 ops/ci/gen_status.py --check
+      - name: Media manifests match outputs and inputs (ops/render)
+        run: python3 ops/ci/verify_media.py
       - name: README generated blocks are current (issue #35)
         run: python3 ops/ci/gen_readme.py --check
       - name: Figure manifests match inputs (PR-0.29.4)

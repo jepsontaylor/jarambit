@@ -89,6 +89,8 @@ def figs():
     wp = js('evidence/fem_solid/verify_0.30.2.json')['whole_part_mesh']
     rel = f'{REPO}/releases/tag/v{v}'
     L = [         f'📄 [White paper](docs/WHITEPAPER.md) · ⚖️ [Patent draft (not filed)](docs/PATENT_DRAFT.md) · 📦 [Release v{v}]({rel}) · 🗺️ [Technology map](TECHNOLOGY_MAP.md)', '',
+         f'<img src="docs/media/{DESIGN}_turntable.gif" width="100%" alt="360 degree turntable of {DESIGN}: faceted STL, colour = D1 certified envelope SF"/>', '',
+         f'*360° turntable (`ops/render/turntable.py`, manifest `docs/media/{DESIGN}_turntable.gif.manifest.json`): faceted STL, colour = D1 certified envelope SF at 100 °C (red < 1).*', '',
          f'<img src="{FIG}/wave27_{DESIGN}_STEP_3D.png" width="88%" alt="3D render of {DESIGN}: faceted STL preview (STEP not validated)"/>', '',
          f'<img src="{FIG}/wave27_{DESIGN}_W27HARDPASS_SPG4p15_wgt84p8g_D1_FEM_metrics.png" width="88%" alt="historical wave27 D1 FEM plate for {DESIGN}"/>', '',
          f'*Top: faceted STL preview, not a validated STEP. The wave27 STEP imports as an unsewable shell, so the whole-part solid mesh uses the STL twin '
