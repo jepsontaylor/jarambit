@@ -93,27 +93,27 @@ PROFILES = {
 
 # fill_axis "width": hero band is on frame width. "max": the larger projected side.
 STILLS = [
-    {"id": "hero_3q", "rig_preset": "studio_softbox", "az": 35.0, "el": 20.0,
+    {"id": "hero_3q", "rig_preset": "rig_studio_softbox", "az": 35.0, "el": 20.0,
      "focal_mm": 85.0, "fstop": 8.0, "hero": True, "fill_axis": "width"},
-    {"id": "profile_flat", "rig_preset": "studio_softbox", "az": 0.0, "el": 0.0,
+    {"id": "profile_flat", "rig_preset": "rig_studio_softbox", "az": 0.0, "el": 0.0,
      "focal_mm": 200.0, "fstop": 8.0, "hero": False, "fill_axis": "max"},
-    {"id": "spine_top", "rig_preset": "studio_softbox", "az": 0.0, "el": 75.0,
+    {"id": "spine_top", "rig_preset": "rig_studio_softbox", "az": 0.0, "el": 75.0,
      "focal_mm": 85.0, "fstop": 8.0, "hero": False, "fill_axis": "max"},
-    {"id": "edge_macro", "rig_preset": "studio_softbox", "az": 35.0, "el": 15.0,
+    {"id": "edge_macro", "rig_preset": "rig_studio_softbox", "az": 35.0, "el": 15.0,
      "focal_mm": 135.0, "fstop": 2.8, "hero": False, "fill_axis": "max"},
-    {"id": "ring_detail", "rig_preset": "studio_softbox", "az": 180.0, "el": 15.0,
+    {"id": "ring_detail", "rig_preset": "rig_studio_softbox", "az": 180.0, "el": 15.0,
      "focal_mm": 135.0, "fstop": 2.8, "hero": False, "fill_axis": "max"},
-    {"id": "dark_hero", "rig_preset": "dark_strip", "az": 35.0, "el": 8.0,
+    {"id": "dark_hero", "rig_preset": "rig_dark_strip", "az": 35.0, "el": 8.0,
      "focal_mm": 85.0, "fstop": 5.6, "hero": True, "fill_axis": "width"},
-    {"id": "white_ecom", "rig_preset": "product_white", "az": 0.0, "el": 0.0,
+    {"id": "white_ecom", "rig_preset": "rig_product_white", "az": 0.0, "el": 0.0,
      "focal_mm": 85.0, "fstop": 8.0, "hero": True, "fill_axis": "width"},
-    {"id": "flat_lay", "rig_preset": "studio_softbox", "az": 0.0, "el": 90.0,
+    {"id": "flat_lay", "rig_preset": "rig_studio_softbox", "az": 0.0, "el": 90.0,
      "focal_mm": 85.0, "fstop": 8.0, "hero": False, "fill_axis": "max"},
 ]
 
 TURNTABLE = {
     "id": "turntable",
-    "rig_preset": "studio_softbox",
+    "rig_preset": "rig_studio_softbox",
     "el": 15.0,
     "focal_mm": 85.0,
     "fstop": 8.0,
@@ -125,7 +125,7 @@ TURNTABLE = {
 
 TURNTABLE_DARK = {
     "id": "turntable_dark",
-    "rig_preset": "dark_strip",
+    "rig_preset": "rig_dark_strip",
     "el": 15.0,
     "focal_mm": 85.0,
     "fstop": 5.6,
@@ -371,7 +371,7 @@ def _shot_spec(raw):
     return spec
 
 
-def resolve(bundle, regions_sha256=None, finish_preset="bead_blast", accents=None,
+def resolve(bundle, regions_sha256=None, finish_preset="finish_ti64", accents=None,
             profiles=None, include_dark_turntable=False, vertices=None,
             stills=None, use_external_framing=True):
     """Return the resolved plan dict. Raises PlanError when framing fails."""
