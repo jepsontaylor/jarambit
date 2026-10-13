@@ -123,6 +123,7 @@ DEFAULTS = {
     "specular_ior_level": 0.0,
     "depth_tol_mm": 0.25,
     "planes_considered": 4,
+    "max_grid_px": 1600,          # raster cap per plane (longest side); grid coarsens beyond it
 }
 
 
@@ -319,12 +320,19 @@ def _best_on_plane(V, F, sel, n, plane_off, p):
     right, up = plane_basis(n)
     P2 = np.column_stack([V @ right, V @ up])
     grid = p["grid_mm"] * 1e-3
+    ext = float((P2[np.unique(F[sel])].max(0) - P2[np.unique(F[sel])].min(0)).max())
+    # Bound the raster: a mis-scaled (e.g. inch-as-mm) or very large flat would otherwise blow the
+    # grid up quadratically (FFT erosion x 23 angles x 2 passes). Real parts (<=~300 mm) keep grid_mm.
+    max_px = int(p.get("max_grid_px", 1600))
+    if ext / grid > max_px:
+        grid = ext / max_px
+    grid_mm = grid * 1e3
     lo = P2[np.unique(F[sel])].min(0) - 3 * grid
     hi = P2[np.unique(F[sel])].max(0) + 3 * grid
     W, H = (np.ceil((hi - lo) / grid)).astype(int)
     mask = _raster_triangles(P2, F[sel], lo, grid, (H, W))
     mask = _close(mask, 1)
-    E = erode_disk(mask, p["margin_mm"] / p["grid_mm"])
+    E = erode_disk(mask, p["margin_mm"] / grid_mm)
     if not E.any():
         return None
     ys, xs = np.nonzero(E)
