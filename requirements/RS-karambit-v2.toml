@@ -70,3 +70,11 @@ criteria = ["fat_sf >= 1"]
 criteria = ["RS-karambit-v1.promotion", "seq_ratio >= 1.2 (HARD)", "human_max", "fatigue", "gate_s"]
 soft = ["mass_target_g (G penalty, not a gate)", "mass_stretch_g"]
 note = "nothing is ever auto-promoted; human aesthetic sign-off still required"
+
+
+# Owner decision, Jepson Taylor, 2026-10-13 05:12 MDT: V2 tip stays record-only (non-blocking) but is a soft objective.
+[soft_objectives]
+fitness = "min(gating_sf) / (mass_g / 100) * (1 + w_tip * min(hm_tip_inplane_sf, tip_sat) / tip_sat)"
+w_tip = 0.20
+tip_sat = 1.5
+source = "crates/crescent/src/fem.rs soft_tip; hiking-karambit analysis/scoring.py"

@@ -436,3 +436,28 @@ mod rs_karambit_v2 {
     }
 }
 
+
+
+/// Owner decision (Jepson Taylor, 2026-10-13 05:12 MDT): V2 tip in-plane stays non-blocking
+/// (`HM_TIP_INPLANE_RECORD_ONLY`) but is a SOFT objective: fitness is multiplied by
+/// `1 + W_TIP * min(tip_sf, TIP_SAT) / TIP_SAT`, so a ~2 g tip-strength gain (SF 0.74 -> 1.42)
+/// is preferred automatically while the saturation at 1.5 caps the reward (+20 % max).
+pub mod soft_tip {
+    pub const W_TIP: f64 = 0.20;
+    pub const TIP_SAT: f64 = 1.5;
+    pub fn reward(tip_sf: f64) -> f64 { 1.0 + W_TIP * tip_sf.clamp(0.0, TIP_SAT) / TIP_SAT }
+    /// fitness = min(gating SF) / (mass_g / 100) * reward(tip_sf)
+    pub fn fitness(min_gating_sf: f64, mass_g: f64, tip_sf: f64) -> f64 { min_gating_sf / (mass_g / 100.0) * reward(tip_sf) }
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        #[test]
+        fn w80d_beats_c10a_and_saturates() {
+            // C.10a rc4 64.841 g tip 0.738 vs w80d 66.966 g tip 1.245 (record ladder), equal gating SF
+            assert!(fitness(1.578, 66.966, 1.245) > fitness(1.578, 64.841, 0.738));
+            assert_eq!(reward(1.5), reward(3.0));
+            // a +7 g tip gain must NOT pay for itself at equal SF (break-even ~6 g at full saturation)
+            assert!(fitness(1.578, 72.0, 1.5) < fitness(1.578, 64.841, 0.738));
+        }
+    }
+}
