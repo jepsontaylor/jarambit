@@ -22,7 +22,7 @@ twist_nmm = 16200.0              # 16.2 N*m tip torque about the ring->tip chord
 tip_inplane_n = 1000.0           # in-plane tip load, worst of chord-normal and chord-axial, ring held
 spine_n = 3427.0                 # in-plane load distributed on the spine edge toward the sharpened edge, ring held
 ringback_daf = 2.0               # L6 ring-back impact as a static equivalent: DAF 2 (suddenly applied) x ring pull
-ringback_n = 3000.0              # = ringback_daf x 1500 N, +x on the outer ring back, grip band seated
+ringback_n = 3000.0              # PROVISIONAL (owner decision 2026-10-12): no measured ring-back impact data yet; static equivalent = DAF 2 (suddenly applied load) x 1500 N ring pull, +x on the outer ring back, grip band seated. Replace when impact test data exist.
 ring_bearing_w_min_mm = 10.0     # finger-bearing width (bore length along the finger axis) >= 10 mm
 ring_edge_r_min_mm = 1.5         # bore edge radius >= 1.5 mm on both faces (B-rep / export spec; needs bearing >= 2 r)
 

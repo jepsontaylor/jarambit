@@ -45,3 +45,12 @@ fn graded_violation_and_margin_bonus() {
     // margin bonus is small: it cannot buy more than ~3 g
     assert!(qd::fitness(&edge) > qd::fitness(&rec(79.0, 400.0, 3000.0, 2.0, 2.0, 2.0)));
 }
+
+#[test]
+fn strong_soft_mass_penalty_above_80g() {
+    assert_eq!(qd::mass_over_penalty(79.0), 0.0);
+    // over-target designs stay feasible (> every infeasible) but lose clearly more than the bonuses (<= 0.07)
+    let gap = qd::fitness(&ok(80.0)) - qd::fitness(&ok(90.0));
+    assert!(gap > 0.2, "80 vs 90 g gap {gap}");
+    assert!(qd::fitness(&ok(110.0)) > 0.0);
+}

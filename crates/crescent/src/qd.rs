@@ -79,6 +79,13 @@ pub const MASS_KNEE_G: f64 = 70.0;
 pub const MASS_KNEE_SLOPE: f64 = 0.25;
 /// Weight of the strength-margin bonus (saturating; keeps the search off the floor edge without buying mass).
 pub const MARGIN_W: f64 = 0.03;
+/// Soft mass TARGET (Jepson decision 2026-10-12, PR-0.31.4): mass is never a gate, but G carries a strong smooth
+/// penalty above 80 g on top of the ln reward: MASS_OVER_W * (1 - exp(-MASS_OVER_K * ((m - 80) / 80)^2)).
+/// C1 at 80 g (no cliff); 84.8 g -> -0.04, 90 g -> -0.13, 95 g -> -0.23 (bonuses total <= 0.07).
+pub const MASS_TARGET_G: f64 = 80.0;
+pub const MASS_OVER_W: f64 = 0.4;
+pub const MASS_OVER_K: f64 = 30.0;
+pub fn mass_over_penalty(m: f64) -> f64 { let x = ((m - MASS_TARGET_G) / MASS_TARGET_G).max(0.0); MASS_OVER_W * (1.0 - (-MASS_OVER_K * x * x).exp()) }
 pub const MARGIN_SCALE: f64 = 0.10;
 
 /// FEASIBLE = every strength / quality requirement is a hard floor: aesthetic pass (incl. C.6/C.7 floors),
@@ -112,7 +119,7 @@ pub fn fitness(r: &Rec) -> f64 {
             -1.0 + 0.9 * q.min(0.999) }
         // through-lattice experiment lane: feasible but too few through-features ranks below every feasible design that has them
         Some(_) if r.n_win + r.n_perf < min_through() => -0.09 + 0.08 * ((r.n_win + r.n_perf) as f64 / min_through() as f64),
-        Some(_) => 1.0 + mass_reward(r.mass_g) + MARGIN_W * (1.0 - (-strength_margin(r) / MARGIN_SCALE).exp())
+        Some(_) => 1.0 + mass_reward(r.mass_g) - mass_over_penalty(r.mass_g) + MARGIN_W * (1.0 - (-strength_margin(r) / MARGIN_SCALE).exp())
             + 0.02 * r.aes.score.clamp(0.0, 1.0) + 0.02 * r.novelty.clamp(0.0, 1.0) }
 }
 /// Back-compat shim: the tip-twist floor is now always hard; the flag is ignored.
