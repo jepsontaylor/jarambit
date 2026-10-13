@@ -1,0 +1,76 @@
+{
+ "schema": "jarambit.sheath.knife_annotations.v1",
+ "source_sha256": "3a818183bcb5b9a9093da947e00414ed29aa9bfebbb614046b8fb0b16dcbe919",
+ "source": "designs/switchback/C9.3/cad/switchback_revC9_3_ground.step",
+ "review": {
+  "approved": true,
+  "reviewer": "Jepson Taylor (delegated: determination by Grok Bot from C.9.3 STEP sha 3a8181.. + drawings 01/02/04, per instruction 2026-10-13)",
+  "date": "2026-10-13",
+  "status": "APPROVED (delegated). Lands = guard-hole rim (closed hole) + choil lobe (radiused, between the two edges). hook_back reclassified SHARP."
+ },
+ "retention_lands": [
+  {
+   "name": "guard_hole_rim",
+   "type": "closed_hole_rim",
+   "hole_centroid": [
+    85.0,
+    -15.0
+   ],
+   "hole_radius_mm": 2.99,
+   "annulus_mm": [
+    2.99,
+    4.5
+   ],
+   "finish": "as-machined, unsharpened, full stock (local t ~3.6 mm)",
+   "why": "only closed full-thickness feature in covered zone; > 6 mm from any sharpened boundary"
+  }
+ ],
+ "seating_lands": [
+  {
+   "name": "choil_lobe",
+   "type": "boundary_arc",
+   "x_range": [
+    78.0,
+    100.0
+   ],
+   "y_max": -17.0,
+   "finish": "unsharpened radiused lobe",
+   "why": "leading non-sharp land in the insertion direction; positive stop so the tip never bottoms"
+  }
+ ],
+ "keepouts": [
+  {
+   "name": "grip+ring",
+   "x_max": 60.0,
+   "origin": "\u226560 mm grip + 25.4 mm ring exposed for one-handed draw"
+  }
+ ],
+ "hazards_note": "All cutting edges (inner/concave, spine-side incl. hook back to the point) + tip zone are sharp, ~0 edge width. Spine is NOT a retention or bearing surface. Only explicitly non-cutting geometry may be a land.",
+ "bumper_lands": [
+  {
+   "name": "choil_lobe_bumper",
+   "type": "boundary_arc",
+   "x_range": [
+    78.0,
+    100.0
+   ],
+   "y_max": -17.0,
+   "finish": "unsharpened radiused lobe",
+   "why": "leading non-sharp land in the insertion direction; positive stop so the tip never bottoms"
+  }
+ ],
+ "declared_sharp": [
+  {
+   "name": "hook_back_edge_sp",
+   "x_range": [
+    140.0,
+    191.0
+   ],
+   "y_range": [
+    -56.0,
+    8.0
+   ],
+   "why": "outer convex back of the hook is the continuation of the sharpened spine edge (fine spine scallops end ~x140, drawing 04) running to the point; drawing 02 shows only an as-modelled tip-zone edge flat 0.5->1.45 mm (x 160-182) which the thickness probe misses. Rule 2026-10-13: every cutting edge is sharp with ~0 edge width -> SHARP, not a land."
+  }
+ ]
+}

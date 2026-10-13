@@ -1,0 +1,76 @@
+{
+ "schema": "jarambit.sheath.knife_annotations.v1",
+ "source_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+ "source": "hiking-karambit analysis/w79/ground_c10a.step (Rev C.10a rc4, design of record, true-sharp 0.15 mm apex)",
+ "review": {
+  "approved": true,
+  "reviewer": "Jepson Taylor (delegated: determination by Grok Bot from C.9.3 STEP sha 3a8181.. + drawings 01/02/04, per instruction 2026-10-13)",
+  "date": "2026-10-13",
+  "status": "APPROVED (delegated). Planform/holes identical to C.9.3 (C.10a = C.9.3 with EDGE_T 0.15, tip-zone flat removed, STATUS_C10A_RC.md); lands = guard-hole rim + choil lobe; hook back SHARP (now true-sharp in CAD too)."
+ },
+ "retention_lands": [
+  {
+   "name": "guard_hole_rim",
+   "type": "closed_hole_rim",
+   "hole_centroid": [
+    85.0,
+    -15.0
+   ],
+   "hole_radius_mm": 2.99,
+   "annulus_mm": [
+    2.99,
+    4.5
+   ],
+   "finish": "as-machined, unsharpened, full stock (local t ~3.6 mm)",
+   "why": "only closed full-thickness feature in covered zone; > 6 mm from any sharpened boundary"
+  }
+ ],
+ "seating_lands": [
+  {
+   "name": "choil_lobe",
+   "type": "boundary_arc",
+   "x_range": [
+    78.0,
+    100.0
+   ],
+   "y_max": -17.0,
+   "finish": "unsharpened radiused lobe",
+   "why": "leading non-sharp land in the insertion direction; positive stop so the tip never bottoms"
+  }
+ ],
+ "keepouts": [
+  {
+   "name": "grip+ring",
+   "x_max": 60.0,
+   "origin": "\u226560 mm grip + 25.4 mm ring exposed for one-handed draw"
+  }
+ ],
+ "hazards_note": "All cutting edges (inner/concave, spine-side incl. hook back to the point) + tip zone are sharp, ~0 edge width. Spine is NOT a retention or bearing surface. Only explicitly non-cutting geometry may be a land.",
+ "bumper_lands": [
+  {
+   "name": "choil_lobe_bumper",
+   "type": "boundary_arc",
+   "x_range": [
+    78.0,
+    100.0
+   ],
+   "y_max": -17.0,
+   "finish": "unsharpened radiused lobe",
+   "why": "leading non-sharp land in the insertion direction; positive stop so the tip never bottoms"
+  }
+ ],
+ "declared_sharp": [
+  {
+   "name": "hook_back_edge_sp",
+   "x_range": [
+    140.0,
+    191.0
+   ],
+   "y_range": [
+    -56.0,
+    8.0
+   ],
+   "why": "outer convex back of the hook = spine edge to the point; C.10a removes the tip-zone flat (TE_TIP 0.15) so it is true-sharp; declared explicitly in case the thickness probe misses the 0.15-0.19 mm apex band."
+  }
+ ]
+}

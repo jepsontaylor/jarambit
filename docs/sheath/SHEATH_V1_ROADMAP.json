@@ -1,0 +1,347 @@
+{
+ "schema": "jarambit.sheath.roadmap.v1",
+ "author": "Jepson Taylor",
+ "drafted": "2026-10-13",
+ "branch": "feat/sheath-v1",
+ "queue_note": "Queues AFTER the in-flight render/release PRs (COORD.md). One PR at a time, rebased on main, neverhuman APPROVE + green self-hosted CI; never self-merged.",
+ "draw_force_window_n": {
+  "nominal": 35,
+  "new_23C_dry": [
+   28,
+   45
+  ],
+  "life_envelope": [
+   20,
+   55
+  ],
+  "life_probability_min": 0.95,
+  "new_probability_min": 0.8,
+  "insert_max": 50,
+  "basis": "plan v1.1/v1.2: upper from index-on-thin-ring 59.5\u00b121.4 N (Int J Ind Ergon 2010) p05 ~24 N grip-limited; lower from 15 g design shock (ASSUMED 2x 7.5 g jump, PMC4101685) SF>=2 at p05"
+ },
+ "metrics": [
+  {
+   "id": "draw_n",
+   "target": "22-40 N new, 30 nominal",
+   "source": "analytic+plate FEA -> contact FEA (M3) -> bench (M5)"
+  },
+  {
+   "id": "p_in_life_window",
+   "target": ">=0.95",
+   "source": "MC 20k"
+  },
+  {
+   "id": "insert_n",
+   "target": "<=45 N"
+  },
+  {
+   "id": "strain_est",
+   "target": "<= 0.5*eps_allow (PA12 ~2%)"
+  },
+  {
+   "id": "min_edge_clearance_mm",
+   "target": ">=0.3 (design 0.8)"
+  },
+  {
+   "id": "rim_min_mm",
+   "target": ">=2.0 (design 3.0)"
+  },
+  {
+   "id": "edge_mouth_depth_mm",
+   "target": ">=6"
+  },
+  {
+   "id": "uncovered_sharp_mm",
+   "target": "0"
+  },
+  {
+   "id": "mass_g",
+   "target": "<=30 (stretch 22) incl. mount"
+  },
+  {
+   "id": "retention_sf_p05.running_x2_margin",
+   "target": ">=2.0"
+  },
+  {
+   "id": "retention_sf_p05.fall_or_jump_landing",
+   "target": ">=1.0 (case value provisional)"
+  },
+  {
+   "id": "rattle_free_play_mm",
+   "target": "<=0.3",
+   "milestone": "M6"
+  },
+  {
+   "id": "draw_force_loss_1000_cycles",
+   "target": "<=25%",
+   "milestone": "M6"
+  },
+  {
+   "id": "mount_proof_n",
+   "target": ">=150 N",
+   "milestone": "M5"
+  },
+  {
+   "id": "prediction_vs_bench",
+   "target": "within \u00b120% on held-out variant",
+   "milestone": "M5"
+  }
+ ],
+ "milestones": [
+  {
+   "id": "M0",
+   "name": "Plan + scaffold + first C.9.3 sheath",
+   "prs": [
+    "PR-S1"
+   ],
+   "exit": [
+    "plan+roadmap merged",
+    "sheath/ tests green",
+    "evidence/sheath/c93_v1 reproducible from STEP sha 3a818183"
+   ],
+   "status": "in_progress (branch pushed)"
+  },
+  {
+   "id": "M1",
+   "name": "Requirements, Rust scoring, CLI, CI",
+   "prs": [
+    "PR-S2",
+    "PR-S3"
+   ],
+   "exit": [
+    "RS-sheath-runner-v1.toml",
+    "crates/sheath window+fitness+Verdicts with tests matching python",
+    "jarambit sheath <sub> exact dispatch; unknown sub -> error",
+    "CI runs sheath unittests"
+   ]
+  },
+  {
+   "id": "M2",
+   "name": "Geometry v2",
+   "prs": [
+    "PR-S4",
+    "PR-S4b"
+   ],
+   "exit": [
+    "variable gap from thickness map",
+    "mount bosses (2-point, 38.1 mm Tek-Lok-class pattern ASSUMPTION) + strap slots",
+    "mouth lead-in chamfer, fillets, draft for IM",
+    "3-D continuous collision vs STL with motion bound",
+    "wobble \u00b12\u00b0 clearance budget",
+    "cold-shrink tip-pocket check",
+    "crescent Pheno adapter"
+   ]
+  },
+  {
+   "id": "M3",
+   "name": "Contact FEA",
+   "prs": [
+    "PR-S5"
+   ],
+   "exit": [
+    "CalculiX or dolfinx insert->seat->dwell->draw->unload",
+    "mesh/increment convergence <5%",
+    "analytic/plate within \u00b115% or calibration factor recorded",
+    "tet meshing env decided (libGLU / container)"
+   ],
+   "status": "ccx tab benchmark converged (uncalibrated_fea); full sheath contact pending"
+  },
+  {
+   "id": "M4",
+   "name": "Optimiser + evolution hook",
+   "prs": [
+    "PR-S6",
+    "PR-S7"
+   ],
+   "exit": [
+    "MC extended (thermal CTE, humidity, wear model)",
+    "CMA-ES/NSGA-II over ~15 genes, Pareto mass vs P(life)",
+    "paired-system score on knife shortlist, knife score untouched",
+    "xbabe3 batch, detached tmux"
+   ]
+  },
+  {
+   "id": "M5",
+   "name": "Prototype + bench calibration",
+   "prs": [
+    "PR-S8"
+   ],
+   "exit": [
+    "6 tab variants x3 MJF + 2 Kydex",
+    "F-x curves 50 & 500 mm/min",
+    "mu (D1894-style) and E(T) (ISO 178) measured",
+    "calibrated_prediction level reached",
+    "user draw trials n>=10 set upper window"
+   ]
+  },
+  {
+   "id": "M6",
+   "name": "Field dynamics, wear, edge safety",
+   "prs": [
+    "PR-S9"
+   ],
+   "exit": [
+    "sheath+knife IMU running/jump/fall data",
+    "2-DOF dynamic retention + rattle model",
+    "1000-cycle wear incl. ISO 12103-1 A2 grit",
+    "edge cut-through/drop tests pass"
+   ]
+  },
+  {
+   "id": "M7",
+   "name": "Render + manufacturing pack",
+   "prs": [
+    "PR-S10",
+    "PR-S11"
+   ],
+   "exit": [
+    "sheath in render manifest, labelled kinematic unsheath animation + curve overlay",
+    "MJF pack, IM DFM report, Kydex buck generator"
+   ]
+  }
+ ],
+ "prs": [
+  {
+   "id": "PR-S1",
+   "title": "sheath/: scaffold, STEP/STL ingest, parametric generator, analytic + plate-FEM draw force, C.9.3 evidence, plan",
+   "files": [
+    "sheath/**",
+    "docs/sheath/**",
+    "evidence/sheath/c93_v1/**"
+   ],
+   "touches_shared": false,
+   "status": "branch feat/sheath-v1 pushed; PR not opened (queued)"
+  },
+  {
+   "id": "PR-S2",
+   "title": "requirements/RS-sheath-runner-v1.toml + schemas/sheath + CI step 'python3 -m unittest discover -s sheath/tests'",
+   "touches_shared": true,
+   "shared": ".github/workflows/version-check.yml"
+  },
+  {
+   "id": "PR-S3",
+   "title": "crates/sheath (Rust): window, fitness, analytic snap model, Verdicts; cli exact 'sheath' dispatch",
+   "touches_shared": true,
+   "shared": "Cargo.toml workspace members, Cargo.lock, crates/cli"
+  },
+  {
+   "id": "PR-S4",
+   "title": "geometry v2: variable gap, mount, drain, chamfers, 3-D continuous collision, wobble budget, cold-shrink"
+  },
+  {
+   "id": "PR-S4b",
+   "title": "crescent Pheno -> KnifeInterfaceV1 adapter"
+  },
+  {
+   "id": "PR-S5",
+   "title": "fem_sheath/: contact FEA of click-tab insert/draw + convergence + calibration hooks"
+  },
+  {
+   "id": "PR-S6",
+   "title": "MC v2 + dynamic retention/rattle model"
+  },
+  {
+   "id": "PR-S7",
+   "title": "sheath optimiser + paired-system score in evolve (opt-in flag)"
+  },
+  {
+   "id": "PR-S8",
+   "title": "bench data schema, calibration fit, test-jig STLs"
+  },
+  {
+   "id": "PR-S9",
+   "title": "field IMU ingestion, wear model, edge-safety records"
+  },
+  {
+   "id": "PR-S10",
+   "title": "render: sheath assembly + unsheath animation (after render/release PRs)"
+  },
+  {
+   "id": "PR-S11",
+   "title": "manufacturing pack: MJF, IM DFM, Kydex buck"
+  }
+ ],
+ "fitness": {
+  "gates": [
+   "path_infeasible",
+   "sharp_edge_outside_sheath",
+   "edge_mouth_depth<6mm",
+   "edge_clearance<0.3mm",
+   "edge_rim<2mm",
+   "insert>max",
+   "detent_strain>allow",
+   "MC_life_window<95%"
+  ],
+  "score": "0.50*window_score(draw) + 0.25*P(new window) + 0.25*max(0,1-mass/60g)"
+ },
+ "first_results_c93": "evidence/sheath/c93_v1/metrics.json",
+ "open_risks": [
+  "R1 shock retention SF 1.0 @p05 (assumed 25 g)",
+  "R3 spine edge 0.8 mm from wall during draw",
+  "R12 ergonomics unmeasured",
+  "R13 gmsh needs libGLU on xbabe2",
+  {
+   "id": "R1",
+   "status": "resolved_analytic",
+   "note": "SF 2.44 @15 g p05; M6 IMU confirm"
+  },
+  {
+   "id": "R3",
+   "status": "resolved_geometric",
+   "note": "wobble \u00b12\u00b0/\u00b12\u00b0, clearance 1.91 mm"
+  },
+  {
+   "id": "R10",
+   "status": "mitigated",
+   "note": "lexicographic fitness, bounds widened, bound hits reported (tab_b at 9 mm cap)"
+  },
+  {
+   "id": "R11",
+   "status": "open",
+   "note": "drop 1.5 m in-plane edge screen MARGINAL; guarded physical drop+cut test mandatory; bump flank >=75 deg requirement"
+  },
+  {
+   "id": "R12",
+   "status": "open",
+   "note": "friction priors ASSUMED; p_new 0.810 thin margin -> ASTM D1894 Ti/PA12 coupons"
+  }
+ ],
+ "references": "docs/sheath/SHEATH_V1_PLAN.md \u00a713",
+ "design_of_record_knife": {
+  "rev": "C.10a rc4",
+  "step": "hiking-karambit analysis/w79/ground_c10a.step",
+  "sha16": "441cfabc284efd63"
+ },
+ "results_v12": {
+  "c10a": {
+   "mass_g": 29.72,
+   "draw_n": 36.6,
+   "insert_n": 30.7,
+   "mc_p05_p50_p95": [
+    23.3,
+    35.5,
+    52.1
+   ],
+   "p_new": 0.81,
+   "p_life": 0.96,
+   "min_edge_clearance_mm": 1.91,
+   "tip_reserve_mm": 3.3,
+   "land_first": 1.0,
+   "sf_p05_15g": 2.44,
+   "drop_edge": "SCREEN_MARGINAL",
+   "feasible": true
+  },
+  "ccx_tab": {
+   "formulation": "S2S large-sliding penalty, fillet r0.3",
+   "levels_peak_n": [
+    13.98,
+    13.92,
+    13.85,
+    13.77
+   ],
+   "conv_last2": 0.0053,
+   "ccx_over_bayer": 0.628,
+   "ccx_over_bayer_rot": 0.844
+  }
+ }
+}
