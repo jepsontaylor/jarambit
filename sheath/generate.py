@@ -22,7 +22,8 @@ class SheathParams:
     direction_deg: float = 180.0     # translation direction (trans)
     sweep_max: float = 140.0         # deg (rot) or mm (trans)
     c_face: float = 0.25             # per-side face clearance (mm)
-    c_edge: float = 0.8              # in-plane clearance around sharpened edges/tip (mm)
+    c_edge: float = 1.3              # in-plane clearance around sharpened edges/tip (mm); v1.2: 0.8->1.3 so the guard-hole
+                                     # bump flanks (c_land 0.3) always stop an in-plane drop before an edge reaches the wall
     rim: float = 3.0                 # in-plane wall outside cavity (edge protection band)
     wall: float = 1.6                # panel thickness
     detent_undercut: float = 0.6     # bump height into retention hole

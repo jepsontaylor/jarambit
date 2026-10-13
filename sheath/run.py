@@ -173,16 +173,27 @@ def main():
     # --- containment: positive stop, tip reserve, first-contact screen, strength screens
     tr = G.tip_reserve(g, sharp_pts, tip_xy)
     land_all = np.vstack(bumper + ([np.array(g["stop_land_pts"])] if g["stop_land_pts"] else [])) if (bumper or g["stop_land_pts"]) else np.empty((0, 2))
-    fc = SS.first_contact_screen(K, g["cavity"], sharp_pts, land_all, mouth=(g["m"], g["n"]))
+    det0 = None
+    for rl in (ann.get("retention_lands") or []):
+        hs = [h for h in iface["holes"] if np.hypot(h["centroid"][0] - rl["hole_centroid"][0], h["centroid"][1] - rl["hole_centroid"][1]) < 1.0]
+        det0 = hs[0] if hs else det0
+    hole_land = None; A_flank = 0.0
+    if det0 is not None:
+        r_b = det0["eq_radius_mm"] - p.c_land
+        # flank bearing: 2 bumps (both faces) x engaged height (undercut - c_face, nominal 1.0 mm before the search) x chord
+        A_flank = 2 * max(p.detent_undercut - p.c_face, 1.0) * 2 * r_b * math.sin(math.radians(45))
+        hole_land = {"draw_deg": p.direction_deg, "gap_mm": p.c_land, "r_bump_mm": r_b, "flank_bearing_mm2": A_flank,
+                     "requirement": "bump lateral flanks >= 75 deg (non-camming); ramps only on the draw/insert axis +-45 deg"}
+    fc = SS.first_contact_screen(K, g["cavity"], sharp_pts, land_all, mouth=(g["m"], g["n"]), hole_land=hole_land)
     A_stop = 0.5 * len(g["stop_land_pts"]) * 3.6 if g["stop_land_pts"] else 0.0
     A_bump = [0.5 * len(b) * 3.0 for b in bumper]
     from shapely.geometry import Polygon as Pg
     span = 2 * max(0.5, max(g["cavity"].buffer(-r).area > 0 and r or 0 for r in np.arange(0.5, 30, 0.5)))
     margin_worst = fc["worst"]["margin"]
     res.update({"tip_reserve_mm": tr, "stop_land_n": len(g["stop_land_pts"]), "stop_bearing_area_mm2": A_stop,
-                "first_contact": {"frac_land_first": fc["frac_land_first"], "worst": fc["worst"]},
+                "first_contact": {"frac_land_first": fc["frac_land_first"], "worst": fc["worst"], "n_exit": fc["n_exit"], "hole_land": hole_land},
                 "strength_screens": {
-                    "drop_1.5m_edge": SS.drop_screen(iface["mass_g"], min(A_bump) if A_bump else A_stop, margin_worst, 10.0, p.rim),
+                    "drop_1.5m_edge": SS.drop_screen(iface["mass_g"], min(A_bump + ([A_flank] if A_flank else [])) if (A_bump or A_flank) else A_stop, margin_worst, 10.0, p.rim),
                     "drop_1.5m_tip_on_stop": SS.drop_screen(iface["mass_g"], A_stop, tr, 2.0, p.rim),
                     "crush_500N_platen": SS.crush_screen(span, p.wall, p.c_face),
                     "seated_overload_150N": SS.overload_screen(150.0, A_stop),
@@ -251,7 +262,9 @@ def main():
             Fmc = F_of(Tf, wear, mu_s); Fnew = F_of(1.0, 0.0, mc["mu_new"])
             i0 = max(i_face, 0); tr0 = math.tan(math.radians(q.detent_a_out) - ROT * 1.5 * i0 / a_tab); mu0 = mat.mu_steel
             draw0 = CCXF * 2 * k * i0 * (mu0 + tr0) / (1 - mu0 * tr0)
-            return {"k": k, "i_face": i_face, "P": d.P_n, "draw": draw0, "draw_no_rot": 2 * d.draw_n, "insert": 2 * d.insert_n, "eps": eps,
+            ti0 = math.tan(math.radians(q.detent_a_in) - ROT * 1.5 * i0 / a_tab)
+            ins0 = CCXF * 2 * k * i0 * (mu0 + ti0) / (1 - mu0 * ti0)
+            return {"k": k, "i_face": i_face, "P": d.P_n, "draw": draw0, "draw_no_rot": 2 * d.draw_n, "insert": ins0, "insert_no_rot": 2 * d.insert_n, "eps": eps,
                     "new_p05": float(np.percentile(Fnew, 5)), "new_p95": float(np.percentile(Fnew, 95)),
                     "p05": float(np.percentile(Fmc, 5)), "p50": float(np.median(Fmc)), "p95": float(np.percentile(Fmc, 95)),
                     "p_life": float(np.mean((Fmc > W.lo_life) & (Fmc < W.hi_life))),

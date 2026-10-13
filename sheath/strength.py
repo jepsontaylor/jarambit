@@ -14,7 +14,7 @@ R_CUT_N_PER_MM = (5.0, 30.0)     # ASSUMPTION range
 DROP_H_M = 1.5
 
 
-def first_contact_screen(K, C, sharp_pts, land_pts, ndir=36, mouth=None, L=10.0):
+def first_contact_screen(K, C, sharp_pts, land_pts, ndir=36, mouth=None, L=10.0, hole_land=None):
     """In-plane rigid shift of the seated knife in each direction: which boundary point touches the cavity WALL first?
     Returns per-direction gaps and the worst edge margin (gap_sharp - gap_land, >0 means a non-sharp land hits first).
     The mouth line is open (not a wall): it is removed from the boundary, and directions in which the sharp points meet
@@ -32,6 +32,12 @@ def first_contact_screen(K, C, sharp_pts, land_pts, ndir=36, mouth=None, L=10.0)
         a = 2 * math.pi * k / ndir; u = np.array([math.cos(a), math.sin(a)])
         gs = min(ray_dist(q, u, ring, L) for q in S)
         gl = min((ray_dist(q, u, ring, L) for q in Lp), default=L)
+        if hole_land is not None:
+            # bump (sheath) inside the closed guard hole (knife): non-camming flanks lock in-plane shifts that are
+            # 45..135 deg off the draw axis at the bump/hole clearance; within +-45 deg of the axis the ramps cam (detent)
+            off = abs(((math.degrees(a) - hole_land["draw_deg"]) + 180.0) % 360.0 - 180.0)
+            if 45.0 <= off <= 135.0:
+                gl = min(gl, hole_land["gap_mm"])
         if gs >= L - 1e-9:
             out.append({"dir_deg": math.degrees(a), "gap_sharp": None, "gap_land": gl, "margin": None, "exit": True}); continue
         out.append({"dir_deg": math.degrees(a), "gap_sharp": gs, "gap_land": gl, "margin": gs - gl, "exit": False})
