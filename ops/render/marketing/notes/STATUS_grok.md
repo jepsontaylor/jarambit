@@ -7,13 +7,13 @@ Date: 2026-10-13. Branch pushed. No pull request opened.
 - CLI `pipeline.py`: `doctor|ingest|plan|render|finish|encode|qa|package|all`.
 - Deterministic plan, farm (shards of 8, yield, flock, receipts, remote scratch rewrite), encode (explicit zscale full to BT.709 limited), QA Q1–Q13 fail closed, package schema `jarambit.render.marketing.v1` with no upload.
 - Camera frame `z_up_az0_minus_y` (Z up, blade plane XZ, azimuth 0 on -Y, azimuth 90 on +X). `profile_flat` is az 0, el 0.
-- Hero execution pin: SWITCHBACK Rev C.9.2 STEP `2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307`, STL `10b8c41f80b898c255cc090a349559722258f87f8af849ce9a605e14d762e847`. `render --execute` refuses any other source. `~/jarambit_render_scratch/hero` is superseded.
+- Hero execution pin: SWITCHBACK Rev C.9.2 STEP `2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307`, STL `10b8c41f80b898c255cc090a349559722258f87f8af849ce9a605e14d762e847`. `package` defaults `--cad` and `--cad-sha` to that STEP. `render --execute` refuses any other source. The manifest and Q13 reject hero deliveries sourced from retired `g3_tip+00_t60_tt3.stl` (`04404820cf8385f5e34a42ef9d39a79aecda8eb88895c78aa21f4e3a92fe28c5`). `~/jarambit_render_scratch/hero` is superseded. Claude should render `~/jarambit_render_scratch/hero_C9.2/mesh`.
 - Smoke workflow `.github/workflows/render-marketing-smoke.yml` (labels `self-hosted, linux, x64, lan-ci, ubuntu24`). `.github/actionlint.yaml` lists those custom labels so actionlint can pass. That config is the only file outside the brief's path list.
 - `ingest` and `finish` delegate. Missing peer modules exit 2. This tree does not vendor Codex or Claude files.
 
 ## Checks this session
 
-- `pytest ops/render/marketing/tests`: 30 passed in 31.76s.
+- `pytest ops/render/marketing/tests`: 32 passed in 31.19s. The two new tests pin package defaults to the C.9.2 STEP and reject the retired g3 sha on hero deliveries.
 - `actionlint .github/workflows/render-marketing-smoke.yml`: exit 0.
 - `doctor --require ffmpeg,zscale,libx264,libx265,libwebp,blender,gifski --hosts`: `missing` [].
 

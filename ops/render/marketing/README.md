@@ -10,7 +10,7 @@ python3 ops/render/marketing/pipeline.py plan --bundle mesh/bundle.json --region
 python3 ops/render/marketing/pipeline.py render --plan plan.json --dest ~/jarambit_render_scratch/<plan_key> --bundle mesh/bundle.json --regions mesh/regions.json
 python3 ops/render/marketing/pipeline.py encode --frames frames/ --out delivery/
 python3 ops/render/marketing/pipeline.py qa --measurements qa_input.json --out qa.json --stills stills/*.png
-python3 ops/render/marketing/pipeline.py package --root stage/ --cad hero.stl --cad-sha <sha> --bundle-sha <sha> --plan-key <key> --file still.png=hero_3q_1920.jpg:poster
+python3 ops/render/marketing/pipeline.py package --root stage/ --bundle-sha <sha> --plan-key <key> --file still.png=hero_3q_1920.jpg:poster
 ```
 
 `render` writes one request JSON per shard of 8 frames and does not launch Blender unless `--execute` is set. Launch is `nice -n 10` with at most 16 threads, detached with `nohup`. The coordinator (this machine) runs locally. `xbabe3` and, when ssh answers, `xbabe1` are reached with ssh. `ssh xbabe2` is a different host in this ssh config, so it is not used.
@@ -25,4 +25,4 @@ Encodes use zscale to convert full-range frames to BT.709 limited. They do not r
 
 Pinned Blender is 4.2.23 LTS at `~/opt/blender-4.2.23-linux-x64/` on each host. The lock file is `toolchain.lock.json`.
 
-Hero stills and the turntable use SWITCHBACK Rev C.9.2 only. The STEP sha256 is `2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307` and the STL sha256 is `10b8c41f80b898c255cc090a349559722258f87f8af849ce9a605e14d762e847`. `render --execute` refuses any other source hash. The earlier scratch bundle at `~/jarambit_render_scratch/hero` is superseded.
+Hero stills and the turntable use SWITCHBACK Rev C.9.2 only. `package` defaults `--cad` to `~/jarambit_render/inputs/switchback_C9.2/switchback_revC9_2_ground.step` and `--cad-sha` to `2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307`. The STL sha256 is `10b8c41f80b898c255cc090a349559722258f87f8af849ce9a605e14d762e847`. `render --execute` refuses any other source hash. The manifest and Q13 reject hero deliveries whose source is the retired STL `evidence/wave27/g3_tip+00_t60_tt3.stl` (`04404820cf8385f5e34a42ef9d39a79aecda8eb88895c78aa21f4e3a92fe28c5`). The earlier scratch bundle at `~/jarambit_render_scratch/hero` is superseded. Claude renders `~/jarambit_render_scratch/hero_C9.2/mesh`.

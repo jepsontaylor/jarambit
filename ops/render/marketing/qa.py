@@ -16,6 +16,7 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
 import canon
+import plan as plan_mod
 
 SCHEMA = "jarambit.render.qa.v1"
 
@@ -327,12 +328,25 @@ def check_q12(plan_bytes_a, plan_bytes_b, image_a=None, image_b=None):
     return _record("Q12", same and images_ok, {"plan_bytes_equal": same, "mean_abs": diff}, threshold)
 
 
-def check_q13(manifest, sums_ok):
-    threshold = "source sha verified, bundle sha, toolchain, git sha, output shas, SHA256SUMS"
+def check_q13(manifest, sums_ok, source_sha256=None, hero=False):
+    threshold = "source sha verified, bundle sha, toolchain, git sha, output shas, SHA256SUMS; hero outputs are not the retired g3 STL"
     if not manifest:
         return _fail("Q13", "manifest missing", threshold)
     source = manifest.get("source_cad") or {}
     outputs = manifest.get("outputs") or []
+    sha = source.get("sha256") or source_sha256
+    path = source.get("path") or ""
+    hero_delivery = hero or any(
+        plan_mod.is_hero_delivery(item.get("path"), item.get("role")) for item in outputs
+    )
+    if hero_delivery and (plan_mod.retired_g3(sha, path) or plan_mod.retired_g3(source_sha256, path)):
+        return _fail(
+            "Q13",
+            "retired g3 sha256 "
+            f"{plan_mod.RETIRED_G3_SHA256} is rejected for hero stills and the turntable; "
+            f"use Rev C.9.2 {plan_mod.HERO_STEP_SHA256}",
+            threshold,
+        )
     ok = (
         bool(source.get("sha256")) and bool(source.get("verified"))
         and bool(manifest.get("mesh_bundle_sha256"))
@@ -346,6 +360,7 @@ def check_q13(manifest, sums_ok):
         "source_verified": bool(source.get("verified")),
         "outputs": len(outputs),
         "sums_ok": bool(sums_ok),
+        "retired_g3": False,
     }, threshold)
 
 
@@ -378,7 +393,12 @@ def evaluate(measurements):
                   faststart=m.get("faststart"), decoded=m.get("decoded")),
         check_q11(m.get("sizes")),
         check_q12(m.get("plan_bytes_a"), m.get("plan_bytes_b"), m.get("image_a"), m.get("image_b")),
-        check_q13(m.get("manifest"), m.get("sums_ok")),
+        check_q13(
+            m.get("manifest"),
+            m.get("sums_ok"),
+            source_sha256=m.get("source_sha256") or (m.get("source_cad") or {}).get("sha256"),
+            hero=any(row.get("hero") for row in (m.get("framing") or [])),
+        ),
         check_q14(m.get("art_review")),
     ]
     failed = [item["id"] for item in checks if item["status"] == "FAIL"]

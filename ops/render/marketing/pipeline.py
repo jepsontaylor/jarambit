@@ -7,7 +7,7 @@
   pipeline.py finish --in DIR --out DIR
   pipeline.py encode --frames DIR --out DIR
   pipeline.py qa --measurements measurements.json --out qa.json [--stills a.png]
-  pipeline.py package --root DIR --cad FILE --cad-sha SHA --bundle-sha SHA --plan-key KEY --file SRC=NAME:ROLE
+  pipeline.py package --root DIR [--cad C.9.2.step] [--cad-sha 2ad2a8ec...] --bundle-sha SHA --plan-key KEY --file SRC=NAME:ROLE
   pipeline.py all ...   runs the stages that have their inputs; a missing peer tool fails the stage
 
 ingest and finish delegate to the Codex and Claude modules when those files exist.
@@ -198,19 +198,22 @@ def cmd_package(args):
     toolchain = {}
     if os.path.isfile(LOCK_PATH):
         toolchain = _load_json(LOCK_PATH)
-    result = package_mod.stage(
-        args.root,
-        cad_path=args.cad,
-        expected_cad_sha256=args.cad_sha,
-        mesh_bundle_sha256=args.bundle_sha,
-        toolchain=toolchain,
-        git_sha=git_sha,
-        plan_key=args.plan_key,
-        files=files,
-        normal_policy=args.normal_policy,
-        raw_paths=args.raw or [],
-        keep_raw=args.keep_raw,
-    )
+    try:
+        result = package_mod.stage(
+            args.root,
+            cad_path=args.cad,
+            expected_cad_sha256=args.cad_sha,
+            mesh_bundle_sha256=args.bundle_sha,
+            toolchain=toolchain,
+            git_sha=git_sha,
+            plan_key=args.plan_key,
+            files=files,
+            normal_policy=args.normal_policy,
+            raw_paths=args.raw or [],
+            keep_raw=args.keep_raw,
+        )
+    except package_mod.PackageError as exc:
+        _die(str(exc))
     print(result["manifest"])
 
 
@@ -287,8 +290,10 @@ def build_parser():
 
     pkg = sub.add_parser("package")
     pkg.add_argument("--root", required=True)
-    pkg.add_argument("--cad", required=True)
-    pkg.add_argument("--cad-sha", required=True)
+    pkg.add_argument("--cad", default=plan_mod.HERO_STEP_PATH,
+                     help="defaults to the SWITCHBACK Rev C.9.2 STEP")
+    pkg.add_argument("--cad-sha", default=plan_mod.HERO_STEP_SHA256,
+                     help="defaults to the C.9.2 STEP sha256")
     pkg.add_argument("--bundle-sha", required=True)
     pkg.add_argument("--plan-key", required=True)
     pkg.add_argument("--file", action="append", required=True)

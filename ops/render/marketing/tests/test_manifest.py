@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import package
+import plan
 import qa
 
 PIPE = ROOT / "pipeline.py"
@@ -48,6 +49,63 @@ def test_stage_verifies_and_rejects_tamper(tmp_path):
     poster = root / "hero_3q_1920.jpg"
     poster.write_bytes(poster.read_bytes() + b"x")
     assert package.verify_sums(str(root)) is False
+
+
+def test_package_defaults_point_at_c92_and_reject_retired_g3(tmp_path):
+    import pipeline
+    parser = pipeline.build_parser()
+    args = parser.parse_args([
+        "package", "--root", "stage", "--bundle-sha", "c" * 64,
+        "--plan-key", "d" * 64, "--file", "still.png=hero_3q_1920.jpg:poster",
+    ])
+    assert args.cad == plan.HERO_STEP_PATH
+    assert args.cad_sha == plan.HERO_STEP_SHA256
+    poster = tmp_path / "still.png"
+    Image.new("RGB", (8, 8), (40, 40, 40)).save(poster, quality=92)
+    try:
+        package.stage(
+            str(tmp_path / "retired"),
+            cad_path=str(tmp_path / plan.RETIRED_G3_STL),
+            expected_cad_sha256=plan.RETIRED_G3_SHA256,
+            mesh_bundle_sha256="c" * 64,
+            toolchain={},
+            git_sha="abc",
+            plan_key="d" * 64,
+            files=[{"src": str(poster), "dest_name": "hero_3q_1920.jpg", "role": "poster"}],
+        )
+    except package.PackageError as exc:
+        assert plan.RETIRED_G3_SHA256 in str(exc)
+        assert "C.9.2" in str(exc)
+    else:
+        raise AssertionError("retired g3 sha must not stage a hero still")
+    root = tmp_path / "c92"
+    result = package.stage(
+        str(root),
+        mesh_bundle_sha256="c" * 64,
+        toolchain={"blender": "4.2.23"},
+        git_sha="4ec6934",
+        plan_key="d" * 64,
+        files=[{"src": str(poster), "dest_name": "hero_3q_1920.jpg", "role": "poster"}],
+    )
+    manifest = json.loads(Path(result["manifest"]).read_text())
+    assert manifest["source_cad"]["path"] == plan.HERO_STEP_PATH
+    assert manifest["source_cad"]["sha256"] == plan.HERO_STEP_SHA256
+    assert manifest["source_cad"]["verified"] is True
+    assert manifest["source_cad"]["model"] == "SWITCHBACK Rev C.9.2"
+    assert manifest["source_cad"]["replaces_sha256"] == plan.RETIRED_G3_SHA256
+
+
+def test_qa_rejects_retired_g3_for_hero_outputs():
+    measurements = _passing_measurements()
+    measurements["manifest"]["source_cad"]["sha256"] = plan.RETIRED_G3_SHA256
+    measurements["manifest"]["outputs"] = [
+        {"path": "hero_3q_1920.jpg", "sha256": "c" * 64, "role": "poster"},
+    ]
+    report = qa.evaluate(measurements)
+    assert "Q13" in report["failed"]
+    q13 = next(item for item in report["checks"] if item["id"] == "Q13")
+    assert plan.RETIRED_G3_SHA256 in q13["detail"]
+    assert report["release_blocked"] is True
 
 
 def test_bad_source_sha_refuses_the_manifest(tmp_path):

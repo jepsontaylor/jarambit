@@ -32,6 +32,15 @@ HERO_FILL = (0.62, 0.78)
 HERO_STEP_SHA256 = "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307"
 HERO_STL_SHA256 = "10b8c41f80b898c255cc090a349559722258f87f8af849ce9a605e14d762e847"
 HERO_SOURCE_SHA256 = frozenset({HERO_STEP_SHA256, HERO_STL_SHA256})
+HERO_STEP_PATH = os.path.expanduser(
+    "~/jarambit_render/inputs/switchback_C9.2/switchback_revC9_2_ground.step"
+)
+HERO_STL_PATH = os.path.expanduser(
+    "~/jarambit_render/inputs/switchback_C9.2/switchback_revC9_2_ground.stl"
+)
+# Replaced for every hero still and the turntable. Smoke provenance only.
+RETIRED_G3_SHA256 = "04404820cf8385f5e34a42ef9d39a79aecda8eb88895c78aa21f4e3a92fe28c5"
+RETIRED_G3_STL = "g3_tip+00_t60_tt3.stl"
 SENSOR_MM = 36.0
 NEAR_CLIP_M = 0.001
 
@@ -135,6 +144,25 @@ def assert_hero_source(sha256):
             "hero stills and the turntable require SWITCHBACK Rev C.9.2 "
             f"(step {HERO_STEP_SHA256} or stl {HERO_STL_SHA256}); got {sha256}"
         )
+
+
+def retired_g3(sha256, path=""):
+    """True for the replaced evidence/wave27 g3 STL, by hash or file name."""
+    if sha256 == RETIRED_G3_SHA256:
+        return True
+    return os.path.basename(path or "") == RETIRED_G3_STL
+
+
+def is_hero_delivery(path, role=None):
+    """A still or turntable delivery of the hero model, not a fixture note."""
+    role_l = (role or "").lower()
+    if role_l in {"poster", "still", "turntable", "hero"}:
+        return True
+    base = os.path.basename(path or "").lower()
+    stem = base.split(".", 1)[0]
+    ids = [shot["id"] for shot in STILLS]
+    ids.extend(("turntable", "turntable_dark"))
+    return any(stem == shot_id or stem.startswith(shot_id + "_") for shot_id in ids)
 
 
 def qfloat(value, places=6):

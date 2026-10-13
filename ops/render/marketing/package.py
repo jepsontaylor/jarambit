@@ -11,6 +11,7 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
 import canon
+import plan as plan_mod
 
 SCHEMA = "jarambit.render.marketing.v1"
 CAPTION = "physically based visualization under stated material assumptions"
@@ -71,6 +72,27 @@ def verify_source(cad_path, expected_sha256):
     }
 
 
+def hero_outputs(records):
+    return [
+        item for item in records
+        if plan_mod.is_hero_delivery(item.get("path") or item.get("dest_name"), item.get("role"))
+    ]
+
+
+def refuse_retired_g3(source_sha, source_path, records):
+    """Hero stills and the turntable cannot cite the replaced g3 STL."""
+    if not hero_outputs(records):
+        return
+    if not plan_mod.retired_g3(source_sha, source_path):
+        return
+    raise PackageError(
+        "hero stills and the turntable reject retired g3 STL "
+        f"{plan_mod.RETIRED_G3_STL} sha256 {plan_mod.RETIRED_G3_SHA256}; "
+        f"use SWITCHBACK Rev C.9.2 step {plan_mod.HERO_STEP_PATH} "
+        f"sha256 {plan_mod.HERO_STEP_SHA256}"
+    )
+
+
 def build_manifest(*, source_cad, mesh_bundle_sha256, toolchain, git_sha, plan_key,
                    outputs, normal_policy=None):
     if not source_cad.get("verified"):
@@ -79,17 +101,22 @@ def build_manifest(*, source_cad, mesh_bundle_sha256, toolchain, git_sha, plan_k
         raise PackageError("manifest needs bundle sha, git sha and plan key")
     if not outputs:
         raise PackageError("manifest needs at least one output")
+    refuse_retired_g3(source_cad.get("sha256"), source_cad.get("path"), outputs)
+    source = {
+        "path": source_cad.get("path"),
+        "sha256": source_cad["sha256"],
+        "verified": True,
+    }
+    if source["sha256"] in plan_mod.HERO_SOURCE_SHA256:
+        source["model"] = "SWITCHBACK Rev C.9.2"
+        source["replaces_sha256"] = plan_mod.RETIRED_G3_SHA256
     manifest = {
         "schema": SCHEMA,
         "product": PRODUCT,
         "caption": CAPTION,
         "appearance": "appearance_assumed",
         "art_review": "pending",
-        "source_cad": {
-            "path": source_cad.get("path"),
-            "sha256": source_cad["sha256"],
-            "verified": True,
-        },
+        "source_cad": source,
         "mesh_bundle_sha256": mesh_bundle_sha256,
         "normal_policy": normal_policy,
         "toolchain": toolchain,
@@ -151,15 +178,22 @@ def purge_raw(root, raw_paths, keep_raw=False):
     return removed
 
 
-def stage(root, *, cad_path, expected_cad_sha256, mesh_bundle_sha256, toolchain, git_sha,
+def stage(root, *, cad_path=None, expected_cad_sha256=None, mesh_bundle_sha256, toolchain, git_sha,
           plan_key, files, normal_policy=None, raw_paths=None, keep_raw=False):
     """files is a list of {src, dest_name, role}. Copies into root, then writes manifest and sums.
 
-    The manifest and the snippet are hashed into SHA256SUMS. Raw EXR purge runs
-    only after those files are in place.
+    Omitted CAD arguments point at the SWITCHBACK Rev C.9.2 STEP. The manifest
+    and the snippet are hashed into SHA256SUMS. Raw EXR purge runs only after
+    those files are in place.
     """
+    if cad_path is None:
+        cad_path = plan_mod.HERO_STEP_PATH
+    if expected_cad_sha256 is None:
+        expected_cad_sha256 = plan_mod.HERO_STEP_SHA256
     os.makedirs(root, exist_ok=True)
+    refuse_retired_g3(expected_cad_sha256, cad_path, files)
     source = verify_source(cad_path, expected_cad_sha256)
+    refuse_retired_g3(source.get("sha256"), source.get("path"), files)
     records = []
     written = []
     for item in files:
