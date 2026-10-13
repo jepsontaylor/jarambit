@@ -1,0 +1,57 @@
+# RS-karambit-v2 — PR-0.31.3 (v0.31). Author: Jepson Taylor.
+# Supersedes RS-karambit-v1 for promotion once a design can meet it; v1 stays the search/screen set (records keep
+# naming the set they were judged against). Values are checked against the Rust constants
+# (crates/crescent/src/fem.rs, test rs_karambit_v2_matches_code).
+# Scope: structural utility loads only. Every case below is a load the PART must carry without permanent set
+# (first yield, joint thin+hot knockdowns, 828 MPa screening yield) or a geometric/handling requirement.
+# No tissue-damage, penetration or strike-effect objectives exist in this set or anywhere in jarambit.
+
+id = "RS-karambit-v2"
+version = 1
+status = "v0.31: published; human_max group is new (Jepson 2026-10-12); mass SOFT (Jepson decision overrides the roadmap's 'mass<=80 hard'); seq >= 1.2 HARD"
+
+[constants]
+inherits = "RS-karambit-v1"      # every v1 constant still applies (ring ID, blade limit, floors, twist floor, solid tip)
+seq_target = 1.2                 # HARD
+mass_target_g = 80.0             # SOFT: G penalty / ranking target
+mass_stretch_g = 70.0            # SOFT
+
+[human_max]
+# Human-maximum structural load cases (static, first-yield SF >= 1 = no permanent set).
+twist_nmm = 16200.0              # 16.2 N*m tip torque about the ring->tip chord (3D-corrected, as the 1.82 N*m floor)
+tip_inplane_n = 1000.0           # in-plane tip load, worst of chord-normal and chord-axial, ring held
+spine_n = 3427.0                 # in-plane load distributed on the spine edge toward the sharpened edge, ring held
+ringback_daf = 2.0               # L6 ring-back impact as a static equivalent: DAF 2 (suddenly applied) x ring pull
+ringback_n = 3000.0              # = ringback_daf x 1500 N, +x on the outer ring back, grip band seated
+ring_bearing_w_min_mm = 10.0     # finger-bearing width (bore length along the finger axis) >= 10 mm
+ring_edge_r_min_mm = 1.5         # bore edge radius >= 1.5 mm on both faces (B-rep / export spec; needs bearing >= 2 r)
+
+[fatigue]
+# L7: Marin-corrected endurance limit + modified Goodman (Shigley 10e). Cyclic hiker lateral 0..180 N (R = 0), 1e7 cycles.
+uts_mpa = 895.0                  # Ti-6Al-4V annealed minimum
+se_prime_ratio = 0.5
+ka = "4.51 * Sut^-0.265 (machined)"
+kb = "1.24 * t^-0.107, t = joint thickness, capped at 1"
+ke = 0.814                       # 99 % reliability
+cyclic_lateral_n = 180.0
+sf_min = 1.0
+
+[calibration]
+# T1 (search) -> T2 (certification) factors on 40 fixed_1k designs: docs/calibration/t1_t2.md.
+sigma_max = 0.07
+source = "docs/calibration/t1_t2.json"
+
+[groups.screen]
+criteria = ["RS-karambit-v1.screen"]
+
+[groups.human_max]
+criteria = ["hm_twist_sf >= 1", "hm_tip_inplane_sf >= 1", "hm_spine_sf >= 1", "hm_ringback_sf >= 1", "ring_bearing_w_mm >= 10", "ring_edge_r_mm >= 1.5"]
+record_field = "rs_v2_human_max_pass"
+
+[groups.fatigue]
+criteria = ["fat_sf >= 1"]
+
+[groups.promotion]
+criteria = ["RS-karambit-v1.promotion", "seq_ratio >= 1.2 (HARD)", "human_max", "fatigue"]
+soft = ["mass_target_g (G penalty, not a gate)", "mass_stretch_g"]
+note = "nothing is ever auto-promoted; human aesthetic sign-off still required"

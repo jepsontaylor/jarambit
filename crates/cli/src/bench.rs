@@ -41,3 +41,27 @@ pub fn run(genomes: &str, tier: &str, n: usize, threads: usize, area: f64) -> bo
         "core_s_per_design_p95": sorted[(sorted.len() * 95 / 100).min(sorted.len() - 1)], "checksum": checksum}));
     true
 }
+
+/// PR-0.31.3: T1 (search: `qd::evaluate`, search mesh + bias) vs T2 (certification: `fem::certify`) per load case on the
+/// first `n` fixed_1k genomes at 0, stride, 2*stride, ... that evaluate in both tiers (illegal genomes have no T1 FEM), plus the RS-karambit-v2 human-max / fatigue / ring-bearing values. Writes a CSV.
+pub fn calib_t1t2(genomes: &str, n: usize, stride: usize, threads: usize, area: f64, out: &str) -> bool {
+    let gs: Vec<Genome> = crate::crescent::load_seeds(genomes, usize::MAX).into_iter().step_by(stride.max(1)).take(2 * n).collect();
+    if gs.is_empty() { return false; }
+    let th = threads.max(1); let next = std::sync::atomic::AtomicUsize::new(0);
+    let mut rows: Vec<(usize, String)> = std::thread::scope(|s| {
+        let hs: Vec<_> = (0..th).map(|_| s.spawn(|| { let mut v = Vec::new(); loop {
+            let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed); if i >= gs.len() { break v; }
+            let g = &gs[i]; let r = qd::evaluate(g, i, 0, area); let p = pheno::build(g);
+            let (Some(t1), Some((t2, _))) = (r.fem.clone(), fem::certify(&p)) else { continue };
+            let (bw, band) = fem::ring_bearing(&p);
+            v.push((i, format!("{i},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.3},{:.3},{:.3}",
+                p.mass_g, t1.lat_rob, t2.lat_rob, t1.ring_rob, t2.ring_rob, t1.twist_joint_nmm, t2.twist_joint_nmm, t1.pry20, t2.pry20,
+                t2.hm_spine_n, t2.hm_twist_sf, t2.hm_tip_inplane_sf, t2.hm_spine_sf, t2.hm_ringback_sf, t2.fat_sf, t2.seq_ratio, bw, band, p.t)));
+        } })).collect();
+        hs.into_iter().flat_map(|h| h.join().unwrap()).collect() });
+    rows.sort_by_key(|r| r.0); rows.truncate(n);
+    let mut s = String::from("idx,mass_g,t1_lat_rob,t2_lat_rob,t1_ring_rob,t2_ring_rob,t1_twist_joint,t2_twist_joint,t1_pry20,t2_pry20,t2_hm_spine_n,hm_twist_sf,hm_tip_inplane_sf,hm_spine_sf,hm_ringback_sf,fat_sf,seq_ratio,ring_bearing_w_mm,ring_band_mm,t_mm\n");
+    for r in &rows { s += &r.1; s.push('\n'); }
+    eprintln!("calib-t1t2: {} / {} designs with both tiers", rows.len(), gs.len());
+    std::fs::write(out, s).is_ok()
+}
