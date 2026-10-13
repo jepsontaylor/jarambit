@@ -8,10 +8,23 @@ import math
 import numpy as np
 
 
+def _clean_panel(poly, eps=0.1):
+    """Remove zero-width needles/slits (morphological close+open, eps mm) before meshing.
+
+    The C9.3 v12b cavity had ~0 deg exterior spikes (0.0/0.15/0.65 deg after simplify) left by the bump-pad
+    subtraction. Triangle's q30 refinement never terminates on them and grew to ~92 GB (killed 2026-10-13).
+    Area change is ~0.1%; needles narrower than 2*eps carry no plate stiffness anyway.
+    """
+    q = poly.buffer(eps, join_style=2).buffer(-2 * eps, join_style=2).buffer(eps, join_style=2)
+    if q.geom_type != "Polygon":
+        q = max(q.geoms, key=lambda g: g.area)
+    return q
+
+
 def mesh_polygon(poly, max_area=0.6, refine_at=None, r_ref=4.0, a_ref=0.05):
     import triangle as tr
     from skfem import MeshTri
-    poly = poly.simplify(0.05).buffer(0)
+    poly = _clean_panel(poly).simplify(0.05).buffer(0)
     if poly.geom_type != "Polygon":
         poly = max(poly.geoms, key=lambda q: q.area)
     ext = np.array(poly.exterior.coords)[:-1]
