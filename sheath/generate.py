@@ -12,6 +12,21 @@ from shapely.geometry import Polygon, LineString, Point, box
 from shapely import affinity
 from shapely.ops import unary_union
 
+BUMP_BASE_RADIUS_MM = 1.6
+
+
+def bump_evidence(p, hole_radius_mm):
+    """Report the existing spherical export, never the proposed directional flank."""
+    h = p.detent_undercut
+    R = (BUMP_BASE_RADIUS_MM ** 2 + h ** 2) / (2 * h)
+    maximum = R if h > BUMP_BASE_RADIUS_MM else BUMP_BASE_RADIUS_MM
+    return {"status": "INCOMPLETE", "geometry": "spherical_cap",
+            "directional_land_modeled": False, "nominal_base_radius_mm": BUMP_BASE_RADIUS_MM,
+            "max_projected_radius_mm": maximum, "projected_hole_radius_mm": hole_radius_mm,
+            "projected_radial_clearance_mm": hole_radius_mm - maximum,
+            "requested_clearance_mm": p.c_land, "requested_cam_half_deg": p.bump_cam_half_deg,
+            "reason": "exported spherical cap has no directional cam sector or non-camming flank"}
+
 
 @dataclass
 class SheathParams:
@@ -22,8 +37,7 @@ class SheathParams:
     direction_deg: float = 180.0     # translation direction (trans)
     sweep_max: float = 140.0         # deg (rot) or mm (trans)
     c_face: float = 0.25             # per-side face clearance (mm)
-    c_edge: float = 1.3              # in-plane clearance around sharpened edges/tip (mm); v1.2: 0.8->1.3 so the guard-hole
-                                     # bump flanks (c_land 0.3) always stop an in-plane drop before an edge reaches the wall
+    c_edge: float = 1.3              # in-plane clearance around sharpened edges/tip (mm); no directional-stop claim
     rim: float = 3.0                 # in-plane wall outside cavity (edge protection band)
     wall: float = 1.6                # panel thickness
     detent_undercut: float = 0.6     # bump height into retention hole
@@ -42,8 +56,7 @@ class SheathParams:
     tip_reserve: float = 1.5         # tip-to-pocket reserve along the insertion direction once seated on the stop
     collar_frame: float = 2.0        # collar module: frame width around the tab window (mm)
     collar_flange: float = 0.8       # collar module: outer flange thickness (mm)
-    bump_cam_half_deg: float = 20.0  # bump ramps only within +-this of the draw/insert axis; flanks outside are >=75 deg
-                                     # (non-camming) so in-plane drops off-axis are locked by the closed guard hole
+    bump_cam_half_deg: float = 20.0  # proposed directional cam sector; NOT implemented by the spherical CAD cap
     c_land: float = 0.3              # in-plane clearance at approved bumper lands (non-sharp) -> lands hit before edges
 
 
@@ -276,7 +289,7 @@ def solid3d_full(g, p: SheathParams, t_knife, bump_xy=None):
         z0 = side * gap / 2 if side > 0 else -H / 2
         for q in tab_slot_polys(g, p, bump_xy):
             sol = sol.cut(cq.Workplane("XY", origin=(0, 0, z0)).polyline(list(q.exterior.coords)[:-1]).close().extrude(p.wall))
-        h = p.detent_undercut; r0 = 1.6
+        h = p.detent_undercut; r0 = BUMP_BASE_RADIUS_MM
         R = (r0 ** 2 + h ** 2) / (2 * h)
         zc = side * (gap / 2 + R - h)
         sph = cq.Workplane("XY").sphere(R).translate((bump_xy[0], bump_xy[1], zc))
@@ -304,7 +317,7 @@ def collar_assembly(g, p: SheathParams, t_knife, bump_xy, shell):
         plate = plate.union(ext(W.buffer(2.0, join_style=2), zfl, p.collar_flange))
         for q in tab_slot_polys(g, p, bump_xy):
             plate = plate.cut(ext(q, min(zin, zfl) - 0.1, p.wall + p.collar_flange + 0.2))
-        h = p.detent_undercut; r0 = 1.6; R = (r0 ** 2 + h ** 2) / (2 * h)
+        h = p.detent_undercut; r0 = BUMP_BASE_RADIUS_MM; R = (r0 ** 2 + h ** 2) / (2 * h)
         zc = side * (gap / 2 + R - h)
         sph = cq.Workplane("XY").sphere(R).translate((bump_xy[0], bump_xy[1], zc))
         slab = cq.Workplane("XY", origin=(0, 0, gap / 2 - h if side > 0 else -gap / 2)).rect(400, 400).extrude(h)

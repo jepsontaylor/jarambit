@@ -3,7 +3,7 @@
  "author": "Jepson Taylor",
  "drafted": "2026-10-13",
  "branch": "feat/sheath-v1",
- "queue_note": "Queues AFTER the in-flight render/release PRs (COORD.md). One PR at a time, rebased on main, neverhuman APPROVE + green self-hosted CI; never self-merged.",
+ "queue_note": "PR #56 is the only open PR; independent neverhumanbot review and green CI required; no self-merge or second PR.",
  "draw_force_window_n": {
   "nominal": 35,
   "new_23C_dry": [
@@ -22,7 +22,7 @@
  "metrics": [
   {
    "id": "draw_n",
-   "target": "22-40 N new, 30 nominal",
+   "target": "28-45 N new, 35 nominal; diagnostic until directional CAD",
    "source": "analytic+plate FEA -> contact FEA (M3) -> bench (M5)"
   },
   {
@@ -32,7 +32,7 @@
   },
   {
    "id": "insert_n",
-   "target": "<=45 N"
+   "target": "<=50 N"
   },
   {
    "id": "strain_est",
@@ -40,7 +40,7 @@
   },
   {
    "id": "min_edge_clearance_mm",
-   "target": ">=0.3 (design 0.8)"
+   "target": ">=0.3 mm (design 1.3)"
   },
   {
    "id": "rim_min_mm",
@@ -59,12 +59,12 @@
    "target": "<=30 (stretch 22) incl. mount"
   },
   {
-   "id": "retention_sf_p05.running_x2_margin",
-   "target": ">=2.0"
+   "id": "retention_sf_p05.design_shock",
+   "target": ">=2.0 at configured 15 g design shock; hard gate"
   },
   {
-   "id": "retention_sf_p05.fall_or_jump_landing",
-   "target": ">=1.0 (case value provisional)"
+   "id": "force_model_status",
+   "target": "COMPLETE only when modeled force geometry matches exported CAD"
   },
   {
    "id": "rattle_free_play_mm",
@@ -97,7 +97,7 @@
    "exit": [
     "plan+roadmap merged",
     "sheath/ tests green",
-    "evidence/sheath/c93_v1 reproducible from STEP sha 3a818183"
+    "C.9.3 no-annotation rejection and approved-source diagnostics reproducible from STEP sha 3a818183"
    ],
    "status": "in_progress (branch pushed)"
   },
@@ -210,7 +210,7 @@
     "evidence/sheath/c93_v1/**"
    ],
    "touches_shared": false,
-   "status": "branch feat/sheath-v1 pushed; PR not opened (queued)"
+   "status": "PR #56 review fixes; independent re-review pending"
   },
   {
    "id": "PR-S2",
@@ -263,85 +263,118 @@
  ],
  "fitness": {
   "gates": [
-   "path_infeasible",
-   "sharp_edge_outside_sheath",
-   "edge_mouth_depth<6mm",
-   "edge_clearance<0.3mm",
-   "edge_rim<2mm",
-   "insert>max",
-   "detent_strain>allow",
-   "MC_life_window<95%"
+   "approved_source_bound_annotations",
+   "dependent_CAD_COMPLETE",
+   "retention_sf_p05.design_shock>=2@15g",
+   "path_feasible",
+   "sharp_edge_covered",
+   "mouth_depth>=6mm",
+   "edge_clearance>=0.3mm",
+   "rim>=2mm",
+   "tip_reserve>=1mm",
+   "insert<=50N",
+   "strain<=allow",
+   "P(life)>=95%",
+   "P(new)>=80%",
+   "strength_screens"
   ],
-  "score": "0.50*window_score(draw) + 0.25*P(new window) + 0.25*max(0,1-mass/60g)"
+  "score": "1/(1+mass_g/30+cost_proxy), only after all gates; otherwise 0",
+  "current_status": "INCOMPLETE: spherical CAD caps do not implement directional ramps/flanks"
  },
  "first_results_c93": "evidence/sheath/c93_v1/metrics.json",
  "open_risks": [
-  "R1 shock retention SF 1.0 @p05 (assumed 25 g)",
-  "R3 spine edge 0.8 mm from wall during draw",
-  "R12 ergonomics unmeasured",
-  "R13 gmsh needs libGLU on xbabe2",
   {
    "id": "R1",
-   "status": "resolved_analytic",
-   "note": "SF 2.44 @15 g p05; M6 IMU confirm"
+   "status": "open",
+   "note": "p05 SF floor enforced; proposed-ramp SF is not spherical CAD retention validation; contact/bench/M6 pending"
   },
   {
    "id": "R3",
-   "status": "resolved_geometric",
-   "note": "wobble \u00b12\u00b0/\u00b12\u00b0, clearance 1.91 mm"
+   "status": "geometric_diagnostic",
+   "note": "wobble clearance in regenerated source-bound comparison; directional containment INCOMPLETE"
   },
   {
    "id": "R10",
    "status": "mitigated",
-   "note": "lexicographic fitness, bounds widened, bound hits reported (tab_b at 9 mm cap)"
+   "note": "annotation/completeness/strength gates before mass credit; diagnostic candidates remain infeasible"
   },
   {
    "id": "R11",
    "status": "open",
-   "note": "drop 1.5 m in-plane edge screen MARGINAL; guarded physical drop+cut test mandatory; bump flank >=75 deg requirement"
+   "note": "directional cam/flank CAD absent; edge-drop and rattle INCOMPLETE; guarded physical test pending"
   },
   {
    "id": "R12",
    "status": "open",
-   "note": "friction priors ASSUMED; p_new 0.810 thin margin -> ASTM D1894 Ti/PA12 coupons"
+   "note": "friction priors and ergonomics unmeasured; force results are diagnostics"
   }
  ],
  "references": "docs/sheath/SHEATH_V1_PLAN.md \u00a713",
- "design_of_record_knife": {
-  "rev": "C.10a rc4",
-  "step": "hiking-karambit analysis/w79/ground_c10a.step",
-  "sha16": "441cfabc284efd63"
- },
  "results_v12": {
   "c10a": {
-   "mass_g": 29.72,
-   "draw_n": 36.6,
-   "insert_n": 30.7,
-   "mc_p05_p50_p95": [
-    23.3,
-    35.5,
-    52.1
+   "metrics": "evidence/sheath/c10a_v12/metrics.json",
+   "status": "INCOMPLETE",
+   "mass_g": 38.33608858602111,
+   "draw_n_diagnostic": 35.097519253303304,
+   "insert_n_diagnostic": 35.097519253303304,
+   "mc_p05_p50_p95_diagnostic": [
+    23.813686628613187,
+    34.47432853777033,
+    48.26623642449275
    ],
-   "p_new": 0.81,
-   "p_life": 0.96,
-   "min_edge_clearance_mm": 1.91,
-   "tip_reserve_mm": 3.3,
-   "land_first": 1.0,
-   "sf_p05_15g": 2.44,
-   "drop_edge": "SCREEN_MARGINAL",
-   "feasible": true
+   "p_new_diagnostic": 0.85145,
+   "p_life_diagnostic": 0.9848,
+   "min_edge_clearance_mm": 1.9084541493922005,
+   "tip_reserve_mm": 3.300989237203429,
+   "land_first": null,
+   "sf_p05_15g_diagnostic": 2.4966858701172603,
+   "drop_edge": "INCOMPLETE",
+   "rattle": "INCOMPLETE",
+   "force_model": "INCOMPLETE",
+   "feasible": false,
+   "fitness": 0
+  },
+  "c93": {
+   "metrics": "evidence/sheath/c93_v12/metrics.json",
+   "status": "INCOMPLETE",
+   "mass_g": 38.44374131697258,
+   "draw_n_diagnostic": 35.097519253303304,
+   "insert_n_diagnostic": 35.097519253303304,
+   "mc_p05_p50_p95_diagnostic": [
+    23.813686628613187,
+    34.47432853777033,
+    48.26623642449275
+   ],
+   "p_new_diagnostic": 0.85145,
+   "p_life_diagnostic": 0.9848,
+   "min_edge_clearance_mm": 1.9083933205284616,
+   "tip_reserve_mm": 3.3009892372034377,
+   "land_first": null,
+   "sf_p05_15g_diagnostic": 2.4244641616580602,
+   "drop_edge": "INCOMPLETE",
+   "rattle": "INCOMPLETE",
+   "force_model": "INCOMPLETE",
+   "feasible": false,
+   "fitness": 0
   },
   "ccx_tab": {
+   "status": "COMPLETE",
+   "scope": "independent proposed ramp, not spherical sheath CAD",
    "formulation": "S2S large-sliding penalty, fillet r0.3",
+   "run_id": "add03050a7f243c79d14f62a21042f4d",
    "levels_peak_n": [
-    13.98,
-    13.92,
-    13.85,
-    13.77
+    13.98183,
+    13.92015,
+    13.84585,
+    13.77279
    ],
-   "conv_last2": 0.0053,
-   "ccx_over_bayer": 0.628,
-   "ccx_over_bayer_rot": 0.844
+   "conv_last2": 0.005276671349176865,
+   "ccx_over_bayer_rot": 0.8441216100709524
   }
+ },
+ "release_candidate_knife": {
+  "rev": "C.10a rc4",
+  "step": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+  "sha16": "441cfabc284efd63"
  }
 }

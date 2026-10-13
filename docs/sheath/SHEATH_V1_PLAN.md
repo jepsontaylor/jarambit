@@ -27,13 +27,15 @@ Branch `feat/sheath-v1`. Machine-readable roadmap: [`SHEATH_V1_ROADMAP.json`](SH
   already ≥ 4× at 15 N, (b) an emergency one-handed draw through the finger ring should not need a full-arm yank, and a high peak
   that releases abruptly drives the hand (and blade) toward the body, and (c) snag/impact security is better bought with **directional
   retention** (the knife can only leave along one path; every other direction is a wall) than with a larger scalar force.
-* **First result (C.9.3, `evidence/sheath/c93_v1/`, analytic_proxy + uncalibrated_fea):** path search over 377 candidate paths → 53
+* **Historical first result (C.9.3; superseded, no feasibility credit):** the original unapproved-annotation run reported path search over 377 candidate paths → 53
   feasible; chosen straight draw at 140°; shell 22.9 g CAD (PA12 MJF), **27.1 g incl. 4 g mount allowance**; tab k = 28.5 N/mm analytic vs
   26.2 N/mm Morley-plate FEM (−7.8 %); per-side interference 0.61 mm; **predicted draw 30.8 N (28.4 N with FEM k), insertion 36.7 N**,
   tab root strain 1.5 % (allow 4 %); Monte Carlo (20k) p05/p50/p95 = **16.6 / 28.8 / 46.2 N**, 95.0 % inside the life window,
   78.5 % of new-condition samples inside 22–40 N; min swept edge-to-wall clearance 0.80 mm, sharp-edge rim ≥ 3.8 mm, sharpened edge
   ≥ 8.2 mm behind the mouth, no sharp edge passes over a detent. Running SF (nominal) 9.2 at the 5.1 g sacral peak; **fall/jump case
-  (25 g, assumed) SF 1.9 nominal but only 1.0 at p05 → open risk R1**.
+  (25 g, assumed) SF 1.9 nominal but only 1.0 at p05 → open risk R1**. These numbers are historical diagnostics;
+  the regenerated `evidence/sheath/c93_v1/` is an explicit no-annotation rejection fixture with `INCOMPLETE`, null geometry
+  and zero fitness. Current annotated comparison runs are in `c93_v12/` and `c10a_v12/`, also INCOMPLETE pending directional CAD.
 
 ---
 
@@ -112,9 +114,11 @@ sheath/                      # core tech (Python, offline CAD + FEM; CI-safe pur
   generate.py                # SheathParams, draw-path sweep, cavity/outline, edge margins, mass, CadQuery 3-D solid + click-tabs
   fem_plate.py               # Morley Kirchhoff-plate FEM (scikit-fem) for panel / click-tab stiffness + closed forms
   run.py                     # end-to-end: ingest -> path search (multiprocess) -> retention design search -> FEM check -> MC -> CAD
-  tests/                     # unittest: analytic (CI) + FEM verification (skips if deps absent)
+  tests/                     # pytest: analytic, FEM, runner failure paths and solver evidence gates
 docs/sheath/                 # this plan + roadmap json
-evidence/sheath/c93_v1/      # metrics.json, draw_curve.csv, sheath_v1.png, sheath_v1.step, SHA256SUMS
+evidence/sheath/c93_v1/      # no-annotation rejection fixture, null geometry/zero credit, SHA256SUMS
+evidence/sheath/{c93,c10a}_v12/  # proposed-ramp diagnostics; directional CAD INCOMPLETE
+evidence/sheath/ccx_tab_v1/  # independent ramp benchmark and hashed solver inputs/histories
 requirements/RS-sheath-runner-v1.toml      (PR-S2)
 crates/sheath/               (PR-S3)  Rust fitness/window/analytic + Verdicts; `jarambit sheath ...` CLI
 fem_sheath/                  (PR-S5)  CalculiX/dolfinx contact decks for insert→seat→draw
@@ -231,9 +235,10 @@ Morley Kirchhoff-plate element (scikit-fem), patch load over the bump disc.
 
 ### 6.4 Draw curve
 Bump track q(s) = T(s)⁻¹(bump) through the knife; local knife thickness under the bump by ray cast; per-side interference and the
-local climb slope give the axial force via §6.2 (friction-only where the slope is ≤ 0). C.9.3: peak 36.0 N at hole exit, short drag
-(≈ 14–16 N for ≈ 5 mm over the guard lobe flat) then free; work 0.077 J. Curve in `evidence/sheath/c93_v1/draw_curve.csv`.
+local climb slope give the axial force via §6.2 (friction-only where the slope is ≤ 0). Current diagnostic curves are in
+`evidence/sheath/c93_v12/draw_curve.csv` and `c10a_v12/draw_curve.csv`; the initial unapproved-annotation curve was withdrawn.
 Limitations: quasi-static, rigid knife, no rate/viscoelastic effects, ramp angle taken from the climb slope capped at α_out.
+The proposed ramp model differs from the exported spherical cap, so these curves do not validate retention feasibility.
 
 ### 6.5 Contact FEA (M3, calibrated rung)
 CalculiX (node-to-surface large-sliding contact, NLGEOM) or dolfinx contact on the tab + knife-rigid body: insert → seat → dwell →
@@ -318,10 +323,13 @@ Supplier quotes are explicitly out of scope (COORD: do not contact manufacturers
 ## 10. Fitness function and integration with evolution and rendering
 
 ### 10.1 Sheath fitness (implemented in `sheath/model.py::fitness`, Rust port PR-S3)
-Hard gates (score = 0 if any): path infeasible, sharp outside sheath, mouth depth < 6 mm, swept clearance < 0.3 mm, rim < 2 mm,
-insertion > 45 N, tab strain > ε_allow, P(life window) < 95 %.
-Score = 0.50·window_score(draw_nominal) + 0.25·P(new window) + 0.25·max(0, 1 − mass/60 g).
-Planned additions (PR-S6/S7): + w·SF_shock(p05) capped, − w·rattle, − w·draw_work above 0.1 J, − w·process complexity.
+Hard gates (score = 0 if any): missing approved source-bound annotations or dependent CAD evidence, path infeasible,
+sharp outside sheath, mouth depth < 6 mm, swept clearance < 0.3 mm, rim < 2 mm, tip reserve < 1 mm,
+insertion > 50 N, tab strain > ε_allow, P(life window) < 95 %, P(new window) < 80 %, failed strength screen,
+or p05 retention SF below the configured 2.0 floor at the 15 g design shock (including missing/nonfinite SF).
+The p05 floor uses the source-bound knife mass during both candidate selection and final scoring.
+After every hard gate passes, score = 1 / (1 + mass/30 g + cost_proxy). Proposed-ramp diagnostics receive zero
+overall feasibility credit while the exported spherical bump differs from the directional retention geometry.
 
 ### 10.2 Sheath optimiser (PR-S7)
 Genes (~15): mouth_x, path dir/centre, c_face, c_edge, rim, wall, tab L/b/h_bump, α_in/α_out, kerf, mount spacing, gap-map offset.
@@ -346,7 +354,7 @@ Queued after the render/release PRs (COORD).
 
 | # | Attack | Status / mitigation |
 |---|---|---|
-| R1 | Fall/jump shock | RESOLVED (analytic): cited 4.1–4.5 g falls / 7.5 g jump (PMC4101685) → 15 g design shock (assumed 2× jump); C.10a SF at p05 = 2.44 (jump 4.9). Confirm with M6 IMU |
+| R1 | Fall/jump shock | OPEN: the configured p05 SF>=2 floor at assumed 15 g now gates search and final scoring, but force/SF values describe proposed ramps rather than the exported spherical cap. Directional CAD, contact validation and M6 IMU confirmation remain |
 | R2 | μ dominates variance; wet/grit could push > 50 N or < 15 N | MC covers U(0.2,0.45); measure (ASTM D1894); consider low-μ PTFE-filled PA or a return angle with lower μ sensitivity |
 | R3 | Sharp edges near the wall during draw | RESOLVED (geometric): ±2° direction + ±2° rotation wobble swept into the cavity; c_edge 1.3 → min edge clearance 1.91 mm over all wobble poses (C.10a) |
 | R4 | Guard hole detent is a single point — rocking/rattle about it | 2-D planar sheath + tight face clearance; rattle model M6 |
@@ -355,7 +363,7 @@ Queued after the render/release PRs (COORD).
 | R7 | Sharp detection threshold could miss a thick-ground secondary bevel | Tip zone always hazard; reviewer sign-off; threshold sweep test |
 | R8 | Diagonal mouth (34 mm opening) also covers part of the handle top (x 76–92 mm) | Grip keep-out keeps ≥ 60 mm exposed; owner check on hand fit (M5) |
 | R9 | Thermal mismatch: PA12 shrinks ≈ 0.6 mm more than Ti over 80 K at 100 mm → tip pocket could bind cold | PR-S4 explicit cold-shrink clearance check at the tip pocket |
-| R10 | Optimiser games the window with fragile designs (e.g. max bump height at a search bound) | MITIGATED v1.2: lexicographic feasible-first fitness (no mass credit for a failed gate); strain gate; bounds widened (wall 1.0–2.8) and `search_bound_hit` reported — C.10a optimum is interior on wall/L/undercut/α, only tab_b sits at its 9 mm cap (geometric, not fragile); held-out physical variant still required (M5) |
+| R10 | Optimiser games the window with fragile designs (e.g. max bump height at a search bound) | MITIGATED: approved source-bound annotations, dependent-CAD completeness, p05 strength floor and existing fitness gates receive no mass compensation. Diagnostic candidate bounds are reported; directional CAD and held-out physical validation still required |
 | R11 | Mass 27 g dominated by the large planar envelope; variable gap could save 15–25 % | PR-S4 |
 | R12 | Emergency draw ergonomics unknown (direction 140°, force 30 N) | M5 user trials gate any "fast draw" claim |
 | R13 | Gmsh unavailable → no 3-D tet FEM of the full shell yet | Owner decision: apt install libglu1-mesa on xbabe2, or run in the dolfinx container |
@@ -424,30 +432,39 @@ Assumptions are labelled ASSUMPTION in the text; each has a closing milestone in
 - Puncture: elastic contact cannot prove cut-through resistance, so a guarded physical test is mandatory.
 
 
-## v1.2 — open items closed (2026-10-13, design of record C.10a rc4)
-**Knife.** C.10a rc4 (`hiking-karambit analysis/w79/ground_c10a.step`, sha 441cfabc284efd63…, true-sharp 0.15 mm apex, 64.84 g) is the design of record; C.9.3 kept as comparison. Rule: every cutting edge is sharp (~0 edge width) — only explicitly non-cutting geometry may be a land.
+## v1.2 — review correction (2026-10-13, C.10a rc4 release candidate)
+**Knife.** C.10a rc4 (`designs/switchback/C10a/cad/switchback_revC10a_ground.step`, sha 441cfabc284efd63…, true-sharp 0.15 mm apex, 64.84 g) is a release candidate; C.9.3 is retained for comparison. Rule: every cutting edge is sharp (~0 edge width) — only explicitly non-cutting geometry may be a land.
 **Hook back = SHARP** (determined from drawings 01/02/04 + STATUS_C10A_RC.md): the outer convex back is the continuation of the spine edge to the point; C.9.3 only had a modelled tip-zone flat that C.10a removes. It is now an annotation `declared_sharp` region and is no longer a bumper land. Retention/bearing lands: guard-hole rim (closed hole) and choil lobe only. Annotation review: delegated by Jepson 2026-10-13 (revocable).
 
 **CalculiX tab benchmark (ccx 2.21, docker jarambit-sheath:s1).** Node-to-surface failed: chatter of the knife corner between master facets (μ=0 stalled at t=0.075; earlier 204 N spike was a corner poking through the slave face). Fix: SURFACE TO SURFACE large-sliding penalty contact, filleted knife corner r 0.3 mm, increment 0.002–0.005. Penalty-insensitive (K 9 000 vs 90 000 N/mm³: 7.98 vs 8.05 N). 4-mesh ladder (μ 0.3): 13.98 / 13.92 / 13.85 / 13.77 N per tab, last-two change 0.53 % (< 5 % gate). Reconciliation with the ~22 N hand calc: plain Bayer 21.9 N assumes the ramp keeps its angle; the tab end rotates θ = 1.5 i/a = 8.4°, so α_eff = 26.6° → 16.3 N (rotation-corrected Bayer). ccx / corrected = 0.844 (μ 0: 0.91); residual from load-point offset and bump compliance. `run.py` now applies the rotation correction × 0.844 to draw, insertion and MC (evidence `evidence/sheath/ccx_tab_v1`). Still uncalibrated_fea until coupon bench (M5).
 
-**Drop-edge false FAIL fixed.** First-contact screen removes the open mouth from the wall and reports exit directions separately. Then a REAL finding: without the hook-back land, in-plane shifts at 50°/100° put the sharp spine edge first on the wall. Fix: the sheath bumps in the closed guard hole become the in-plane land — ramps only within ±20° of the draw/insert axis, lateral flanks ≥75° (non-camming, new drawing requirement), bump/hole clearance 0.3 mm; c_edge 0.8 → 1.3 mm. Result: land-first in 100 % of wall directions. Drop 1.5 m edge screen = MARGINAL (upper-bound energy: flank crush 2.6 mm > margin 1.63 mm; residual cut depth 1.2–7.2 mm for R 30–5 N/mm, assumed) → mandatory guarded physical drop/cut test; not claimed safe.
+**Directional bump CAD remains INCOMPLETE.** The previous land-first 100% and drop-edge MARGINAL results assumed
+a bump radius of 2.690341 mm with 0.3 mm hole clearance, directional ramps within ±20° and non-camming lateral flanks.
+Both actual CAD paths instead export a spherical cap with a 1.6 mm base radius; at height 1.7 mm its maximum projected
+radius is 1.602941 mm, leaving about 1.3874 mm radial clearance in the reviewed guard hole. Ramp angles and cam sectors
+have no effect on that solid. The previous containment result is withdrawn. First-contact land fraction/margin,
+edge-drop and rattle are now null/INCOMPLETE, and proposed-ramp force/MC/SF values cannot establish feasibility.
+Implement and validate the directional geometry before rerunning these dependent screens; guarded physical drop/cut
+testing remains required. The exported spherical cap is retained for diagnosis.
 
 **Friction split + wall cap.** New (23 °C, unworn, clean dry) μ U(0.20,0.32) ASSUMED; life (dry/wet/grit, 5000 cycles) μ U(0.20,0.45). Wall search 1.0–2.8 mm.
 
-**Results (v1.2, 20k MC).**
+**Regenerated results (PR #56, 20k MC; force values are proposed-ramp diagnostics).**
 
-| | C.10a rc4 (record) | C.9.3 |
+| | C.10a rc4 (release candidate) | C.9.3 |
 |---|---|---|
-| mass incl. 4 g mount | 29.72 g (shell 25.72) | 29.84 g |
-| retention | tabs wall 2.0, L 14, b 9 (cap), undercut 1.7, α_out 35 / α_in 30 | same |
-| draw nominal / insertion | 36.6 / 30.7 N | 36.6 / 30.7 N |
-| MC life p05/p50/p95 | 23.3 / 35.5 / 52.1 N | same |
-| P(new window 28–45) | **0.810** (gate 0.80 PASS, thin margin) | 0.810 |
-| P(life window 20–55) | 0.960 | 0.960 |
+| mass incl. 4 g mount | 38.34 g | 38.44 g |
+| diagnostic tab parameters | wall 2.8, L 18.0, b 7.0, undercut 1.95, alpha_out 30.0 | wall 2.8, L 18.0, b 7.0, undercut 1.95, alpha_out 30.0 |
+| draw / insertion (diagnostic) | 35.1 / 35.1 N | 35.1 / 35.1 N |
+| MC life p05/p50/p95 (diagnostic) | 23.8 / 34.5 / 48.3 N | 23.8 / 34.5 / 48.3 N |
+| P(new) / P(life) (diagnostic) | 0.851 / 0.985 | 0.851 / 0.985 |
 | min edge clearance / rim / mouth depth / tip reserve | 1.91 / 4.91 / 6.98 / 3.30 mm | 1.91 / 4.91 / 8.24 / 3.30 mm |
-| land-first | 100 % | 100 % |
-| retention SF p05 @15 g | 2.44 | 2.37 |
-| screens | tip-on-stop PASS, crush PASS, 150 N overload PASS, drop-edge MARGINAL | same |
-| fitness | feasible, 0.502 | feasible, 0.501 |
+| actual spherical-cap radial clearance | 1.359 mm | 1.359 mm |
+| land-first / edge-drop / rattle / force validation | INCOMPLETE | INCOMPLETE |
+| retention SF p05 @15 g (diagnostic) | 2.50 | 2.42 |
+| fitness | INCOMPLETE, infeasible, 0 | INCOMPLETE, infeasible, 0 |
 
-Caveats: draw_curve.csv peak (61.6 N) is the UNcorrected track profile (rotation/ccx correction applied only to the scalar/MC forces). The C.9.3 solid-panel plate ladder is null (Triangle refinement ran away; now capped child, INCOMPLETE). Collar variant +0.69 g.
+The track curve is uncorrected; the rotation/CalculiX correction applies only to scalar/MC predictions.
+Neither curve validates the spherical export. All independent screen values remain preliminary diagnostics.
+Regeneration ran under memcap 32G at nice 19, CPU only with four workers. The handed-back v12b scratch snapshot was untouched.
+Solver decks/histories and all committed comparison artifacts are covered by SHA256SUMS.

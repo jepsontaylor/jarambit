@@ -4,6 +4,7 @@ usage: python -m sheath.run --step K.step --stl K.stl --out OUT [--workers N]  (
 Evidence level of every force here: analytic_proxy / uncalibrated_fea. NOT a measurement.
 """
 import argparse, json, math, os, sys, time
+from pathlib import Path
 from dataclasses import asdict, replace
 from multiprocessing import Pool
 import numpy as np
@@ -39,7 +40,7 @@ def _try(p):
         return (p, False, math.inf, None)
 
 
-PER_WORKER_GB = float(os.environ.get("SHEATH_PER_WORKER_GB", "3.0"))  # measured: 32 workers -> ~92 GB RSS (~2.6-2.9 GB each, fork COW of ~10 GB parent)
+PER_WORKER_GB = float(os.environ.get("SHEATH_PER_WORKER_GB", "3.0"))  # conservative admission estimate; the Triangle leak is separately fixed
 
 
 def _avail_gb():
@@ -53,22 +54,37 @@ def _avail_gb():
 
 
 def _cgroup_limit_gb():
-    """Memory headroom left in our cgroup (e.g. memcap / systemd-run MemoryMax), if any."""
+    """Minimum remaining memory across the leaf and every inherited cgroup-v2 cap."""
     try:
-        cg = open("/proc/self/cgroup").read().strip().split("::")[-1]
-        base = "/sys/fs/cgroup" + cg
-        mx = open(base + "/memory.max").read().strip()
-        if mx == "max":
-            return None
-        return (int(mx) - int(open(base + "/memory.current").read())) / 2**30
-    except (OSError, ValueError):
+        cg = next(s.split(":", 2)[2] for s in Path("/proc/self/cgroup").read_text().splitlines() if s.startswith("0::"))
+        root = Path("/sys/fs/cgroup")
+        node = root / cg.lstrip("/")
+        remaining = []
+        while True:
+            try:
+                maximum = (node / "memory.max").read_text().strip()
+                if maximum != "max":
+                    remaining.append(max(0, int(maximum) - int((node / "memory.current").read_text())) / 2**30)
+            except FileNotFoundError:
+                pass
+            if node == root:
+                break
+            node = node.parent
+        return min(remaining) if remaining else None
+    except (OSError, ValueError, StopIteration):
         return None
 
 
 def safe_workers(requested=None, per_worker_gb=PER_WORKER_GB):
     """min(requested, cores/4, free_GB*0.5/per_worker_GB), >= 1. Warns on stderr when clamped."""
+    if requested is not None and (isinstance(requested, bool) or not isinstance(requested, int) or requested <= 0):
+        raise ValueError("workers must be a positive integer")
+    if not math.isfinite(per_worker_gb) or per_worker_gb <= 0:
+        raise ValueError("per-worker memory must be finite and positive")
     cores = os.cpu_count() or 4
-    caps = {"cores/4": max(1, cores // 4)}
+    caps = {"cores/4": max(1, cores // 4), "host_ceiling": 16}
+    if hasattr(os, "sched_getaffinity"):
+        caps["cpu_affinity"] = len(os.sched_getaffinity(0))
     free = _avail_gb()
     if free is not None:
         caps["mem_available"] = max(1, int(free * 0.5 / per_worker_gb))
@@ -170,6 +186,24 @@ def _guarded_ladder(*args, timeout=240):
         return None
 
 
+def _incomplete(out, iface, interface_verdict, missing, reason=None):
+    """Fail closed before path/retention geometry can consume rejected evidence."""
+    result = {"schema": "jarambit.sheath.metrics.v1", "status": "INCOMPLETE",
+              "knife": iface.get("source"), "annotation_status": iface.get("annotation_status"),
+              "interface_verdict": interface_verdict, "path_feasible": None,
+              "incomplete_evidence": [missing], "reason": reason,
+              "fitness": {"feasible": False, "score": 0.0, "gates": ["INCOMPLETE:" + missing]}}
+    with open(os.path.join(out, "metrics.json"), "w") as f:
+        json.dump(result, f, indent=1, allow_nan=False)
+
+
+def _retention_rank(fitness, evaluation, mass_g):
+    """Reject candidates below the strength floor before ranking diagnostic predictions."""
+    if not M.retention_floor_pass(evaluation.get("retention_sf_p05")):
+        return None
+    return (fitness["score"], evaluation["p_life"], evaluation["p_new"], -mass_g)
+
+
 def main():
     if os.environ.get("SHEATH_TB_AFTER"):
         import faulthandler; faulthandler.dump_traceback_later(float(os.environ["SHEATH_TB_AFTER"]), repeat=True)
@@ -186,7 +220,19 @@ def main():
     iface, mesh, Kp = from_step(a.step, a.stl, a.annotations)
     iface_ok, iface_verdict = validate(iface)
     json.dump(iface, open(os.path.join(a.out, "knife_interface.json"), "w"), indent=1)
-    ann = json.load(open(a.annotations)) if a.annotations else {}
+    if not iface_ok or iface_verdict["outcome"] != "pass":
+        _incomplete(a.out, iface, iface_verdict, "approved_source_bound_annotations")
+        return
+    ann = iface["approved_annotations"]
+    CCXF = 1.0; ccx_info = None
+    if a.ccx:
+        from sheath.ccx_tab import load_correction
+        try:
+            factor, ccx_info = load_correction(a.ccx)
+            CCXF = factor if not a.no_rot_corr else 1.0
+        except (ValueError, OSError, KeyError, TypeError) as exc:
+            _incomplete(a.out, iface, iface_verdict, "ccx_calibration", str(exc))
+            return
     K = Polygon(Kp.exterior)
     base = G.SheathParams()
     mat = M.MATERIALS[base.material]
@@ -262,30 +308,28 @@ def main():
     for rl in (ann.get("retention_lands") or []):
         hs = [h for h in iface["holes"] if np.hypot(h["centroid"][0] - rl["hole_centroid"][0], h["centroid"][1] - rl["hole_centroid"][1]) < 1.0]
         det0 = hs[0] if hs else det0
-    hole_land = None; A_flank = 0.0
+    hole_land = None
     if det0 is not None:
-        r_b = det0["eq_radius_mm"] - p.c_land
-        # flank bearing: 2 bumps (both faces) x engaged height (undercut - c_face, nominal 1.0 mm before the search) x chord
-        A_flank = 2 * max(p.detent_undercut - p.c_face, 1.0) * 2 * r_b * math.sin(math.radians(45))
-        hole_land = {"draw_deg": p.direction_deg, "gap_mm": p.c_land, "cam_half_deg": p.bump_cam_half_deg, "r_bump_mm": r_b, "flank_bearing_mm2": A_flank,
-                     "requirement": "bump lateral flanks >= 75 deg (non-camming); ramps only on the draw/insert axis +-%g deg" % p.bump_cam_half_deg}
+        hole_land = G.bump_evidence(p, det0["eq_radius_mm"])
     fc = SS.first_contact_screen(K, g["cavity"], sharp_pts, land_all, mouth=(g["m"], g["n"]), hole_land=hole_land)
     A_stop = 0.5 * len(g["stop_land_pts"]) * 3.6 if g["stop_land_pts"] else 0.0
     A_bump = [0.5 * len(b) * 3.0 for b in bumper]
     from shapely.geometry import Polygon as Pg
     span = 2 * max(0.5, max(g["cavity"].buffer(-r).area > 0 and r or 0 for r in np.arange(0.5, 30, 0.5)))
-    margin_worst = fc["worst"]["margin"]
+    margin_worst = fc["worst"]["margin"] if fc["worst"] is not None else None
     res.update({"tip_reserve_mm": tr, "stop_land_n": len(g["stop_land_pts"]), "stop_bearing_area_mm2": A_stop,
-                "first_contact": {"frac_land_first": fc["frac_land_first"], "worst": fc["worst"], "n_exit": fc["n_exit"], "hole_land": hole_land},
+                "first_contact": {**fc, "hole_land": hole_land},
+                "incomplete_evidence": ["directional_bump_CAD"] if hole_land is not None else ["retention_land"],
                 "strength_screens": {
-                    "drop_1.5m_edge": SS.drop_screen(iface["mass_g"], min(A_bump + ([A_flank] if A_flank else [])) if (A_bump or A_flank) else A_stop, margin_worst, 10.0, p.rim),
+                    "drop_1.5m_edge": SS.drop_screen(iface["mass_g"], min(A_bump) if A_bump else A_stop, margin_worst, 10.0, p.rim) if margin_worst is not None else {"verdict": "INCOMPLETE", "reason": "directional_bump_CAD not implemented"},
                     "drop_1.5m_tip_on_stop": SS.drop_screen(iface["mass_g"], A_stop, tr, 2.0, p.rim),
                     "crush_500N_platen": SS.crush_screen(span, p.wall, p.c_face),
                     "seated_overload_150N": SS.overload_screen(150.0, A_stop),
                     "mount_proof_240N": "NOT_EVALUATED (mount geometry PR-S4)",
                     "sustained_25N_60s": "NOT_EVALUATED (creep data; seated tabs carry 0 deflection by design)",
                     "puncture_cut_through": "SCREEN ONLY — physical guarded test mandatory (plan §8.4)"},
-                "rattle_free_play_mm": p.c_land if bumper else p.c_edge + 0.5 * g["motion_bound_mm"]})
+                "rattle_free_play_mm": None, "rattle_status": "INCOMPLETE: directional bump is not modeled",
+                "force_model_status": "INCOMPLETE: proposed ramp angles differ from exported spherical cap"})
     res["strength_fail"] = [k for k, v in res["strength_screens"].items() if isinstance(v, dict) and v.get("verdict") == "SCREEN_FAIL"]
     if det is None:
         res["retention"] = "NOT_EVALUATED: no human-annotated retention land (INCOMPLETE)"
@@ -313,10 +357,6 @@ def main():
         rng = np.random.default_rng(42); N = a.mc; W = M.WINDOW
         ROT = 0.0 if a.no_rot_corr else 1.0
         # residual FEA calibration: ccx large-sliding S2S peak / rotation-corrected Bayer at the benchmark geometry
-        CCXF = 1.0; ccx_info = None
-        if a.ccx:
-            cj = json.load(open(a.ccx)); CCXF = float(cj.get("ccx_over_bayer_rot") or 1.0) if not a.no_rot_corr else 1.0
-            ccx_info = {k: cj.get(k) for k in ("solver", "conv_rel_last2", "ccx_over_bayer", "ccx_over_bayer_rot", "analytic")}
         def draws(N, seed):
             r = np.random.default_rng(seed)
             Tf = r.choice([1.15, 1.0, 0.80], size=N, p=[0.2, 0.6, 0.2])   # E(-10C), E(23C), E(+50C): ASSUMPTION pending ISO 178 at T
@@ -350,7 +390,8 @@ def main():
                     "new_p05": float(np.percentile(Fnew, 5)), "new_p95": float(np.percentile(Fnew, 95)),
                     "p05": float(np.percentile(Fmc, 5)), "p50": float(np.median(Fmc)), "p95": float(np.percentile(Fmc, 95)),
                     "p_life": float(np.mean((Fmc > W.lo_life) & (Fmc < W.hi_life))),
-                    "p_new": float(np.mean((Fnew > W.lo_new) & (Fnew < W.hi_new))), "Fmc": Fmc}
+                    "p_new": float(np.mean((Fnew > W.lo_new) & (Fnew < W.hi_new))), "Fmc": Fmc,
+                    "retention_sf_p05": M.inertial_sf(float(np.percentile(Fmc, 5)), iface["mass_g"], M.RETENTION_CASES["design_shock"])}
 
         # --- retention design search (cheap, analytic k): tab length, undercut, return angle, wall
         _stage("retention_search")
@@ -363,12 +404,19 @@ def main():
                         if 2.0 * (und - p.c_face) > (L - 2.0) * 0.25: continue      # geometric sanity: bump << tab
                         q = replace(p, wall=wall, tab_L=float(L), detent_undercut=float(und), detent_a_out=aout, tab_b=tb, retention=rmode)
                         e = evaluate(q); nsearch += 1
+                        if not M.retention_floor_pass(e["retention_sf_p05"]): continue
                         mg = G.mass_g(g, q, t_gap_knife, mat.rho_g_cm3)[0] + q.mount_mass_g + G.collar_mass_delta_g(g, q, bump, mat.rho_g_cm3)
                         f = M.fitness({"tip_reserve_mm": tr, "strength_fail": res["strength_fail"], "cost_proxy": 0.05 if rmode == "collar" else 0.0, "edge_mouth_depth_mm": edge_mouth_depth, "uncovered_sharp_mm": uncovered_sharp_mm, "path_feasible": g["path_feasible"], "min_edge_clearance_mm": min_clear, "insert_n": e["insert"],
                                        "strain_est": e["eps"], "eps_allow": mat.eps_allow, "rim_min_mm": rim_min,
-                                       "p_in_life_window": e["p_life"], "draw_n": e["draw"], "mass_g": mg, "p_in_new_window": e["p_new"]})
-                        key = (f["score"], e["p_life"], e["p_new"], -mg)
+                                       "p_in_life_window": e["p_life"], "draw_n": e["draw"], "mass_g": mg, "p_in_new_window": e["p_new"],
+                                       "retention_sf_p05": e["retention_sf_p05"], "annotation_status": iface["annotation_status"],
+                                       "incomplete_evidence": res["incomplete_evidence"]})
+                        key = _retention_rank(f, e, mg)
+                        if key is None: continue
                         if best is None or key > best[0]: best = (key, q, e, mg)
+        if best is None:
+            _incomplete(a.out, iface, iface_verdict, "retention_sf_p05_floor", "no candidate meets the configured retention floor")
+            return
         p = best[1]
         _stage("tab_fem")
         kf, ndf = tab_k_fem(p); kf2, ndf2 = tab_k_fem(p, 0.05)
@@ -397,21 +445,25 @@ def main():
             "draw_n_fem_k": e["draw"] * kf2 / e["k"],
             "curve_peak_n": float(F.max()) if len(F) else 0.0, "draw_work_j": float(np.trapezoid(F, arc) / 1000.0),
             "strain_est": e["eps"], "sharp_edge_over_detent": bool(sharp_hit),
-            "retention_sf": {kn: M.inertial_sf(e["draw"], iface["brep"].get("mass_g_ti64", 66.8), acc) for kn, acc in M.RETENTION_CASES.items()},
-            "retention_sf_p05": {kn: M.inertial_sf(e["p05"], iface["brep"].get("mass_g_ti64", 66.8), acc) for kn, acc in M.RETENTION_CASES.items()},
+            "retention_sf": {kn: M.inertial_sf(e["draw"], iface["mass_g"], acc) for kn, acc in M.RETENTION_CASES.items()},
+            "retention_sf_p05": {kn: M.inertial_sf(e["p05"], iface["mass_g"], acc) for kn, acc in M.RETENTION_CASES.items()},
             "draw_n_no_rot_corr": e["draw_no_rot"], "ccx_factor": CCXF, "ccx": ccx_info, "mc_new": {"p05": e["new_p05"], "p95": e["new_p95"], "mu": "U(0.20,0.32) ASSUMED", "wear": 0, "T": "23C"},
             "mc": {"n": N, "p05": e["p05"], "p50": e["p50"], "p95": e["p95"], "p_in_life_window": e["p_life"], "p_in_new_window": e["p_new"],
                    "p01": float(np.percentile(e["Fmc"], 1)), "p99": float(np.percentile(e["Fmc"], 99)),
                    "assumptions": "wall sd0.1, undercut sd0.05, c_face sd0.05, knife t sd0.03, tab L sd0.1, life mu U(0.20,0.45) / new mu U(0.20,0.32), tab-end rotation correction %s, wear U(0,0.15)mm (5000 cyc), E x{1.15@-10C,1,0.80@+50C} p{.2,.6,.2}" % ("on" if ROT else "off")},
         })
+        res["retention_search_status"] = "INCOMPLETE: diagnostic candidates only until directional bump CAD is implemented"
         res["p_in_life_window"] = e["p_life"]; res["p_in_new_window"] = e["p_new"]
         np.savetxt(os.path.join(a.out, "draw_curve.csv"), np.c_[arc, F, inter, tt], delimiter=",",
                    header="grip_disp_mm,axial_force_n,interference_per_side_mm,knife_t_under_bump_mm", comments="")
     _stage("fitness")
+    if det is not None:
+        res["first_contact"]["hole_land"] = G.bump_evidence(p, det["eq_radius_mm"])
+    res["status"] = "INCOMPLETE" if res["incomplete_evidence"] else "COMPLETE"
     res["fitness"] = M.fitness(res)
     res["verdicts"] = {"geometry": "PASS" if g["path_feasible"] else "FAIL",
                        "withdrawal_clearance": "PASS" if min_clear >= 0.3 else "FAIL",
-                       "retention_force": "PREDICTED (analytic_proxy+uncalibrated_fea) — not a measurement",
+                       "containment": "INCOMPLETE", "retention_force": res["force_model_status"],
                        "puncture": "NOT_EVALUATED", "mount": "NOT_EVALUATED", "physical_validation": "NOT_EVALUATED"}
     # CAD export
     try:
@@ -447,11 +499,11 @@ def main():
             ax[0].plot(*det["centroid"], "b*", ms=12, label="detent")
             for q in G.tab_slot_polys(g, p, det["centroid"]): ax[0].fill(*q.exterior.xy, fc="k")
         if p.path == "rot": ax[0].plot(*p.centre, "m+", ms=12, label="draw-rotation centre")
-        ax[0].set_aspect("equal"); ax[0].legend(loc="lower left"); ax[0].set_title("SHEATH v1 planform (green) / cavity (white) / knife")
+        ax[0].set_aspect("equal"); ax[0].legend(loc="lower left"); ax[0].set_title("SHEATH candidate: directional bump CAD INCOMPLETE")
         if det:
             ax[1].plot(arc, F); ax[1].axhspan(W.lo_new, W.hi_new, color="g", alpha=.15, label="new window")
             ax[1].set_xlabel("grip-reference displacement (mm)"); ax[1].set_ylabel("axial draw force (N)")
-            ax[1].set_title("quasi-static draw curve (analytic_proxy + plate FEA)"); ax[1].legend()
+            ax[1].set_title("Proposed-ramp diagnostic; exported bump differs (INCOMPLETE)"); ax[1].legend()
         fig.tight_layout(); fig.savefig(os.path.join(a.out, "sheath_v1.png"), dpi=120)
     except Exception as e:
         print("plot failed", e)

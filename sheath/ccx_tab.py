@@ -10,7 +10,63 @@ static). Output: axial reaction vs travel (draw curve), peak, work; 3-mesh conve
 Run inside the sheath container (ccx + python):  python -m sheath.ccx_tab --out DIR [--levels 4,6,9]
 """
 import argparse, json, math, os, re, subprocess, sys
+import hashlib, uuid
+from pathlib import Path
 import numpy as np
+from sheath.model import SPEC
+
+MAX_CONVERGENCE = float(SPEC["fem"]["mesh_convergence_max"])
+
+
+def _sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def _complete_data(path):
+    tt, forces = parse_dat(path)
+    valid = (len(tt) >= 2 and forces.shape == (len(tt), 2) and np.isfinite(tt).all()
+             and np.isfinite(forces).all() and np.all(np.diff(tt) > 0)
+             and tt.min() >= 0 and abs(tt[-1] - 1.0) < 1e-6)
+    if not valid:
+        raise ValueError("partial or nonfinite CalculiX force history")
+    return tt, forces
+
+
+def load_correction(path):
+    """Admit only complete fresh solver histories, bound to their decks and converged."""
+    path = Path(path)
+    with path.open() as f:
+        record = json.load(f)
+    if record.get("status") != "COMPLETE" or record.get("schema") != "jarambit.sheath.ccx_calibration.v1":
+        raise ValueError("INCOMPLETE: CalculiX calibration has no complete run evidence")
+    levels = record.get("levels", [])
+    if len(levels) < 2:
+        raise ValueError("INCOMPLETE: at least two complete mesh levels required")
+    peaks = []
+    for level in levels:
+        if level.get("ccx_rc") != 0 or level.get("completed") is not True or level.get("fresh_output") is not True:
+            raise ValueError("INCOMPLETE: failed, partial or stale CalculiX level")
+        files = {}
+        for kind in ("inp", "dat"):
+            file = (path.parent / level["artifacts"][kind]["path"]).resolve()
+            if not file.is_relative_to(path.parent.resolve()) or _sha(file) != level["artifacts"][kind]["sha256"]:
+                raise ValueError("INCOMPLETE: CalculiX artifact hash/path mismatch")
+            files[kind] = file
+        if files["dat"].stat().st_mtime_ns < level["started_ns"]:
+            raise ValueError("INCOMPLETE: stale CalculiX history predates this run")
+        _, force = _complete_data(files["dat"])
+        peak = float(np.max(abs(force[:, 0])))
+        if not math.isclose(peak, level["peak_n_per_tab"], rel_tol=1e-12) or peak <= 0:
+            raise ValueError("INCOMPLETE: CalculiX peak differs from history")
+        peaks.append(peak)
+    convergence = abs(peaks[-1] / peaks[-2] - 1)
+    if convergence > MAX_CONVERGENCE or not math.isclose(convergence, record["conv_rel_last2"], abs_tol=1e-12):
+        raise ValueError("INCOMPLETE: CalculiX mesh convergence gate failed")
+    reference = analytic(levels[-1]["meta"])["W_bayer_rot"]
+    factor = record.get("ccx_over_bayer_rot")
+    if reference <= 0 or not isinstance(factor, (int, float)) or not math.isfinite(factor) or factor <= 0 or not math.isclose(factor, peaks[-1] / reference, rel_tol=1e-12):
+        raise ValueError("INCOMPLETE: invalid CalculiX correction")
+    return float(factor), record
 
 
 def quad8_block(x_of, y_of, nu, nv, nodes, key):
@@ -160,34 +216,56 @@ def analytic(meta):
 
 def run(out, levels=(3, 4, 6, 8), ccx="ccx", **kw):
     os.makedirs(out, exist_ok=True)
-    res = {"evidence_level": "uncalibrated_fea", "solver": None, "levels": []}
+    run_id = uuid.uuid4().hex
+    run_dir = Path(out) / "runs" / run_id
+    run_dir.mkdir(parents=True, exist_ok=False)
+    res = {"schema": "jarambit.sheath.ccx_calibration.v1", "status": "INCOMPLETE", "run_id": run_id,
+           "evidence_level": "uncalibrated_fea", "solver": None, "levels": [],
+           "ccx_over_bayer": None, "ccx_over_bayer_rot": None, "conv_rel_last2": None}
     try:
         res["solver"] = subprocess.run([ccx, "-v"], capture_output=True, text=True).stdout.strip()[:200]
     except Exception as e:
         res["solver"] = "unavailable: %r" % e
     for lv in levels:
         deck, meta = build_deck(level=lv, **kw)
-        job = os.path.join(out, "tab_l%d" % lv)
+        job = str(run_dir / ("tab_l%d" % lv))
         open(job + ".inp", "w").write(deck)
-        r = subprocess.run([ccx, "-i", os.path.basename(job)], cwd=out, capture_output=True, text=True)
+        # Use the filesystem clock: inode timestamps may be coarser than time_ns().
+        # A unique run directory plus output newer than its fresh input rejects reuse.
+        started = Path(job + ".inp").stat().st_mtime_ns
+        try:
+            r = subprocess.run([ccx, "-i", os.path.basename(job)], cwd=run_dir, capture_output=True, text=True)
+        except OSError as exc:
+            r = subprocess.CompletedProcess([ccx], 127, stdout="", stderr=str(exc))
         ok = os.path.exists(job + ".dat")
-        rec = {"level": lv, "meta": meta, "ccx_rc": r.returncode, "log_tail": r.stdout[-600:]}
-        if ok:
-            tt, F = parse_dat(job + ".dat")
-            if len(tt):
+        rec = {"level": lv, "meta": meta, "ccx_rc": r.returncode, "log_tail": r.stdout[-600:],
+               "started_ns": started, "completed": False, "fresh_output": False}
+        if ok and r.returncode == 0:
+            try:
+                rec["fresh_output"] = Path(job + ".dat").stat().st_mtime_ns >= started
+                if not rec["fresh_output"]:
+                    raise ValueError("stale history")
+                tt, F = _complete_data(job + ".dat")
                 x = tt * meta["travel"]; fx = -F[:, 0]
                 rec.update({"peak_n_per_tab": float(np.max(np.abs(fx))), "work_nmm": float(np.trapezoid(np.abs(fx), x)),
-                            "completed": bool(abs(tt[-1] - 1.0) < 1e-6), "n_inc": int(len(tt))})
+                            "completed": True, "n_inc": int(len(tt)),
+                            "artifacts": {kind: {"path": str(Path(job + "." + kind).relative_to(out)), "sha256": _sha(job + "." + kind)} for kind in ("inp", "dat")}})
                 np.savetxt(job + "_curve.csv", np.c_[x, fx, -F[:, 1]], delimiter=",", header="travel_mm,Fx_n,Fy_n", comments="")
+            except (ValueError, OSError) as exc:
+                rec["reason"] = str(exc)
         res["levels"].append(rec)
+    if not res["levels"]:
+        raise ValueError("at least two mesh levels required")
     an = analytic(res["levels"][-1]["meta"])
     res["analytic"] = an
-    pk = [l.get("peak_n_per_tab") for l in res["levels"] if l.get("peak_n_per_tab")]
-    if len(pk) >= 2:
+    pk = [l.get("peak_n_per_tab") for l in res["levels"]]
+    if len(pk) >= 2 and all(l["ccx_rc"] == 0 and l["completed"] and l["fresh_output"] and isinstance(p, (int, float)) and math.isfinite(p) and p > 0 for l, p in zip(res["levels"], pk)):
         res["conv_rel_last2"] = abs(pk[-1] / pk[-2] - 1)
-        res["ccx_over_bayer"] = pk[-1] / an["W_bayer"]
-        res["ccx_over_bayer_rot"] = pk[-1] / an["W_bayer_rot"]
-    json.dump(res, open(os.path.join(out, "ccx_tab.json"), "w"), indent=1, default=float)
+        if res["conv_rel_last2"] <= MAX_CONVERGENCE and an["W_bayer"] > 0 and an["W_bayer_rot"] > 0:
+            res["ccx_over_bayer"] = pk[-1] / an["W_bayer"]
+            res["ccx_over_bayer_rot"] = pk[-1] / an["W_bayer_rot"]
+            res["status"] = "COMPLETE"
+    json.dump(res, open(os.path.join(out, "ccx_tab.json"), "w"), indent=1, default=float, allow_nan=False)
     return res
 
 
@@ -200,3 +278,4 @@ if __name__ == "__main__":
     r = run(a.out, tuple(int(x) for x in a.levels.split(",")), **kw)
     print(json.dumps({k: r.get(k) for k in ("solver", "analytic", "conv_rel_last2", "ccx_over_bayer", "ccx_over_bayer_rot")}, indent=1, default=float))
     for l in r["levels"]: print(l["level"], l.get("peak_n_per_tab"), l.get("completed"), l.get("n_inc"), l["ccx_rc"])
+    sys.exit(0 if r["status"] == "COMPLETE" else 1)

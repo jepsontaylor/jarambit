@@ -8,6 +8,11 @@ Ref: Covestro (Bayer MaterialScience) "Snap-Fit Joints for Plastics - A Design G
 """
 from dataclasses import dataclass, asdict
 import math
+from pathlib import Path
+import tomllib
+
+SPEC = tomllib.loads((Path(__file__).parents[1] / "requirements/RS-sheath-runner-v1.toml").read_text())
+RETENTION_SF_MIN = float(SPEC["retention"]["sf_min_at_p05"])
 
 G0 = 9.80665
 SIGMA_PA12_MPA = 48.0    # EOS PA 2200 typical tensile strength (screening only)
@@ -142,7 +147,7 @@ RETENTION_CASES = {
     "running_sacral_peak": 5.13,   # elite female runners 14 km/h, sacral S2 peak 5.13 g (MSSE abstract 10.1249/01.mss.0001057684.78716.32)
     "fall_waist_peak": 4.5,        # waist IMU, forward fall 4.5+-0.5 g (backward 4.1, side 4.4), Lee et al. PMC4101685 (mattress)
     "jump_waist_peak": 7.5,        # same study, jumping ADL 7.5 g
-    "design_shock": 15.0,          # = 2 x jump (hard ground, trail drop-offs): ASSUMPTION closed by M6 sheath IMU
+    "design_shock": float(SPEC["retention"]["design_shock_g"]),  # assumption, confirmed by M6 sheath IMU
 }
 # Upper side (one-handed draw through the ring): index fingertip on a thin ring 59.5 +- 21.4 N (females, MVC;
 # Int. J. Ind. Ergon. 2010, doi S0169814110001137) -> 5th pct ~24 N; index proximal phalanx flexion 110.7 +- 9.0 N
@@ -164,10 +169,20 @@ def catch_profiles():
     ]
 
 
+def retention_floor_pass(sf):
+    """A missing/nonfinite observation never meets the configured retention strength floor."""
+    if isinstance(sf, dict):
+        sf = sf.get("design_shock")
+    return isinstance(sf, (int, float)) and not isinstance(sf, bool) and math.isfinite(sf) and sf >= RETENTION_SF_MIN
+
+
 def fitness(m: dict, w: DrawWindow = WINDOW) -> dict:
     """Feasible-first, then minimise mass (+ cost proxy). No weighted compensation: a failed containment / strength /
     retention gate can never be bought back by low mass. score in (0,1] only when every hard gate passes."""
     gates = []
+    if m.get("annotation_status") != "APPROVED": gates.append("INCOMPLETE:approved_annotations")
+    gates.extend("INCOMPLETE:" + key for key in m.get("incomplete_evidence", []))
+    if not retention_floor_pass(m.get("retention_sf_p05")): gates.append("retention_sf_p05<floor_or_INCOMPLETE")
     if m.get("path_feasible") is not True: gates.append("path_infeasible")
     if m.get("uncovered_sharp_mm", 0) > 0.0: gates.append("sharp_edge_outside_sheath")
     if m.get("edge_mouth_depth_mm", 99) < 6.0: gates.append("edge_mouth_depth<6mm")
