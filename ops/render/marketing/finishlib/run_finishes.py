@@ -17,6 +17,7 @@ Camera, rig and framing come verbatim from presets/shots_default.json via lookde
 import argparse, json, os, subprocess, sys, time
 
 # hero_3q camera is always reused; only the rig/backdrop changes. dark = dark_hero's reflective black base
+MARK_PL = []
 BACKDROPS = {'dark': 'rig_dark_strip', 'studio': None}
 HERE = os.path.dirname(os.path.abspath(__file__))
 MKT = os.path.dirname(HERE)
@@ -51,7 +52,7 @@ def render(entry, args, masks, lut_path, arc_m, out_root, bare_specs=None):
     req = lookdev.build_request(by_id[args.shot], shots['defaults'], ns, f'finishlib:{entry["id"]}:{args.shot}')
     req['finish_library'] = {'entry': entry, 'masks_npz': masks, 'lut_npy': lut_path,
                              'lut_dmax_nm': thinfilm.DMAX_NM, 'arc_length_m': arc_m,
-                             'bare_specs': bare_specs or {}, 'coat_boost': not args.no_coat_boost}
+                             'bare_specs': bare_specs or {}, 'mark_placements': MARK_PL, 'coat_boost': not args.no_coat_boost}
     req['profile']['threads'] = args.threads
     os.makedirs(req['out_dir'], exist_ok=True)
     rq = os.path.join(req['out_dir'], 'request.json')
@@ -79,6 +80,30 @@ def render(entry, args, masks, lut_path, arc_m, out_root, bare_specs=None):
                    stdout=subprocess.DEVNULL)
     return {'id': entry['id'], 'label': entry.get('label', entry['id']), 'jpg': stem + '.jpg', 'png': stem + '.png',
             'seconds': round(time.time() - t0, 1), 'rig': req['rig_preset'], 'assignment': res['finish']['assignment']}
+
+
+def mark_closeups(results, out, mask_debug_png):
+    """crop every finish at the mark: bbox of the green mark pixels in the zone-debug render."""
+    import numpy as np
+    from PIL import Image, ImageDraw
+    a = np.asarray(Image.open(mask_debug_png).convert('RGB')).astype(int)
+    g = (a[..., 1] > 150) & (a[..., 0] < 90) & (a[..., 2] < 110)
+    if g.sum() < 20:
+        raise RuntimeError('mark not visible in the zone-debug render from the hero camera')
+    ys, xs = np.nonzero(g)
+    x0, x1, y0, y1 = np.percentile(xs, 1), np.percentile(xs, 99), np.percentile(ys, 1), np.percentile(ys, 99)
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    w = max(x1 - x0, (y1 - y0) * 2.2) * 1.35
+    box = (int(cx - w / 2), int(cy - w / 4.4), int(cx + w / 2), int(cy + w / 4.4))
+    crops = []
+    for r in results:
+        c = Image.open(r['png']).convert('RGB').crop(box).resize((720, 360), Image.LANCZOS)
+        ImageDraw.Draw(c).text((6, 6), r['id'], fill=(255, 255, 255)); crops.append(c)
+    rows = (len(crops) + 2) // 3
+    sheet = Image.new('RGB', (720 * 3, 360 * rows), (10, 10, 10))
+    for i, c in enumerate(crops):
+        sheet.paste(c, ((i % 3) * 720, (i // 3) * 360))
+    sheet.save(os.path.join(out, 'signature_closeups.jpg'), quality=92)
 
 
 def tip_closeups(results, out, box_frac=0.12):
@@ -140,6 +165,8 @@ def main():
         args.regions = cand if os.path.isfile(cand) else None
     # 1. masks (fail loudly)
     rep = blade_mask.compute(args.bundle, args.regions, os.path.join(out, 'masks'), allow_warn=args.allow_mask_warn)
+    global MARK_PL
+    MARK_PL = ((rep.get('mark') or {}).get('decal') or {}).get('placements') or []
     # 2. thin-film LUT
     d, rgb = thinfilm.lut()
     lut_path = os.path.join(out, 'tf_lut.npy')
@@ -173,6 +200,8 @@ def main():
     finish.contact_sheet(os.path.join(out, 'contact_sheet.jpg'), [r['jpg'] for r in results], cols=3, width=960,
                          labels=[f"{r['id']}: {r['label']}  (coat +{r['assignment'].get('coat_boost_ev', 0):.2f} EV)" for r in results])
     tip_closeups(results, out)
+    if MARK_PL and not args.no_mask_render:
+        mark_closeups(results, out, md['png'])
     json.dump({'mask': rep, 'results': results, 'args': vars(args)}, open(os.path.join(out, 'run_summary.json'), 'w'), indent=1)
     print(os.path.join(out, 'contact_sheet.jpg'))
 

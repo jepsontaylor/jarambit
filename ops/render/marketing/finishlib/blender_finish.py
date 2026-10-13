@@ -17,10 +17,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 import materials  # noqa: E402
 from materials import G, _bump_chain  # noqa: E402
 
-ZONES = ['coat', 'blade_flat', 'bevel', 'edge_apex', 'serration']
+ZONES = ['coat', 'blade_flat', 'bevel', 'edge_apex', 'serration', 'mark']
 BARE_DEFAULT = {'blade_flat': 'blade_stonewash_fine', 'bevel': 'satin_bevel', 'edge_apex': 'edge_highlight',
-                'serration': 'serration'}
-ZONE_RGB = [(0.05, 0.25, 1.0), (1.0, 0.65, 0.02), (1.0, 0.2, 0.01), (1.0, 0.0, 0.05), (0.7, 0.02, 0.6)]
+                'serration': 'serration', 'mark': None}
+ZONE_RGB = [(0.05, 0.25, 1.0), (1.0, 0.65, 0.02), (1.0, 0.2, 0.01), (1.0, 0.0, 0.05), (0.7, 0.02, 0.6), (0.05, 1.0, 0.15)]
 
 
 # ------------------------------------------------------------------ small helpers
@@ -334,6 +334,73 @@ def apply_gain(g, bsdf_out, out_in, ev):
     g.link(acc, out_in)
 
 
+MARK_STYLES = {
+    # fibre-laser black marking / anneal on Ti or steel: dark, matte, slightly metallic
+    'dark_etch': {'base_color_lin': (0.022, 0.021, 0.020), 'metallic': 0.35, 'roughness': 0.72},
+    # coat ablated by the laser down to bare, frosted titanium
+    'ablate': {'base_color_lin': None, 'metallic': 1.0, 'roughness': 0.42},
+}
+
+
+def mark_bsdf(g, style, metal):
+    st = MARK_STYLES[style]
+    m = g.n('ShaderNodeBsdfPrincipled', distribution='MULTI_GGX')
+    m.inputs['Base Color'].default_value = (*(st['base_color_lin'] or metal['base_color_lin']), 1.0)
+    m.inputs['Specular Tint'].default_value = (*metal['f82_tint'], 1.0)
+    m.inputs['Metallic'].default_value = st['metallic']
+    m.inputs['Roughness'].default_value = st['roughness']
+    return m.outputs['BSDF']
+
+
+def decal_mask(g, placements, tol_m=0.25e-3):
+    """planar projection in OBJECT space, clipped to the placement plane and facing side."""
+    tc = g.n('ShaderNodeTexCoord'); geo = g.n('ShaderNodeNewGeometry')
+    nobj = g.n('ShaderNodeVectorTransform', vector_type='NORMAL', convert_from='WORLD', convert_to='OBJECT')
+    g.link(geo.outputs['Normal'], nobj.inputs['Vector'])
+    P = tc.outputs['Object']; total = None
+    for pl in placements:
+        d = g.math('SUBTRACT', P, tuple(pl['center_m']), vector=True)
+        uu = g.math('ADD', g.math('MULTIPLY', g.math('DOT_PRODUCT', d, tuple(pl['u_axis']), vector=True), 1.0 / pl['width_m']), 0.5)
+        vv = g.math('ADD', g.math('MULTIPLY', g.math('DOT_PRODUCT', d, tuple(pl['v_axis']), vector=True), 1.0 / pl['height_m']), 0.5)
+        cmb = g.n('ShaderNodeCombineXYZ'); g.link(uu, cmb.inputs['X']); g.link(vv, cmb.inputs['Y'])
+        tex = g.n('ShaderNodeTexImage', interpolation='Cubic', extension='CLIP')
+        img = bpy.data.images.load(pl['mask'], check_existing=True)
+        img.colorspace_settings.name = 'Non-Color'
+        tex.image = img
+        g.link(cmb.outputs['Vector'], tex.inputs['Vector'])
+        crisp = maprange(g, tex.outputs['Color'], 0.3, 0.7, smooth=True)
+        on_plane = g.math('LESS_THAN', g.math('ABSOLUTE', g.math('DOT_PRODUCT', d, tuple(pl['normal']), vector=True)), tol_m)
+        facing = g.math('GREATER_THAN', g.math('DOT_PRODUCT', nobj.outputs['Vector'], tuple(pl['normal']), vector=True), 0.9)
+        m = g.math('MULTIPLY', g.math('MULTIPLY', crisp, on_plane), facing)
+        total = m if total is None else g.math('MAXIMUM', total, m)
+    return total
+
+
+def overlay_mark(mat, placements, style, metal, debug_rgb=None):
+    """final node before the output: mix(src, mark, decal mask). Returns True when inserted."""
+    nt = mat.node_tree
+    out = next(n for n in nt.nodes if n.type == 'OUTPUT_MATERIAL')
+    src = out.inputs['Surface'].links[0].from_socket
+    g = G.__new__(G); g.nt, g.x = nt, -3000
+    mask = decal_mask(g, placements)
+    if debug_rgb is not None:
+        mk = g.n('ShaderNodeBsdfPrincipled'); mk.inputs['Base Color'].default_value = (*debug_rgb, 1.0)
+        mk = mk.outputs['BSDF']
+    else:
+        mk = mark_bsdf(g, style, metal)
+    mix = g.n('ShaderNodeMixShader'); mix.name = mix.label = 'finishlib_mark_overlay'
+    g.link(mask, mix.inputs['Fac']); g.link(src, mix.inputs[1]); g.link(mk, mix.inputs[2])
+    g.link(mix.outputs['Shader'], out.inputs['Surface'])
+    return True
+
+
+def mark_style(spec, albedo):
+    st = (spec.get('mark') or {}).get('style', 'auto')
+    if st == 'auto':
+        return 'ablate' if albedo < 0.2 else 'dark_etch'
+    return st
+
+
 def debug_material(i):
     mat = bpy.data.materials.new(f'maskdbg:{ZONES[i]}')
     g = G(mat)
@@ -361,6 +428,7 @@ def apply(obj, lib, base_finish):
     if spec.get('type') == 'mask_debug':
         for i in range(len(ZONES)):
             me.materials.append(debug_material(i)); rec[ZONES[i]] = 'mask_debug'
+        _decal(me, lib, rec, None, None, debug=True)
         return _set_zones(me, zone, rec)
     lut = np.load(lib['lut_npy']).astype(np.float32)
     img = bpy.data.images.new('tf_lut', width=len(lut), height=1, float_buffer=True, alpha=False)
@@ -378,11 +446,33 @@ def apply(obj, lib, base_finish):
     specs = dict(base_finish['finishes'], **lib.get('bare_specs', {}))
     for zn in ZONES[1:]:
         fname = bare[zn]
-        if specs[fname].get('thin_film_nm') or specs[fname].get('layers'):
+        if zn != 'mark' and (specs[fname].get('thin_film_nm') or specs[fname].get('layers')):
             raise ValueError(f'bare blade zone {zn} may not use a coated finish ({fname})')
+        if zn == 'mark':
+            mm = bpy.data.materials.new('mark:faces'); gg = G(mm)
+            o = gg.n('ShaderNodeOutputMaterial', target='CYCLES')
+            gg.link(mark_bsdf(gg, mark_style(spec, rec['coat_albedo_est']), metal), o.inputs['Surface'])
+            me.materials.append(mm); rec[zn] = mark_style(spec, rec['coat_albedo_est'])
+            continue
         me.materials.append(materials.build_finish(f'{zn}:{fname}', specs[fname], metal, eb))
         rec[zn] = fname
+    _decal(me, lib, rec, spec, metal)
     return _set_zones(me, zone, rec)
+
+
+def _decal(me, lib, rec, spec, metal, debug=False):
+    pls = lib.get('mark_placements') or []
+    if not pls:
+        rec['mark_decal'] = {'applied': False}
+        return
+    coat_style = 'dark_etch' if debug else mark_style(spec, rec['coat_albedo_est'])
+    n = 0
+    for i, mat in enumerate(me.materials):
+        style = coat_style if i == 0 else 'dark_etch'   # bare steel/Ti zones: dark laser mark
+        n += overlay_mark(mat, pls, style, metal, debug_rgb=ZONE_RGB[5] if debug else None)
+    if n != len(me.materials):
+        raise RuntimeError('mark overlay missing on some material slots')
+    rec['mark_decal'] = {'applied': True, 'slots': n, 'coat_style': coat_style, 'placements': len(pls)}
 
 
 def _set_zones(me, zone, rec):

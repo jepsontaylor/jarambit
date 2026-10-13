@@ -53,3 +53,36 @@ def test_tip_always_bare_even_with_bad_labels(tmp_path):
     tp = np.array(rep['tip_point_m'])
     within = np.linalg.norm(V[F].mean(1) - tp, axis=1) < rep['params']['tip_check_mm'] * 1e-3
     assert rep['checks']['tip_region_bare'] and (z[within] > 0).all()
+
+
+def test_mark_validate_logic():
+    import mark
+    zone = np.zeros(10, np.uint8)
+    src = np.zeros(10, bool); src[3:5] = True
+    rep = {'sources': ['labels'], 'source_faces_mask': src, 'decal': None}
+    assert not mark.validate(rep, zone)['mark_faces_bare']          # mark faces left coatable -> fail
+    zone[3:5] = 5
+    assert all(mark.validate(rep, zone).values())
+    rep2 = {'sources': ['decal'], 'source_faces_mask': np.zeros(10, bool),
+            'decal': {'placements': [], 'requested': 2}}
+    v = mark.validate(rep2, zone)
+    assert not v['mark_decal_placed'] and not v['mark_present_if_in_source']   # decal dropped -> fail
+
+
+@pytest.mark.skipif(not os.path.isfile(os.path.join(B, 'bundle.json')), reason='no C.9.2 bundle')
+def test_c92_label_mark_becomes_zone5(tmp_path):
+    """a CAD label named 'logo' must become zone 5 (bare mark), never coat."""
+    import json, shutil
+    d = np.load(os.path.join(B, 'mesh.npz')); m = {k: d[k] for k in d.files}
+    rj = json.load(open(os.path.join(B, 'regions.json')))
+    rid = m['region_id'].copy()
+    body = np.nonzero(rid == 0)[0][:200]
+    rid[body] = 7; m['region_id'] = rid
+    rj['labels']['7'] = 'logo'
+    src = tmp_path / 'mesh'; src.mkdir()
+    np.savez(src / 'mesh.npz', **m)
+    shutil.copy(os.path.join(B, 'bundle.json'), src / 'bundle.json')
+    json.dump(rj, open(src / 'regions.json', 'w'))
+    rep = blade_mask.compute(str(src / 'bundle.json'), str(src / 'regions.json'), str(tmp_path / 'o'), allow_warn=True)
+    z = np.load(rep['masks_npz'])['zone']
+    assert (z[body] == 5).all() and rep['checks']['mark_faces_bare'] and 'labels' in rep['mark']['sources']

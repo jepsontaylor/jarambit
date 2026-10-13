@@ -19,12 +19,13 @@ Validation fails loudly (exit 3) unless every check passes (or --allow-warn).
 """
 import argparse, hashlib, json, os, sys
 import numpy as np
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PIL import Image, ImageDraw
 
 LABELS = ['body', 'bevel', 'edge_apex', 'serration', 'ring', 'pad', 'spine']
-ZONE_NAMES = ['coat', 'blade_flat', 'bevel', 'edge_apex', 'serration']
+ZONE_NAMES = ['coat', 'blade_flat', 'bevel', 'edge_apex', 'serration', 'mark']
 EDGE_LABEL_ZONE = {'bevel': 2, 'edge_apex': 3, 'serration': 4}
-ZONE_RGB = [(70, 150, 255), (255, 210, 40), (255, 120, 30), (255, 0, 60), (220, 40, 200)]
+ZONE_RGB = [(70, 150, 255), (255, 210, 40), (255, 120, 30), (255, 0, 60), (220, 40, 200), (40, 255, 90)]
 
 
 def load_mesh(bundle_path, regions_path=None):
@@ -158,7 +159,7 @@ def arc_params(V, P2, S, lo, res_m, s0_hint):
 
 def compute(bundle_path, regions_path=None, out_dir='.', params=None, allow_warn=False):
     p = {'apex_band_mm': 0.3, 'bevel_min_deg': 8.0, 'bevel_max_deg': 80.0, 'raster_mm': 0.1,
-         'max_flat_mm': 30.0, 'guard_mm': 0.6, 'wall_mm': 0.6, 'tip_guard_mm': 6.0, 'tip_check_mm': 10.0, 'blade_frac_range': [0.12, 0.65]}
+         'max_flat_mm': 30.0, 'mark_depth_mm': [0.02, 0.6], 'mark_glyph_max_mm2': 40.0, 'mark_min_glyphs': 4, 'guard_mm': 0.6, 'wall_mm': 0.6, 'tip_guard_mm': 6.0, 'tip_check_mm': 10.0, 'blade_frac_range': [0.12, 0.65]}
     p.update(params or {})
     os.makedirs(out_dir, exist_ok=True)
     bundle, mesh, labels_src = load_mesh(bundle_path, regions_path)
@@ -240,7 +241,11 @@ def compute(bundle_path, regions_path=None, out_dir='.', params=None, allow_warn
     near_tip = np.linalg.norm(cen3 - tip, axis=1) < p['tip_guard_mm'] * 1e-3
     tip_forced = int(((zone == 0) & near_tip).sum())
     zone[(zone == 0) & near_tip] = 2
-    blade = zone > 0
+    blade = (zone > 0) & (zone != 5)
+    # maker's mark (zone 5): labels / engraved geometry / signature decal
+    import mark as _mark
+    a_, b_ = face_adjacency(F)
+    mrep = _mark.detect(mesh, zone, V, F, fn, area, n, components, (a_, b_), p)
     # ---------------- validation
     tot = area.sum()
     frac = {z: float(area[zone == i].sum() / tot) for i, z in enumerate(ZONE_NAMES)}
@@ -253,6 +258,7 @@ def compute(bundle_path, regions_path=None, out_dir='.', params=None, allow_warn
         'flats_both_sides': bool(area[(zone == 1) & (side > 0.9)].sum() > 0 and area[(zone == 1) & (side < -0.9)].sum() > 0),
         'coat_area_ok': frac['coat'] > 0.2,
         'tip_region_bare': bool((zone[np.linalg.norm(cen3 - tip, axis=1) < p['tip_check_mm'] * 1e-3] > 0).all()),
+        **_mark.validate(mrep, zone),
         'labels_agree_geometry': (label_iou is None) or label_iou >= 0.5,
     }
     warnings = [] if (apex_label_cov is None or apex_label_cov >= 0.9) else [
@@ -261,7 +267,8 @@ def compute(bundle_path, regions_path=None, out_dir='.', params=None, allow_warn
     rep = {'schema': 'jarambit.finish.blade_mask.v1', 'bundle': os.path.abspath(bundle_path),
            'npz_sha256': bundle.get('npz_sha256'), 'regions': regions_path, 'labels_source': labels_src,
            'method': method, 'label_vs_geometric_edge_iou': label_iou, 'thin_apex_area_covered_by_labels': apex_label_cov, 'area_frac': frac,
-           'blade_frac': blade_frac, 'tip_point_m': tip.tolist(), 'tip_faces_forced_bare': tip_forced, 'wall_faces_bare': int(wall.sum()), 'arc_length_mm': arc_len * 1e3, 'params': p, 'checks': checks, 'warnings': warnings, 'ok': ok}
+           'blade_frac': blade_frac, 'tip_point_m': tip.tolist(), 'tip_faces_forced_bare': tip_forced, 'wall_faces_bare': int(wall.sum()), 'arc_length_mm': arc_len * 1e3, 'params': p, 'checks': checks, 'warnings': warnings, 'ok': ok,
+           'mark': {k: v for k, v in mrep.items() if k != 'source_faces_mask'}}
     zpath = os.path.join(out_dir, 'finish_masks.npz')
     np.savez_compressed(zpath, zone=zone, s=sv.astype(np.float32), t=tv.astype(np.float32))
     rep['masks_npz'] = zpath
