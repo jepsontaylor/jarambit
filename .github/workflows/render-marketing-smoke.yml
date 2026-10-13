@@ -18,7 +18,7 @@ permissions:
 jobs:
   smoke:
     name: marketing render smoke
-    runs-on: [self-hosted, linux, x64, lan-ci, ubuntu24]
+    runs-on: [self-hosted, linux, x64, jarambit]  # jarambit-xbabe2/3 carry ffmpeg (zscale/x264/x265/webp) + pinned Blender 4.2.23 in ~/opt; the shared lan-ci pool has neither
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

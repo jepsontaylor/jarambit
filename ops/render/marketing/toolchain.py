@@ -47,6 +47,11 @@ def find_gifski():
 
 
 def probe_ffmpeg(binary="ffmpeg"):
+    from shutil import which
+    if which(binary) is None and not os.path.isfile(binary):
+        # fail closed with a report entry instead of a FileNotFoundError traceback
+        return {"path": binary, "ok": False, "error": "not found on PATH",
+                "version_line": "", "zscale": False, "libx264": False, "libx265": False, "libwebp": False}
     version = _run([binary, "-version"])
     encoders = _run([binary, "-hide_banner", "-encoders"])
     filters = _run([binary, "-hide_banner", "-filters"])
