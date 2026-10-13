@@ -1,0 +1,94 @@
+{
+ "all_hard": false,
+ "components": [
+  {
+   "area_share": 0.1711364369839348,
+   "component": "ring",
+   "figure": "docs/figures/components/g3_tip+00_t60_tt3_D1_ring.png",
+   "figure_sha256": "699c6fb84087885eee48ced09d49474f6eebbc8c894c7b36da3ef7f02c969f21",
+   "frac_area_sf_below_1": 0.0,
+   "n_elements": 4135,
+   "rs_v2": {
+    "hm_ringback_sf": 2.660229597729158,
+    "ring_band_mm": 5.739194112100655,
+    "ring_bearing_w_mm": 5.87868070602417,
+    "ring_rob_n": 17463.975804201444
+   },
+   "sf_median": 21.3472,
+   "sf_min": 1.3624,
+   "title": "Finger ring (10)"
+  },
+  {
+   "area_share": 0.34815270186641434,
+   "component": "grip_spine",
+   "figure": "docs/figures/components/g3_tip+00_t60_tt3_D1_grip_spine.png",
+   "figure_sha256": "4e195307a46fcef271e82916408a375595bc1a89d0be259e65a68c6cdba77178",
+   "frac_area_sf_below_1": 0.0,
+   "n_elements": 8963,
+   "rs_v2": {
+    "fat_sf": 0.9823103780720044,
+    "hm_spine_sf": 0.4189305474633907,
+    "twist_body_sf": 4.399946030986013
+   },
+   "sf_median": 2.3331,
+   "sf_min": 1.4245,
+   "title": "Grip / spine (20)"
+  },
+  {
+   "area_share": 0.4506454849247703,
+   "component": "blade",
+   "figure": "docs/figures/components/g3_tip+00_t60_tt3_D1_blade.png",
+   "figure_sha256": "b9bd6f018a90b62c213ddb01d48aaeed070908eddea762ce12426c0051c657c9",
+   "frac_area_sf_below_1": 0.0,
+   "n_elements": 12305,
+   "rs_v2": {
+    "hm_twist_sf": 0.13210292745211555,
+    "lat_rob_n": 351.6634692341955,
+    "seq_ratio": 0.9590825616164743
+   },
+   "sf_median": 2.6052,
+   "sf_min": 1.3952,
+   "title": "Blade, sharpened + serrated edges (30, 32)"
+  },
+  {
+   "area_share": 0.030065376224880737,
+   "component": "tip",
+   "figure": "docs/figures/components/g3_tip+00_t60_tt3_D1_tip.png",
+   "figure_sha256": "8be68fac6eb8116ebd2193ed853d269611285ff58857f6d9ba6a3ae878604e6d",
+   "frac_area_sf_below_1": 0.0,
+   "n_elements": 734,
+   "rs_v2": {
+    "hm_tip_inplane_sf": 0.5648925162300026,
+    "twist_tipzone_sf": 1.1758612223759735
+   },
+   "sf_median": 4.0085999999999995,
+   "sf_min": 1.1759,
+   "title": "Tip zone (40)"
+  }
+ ],
+ "inputs": {
+  "evidence/rs_v2/g3_tip+00_t60_tt3.json": "cec2f806d918f3c1ee93d725b1737961fafa6c9621240c9039e766f3b7c1641f",
+  "evidence/wave27/g3_tip+00_t60_tt3.stl": "04404820cf8385f5e34a42ef9d39a79aecda8eb88895c78aa21f4e3a92fe28c5",
+  "evidence/wave27/g3_tip+00_t60_tt3_D1.json": "49d9ee941f991b016e5ecbad2ee3ac58c020c9e9ffbde3421ccda491957ce666"
+ },
+ "label": "g3_tip+00_t60_tt3_D1",
+ "mass_g": 84.80209229536577,
+ "partition": {
+  "bore_radius_est_mm": 12.398567674406845,
+  "grip_mm": 61.0,
+  "ring_band_mm": 5.739194112100655,
+  "ring_centre_mm": [
+   0.2498764044943833,
+   -0.1989550561797735
+  ],
+  "tip_mm": [
+   192.012,
+   -47.215
+  ],
+  "tip_radius_mm": 12.0
+ },
+ "requirement_set": "RS-karambit-v2",
+ "schema": 1,
+ "script": "ops/render/components.py",
+ "sf_field": "D1 certified envelope SF (100 C, joint), plate tier"
+}
