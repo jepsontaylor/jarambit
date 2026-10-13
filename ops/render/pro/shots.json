@@ -1,0 +1,343 @@
+{
+ "schema": "jarambit.render.pro.shots.v1",
+ "resolutions": {
+  "preview": [
+   1280,
+   720
+  ],
+  "4k": [
+   3840,
+   2160
+  ],
+  "8k": [
+   7680,
+   4320
+  ],
+  "preview_portrait": [
+   720,
+   1280
+  ],
+  "4k_portrait": [
+   2160,
+   3840
+  ],
+  "hd": [
+   1920,
+   1080
+  ]
+ },
+ "spp": 1024,
+ "adaptive_threshold": 0.004,
+ "ev": 0.0,
+ "look": {
+  "agx_look": "AgX - Punchy",
+  "exposure": 0.0,
+  "sat": 1.35,
+  "val": 1.45,
+  "hue_shift": 0.06,
+  "black_lo": 0.015,
+  "black_hi": 0.09,
+  "dark_ti": [
+   0.022,
+   0.024,
+   0.03
+  ],
+  "wall_ti": [
+   0.06,
+   0.06,
+   0.07
+  ],
+  "art_metallic": 0.82,
+  "art_rough": 0.16,
+  "coat": 0.8,
+  "coat_rough": 0.025,
+  "film_nm": 0.0,
+  "gold": [
+   1.0,
+   0.66,
+   0.22
+  ],
+  "gold_rough": 0.06,
+  "gold_emit": 1.4,
+  "ground_ti": [
+   0.72,
+   0.7,
+   0.67
+  ],
+  "ground_rough": 0.06,
+  "black_metallic": 1.0
+ },
+ "extra_lights": [
+  {
+   "name": "face_soft_L",
+   "type": "AREA",
+   "size_D": [
+    1.6,
+    0.9
+   ],
+   "az": -38,
+   "el": 14,
+   "dist_D": 3.0,
+   "power_W": 6.0,
+   "kelvin": 6200,
+   "spread_deg": 50
+  },
+  {
+   "name": "face_soft_R",
+   "type": "AREA",
+   "size_D": [
+    1.6,
+    0.9
+   ],
+   "az": 42,
+   "el": 22,
+   "dist_D": 3.0,
+   "power_W": 4.0,
+   "kelvin": 5200,
+   "spread_deg": 50
+  },
+  {
+   "name": "blade_sweep",
+   "type": "AREA",
+   "size_D": [
+    3.0,
+    1.2
+   ],
+   "az": 12,
+   "el": 48,
+   "dist_D": 2.6,
+   "power_W": 2.0,
+   "kelvin": 6000,
+   "spread_deg": 70
+  }
+ ],
+ "shots": [
+  {
+   "name": "01_hero_34",
+   "az": -24,
+   "el": 16,
+   "focal_mm": 85,
+   "fstop": 8,
+   "target": "part",
+   "fit": "part",
+   "fill": 0.8,
+   "sig_side": "front",
+   "res": [
+    "4k",
+    "4k_portrait",
+    "8k",
+    "preview",
+    "preview_portrait"
+   ]
+  },
+  {
+   "name": "02_face_on",
+   "az": 0,
+   "el": 2,
+   "focal_mm": 85,
+   "fstop": 11,
+   "target": "part",
+   "fit": "part",
+   "fill": 0.84,
+   "sig_side": "front",
+   "res": [
+    "4k",
+    "4k_portrait",
+    "8k",
+    "preview",
+    "preview_portrait"
+   ]
+  },
+  {
+   "name": "03_back_180",
+   "az": 0,
+   "el": 4,
+   "focal_mm": 85,
+   "fstop": 11,
+   "target": "part",
+   "fit": "part",
+   "fill": 0.84,
+   "sig_side": "back",
+   "res": [
+    "preview",
+    "4k",
+    "8k"
+   ],
+   "part_rot_deg": 180
+  },
+  {
+   "name": "04_macro_edge",
+   "az": -32,
+   "el": 22,
+   "focal_mm": 135,
+   "fstop": 8,
+   "target": "sig_front",
+   "fit": "sig_front",
+   "fill": 0.42,
+   "fill_v": 0.4,
+   "offset_uv": [
+    0.0,
+    0.12
+   ],
+   "sig_side": "front",
+   "res": [
+    "preview",
+    "4k"
+   ]
+  },
+  {
+   "name": "05_macro_signature",
+   "az": -12,
+   "el": 8,
+   "focal_mm": 135,
+   "fstop": 8,
+   "target": "sig_front",
+   "fit": "sig_front",
+   "fill": 0.7,
+   "sig_side": "front",
+   "res": [
+    "4k",
+    "4k_portrait",
+    "8k",
+    "preview",
+    "preview_portrait"
+   ]
+  },
+  {
+   "name": "06_low_floor",
+   "az": -16,
+   "el": 2.5,
+   "focal_mm": 85,
+   "fstop": 8,
+   "target": "part",
+   "fit": "part",
+   "fill": 0.74,
+   "offset_uv": [
+    0.0,
+    -0.08
+   ],
+   "sig_side": "front",
+   "res": [
+    "preview",
+    "4k"
+   ]
+  }
+ ],
+ "floor": {
+  "roughness": 0.06,
+  "coat": 0.6,
+  "coat_roughness": 0.02,
+  "base_color": [
+   0.004,
+   0.004,
+   0.005
+  ]
+ },
+ "world": {
+  "strength": 0.0
+ },
+ "flame": {
+  "lut": "film_lut_12_62nm.json",
+  "d_start_nm": 21.0,
+  "d_end_nm": 60.0,
+  "lick_freq": 180.0,
+  "lick_amp": 0.04,
+  "rough": 0.07,
+  "coat": 1.0,
+  "coat_rough": 0.02,
+  "exposure_ev": 0.55,
+  "bevel_flamed": true,
+  "note": "ti_flame_heat: straw(14nm)->bronze(25-30)->purple(40)->blue(45-56) along the arc; clearcoat on, +0.55 EV",
+  "extra_lights": [
+   {
+    "name": "flat_reflector",
+    "type": "AREA",
+    "size_D": [
+     1.8,
+     0.7
+    ],
+    "az": 0,
+    "el": 20,
+    "dist_D": 3.2,
+    "power_W": 2.2,
+    "kelvin": 5600,
+    "spread_deg": 90,
+    "mirror_flat": true,
+    "offset_deg": [
+     8,
+     0
+    ]
+   }
+  ],
+  "look": {
+   "gold": [
+    0.02,
+    0.02,
+    0.022
+   ],
+   "gold_emit": 0.0,
+   "gold_rough": 0.08,
+   "note": "owner 5:56: signature = deep glossy black ink on anodize; no gold, no outline"
+  },
+  "floor": {
+   "coat": 0.08,
+   "roughness": 0.1
+  },
+  "shot_overrides": {
+   "01_hero_34": {
+    "el": 4.0,
+    "az": -26
+   },
+   "04_macro_edge": {
+    "el": 5.0
+   },
+   "05_macro_signature": {
+    "el": 3.0
+   }
+  },
+  "keyline_rgb": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "keyline_rough": 0.6,
+  "light_ev": {
+   "arc_key": -3.4,
+   "rim_back": -1.8,
+   "blade_sweep": -3.0,
+   "face_soft_R": -1.0,
+   "face_soft_L": -0.5
+  },
+  "wall_rough": 0.38
+ },
+ "floor_soft": {
+  "spec_level": 0.28,
+  "coat": 0.08,
+  "roughness": 0.1,
+  "rough_far": 0.3,
+  "fade_m": [
+   0.06,
+   0.3
+  ],
+  "tint": [
+   0.002,
+   0.002,
+   0.0025
+  ],
+  "note": "owner: floor reflection -40..50 %"
+ },
+ "finishes": {
+  "satin_blue": {
+   "d_start_nm": 50.0,
+   "d_end_nm": 50.0,
+   "lick_amp": 0.0,
+   "rough": 0.3,
+   "wall_rough": 0.38,
+   "coat": 0.0,
+   "aniso": 0.6,
+   "bevel_flamed": false,
+   "exposure_ev": 0.35,
+   "note": "film finish (owner 5:58): satin bead-blast/brushed Ti, single mid blue (~30-35 V), raw-Ti mirror bevels/edge, black ink signature"
+  }
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "schema": "jarambit.render.pro.film.v1",
+ "title": "SWITCHBACK C.10a turntable rock \u00b135\u00b0 (flame)",
+ "fps": 30,
+ "note": "part rocks -35 -> +35 -> -35 deg about Z (smoothstep per half), camera/lights fixed; mark stays visible every frame",
+ "shots": [
+  {
+   "name": "R1_rock_out",
+   "frames": [
+    0,
+    90
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 8,
+    "sig_side": "front",
+    "az": -10,
+    "el": 5,
+    "fill": 0.8,
+    "fit_rot_range": [
+     -35,
+     35
+    ]
+   },
+   "start": {
+    "part_rot_deg": -35
+   },
+   "end": {
+    "part_rot_deg": 35
+   }
+  },
+  {
+   "name": "R2_rock_back",
+   "frames": [
+    90,
+    180
+   ],
+   "common": {
+    "target": "part",
+    "fit": "part",
+    "focal_mm": 85,
+    "fstop": 8,
+    "sig_side": "front",
+    "az": -10,
+    "el": 5,
+    "fill": 0.8,
+    "fit_rot_range": [
+     -35,
+     35
+    ]
+   },
+   "start": {
+    "part_rot_deg": 35
+   },
+   "end": {
+    "part_rot_deg": -35
+   }
+  }
+ ]
+}
