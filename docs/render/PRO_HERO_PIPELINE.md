@@ -1,6 +1,6 @@
 # Pro-hero render pipeline (SWITCHBACK, any CAD)
 
-Branch `render/pro-hero` (based on `render/signature-mark` a3565e8 on main 12ae822). Code in `ops/render/pro/`.
+Code in `ops/render/pro/` (landed from branch `render/pro-hero` on top of the signature-mark merge, main 58bce30).
 Hero model: **SWITCHBACK Rev C.10a**, `switchback_revC10a_ground.step`, sha256 `441cfabc284efd63…`
 (64.841 g). Every C.10a image is labelled **design candidate, not certified** (V2-S tip SF fails, record-only).
 

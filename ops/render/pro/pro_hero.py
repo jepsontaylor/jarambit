@@ -231,7 +231,7 @@ vl.use_pass_normal = vl.use_pass_z = vl.use_pass_object_index = True
 rig = json.load(open(os.path.join(MK, 'presets', 'rig_dark_arc_key.json')))
 rig['lights'] = rig['lights'] + CFG['extra_lights'] + (CFG['flame'].get('extra_lights', []) if FILM_PATH else [])
 rig['backdrop']['material'].update(CFG.get('floor', {}))
-if A.get('--finish', CFG.get('finish', 'art')) == 'flame':
+if FILM_PATH:   # named anodize finishes (e.g. satin_blue) get the same floor / light_ev overrides as flame
     rig['backdrop']['material'].update(CFG['flame'].get('floor', {}))
     for Lc in rig['lights']:
         Lc['ev'] = Lc.get('ev', 0.0) + CFG['flame'].get('light_ev', {}).get(Lc['name'], 0.0)
@@ -253,7 +253,7 @@ def soften_floor(fc):
         mr = nt.nodes.new('ShaderNodeMapRange')
         mr.inputs['From Min'].default_value, mr.inputs['From Max'].default_value = fc.get('fade_m', [0.06, 0.30])
         mr.inputs['To Min'].default_value = fc.get('roughness', 0.10); mr.inputs['To Max'].default_value = fc.get('rough_far', 0.30)
-        nt.links.new(tc.outputs['Generated' if False else 'Object'], vl.inputs[0]); nt.links.new(vl.outputs['Value'], mr.inputs['Value'])
+        nt.links.new(tc.outputs['Object'], vl.inputs[0]); nt.links.new(vl.outputs['Value'], mr.inputs['Value'])
         nt.links.new(mr.outputs['Result'], p.inputs['Roughness'])
         print('floor softened', m.name)
 soften_floor(CFG.get('floor_soft'))
@@ -374,7 +374,7 @@ def resolve_target(t):
     if t in ('sig_front', 'sig_back'):
         return list(np.mean(world_pts(sig_pts[t[4:]]), 0))
     if isinstance(t, dict) and 'edge' in t:   # point on cutting edge nearest sig
-        e = MAN['edge_qa']['worst_xyz_m']; return list(part.matrix_world @ Vector(t['edge']))
+        return list(part.matrix_world @ Vector(t['edge']))
     return list(part.matrix_world @ Vector(t))
 
 
@@ -410,7 +410,7 @@ def light_corners():
 
 
 def qa_lights():
-    """Every emitter corner and its floor-mirror image must project outside the frame (2 % guard)."""
+    """Every emitter corner and its floor-mirror image must project outside the frame (6 % guard)."""
     hits = []
     for name, w in light_corners():
         for q in (w, Vector((w.x, w.y, 2 * z_floor - w.z))):

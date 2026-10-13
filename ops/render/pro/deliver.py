@@ -39,7 +39,7 @@ for qa_p in sorted(glob.glob(os.path.join(src, '*.qa.json'))):
         m = cv2.imread(sig[0], cv2.IMREAD_UNCHANGED).astype(np.float32); m = m / m.max() if m.max() else m
         ys, xs = np.where(m > 0.2)
         if len(ys):
-            pad = int(0.15 * max(xs.ptp(), ys.ptp())) + 16
+            pad = int(0.15 * max(np.ptp(xs), np.ptp(ys))) + 16
             y0, y1 = max(0, ys.min() - pad), min(h, ys.max() + pad); x0, x1 = max(0, xs.min() - pad), min(w, xs.max() + pad)
             touches = ys.min() <= 1 or xs.min() <= 1 or ys.max() >= h - 2 or xs.max() >= w - 2
             crop = os.path.join(dst, tag + '_sigcrop100.png')

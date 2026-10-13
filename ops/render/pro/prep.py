@@ -89,6 +89,8 @@ PINNED_CV2 = '4.12.0'
 
 
 def main():
+    if cv2 is None:
+        raise SystemExit('prep.py needs opencv (see ops/render/pro/requirements.txt)')
     if cv2.__version__ != PINNED_CV2 and os.environ.get('PRO_ALLOW_CV2') != '1':
         raise SystemExit(f'opencv {cv2.__version__} != pinned {PINNED_CV2} (placements are cv2-version dependent); see ops/render/pro/requirements.txt')
     bdir, out, art_p, sig_p = sys.argv[1:5]
@@ -149,7 +151,7 @@ def main():
                 cx_m = lo[0] + (cand[:, 1] + 0.5) * res
                 xk = np.where(kr.any(0))[0]
                 left = cx_m + (xk.min() - kr.shape[1] // 2) * res
-                lean = left - bevel_x0 if side == 'front' else left - bevel_x0
+                lean = left - bevel_x0   # same rule both sides (back is laid out unmirrored as seen from +Y)
                 i = int(np.argmin(np.abs(lean)))
                 if abs(lean[i]) > cfg['blade_start_tol_mm'] * 1e-3: continue
                 c = cand[i]
