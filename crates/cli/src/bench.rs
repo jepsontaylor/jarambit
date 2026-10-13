@@ -30,6 +30,7 @@ pub fn run(genomes: &str, tier: &str, n: usize, threads: usize, area: f64) -> bo
                 "cert" => { let p = pheno::build(g); match fem::certify(&p) { Some((f, _)) => (f.lat_rob + f.ring_rob, true), None => (0.0, false) } }
                 _ => { let r = qd::evaluate(g, i, 0, area); match &r.fem { Some(f) => (f.lat_rob + f.ring_rob, true), None => (r.mass_g, false) } }
             };
+            if std::env::var_os("JARAMBIT_BENCH_DUMP").is_some() { eprintln!("design {i} {chk:.17e}"); }
             (t1.elapsed().as_secs_f64(), chk, ok) }).collect::<Vec<_>>()) }).collect();
         hs.into_iter().flat_map(|h| h.join().unwrap()).collect() });
     let wall = t0.elapsed().as_secs_f64();

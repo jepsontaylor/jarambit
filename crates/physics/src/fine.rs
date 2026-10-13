@@ -227,17 +227,24 @@ fn rcm(n: usize, tris: &[[usize; 3]]) -> Vec<usize> {
     order
 }
 
-/// Sparse SPD factor used by Plate / T6. Default backend: faer supernodal sparse Cholesky
-/// (AMD fill-reducing ordering, PR-0.31.2). `JARAMBIT_SOLVER=skyline` selects the original RCM
-/// skyline Cholesky (reference for `tests/solver_parity.rs`). Both reuse one factor for any number of RHS.
-pub(crate) enum Chol { Sky(Skyline), Faer { n: usize, llt: faer::sparse::linalg::solvers::Llt<usize, f64> } }
+/// Sparse SPD factor used by Plate / T6. faer supernodal sparse Cholesky
+/// (AMD fill-reducing ordering, PR-0.31.2) is OPT-IN via `JARAMBIT_SOLVER=faer`; the DEFAULT is the original RCM
+/// skyline Cholesky (issue #32: faer cert capacities drift up to 2.6e-8 vs skyline, above the 1e-9 owner bar). Both reuse one factor for any number of RHS.
+pub(crate) enum Chol { Sky(Skyline), Faer { n: usize, sym: faer::sparse::linalg::cholesky::SymbolicCholesky<usize>, l: Vec<f64>, a: faer::sparse::SparseColMat<usize, f64> } }
 
 /// Lower-triangle assembler: triplets for faer, direct skyline adds for the reference backend.
 pub(crate) enum Asm { Sky(Skyline), Trip { n: usize, t: Vec<faer::sparse::Triplet<usize, usize, f64>>, dmax: Vec<f64> } }
 
+/// Iterative-refinement steps after each faer solve (default 0; `JARAMBIT_FAER_REFINE=n`). Refinement does not move
+/// faer toward skyline (per-design drift stays ~1e-8 either way: both are at the double-precision floor of K).
+pub fn refine_steps() -> usize {
+    static R: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
+    *R.get_or_init(|| std::env::var("JARAMBIT_FAER_REFINE").ok().and_then(|v| v.parse().ok()).unwrap_or(0))
+}
+
 pub fn solver_backend() -> &'static str {
     static B: std::sync::OnceLock<&'static str> = std::sync::OnceLock::new();
-    B.get_or_init(|| if std::env::var("JARAMBIT_SOLVER").as_deref() == Ok("skyline") { "skyline" } else { "faer" })
+    B.get_or_init(|| if std::env::var("JARAMBIT_SOLVER").as_deref() == Ok("faer") { "faer" } else { "skyline" })
 }
 
 impl Asm {
@@ -254,15 +261,22 @@ impl Asm {
         match self {
             Asm::Sky(mut s) => s.factor().then_some(Chol::Sky(s)),
             Asm::Trip { n, t, dmax } => {
+                use faer::dyn_stack::{MemBuffer, MemStack};
+                use faer::sparse::linalg::cholesky as ch;
                 let a = faer::sparse::SparseColMat::<usize, f64>::try_new_from_triplets(n, n, &t).ok()?;
-                let llt = a.sp_cholesky(faer::Side::Lower).ok()?;
-                let c = Chol::Faer { n, llt };
-                // Same singularity criterion as the skyline path: a pivot below 1e-13 x max|diag(K)| means a
-                // mechanism. Probe: unit loads on every dof must give finite, bounded displacements.
-                let scale = dmax.iter().fold(0.0f64, |m, d| m.max(d.abs())).max(1e-300);
-                let mut b = vec![1.0; n]; c.solve(&mut b);
-                let lim = 1e13 / scale * (n as f64);
-                b.iter().all(|x| x.is_finite() && x.abs() < lim).then_some(c)
+                let sym = ch::factorize_symbolic_cholesky(a.symbolic(), faer::Side::Lower, Default::default(), Default::default()).ok()?;
+                // Issue #32: the SAME pivot criterion as the skyline path. faer's LDL-based kernel replaces every pivot
+                // d <= epsilon by delta; with epsilon = 1e-13 x max|diag(K)| (skyline: reject unless s > tol) and
+                // delta = 1e300, any such pivot leaves a 1e150 entry on diag(L), which no SPD stiffness can produce
+                // (|L_ij| <= sqrt(max K_ii)). Such a factor is a mechanism (fully or partially constrained) -> None.
+                let tol = (dmax.iter().fold(0.0f64, |m, d| m.max(d.abs())) * 1e-13).max(1e-300);
+                let reg = faer::linalg::cholesky::llt::factor::LltRegularization { dynamic_regularization_delta: 1e300, dynamic_regularization_epsilon: tol };
+                let mut l = vec![0.0f64; sym.len_val()];
+                let par = faer::Par::Seq;
+                let mut buf = MemBuffer::try_new(sym.factorize_numeric_llt_scratch::<f64>(par, Default::default())).ok()?;
+                sym.factorize_numeric_llt::<f64>(&mut l, a.as_ref(), faer::Side::Lower, reg, par, MemStack::new(&mut buf), Default::default()).ok()?;
+                if l.iter().any(|v| !v.is_finite() || v.abs() > 1e100) { return None; }
+                Some(Chol::Faer { n, sym, l, a })
             }
         }
     }
@@ -273,14 +287,31 @@ impl Chol {
     pub(crate) fn solve(&self, b: &mut [f64]) {
         match self {
             Chol::Sky(s) => s.solve(b),
-            Chol::Faer { llt, .. } => { use faer::linalg::solvers::SolveCore; let n = b.len(); llt.solve_in_place_with_conj(faer::Conj::No, faer::MatMut::from_column_major_slice_mut(b, n, 1)); }
+            Chol::Faer { .. } => { let n = b.len(); self.solve_many(b, if n == 0 { 0 } else { 1 }); }
         }
     }
     /// Multi-RHS solve with one factor: `bs` is column-major n x k.
     pub(crate) fn solve_many(&self, bs: &mut [f64], k: usize) {
         match self {
             Chol::Sky(s) => { for c in bs.chunks_mut(s.n) { s.solve(c); } }
-            Chol::Faer { n, llt } => { use faer::linalg::solvers::SolveCore; llt.solve_in_place_with_conj(faer::Conj::No, faer::MatMut::from_column_major_slice_mut(bs, *n, k)); }
+            Chol::Faer { n, sym, l, a } => {
+                use faer::dyn_stack::{MemBuffer, MemStack};
+                let (n, par) = (*n, faer::Par::Seq);
+                let mut buf = MemBuffer::new(sym.solve_in_place_scratch::<f64>(k, par));
+                let llt = faer::sparse::linalg::cholesky::LltRef::new(sym, l);
+                let rhs = bs.to_vec();
+                llt.solve_in_place_with_conj(faer::Conj::No, faer::MatMut::from_column_major_slice_mut(bs, n, k), par, MemStack::new(&mut buf));
+                // Issue #32 checksum drift: iterative refinement steps (r = f - K x, x += K^-1 r) so the result is the
+                // backward-stable solution, not one factor's rounding (stiffness condition numbers reach ~1e10).
+                for _ in 0..refine_steps() {
+                    let mut r = rhs.clone();
+                    for c in 0..k { let (x, rc) = (&bs[c * n..(c + 1) * n], &mut r[c * n..(c + 1) * n]);
+                        let (cp, ri, v) = (a.symbolic().col_ptr(), a.symbolic().row_idx(), a.val());
+                        for j in 0..n { for p in cp[j]..cp[j + 1] { let i = ri[p]; rc[i] -= v[p] * x[j]; if i != j { rc[j] -= v[p] * x[i]; } } } }
+                    llt.solve_in_place_with_conj(faer::Conj::No, faer::MatMut::from_column_major_slice_mut(&mut r, n, k), par, MemStack::new(&mut buf));
+                    for (x, d) in bs.iter_mut().zip(&r) { *x += d; }
+                }
+            }
         }
     }
 }

@@ -52,3 +52,30 @@ fn both_backends_reject_mechanisms() {
     assert!(pl.system_with(&free, true).is_none());
     assert!(pl.system_with(&free, false).is_none());
 }
+
+/// Issue #32: a coupon clamped at ONE node keeps the in-plane rigid rotation (u = -y, v = x). Skyline rejects it
+/// (pivot <= 1e-13 max diag); faer must reject it too, for Plate and T6, on every mesh density.
+#[test]
+fn both_backends_reject_partially_constrained_rotation() {
+    use jarambit_physics::fine::Mesh;
+    let mesh = Mesh { xy: vec![(0.0, 0.0), (25.0, 0.0), (0.0, 25.0), (25.0, 25.0)], tris: vec![[0, 1, 3], [0, 3, 2]],
+        on_outer: vec![true; 4], on_hole: vec![false; 4] };
+    let pl = Plate::new(mesh.clone(), 5.7, 113_800.0, 0.34);
+    let mut fixed = vec![false; pl.n() * 5]; fixed[..5].fill(true);
+    assert!(pl.system_with(&fixed, true).is_none(), "skyline accepted the plate mechanism");
+    assert!(pl.system_with(&fixed, false).is_none(), "faer accepted the plate mechanism");
+    let t6 = T6::new(&mesh, 5.7, 113_800.0, 0.34);
+    let mut fx = vec![false; t6.n() * 2]; fx[..2].fill(true);
+    assert!(t6.system_with(&fx, true).is_none(), "skyline accepted the T6 mechanism");
+    assert!(t6.system_with(&fx, false).is_none(), "faer accepted the T6 mechanism");
+    // larger unstructured meshes, single clamped node (both corner-clamped and a pinned interior-boundary node)
+    let (o, h) = domain();
+    for area in [2.0, 6.0] {
+        let pl = Plate::new(mesh_domain(&o, &h, area).unwrap(), 3.5, 113_800.0, 0.34);
+        let mut f = vec![false; pl.n() * 5]; f[..5].fill(true);
+        assert!(pl.system_with(&f, true).is_none() && pl.system_with(&f, false).is_none(), "plate area {area}");
+        let t6 = T6::new(&mesh_domain(&o, &h, area).unwrap(), 3.5, 113_800.0, 0.34);
+        let mut f = vec![false; t6.n() * 2]; f[..2].fill(true);
+        assert!(t6.system_with(&f, true).is_none() && t6.system_with(&f, false).is_none(), "t6 area {area}");
+    }
+}
