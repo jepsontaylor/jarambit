@@ -1,0 +1,105 @@
+# jarambit finish library (schema jarambit.finish.library.v1)
+# Each entry is applied ONLY to zone 0 (coat) of finish_masks.npz.  Blade flats / bevels / apex /
+# serrations are always bare house finishes (`bare:` may pick WHICH bare finish, never a coat).
+#
+# layers[0..1]: {film: {nm | stops:[[p, nm], ...], jitter_nm}} -> spectral TiO2-on-Ti interference LUT
+#               or {base_color_lin, metallic, roughness, ior, f82} for PVD/DLC/bare
+# pattern:      kind none|gradient|heat_bands|timascus|tiger_stripe|oil_slick|acid_etch -> p in [0,1]
+#               mapped along the knife arc (s, t from blade_mask.py) or solid 3-D (no UV seams)
+# mix_stops:    p -> layer mix (0 = layer0, 1 = layer1)
+# micro:        bead_blast|stonewash|satin_lines|none ; anisotropy uses the CAD finish tangent
+# edge_wear:    convex edges burnished to bare Ti (Bevel-normal curvature x noise breakup)
+# cavity:       local AO darkening/roughening of slots, bores, grooves
+# Thin-film reference (thinfilm.py chart): 24 nm bronze, 38 purple, 50 royal blue, 68 light blue,
+#   90 champagne, 115 gold, 142 magenta, 160 violet, 180 teal, 205 green.
+
+# bare (uncoated) blade-side finishes, in addition to presets/finish_ti64.json
+_bare_specs:
+  blade_stonewash_fine: {roughness: 0.30, roughness_range: [0.24, 0.36], anisotropy: 0.0, micro: stonewash, bump: 0.006}
+
+ti_bronze_stonewash:
+  label: "Ti anodized bronze, stonewashed"
+  layers: [{film: {nm: 24, jitter_nm: 1.5}, roughness: 0.30}]
+  micro: stonewash
+  bump: 0.02
+  edge_wear: {amount: 0.85, width_mm: 0.35}
+  cavity: {amount: 0.5}
+
+ti_royal_blue_satin:
+  label: "Ti anodized royal blue (50 nm), brushed"
+  layers: [{film: {nm: 50, jitter_nm: 1.5}, roughness: 0.17}]
+  micro: satin_lines
+  anisotropy: 0.7
+  edge_wear: {amount: 0.6, width_mm: 0.3}
+  cavity: {amount: 0.4}
+
+ti_gold_beadblast:
+  label: "Ti anodized gold (115 nm), bead-blasted"
+  layers: [{film: {nm: 120, jitter_nm: 2.0}, roughness: 0.36}]
+  micro: bead_blast
+  grain_um: 40
+  bump: 0.04
+  edge_wear: {amount: 0.7, width_mm: 0.35}
+  cavity: {amount: 0.45}
+
+ti_flame_heat:
+  label: "Heat-anodized flame gradient along the arc"
+  layers:
+    - film: {stops: [[0.0, 205], [0.12, 180], [0.26, 160], [0.38, 140], [0.50, 115], [0.62, 68], [0.74, 50], [0.86, 38], [1.0, 24]], jitter_nm: 3}
+      roughness: 0.22
+  pattern: {kind: heat_bands, centre: 0.18, width: 0.55, warp: 0.08, warp_scale_mm: 10}
+  micro: stonewash
+  bump: 0.015
+  edge_wear: {amount: 0.5, width_mm: 0.3}
+  cavity: {amount: 0.35}
+
+ti_oil_slick:
+  label: "Rainbow / oil-slick anodize (variable film)"
+  layers:
+    - film: {stops: [[0.0, 38], [0.2, 50], [0.35, 68], [0.5, 115], [0.65, 142], [0.8, 160], [1.0, 180]]}
+      roughness: 0.14
+  pattern: {kind: oil_slick, scale_mm: 45, distortion: 1.5, seed: 3}
+  micro: none
+  roughness_var: 0.04
+  edge_wear: {amount: 0.4, width_mm: 0.3}
+  cavity: {amount: 0.3}
+
+timascus_marbled:
+  label: "Timascus marbled layers, heat-coloured"
+  layers:
+    - film: {stops: [[0.0, 24], [0.2, 38], [0.4, 50], [0.6, 68], [0.8, 115], [1.0, 142]], interp: CONSTANT}
+      roughness: 0.20
+  pattern: {kind: timascus, period_mm: 16, distortion: 4, detail: 2, detail_scale: 1.0, layers: 6, t_mix_mm: 5, seed: 7}
+  micro: stonewash
+  bump: 0.012
+  edge_wear: {amount: 0.55, width_mm: 0.3}
+  cavity: {amount: 0.35}
+
+dlc_black_stonewash:
+  label: "Black DLC, stonewashed"
+  layers: [{base_color_lin: [0.012, 0.012, 0.013], metallic: 0.25, roughness: 0.30, ior: 2.1}]
+  micro: stonewash
+  bump: 0.02
+  edge_wear: {amount: 0.75, width_mm: 0.3, worn_roughness: 0.22}
+  cavity: {amount: 0.3}
+
+pvd_bronze_satin:
+  label: "Bronze PVD (ZrN/TiCN-type), satin"
+  layers: [{base_color_lin: [0.42, 0.25, 0.10], f82: [0.95, 0.85, 0.72], metallic: 1.0, roughness: 0.22}]
+  micro: satin_lines
+  anisotropy: 0.6
+  edge_wear: {amount: 0.5, width_mm: 0.3}
+  cavity: {amount: 0.35}
+
+dlc_tiger_stripe:
+  label: "Black DLC with acid-washed tiger stripes"
+  layers:
+    - {base_color_lin: [0.012, 0.012, 0.013], metallic: 0.25, roughness: 0.28, ior: 2.1}
+    - {base_color_lin: [0.50, 0.47, 0.43], metallic: 1.0, roughness: 0.38, f82: [0.62, 0.59, 0.56]}
+  pattern: {kind: tiger_stripe, period_mm: 24, distortion: 2.5, detail: 2, detail_scale: 0.8, threshold: 0.68, feather: 0.06, t_mix_mm: 18, seed: 2}
+  mix_stops: [[0, 0], [1, 1]]
+  micro: bead_blast
+  grain_um: 50
+  bump: 0.03
+  edge_wear: {amount: 0.6, width_mm: 0.3}
+  cavity: {amount: 0.3}

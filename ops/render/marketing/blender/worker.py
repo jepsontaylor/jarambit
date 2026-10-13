@@ -272,22 +272,30 @@ def run(req, force=False, threads=16):
     part.data.polygons.foreach_set("material_index", np.asarray(mesh["region_id"], np.int32))
     part.data.update()
 
-    # maker's mark: automatic placement on the canonical mesh, then posed; final material overlay.
-    # On by default for every shot; a request may only turn it off explicitly (recorded).
-    sig_req = req.get('signature') or {}
-    sig_rec = {'enabled': bool(sig_req.get('enabled', True))}
-    sig_pl = []
-    if sig_rec['enabled']:
-        cv, cf = mesh['V'] @ Rp, mesh['F']  # canonical (Rp orthonormal: V_canon = V_posed @ Rp)
-        sig = signature.place(cv, cf, {k: v for k, v in sig_req.items() if k != 'enabled'})
-        sig_pl = [signature.transform(p, Rp) if p.get('ok') else p for p in sig['placements']]
-        sig_rec.update({'schema': sig['schema'], 'asset': sig['asset'], 'params': sig['params'],
-                        'placements_canonical': sig['placements'], 'placements_posed': sig_pl})
-        sig_rec['material'] = materials.apply_signature(part, sig_pl, sig['asset']['mask'], sig['params'])
-        for p in sig['placements']:
-            print(f"[worker] signature {p['side']}: " + (f"centre {p['center_m']} {p['width_m']*1e3:.2f}x"
-                  f"{p['height_m']*1e3:.2f} mm rot {p['rotation_deg']} deg" if p.get('ok') else p.get('reason')),
-                  flush=True)
+    if req.get('finish_library'):  # finishlib: zone masks -> library coat on zone 0, bare blade zones; mark=zone5
+        sys.path.insert(0, os.path.join(os.path.dirname(HERE), 'finishlib'))
+        import blender_finish  # noqa: E402
+        mat_rec = blender_finish.apply(part, req['finish_library'], finish)
+        # maker mark handled inside finishlib (zone 5); do not double-apply signature overlay
+        sig_rec = {'enabled': False, 'via': 'finish_library'}
+        sig_pl = []
+    else:
+        # maker's mark: automatic placement on the canonical mesh, then posed; final material overlay.
+        # On by default for every shot; a request may only turn it off explicitly (recorded).
+        sig_req = req.get('signature') or {}
+        sig_rec = {'enabled': bool(sig_req.get('enabled', True))}
+        sig_pl = []
+        if sig_rec['enabled']:
+            cv, cf = mesh['V'] @ Rp, mesh['F']  # canonical (Rp orthonormal: V_canon = V_posed @ Rp)
+            sig = signature.place(cv, cf, {k: v for k, v in sig_req.items() if k != 'enabled'})
+            sig_pl = [signature.transform(p, Rp) if p.get('ok') else p for p in sig['placements']]
+            sig_rec.update({'schema': sig['schema'], 'asset': sig['asset'], 'params': sig['params'],
+                            'placements_canonical': sig['placements'], 'placements_posed': sig_pl})
+            sig_rec['material'] = materials.apply_signature(part, sig_pl, sig['asset']['mask'], sig['params'])
+            for p in sig['placements']:
+                print(f"[worker] signature {p['side']}: " + (f"centre {p['center_m']} {p['width_m']*1e3:.2f}x"
+                      f"{p['height_m']*1e3:.2f} mm rot {p['rotation_deg']} deg" if p.get('ok') else p.get('reason')),
+                      flush=True)
 
     # frames: resolve targets and distances
     frames = []
