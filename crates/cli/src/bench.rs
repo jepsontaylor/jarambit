@@ -66,3 +66,30 @@ pub fn calib_t1t2(genomes: &str, n: usize, stride: usize, threads: usize, area: 
     eprintln!("calib-t1t2: {} / {} designs with both tiers", rows.len(), gs.len());
     std::fs::write(out, s).is_ok()
 }
+
+/// v0.32: RS-karambit-v2 verdicts for named designs (certification tier). `genomes` = comma list of `label=path.csv`
+/// (one genome per file, as D1 fixtures). Writes one JSON per design to `out_dir/<label>.json`.
+pub fn rs_v2_eval(genomes: &str, out_dir: &str) -> bool {
+    std::fs::create_dir_all(out_dir).ok();
+    let mut ok = true;
+    for spec in genomes.split(',').filter(|s| !s.is_empty()) {
+        let (label, path) = spec.split_once('=').unwrap_or((spec, spec));
+        let Some(g) = crate::crescent::load_seeds(path, 1).into_iter().next() else { eprintln!("rs-v2-eval: no genome in {path}"); ok = false; continue };
+        let p = pheno::build(&g); let r = qd::evaluate(&g, 0, 0, 2.0);
+        let Some((f, _)) = fem::certify(&p) else { eprintln!("rs-v2-eval: {label}: certification failed"); ok = false; continue };
+        let (bw, band) = fem::ring_bearing(&p);
+        let screen = r.aes.pass && r.rejects.is_empty() && f.floors_ok && fem::twist_floor_ok(f.twist_body_sf, f.twist_tipzone_sf);
+        let j = serde_json::json!({"label": label, "genome": path, "requirement_set": "RS-karambit-v2", "tier": "T2 certification (fem::certify)",
+            "mass_g": p.mass_g, "t_mm": p.t, "aes_pass": r.aes.pass, "rejects": r.rejects, "floors_ok": f.floors_ok,
+            "lat_rob_n": f.lat_rob, "ring_rob_n": f.ring_rob, "twist_body_sf": f.twist_body_sf, "twist_tipzone_sf": f.twist_tipzone_sf,
+            "seq_ratio": f.seq_ratio, "hm_twist_sf": f.hm_twist_sf, "hm_tip_inplane_sf": f.hm_tip_inplane_sf, "hm_spine_sf": f.hm_spine_sf,
+            "hm_ringback_sf": f.hm_ringback_sf, "fat_sf": f.fat_sf, "ring_bearing_w_mm": bw, "ring_band_mm": band,
+            "groups": {"screen_plate": screen, "seq_hard": f.seq_ratio >= fem::SEQ_TARGET, "human_max": fem::rs_v2_human_max_pass(&f, &p),
+                       "fatigue": fem::rs_v2_fatigue_pass(&f)},
+            "all_hard": screen && f.seq_ratio >= fem::SEQ_TARGET && fem::rs_v2_human_max_pass(&f, &p) && fem::rs_v2_fatigue_pass(&f)});
+        let out = format!("{out_dir}/{label}.json");
+        if std::fs::write(&out, serde_json::to_string_pretty(&j).unwrap() + "\n").is_err() { ok = false; }
+        println!("{label}: all_hard={}", j["all_hard"]);
+    }
+    ok
+}

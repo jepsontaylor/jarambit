@@ -168,6 +168,20 @@ def release():
         s = rv[k]
         L.append(f'| {nm} | {s["min"]:.3f} / {s["median"]:.3f} / {s["max"]:.3f} | {s["n_pass"]} / {cal["n_designs"]} |')
     L += [f'| all human_max cases | — | **{rv["n_pass_human_max_all"]} / {cal["n_designs"]}** |', '',
+          '### RS-karambit-v2 hard-gate verdicts — named designs (`evidence/rs_v2/*.json`, `jarambit rs-v2-eval`, certification tier)', '',
+          '| design | mass g | plate screen (v1 floors, gates, twist) | seq ≥ 1.2 | human_max | L7 fatigue | all hard gates | governing shortfalls |', '|---|---|---|---|---|---|---|---|']
+    yn = lambda b: 'yes' if b else '**no**'
+    for fp in sorted(glob.glob(os.path.join(ROOT, 'evidence/rs_v2/*.json'))):
+        r = json.load(open(fp)); g = r['groups']; sh = []
+        if r['rejects']: sh.append('gate: ' + '; '.join(r['rejects']))
+        if r['twist_tipzone_sf'] < 1: sh.append(f'tip-zone twist SF {r["twist_tipzone_sf"]:.3f}')
+        if r['seq_ratio'] < 1.2: sh.append(f'seq {r["seq_ratio"]:.3f}')
+        for k, nm in (('hm_twist_sf', 'hm twist'), ('hm_tip_inplane_sf', 'hm tip'), ('hm_spine_sf', 'hm spine'), ('hm_ringback_sf', 'ring-back'), ('fat_sf', 'fatigue')):
+            if r[k] < 1: sh.append(f'{nm} {r[k]:.3f}')
+        if r['ring_bearing_w_mm'] < c2['ring_bearing_w_min_mm']: sh.append(f'bearing {r["ring_bearing_w_mm"]:.1f} mm')
+        L.append(f'| `{r["label"]}` | {r["mass_g"]:.2f} | {yn(g["screen_plate"])} | {yn(g["seq_hard"])} | {yn(g["human_max"])} | {yn(g["fatigue"])} | {yn(r["all_hard"])} | {", ".join(sh)} |')
+    n_all = sum(json.load(open(fp))['all_hard'] for fp in glob.glob(os.path.join(ROOT, 'evidence/rs_v2/*.json')))
+    L += ['', f'**{n_all} of {len(glob.glob(os.path.join(ROOT, "evidence/rs_v2/*.json")))} named designs pass every RS-karambit-v2 hard gate.** No design is promoted.', '',
           '### Calibration and solver speed', '',
           '| T1 → T2 case | factor | residual σ | σ ≤ ' + pct(cal['sigma_max'], 0) + ' |', '|---|---|---|---|']
     for k, s in cal['cases'].items():
