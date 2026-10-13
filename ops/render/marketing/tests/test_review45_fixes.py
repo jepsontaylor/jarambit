@@ -183,3 +183,17 @@ def test_gif_relative_frames_dir(tmp_path, monkeypatch):
     out = str(tmp_path / "o.gif")
     encode._gif_from_files([f"f{i}.png" for i in range(3)], "gifframes", out, 16, 16, 10)
     assert os.path.getsize(out) > 0
+
+
+def test_no_npz_override_render_verifies_adjacent_mesh(tmp_path):
+    import inspect
+    assert "npz_path" not in inspect.signature(pipeline.bundle_mismatch).parameters
+    parser_src = inspect.getsource(pipeline)
+    render_block = parser_src[parser_src.index('sub.add_parser("render")'):parser_src.index('render.set_defaults')]
+    assert "--npz" not in render_block
+    b, real = _bundle(tmp_path, "a" * 64)
+    plan = {"bundle": {"source_sha256": "a" * 64, "npz_sha256": real}, "regions_sha256": "missing"}
+    # a verified copy elsewhere does not help: the adjacent file the worker loads is what counts
+    Path(tmp_path, "verified.npz").write_bytes(Path(b).parent.joinpath("mesh.npz").read_bytes())
+    _npz(Path(b).parent / "mesh.npz", tri=((0, 0, 0), (3, 0, 0), (0, 3, 0)))
+    assert "mesh npz sha256" in pipeline.bundle_mismatch(plan, b, None)

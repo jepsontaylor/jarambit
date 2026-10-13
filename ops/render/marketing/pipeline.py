@@ -106,7 +106,7 @@ def cmd_plan(args):
     print(resolved["plan_key"])
 
 
-def bundle_mismatch(resolved, bundle_path, regions_path, npz_path=None):
+def bundle_mismatch(resolved, bundle_path, regions_path):
     """Return why the supplied bundle/regions do not match the resolved plan, or None.
 
     The worker consumes the bundle that is passed in, not the plan's record of it, so the
@@ -120,7 +120,8 @@ def bundle_mismatch(resolved, bundle_path, regions_path, npz_path=None):
     want = resolved.get("bundle") or {}
     if not want.get("npz_sha256") or not digest.get("npz_sha256"):
         return "plan and bundle must both pin a non-empty npz_sha256"
-    npz_path = npz_path or os.path.join(os.path.dirname(os.path.abspath(bundle_path)), "mesh.npz")
+    # the worker always loads mesh.npz next to the bundle, so that exact file is what gets verified
+    npz_path = os.path.join(os.path.dirname(os.path.abspath(bundle_path)), "mesh.npz")
     if not os.path.isfile(npz_path):
         return f"mesh npz missing: {npz_path}"
     actual = canon.sha256_file(npz_path)
@@ -149,7 +150,7 @@ def cmd_render(args):
             plan_mod.assert_hero_source(sha)
         except plan_mod.PlanError as exc:
             _die(str(exc))
-        problem = bundle_mismatch(resolved, args.bundle, args.regions, getattr(args, "npz", None))
+        problem = bundle_mismatch(resolved, args.bundle, args.regions)
         if problem:
             _die("refusing to dispatch: " + problem)
     blender = args.blender or toolchain_mod.find_blender() or ""
@@ -534,7 +535,6 @@ def build_parser():
     render.add_argument("--dest", required=True)
     render.add_argument("--bundle", default="")
     render.add_argument("--regions", default="")
-    render.add_argument("--npz", help="mesh.npz (default: next to --bundle); hashed against the plan before --execute")
     render.add_argument("--blender")
     render.add_argument("--worker")
     render.add_argument("--execute", action="store_true")

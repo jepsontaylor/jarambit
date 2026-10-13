@@ -544,7 +544,11 @@ def render_jobs(plan, dest, bundle_path, regions_path, blender, worker, hosts=No
                 remote_worker = os.path.join(remote_worker_dir, os.path.basename(worker))
                 staged = os.path.join(dest, "remote_requests", state["name"], os.path.basename(job["request_path"]))
                 canon.atomic_write_json(staged, updated)
-                push_files(ssh_host, [bundle_path, regions_path], os.path.join(root, "inputs"))
+                # ship the verified bundle-adjacent mesh.npz with the bundle: the worker loads
+                # mesh.npz next to the bundle, so the remote copy must be the preflight-verified one
+                adjacent_npz = os.path.join(os.path.dirname(os.path.abspath(bundle_path)), "mesh.npz")
+                push_files(ssh_host, [p for p in (bundle_path, regions_path, adjacent_npz) if p and os.path.isfile(p)],
+                           os.path.join(root, "inputs"))
                 siblings = []
                 worker_dir = os.path.dirname(os.path.abspath(worker))
                 if os.path.isdir(worker_dir):
