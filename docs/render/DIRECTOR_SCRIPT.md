@@ -30,7 +30,7 @@ frame boundaries are kept so the data edition can drop in later.
 | S02 SPINE RECESSES + MARK | [72,180) | 2.4–6.0 | −36→−26° / 24→20° / 135 / f8 | slow lateral drift | 6→12° | 3–5 real spine recesses + bevel + the mark: bright wall / dark recess rhythm | — |
 | S03 RING TO MARK, LOW | [180,252) | 6.0–8.4 | −44→−38° / 6→5° / 85 / f8 | short arc | hold 12° | Ring depth and negative space; the mark stays in frame | — |
 | S04 THE COLOUR WAKES *(data slot)* | [252,432) | 8.4–14.4 | −14° / 10° / 85 / f8 | locked | −18→+18° sweep | The single movement is the light. Anodized hue drift and coat ribbon cross the art; blacks stay polished dark Ti | `LOOK AGAIN.` at f270 |
-| S05 THE MARK | [432,540) | 14.4–18.0 | −14→−8° / 9→7° / 135 / f8 | push fill 0.62→0.70 | 18→10° | Gold signature macro on dark starfield; edge grind runs below it | — |
+| S05 THE MARK | [432,540) | 14.4–18.0 | −14→−8° / 9→7° / 135 / f8 | push fill 0.62→0.70 | 18→10° | Bare laser-etched signature macro on dark starfield; bare edge grind runs below it | — |
 | S06 THE OTHER FACE *(comparison slot)* | [540,780) | 18.0–26.0 | part rotated 180° (cut), −12→+12° / 6° / 85 / f11 | slow arc | hold | Back face with its own upright mark; the art is the through-print mirror | — |
 | S07 FLOOR REFLECTION | [780,990) | 26.0–33.0 | −26→−8° / 2.5→3.5° / 85 / f8 | low arc | −6→+6° | Earned appreciation: object and its quieter reflection | — |
 | S08 RESOLVE / LOOP | [990,1140) | 33.0–38.0 | −20° / 12° / 85 / f8 (= S01) | locked | 12→0° (= frame 0) | Returns to the S01 state, so the seam is honest | `NEVER HUMAN` small, f1035 |

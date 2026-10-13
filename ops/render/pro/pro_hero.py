@@ -9,11 +9,8 @@ import json, math, os, sys, hashlib, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 MK = os.path.join(HERE, '..', 'marketing')
 sys.path.insert(0, os.path.join(MK, 'blender')); sys.path.insert(0, HERE)
-import bpy, numpy as np
-from mathutils import Vector
-from bpy_extras.object_utils import world_to_camera_view
-import scene, lights, materials
-import prep as P   # sig_uv shared with the layout solver
+from runtime import ensure_memcap, GIB
+ensure_memcap(blender=True)   # Establish the hard cap before reading user-supplied inputs.
 
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 A = dict(zip(argv[::2], argv[1::2]))
@@ -21,6 +18,13 @@ PREP = os.path.expanduser(A['--prep']); OUT = os.path.expanduser(A['--out']); os
 CFG = json.load(open(A.get('--cfg', os.path.join(HERE, 'shots.json'))))
 RES = A.get('--res', '4k'); RX, RY = CFG['resolutions'][RES]
 SPP = int(A.get('--spp', CFG['spp']))
+THREADS = ensure_memcap(fixed_bytes=2 * GIB + RX * RY * 256, blender=True)
+import bpy, numpy as np
+from mathutils import Vector
+from bpy_extras.object_utils import world_to_camera_view
+import scene, lights, materials
+import prep as P   # sig_uv shared with the layout solver
+import qa as Q
 MAN = json.load(open(os.path.join(PREP, 'prep.json')))
 LOOK = CFG['look']
 
@@ -127,27 +131,41 @@ def art_material():
     metal = mix_f(N, L, k.outputs['Result'], LOOK['black_metallic'], LOOK['art_metallic'])
     sig = mix_f(N, L, back, sig_mask(N, L, xyz, 'front'), sig_mask(N, L, xyz, 'back'))
     sig = math_node(N, L, 'MULTIPLY', sig, face)
-    gold = tuple(LOOK['gold']) + (1,)
     bs = N('ShaderNodeBsdfPrincipled')
-    L(mix_rgb(N, L, sig, col, gold), bs.inputs['Base Color'])
-    L(mix_f(N, L, sig, metal, 1.0), bs.inputs['Metallic'])
-    L(mix_f(N, L, sig, LOOK['art_rough'], LOOK['gold_rough']), bs.inputs['Roughness'])
-    L(mix_rgb(N, L, sig, col, gold), bs.inputs['Specular Tint'])
+    L(col, bs.inputs['Base Color']); L(metal, bs.inputs['Metallic'])
+    bs.inputs['Roughness'].default_value = LOOK['art_rough']
+    L(col, bs.inputs['Specular Tint'])
     bs.inputs['Coat Weight'].default_value = LOOK['coat']; bs.inputs['Coat Roughness'].default_value = LOOK['coat_rough']
     bs.inputs['Thin Film Thickness'].default_value = LOOK['film_nm']; bs.inputs['Thin Film IOR'].default_value = 2.3
-    L(mix_rgb(N, L, sig, (0, 0, 0, 1), gold), bs.inputs['Emission Color'])
-    bs.inputs['Emission Strength'].default_value = LOOK['gold_emit']
-    L(bs.outputs[0], out.inputs['Surface'])
+    L(protect_signature(N, L, sig, bs.outputs[0]), out.inputs['Surface'])
     aov = N('ShaderNodeOutputAOV'); aov.aov_name = 'sig'; L(sig, aov.inputs['Value'])
     return m
 
 
 def ti_material():
     m, nt, N, L = mk('pro_ground_ti'); out = N('ShaderNodeOutputMaterial'); bs = N('ShaderNodeBsdfPrincipled')
-    bs.inputs['Base Color'].default_value = tuple(LOOK['ground_ti']) + (1,); bs.inputs['Metallic'].default_value = 1
-    bs.inputs['Roughness'].default_value = LOOK['ground_rough']; L(bs.outputs[0], out.inputs['Surface'])
+    bs.inputs['Base Color'].default_value = (0.72, 0.70, 0.67, 1); bs.inputs['Metallic'].default_value = 1
+    bs.inputs['Roughness'].default_value = 0.06
+    for key in ('Coat Weight', 'Thin Film Thickness', 'Anisotropic', 'Emission Strength'):
+        bs.inputs[key].default_value = 0
+    L(bs.outputs[0], out.inputs['Surface'])
     aov = N('ShaderNodeOutputAOV'); aov.aov_name = 'sig'; aov.inputs['Value'].default_value = 0.0
     return m
+
+
+def protect_signature(N, L, sig, finish):
+    """The laser-etched mark is its own bare-metal region, independent of every finish knob."""
+    bare = N('ShaderNodeBsdfPrincipled'); bare.name = 'protected_laser_etched_ti'
+    bare.inputs['Base Color'].default_value = (0.12, 0.13, 0.14, 1)
+    bare.inputs['Metallic'].default_value = 1
+    bare.inputs['Roughness'].default_value = 0.22
+    for key in ('Coat Weight', 'Thin Film Thickness', 'Anisotropic', 'Emission Strength'):
+        bare.inputs[key].default_value = 0
+    mix = N('ShaderNodeMixShader')
+    # Any ink coverage is protected, including antialiased stroke boundaries.
+    L(math_node(N, L, 'GREATER_THAN', sig, 0.0), mix.inputs[0])
+    L(finish, mix.inputs[1]); L(bare.outputs[0], mix.inputs[2])
+    return mix.outputs[0]
 
 
 def lut_image(name, rows):
@@ -186,15 +204,12 @@ def flame_material():
         key = math_node(N, L, 'MAXIMUM', math_node(N, L, 'SUBTRACT', outer, sig), 0.0)
     else:
         sig, key = outer, None
-    gold = tuple(LOOK['gold']) + (1,)
     bs = N('ShaderNodeBsdfPrincipled'); bs.inputs['Metallic'].default_value = 1.0
     if key is not None:
         kc = tuple(F['keyline_rgb']) + (1,)
         f0 = mix_rgb(N, L, key, f0, kc); f82 = mix_rgb(N, L, key, f82, kc)
-    L(mix_rgb(N, L, sig, f0, gold), bs.inputs['Base Color'])
-    L(mix_rgb(N, L, sig, f82, gold), bs.inputs['Specular Tint'])
+    L(f0, bs.inputs['Base Color']); L(f82, bs.inputs['Specular Tint'])
     rough = mix_f(N, L, face, F.get('wall_rough', F['rough']), F['rough'])
-    rough = mix_f(N, L, sig, rough, LOOK['gold_rough'])
     if key is not None: rough = mix_f(N, L, key, rough, F['keyline_rough'])
     L(rough, bs.inputs['Roughness'])
     # clearcoat only on the anodized broad faces: not on the inlaid mark/keyline (it washed the gold to cream)
@@ -204,9 +219,7 @@ def flame_material():
     if F.get('aniso'):   # satin brush along the blade arc: tangent circles about the plate normal (Y)
         tg = N('ShaderNodeTangent'); tg.direction_type = 'RADIAL'; tg.axis = 'Y'
         L(tg.outputs[0], bs.inputs['Tangent']); L(math_node(N, L, 'MULTIPLY', face, F['aniso']), bs.inputs['Anisotropic'])
-    L(mix_rgb(N, L, sig, (0, 0, 0, 1), gold), bs.inputs['Emission Color'])
-    bs.inputs['Emission Strength'].default_value = LOOK['gold_emit']
-    L(bs.outputs[0], out.inputs['Surface'])
+    L(protect_signature(N, L, outer, bs.outputs[0]), out.inputs['Surface'])
     aov = N('ShaderNodeOutputAOV'); aov.aov_name = 'sig'; L(outer, aov.inputs['Value'])
     return m
 
@@ -217,12 +230,12 @@ if FINISH in CFG.get('finishes', {}):   # named anodize variants ride the thin-f
 FILM_PATH = FINISH == 'flame' or FINISH in CFG.get('finishes', {})
 if FILM_PATH:
     LOOK['exposure'] = CFG['flame'].get('exposure_ev', LOOK['exposure']); LOOK.update(CFG['flame'].get('look', {}))
-    ART_M = flame_material(); TI_M = ART_M if CFG['flame'].get('bevel_flamed', True) else ti_material()
+    ART_M = flame_material(); TI_M = ti_material()
 else:
     ART_M, TI_M = art_material(), ti_material()
 for i in range(len(labels)):
     lab = labels[str(i)]
-    part.data.materials.append((ti_material() if (FILM_PATH and lab == 'edge_apex') else TI_M) if lab in ('bevel', 'edge_apex', 'serration') else ART_M)
+    part.data.materials.append(TI_M if lab in ('bevel', 'edge_apex', 'serration') else ART_M)
 part.data.update()
 
 sc = bpy.context.scene
@@ -264,6 +277,7 @@ scene.build_world(rig['world'], hdri)
 light_rec = lights.build(rig, D, np.zeros(3), exposure_scale=2.0 ** (rig['exposure_ev'] + CFG['ev']))
 
 r = sc.render; r.engine = 'CYCLES'; r.resolution_x, r.resolution_y, r.resolution_percentage = RX, RY, 100
+r.threads_mode = 'FIXED'; r.threads = THREADS
 scene.gpu_devices('OPTIX'); cy = sc.cycles; cy.device = 'GPU'
 cy.samples = SPP; cy.use_adaptive_sampling = True; cy.adaptive_threshold = CFG['adaptive_threshold']
 cy.adaptive_min_samples = min(SPP, 64)
@@ -520,9 +534,22 @@ def apply_fault(kind):
     dg.update()
 
 
+def image_pixels(png):
+    """Copy pixels without a Python-float list; release Blender's buffer even on errors."""
+    im = bpy.data.images.load(png)
+    try:
+        values = np.empty(len(im.pixels), np.float32)
+        im.pixels.foreach_get(values)
+        return values.reshape(RY, RX, -1)
+    finally:
+        bpy.data.images.remove(im)
+
+
 def frame_qa_image(png, tag):
     """Whole-frame review aid: clipped fraction over the WHOLE frame and the largest clipped blob."""
-    im = bpy.data.images.load(png); a_ = np.array(im.pixels[:], np.float32).reshape(RY, RX, -1)[:, :, :3]
+    a_ = image_pixels(png)[:, :, :3]
+    if not np.isfinite(a_).all():
+        return {'pass': False, 'error': 'non-finite frame pixels'}
     clip = a_.max(2) >= 0.995
     frac = float(clip.mean())
     # largest 4-connected clipped component (cheap flood on a downsample)
@@ -554,88 +581,116 @@ def lerp_shot(S, f):
     return sh
 
 
-if '--anim' in A:
-    AN = json.load(open(A['--anim'])); step = int(A.get('--step', 1)); log = []
+def run_animation():
+    AN = json.load(open(A['--anim'])); step = int(A.get('--step', 1))
     lt0 = {n: (l_.copy(), r_.copy()) for n, (l_, r_) in BASE_LIGHTS.items()}
     r.image_settings.file_format = 'PNG'; r.image_settings.color_depth = '16'; r.image_settings.color_mode = 'RGB'
     want = set(int(x) for x in A['--frames'].split(',')) if '--frames' in A else None
     DRY = A.get('--dry') == '1'
-    for S in AN['shots']:
-        fr = range(S['frames'][0], S['frames'][1], step) if want is None else sorted(x for x in want if S['frames'][0] <= x < S['frames'][1])
-        for f in fr:
-            sh = lerp_shot(S, f)
-            reset_lights()
-            if 'light_rot_deg' in sh:   # authored lighting arc: whole rig rotates about Z, part fixed
-                Rz = __import__('mathutils').Matrix.Rotation(math.radians(sh['light_rot_deg']), 4, 'Z')
-                from mathutils import Matrix
-                for n, (l_, r_) in lt0.items():   # from the authored base state, never from the worker's last frame
-                    sc.objects[n].matrix_world = Rz @ Matrix.LocRotScale(l_, r_.to_quaternion(), Vector((1, 1, 1)))
-                dg.update()
-            place_camera(sh); aim_mirror_lights(sh); adj = clear_lights()
-            if A.get('--fault'): apply_fault(A['--fault'])
-            ql = qa_lights(); qs = qa_sig_frame(sh['sig_side'])
-            st, h = physical_state()
-            rec = {'frame': f, 'shot': S['name'], 'lights_pass': ql['pass'], 'raised': adj, 'sig': qs,
-                   'sig_mesh_pass': all(m['pass'] for m in mesh_qa.values()), 'physical_state_sha256': h, 'state': st}
-            if not (ql['pass'] and qs['pass'] and rec['sig_mesh_pass']):
-                print('QAFAIL', json.dumps({k: rec[k] for k in ('frame', 'shot', 'lights_pass', 'sig', 'sig_mesh_pass')}), flush=True)
-            if not DRY:
-                r.filepath = os.path.join(OUT, f'f{f:05d}.png'); bpy.ops.render.render(write_still=True)
-                rec['image'] = frame_qa_image(r.filepath, f)
-            log.append(rec)
-    json.dump({'schema': 'jarambit.render.pro.anim_qa.v1', 'fps': AN['fps'], 'film': AN.get('title'), 'finish': FINISH,
-               'code': CODE_ID, 'material_state_sha256': hashlib.sha256(json.dumps({**MATERIAL_STATE, 'finish': FINISH}, sort_keys=True, default=str).encode()).hexdigest(),
-               'fault': A.get('--fault'), 'render_ready': not A.get('--fault'), 'release_ready': False,
-               'release_note': 'human creative + presentation sign-off required; C.10a = design candidate, not certified',
-               'frames': log,
-               'all_pass': all(x['lights_pass'] and x['sig']['pass'] and x['sig_mesh_pass'] and x.get('image', {}).get('pass', True) for x in log)},
-              open(os.path.join(OUT, A.get('--receipt', 'anim_qa.json')), 'w'), indent=1)
-    raise SystemExit(0)
+    header = {'schema': 'jarambit.render.pro.anim_qa.v1', 'fps': AN['fps'], 'film': AN.get('title'), 'finish': FINISH,
+              'code': CODE_ID, 'material_state_sha256': hashlib.sha256(json.dumps({**MATERIAL_STATE, 'finish': FINISH}, sort_keys=True, default=str).encode()).hexdigest(),
+              'fault': A.get('--fault'), 'release_ready': False,
+              'release_note': 'human creative + presentation sign-off required; C.10a = design candidate, not certified'}
+    path = os.path.join(OUT, A.get('--receipt', 'anim_qa.json'))
+    with Q.AnimationReceipt(path, header, dry=DRY) as receipt:
+        for S in AN['shots']:
+            fr = range(S['frames'][0], S['frames'][1], step) if want is None else sorted(x for x in want if S['frames'][0] <= x < S['frames'][1])
+            for f in fr:
+                sh = lerp_shot(S, f)
+                reset_lights()
+                if 'light_rot_deg' in sh:   # authored lighting arc: whole rig rotates about Z, part fixed
+                    Rz = __import__('mathutils').Matrix.Rotation(math.radians(sh['light_rot_deg']), 4, 'Z')
+                    from mathutils import Matrix
+                    for n, (l_, r_) in lt0.items():
+                        sc.objects[n].matrix_world = Rz @ Matrix.LocRotScale(l_, r_.to_quaternion(), Vector((1, 1, 1)))
+                    dg.update()
+                place_camera(sh); aim_mirror_lights(sh); adj = clear_lights()
+                if A.get('--fault'): apply_fault(A['--fault'])
+                ql = qa_lights(); qs = qa_sig_frame(sh['sig_side'])
+                st, h = physical_state()
+                rec = {'frame': f, 'shot': S['name'], 'lights_pass': ql.get('pass'), 'raised': adj, 'sig': qs,
+                       'edge_sharpness': MAN.get('edge_qa'),
+                       'sig_mesh_pass': all(Q.passed(mesh_qa.get(s)) for s in ('front', 'back')),
+                       'physical_state_sha256': h, 'state': st}
+                if not Q.pre_render_pass(MAN.get('edge_qa'), ql, qs, mesh_qa):
+                    rec['status'] = 'FAIL_PRE_RENDER'; receipt.add(rec)
+                    print('QAFAIL', json.dumps(rec), flush=True); return 1
+                if not DRY:
+                    r.filepath = os.path.join(OUT, f'f{f:05d}.png'); bpy.ops.render.render(write_still=True)
+                    try:
+                        rec['image'] = frame_qa_image(r.filepath, f)
+                    except Exception as e:
+                        rec['image'] = {'pass': False, 'error': str(e)}
+                ok = Q.frame_pass(rec, dry=DRY)
+                rec['status'] = ('QA_DRY' if DRY else 'RENDERED') if ok else 'FAIL_POST_RENDER'
+                receipt.add(rec)
+                if not ok:
+                    print('QAFAIL', json.dumps(rec), flush=True); return 1
+    return 0 if receipt.all_pass else 1
 
-only = set(A['--shots'].split(',')) if '--shots' in A else None
-for sh in CFG['shots']:
-    if FILM_PATH: sh = {**sh, **CFG['flame'].get('shot_overrides', {}).get(sh['name'], {})}
-    if only and sh['name'] not in only: continue
-    if RES not in sh.get('res', ['4k']): continue
-    reset_lights()
-    dist = place_camera(sh)
-    aim_mirror_lights(sh)
-    tag = f"{sh['name']}_{RES}" + ('' if FINISH == 'art' else '_' + FINISH)
-    light_adj = clear_lights()
-    ql = qa_lights(); ql['raised_el_deg'] = light_adj; qs = qa_sig_frame(sh['sig_side'])
-    qa = {'shot': tag, 'lights': ql, 'signature_frame': qs, 'signature_mesh': mesh_qa,
-          'edge_sharpness': MAN['edge_qa']}
-    if not (ql['pass'] and qs['pass'] and all(m['pass'] for m in mesh_qa.values())):
-        qa['status'] = 'FAIL_PRE_RENDER'; json.dump(qa, open(os.path.join(OUT, tag + '.qa.json'), 'w'), indent=1)
-        print('QAFAIL', json.dumps(qa), flush=True); continue
-    sc.frame_set(1)
-    t0 = time.time()
-    fo.file_slots[0].path = f'qa_sig_{tag}_'; fo.file_slots[1].path = f'qa_idx_{tag}_'
-    r.image_settings.file_format = 'OPEN_EXR_MULTILAYER'; r.image_settings.color_depth = '32'
-    r.image_settings.exr_codec = 'ZIP'
-    exr = os.path.join(OUT, tag + '.exr'); r.filepath = exr
-    bpy.ops.render.render(write_still=True)
-    img = bpy.data.images['Render Result']
-    s2 = sc.render.image_settings; s2.file_format = 'PNG'; s2.color_depth = '16'; s2.color_mode = 'RGB'; s2.compression = 15
-    png = os.path.join(OUT, tag + '.png'); img.save_render(png, scene=sc)
-    try:
-        pimg = bpy.data.images.load(png); px_ = np.array(pimg.pixels[:], np.float32).reshape(RY, RX, -1)[:, :, :3]
-        idx_p = os.path.join(OUT, f'qa_idx_{tag}_0001.png'); ii = bpy.data.images.load(idx_p)
-        idx = np.array(ii.pixels[:], np.float32).reshape(RY, RX, -1)[:, :, 0]
-        partm = (idx > 0.4) & (idx < 0.6)
-        clip = float((px_[partm].max(1) >= 0.995).mean()) if partm.any() else 0.0
-        qa['clipping'] = {'part_px_clipped_frac': round(clip, 5), 'limit': CFG.get('clip_limit', 0.002), 'pass': clip <= CFG.get('clip_limit', 0.002)}
-    except Exception as e:
-        qa['clipping'] = {'error': str(e)}
-    qa['image'] = frame_qa_image(png, tag); st_, h_ = physical_state()
-    qa.update({'physical_state_sha256': h_, 'code': CODE_ID, 'release_ready': False, 'label': MAN['source'].get('status_label') or 'design candidate, not certified'})
-    qa.update({'status': 'RENDERED', 'render_s': round(time.time() - t0, 1), 'spp': SPP, 'res': [RX, RY],
-               'camera': {'focal_mm': cd.lens, 'sensor_mm': 36, 'fstop': cd.dof.aperture_fstop if cd.dof.use_dof else None,
-                          'loc': list(cam.location), 'rot': list(cam.rotation_euler), 'dist_m': dist},
-               'shot_spec': sh, 'view': {'transform': 'AgX', 'look': LOOK['agx_look'], 'exposure': LOOK['exposure']},
-               'exr': exr, 'exr_sha256': sha(exr), 'png': png, 'png_sha256': sha(png)})
-    json.dump(qa, open(os.path.join(OUT, tag + '.qa.json'), 'w'), indent=1)
-    print('WROTE', png, flush=True)
-json.dump({'schema': 'jarambit.render.pro.run.v1', 'prep_sha256': sha(os.path.join(PREP, 'prep.json')),
-           'cfg': CFG, 'lights': light_rec, 'blender': bpy.app.version_string},
-          open(os.path.join(OUT, f'run_{RES}.json'), 'w'), indent=1, default=str)
+
+def run_stills():
+    only = set(A['--shots'].split(',')) if '--shots' in A else None
+    selected, failed = 0, 0
+    for sh in CFG['shots']:
+        if FILM_PATH: sh = {**sh, **CFG['flame'].get('shot_overrides', {}).get(sh['name'], {})}
+        if only and sh['name'] not in only: continue
+        if RES not in sh.get('res', ['4k']): continue
+        selected += 1
+        reset_lights()
+        dist = place_camera(sh)
+        aim_mirror_lights(sh)
+        tag = f"{sh['name']}_{RES}" + ('' if FINISH == 'art' else '_' + FINISH)
+        light_adj = clear_lights()
+        ql = qa_lights(); ql['raised_el_deg'] = light_adj; qs = qa_sig_frame(sh['sig_side'])
+        qa = {'shot': tag, 'lights': ql, 'signature_frame': qs, 'signature_mesh': mesh_qa,
+              'edge_sharpness': MAN.get('edge_qa')}
+        if not Q.pre_render_pass(MAN.get('edge_qa'), ql, qs, mesh_qa):
+            failed += 1
+            qa.update(status='FAIL_PRE_RENDER', all_pass=False)
+            json.dump(qa, open(os.path.join(OUT, tag + '.qa.json'), 'w'), indent=1)
+            print('QAFAIL', json.dumps(qa), flush=True); continue
+        sc.frame_set(1)
+        t0 = time.time()
+        fo.file_slots[0].path = f'qa_sig_{tag}_'; fo.file_slots[1].path = f'qa_idx_{tag}_'
+        r.image_settings.file_format = 'OPEN_EXR_MULTILAYER'; r.image_settings.color_depth = '32'
+        r.image_settings.exr_codec = 'ZIP'
+        exr = os.path.join(OUT, tag + '.exr'); r.filepath = exr
+        bpy.ops.render.render(write_still=True)
+        img = bpy.data.images['Render Result']
+        s2 = sc.render.image_settings; s2.file_format = 'PNG'; s2.color_depth = '16'; s2.color_mode = 'RGB'; s2.compression = 15
+        png = os.path.join(OUT, tag + '.png'); img.save_render(png, scene=sc)
+        try:
+            px_ = image_pixels(png)[:, :, :3]
+            idx = image_pixels(os.path.join(OUT, f'qa_idx_{tag}_0001.png'))[:, :, 0]
+            partm = (idx > 0.4) & (idx < 0.6)
+            if not partm.any() or not np.isfinite(px_).all():
+                raise ValueError('missing part mask or non-finite pixels')
+            clip = float((px_[partm].max(1) >= 0.995).mean())
+            qa['clipping'] = {'part_px_clipped_frac': round(clip, 5), 'limit': CFG.get('clip_limit', 0.002), 'pass': clip <= CFG.get('clip_limit', 0.002)}
+        except Exception as e:
+            qa['clipping'] = {'pass': False, 'error': str(e)}
+        try:
+            qa['image'] = frame_qa_image(png, tag)
+        except Exception as e:
+            qa['image'] = {'pass': False, 'error': str(e)}
+        st_, h_ = physical_state()
+        ok = Q.still_pass(qa)
+        failed += int(not ok)
+        qa.update({'physical_state_sha256': h_, 'code': CODE_ID, 'release_ready': False, 'label': MAN['source'].get('status_label') or 'design candidate, not certified'})
+        qa.update({'status': 'RENDERED' if ok else 'FAIL_POST_RENDER', 'all_pass': ok,
+                   'render_s': round(time.time() - t0, 1), 'spp': SPP, 'res': [RX, RY],
+                   'camera': {'focal_mm': cd.lens, 'sensor_mm': 36, 'fstop': cd.dof.aperture_fstop if cd.dof.use_dof else None,
+                              'loc': list(cam.location), 'rot': list(cam.rotation_euler), 'dist_m': dist},
+                   'shot_spec': sh, 'view': {'transform': 'AgX', 'look': LOOK['agx_look'], 'exposure': LOOK['exposure']},
+                   'exr': exr, 'exr_sha256': sha(exr), 'png': png, 'png_sha256': sha(png)})
+        json.dump(qa, open(os.path.join(OUT, tag + '.qa.json'), 'w'), indent=1)
+        print('WROTE' if ok else 'QAFAIL', png, flush=True)
+    ok = bool(selected and not failed)
+    json.dump({'schema': 'jarambit.render.pro.run.v1', 'prep_sha256': sha(os.path.join(PREP, 'prep.json')),
+               'cfg': CFG, 'lights': light_rec, 'blender': bpy.app.version_string, 'all_pass': ok},
+              open(os.path.join(OUT, f'run_{RES}.json'), 'w'), indent=1, default=str)
+    return 0 if ok else 1
+
+
+raise SystemExit(run_animation() if '--anim' in A else run_stills())

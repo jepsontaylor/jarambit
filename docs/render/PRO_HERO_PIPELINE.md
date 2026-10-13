@@ -46,7 +46,19 @@ isolated bevel run-out. Geometry is never altered to make an edge look sharp.
 `prep.py` solves each side's placement on a 0.1 mm layout grid. The ink footprint is dilated by 1.5 mm margin
 plus a 0.3 mm raster guard. It must sit entirely on flat broad-face pixels (no bevel, edge, serration or wall within
 the margin) and on dark art (dilated luminance < 0.10). The solver takes the largest size, then the left end closest to the blade start.
-It's rendered as polished gold (1.0/0.66/0.22, rough 0.06, metallic, clearcoat, emission 1.4 for legibility) with an AOV `sig`.
+It is a protected **bare laser-etched metal** region with an AOV `sig`. Its separate metal shader takes
+precedence over every finish, including antialiased ink coverage: no coat, thin film/LUT colour, brushing,
+or emission. Finish `gold_*` look settings do not affect it. Bevel, edge-apex and serration grinds also
+always use bare metal; `bevel_flamed` cannot opt them into a film shader.
+
+## Memory and admission
+Every pro CLI entry verifies a real cgroup limit, or re-executes itself through the host's **`memcap 32G`**
+wrapper (systemd user scope, `MemoryMax=32G`, `MemorySwapMax=0`). A missing wrapper fails closed.
+`runtime.safe_workers` chooses worker-thread counts from `MemAvailable`, current cgroup headroom,
+resolution-dependent buffer estimates, CPU affinity and a maximum of 16; it leaves 20% of free memory
+for other work. Director children run sequentially inside the same capped scope. There is no render-process fan-out.
+Animation receipts stream frame records to disk rather than collecting them in RAM. Each QA image is copied
+with `foreach_get` and removed from Blender in `finally`, including failed reads and still-side QA loads.
 
 ## QA (fails the shot/frame)
 1. **Mesh glyph check:** 1,500 ink samples plus an 8-point 1.5 mm margin ring each, ray-cast onto the mesh. Every hit must be a flat face (|n·y| > 0.95) in a flat region.
@@ -54,6 +66,13 @@ It's rendered as polished gold (1.0/0.66/0.22, rough 0.06, metallic, clearcoat, 
 3. **Lights:** a 7×7 sample grid over every emitter, plus its floor mirror image, stays outside the frame (6 % guard). A deterministic fix-up raises an offending light's elevation and records it.
 4. **Edge sharpness:** the gate above.
 5. Records: per-shot `*.qa.json` (camera, lens, f-stop, spp, view transform, EXR/PNG sha256), `run_<res>.json` (lights, cfg, Blender version), `prep.json` (source sha, art/mask sha, placements, normal repair).
+Failed or missing hard checks give a nonzero command exit and `all_pass:false`. Pre-render failures stop
+before rendering; image/clipping failures produce `FAIL_POST_RENDER`. Only stills that pass every hard
+check receive `RENDERED`; delivery validates the entire receipt set before writing anything. Empty runs
+fail. Animation `render_ready` depends on the gate verdict, and `release_ready` remains false for human sign-off.
+Director checks require successful, complete normal runs and matching shard state, plus nonzero exits
+and the intended failed gate for deliberate faults. An unrelated worker crash is not a successful fault test.
+CPU regressions run in `ops/render/pro/tests` and in marketing CI; full GPU film review remains separate.
 
 ## Deliverables
 32-bit EXR master → 16-bit PNG. There is also an 8-bit RGB PNG for chat (< 25 MB, blue-noise-style dithered with a high-passed noise
@@ -64,13 +83,14 @@ field, ±0.5 LSB). Signature crops are at 100 %. No JPG deliverables; JPG is use
   (`film_lut_12_62nm.json`) that feeds the conductor's Base Color (F0) and Specular Tint (F82). Blender 4.2's Thin Film input
   doesn't act on metals. Oxide thickness runs from 21 nm at the ring end to 60 nm at the tip, with slight z "licks": straw/gold → bronze/rose
   → purple → blue. Clearcoat is 1.0 @ 0.02 and the view is AgX Punchy at +0.55 EV. The edge-apex strip is polished raw Ti.
-  This is a reflective visualization, not a calibrated finish claim.
+  Bevel and serration grinds also remain raw Ti. This is a reflective visualization, not a calibrated finish claim.
 - Vertical mirror flats only show colour when they reflect something. A `mirror_flat` reflector is placed per shot or frame on the
   mirror direction of the visible broad face, plus 8°. Camera elevations are kept ≤ 6° so that direction stays above the floor.
   The lights-out-of-frame gate still applies.
-- To stop the serrations and spine walls blowing out, the arc key is −1.2 EV and the rim −0.5 EV, and walls are rough 0.22. A whole-frame
+- To stop the serrations and spine walls blowing out, the arc key is −3.4 EV and the rim −1.8 EV, and walls are rough 0.38. A whole-frame
   largest-white-blob gate is limited to 0.15 % of the frame.
-- Signature: the placement footprint is `jepson_t_mask_4096_key40.png` (bold06 dilated 40 px), so the dark keyline counts toward the
-  1.5 mm margin. The gold glyph is `bold12`, mirror gold (1.0/0.55/0.12, rough 0.04) with emission lift 1.0. The keyline is dark
-  polished Ti (0.004, rough 0.3). The solver config is `prep_flame.json`: no dark-art requirement, so the largest size on the flat wins.
+- Signature: the protected metal footprint uses the supplied prep mask; a dilated mask such as
+  `jepson_t_mask_4096_key40.png` counts its full footprint toward the 1.5 mm margin. No gold, ink, coat,
+  oxide colour or satin brushing is applied to that region. The solver config is `prep_flame.json`:
+  no dark-art requirement, so the largest size on the flat wins.
 - OpenCV is pinned at 4.12.0 (`requirements.txt`). `prep.py` refuses any other version because placements depend on the cv2 version.

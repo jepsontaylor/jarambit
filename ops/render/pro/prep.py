@@ -14,6 +14,10 @@
    from +Y.
 python prep.py BUNDLE_DIR OUT_DIR ART.png SIGMASK.png [config.json]"""
 import json, math, os, sys, hashlib
+THREADS = 1
+if __name__ == '__main__':
+    from runtime import ensure_memcap
+    THREADS = ensure_memcap()
 import numpy as np
 try:
     import cv2
@@ -93,6 +97,7 @@ def main():
         raise SystemExit('prep.py needs opencv (see ops/render/pro/requirements.txt)')
     if cv2.__version__ != PINNED_CV2 and os.environ.get('PRO_ALLOW_CV2') != '1':
         raise SystemExit(f'opencv {cv2.__version__} != pinned {PINNED_CV2} (placements are cv2-version dependent); see ops/render/pro/requirements.txt')
+    cv2.setNumThreads(THREADS)
     bdir, out, art_p, sig_p = sys.argv[1:5]
     cfg = dict(DEF); cfg.update(json.load(open(sys.argv[5])) if len(sys.argv) > 5 else {})
     os.makedirs(out, exist_ok=True)
