@@ -300,7 +300,7 @@ def science_lines(man, shot):
     if need_keys: raise SystemExit(f'overlay: FAIL: manifest fem.mesh lacks {need_keys}')
     return [
         ('load', f"{shot['test']} · {num_str(load['value'])} {load['unit']}"),
-        ('mesh', f"SOLVER MESH · {mesh['tets']:,} TETS"),
+        ('mesh', f"MESH · {mesh['tets']:,} TETS"),
         ('peak', f"PEAK σvM {shot['peak_vm_MPa']:.0f} MPa"),
         ('sf', f"SF {shot['SF']:.3f} · {shot['verdict']}"),
         ('prov', (f"{man['label']} · solver output · gate SF ≥ {shot['gate_SF']:.3f} · Sy {man['Sy_MPa']:.0f} MPa · {man['status_note']}").upper())]

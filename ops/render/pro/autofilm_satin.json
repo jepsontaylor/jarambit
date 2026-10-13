@@ -15,7 +15,7 @@
  },
  "prep_config": "prep_flame.json",
  "art": "~/jarambit_render/pro_tools/art_nosig_8k.png",
- "sig_mask": "../brand/signature/jepson_t_mask_4096_bold12.png",
+ "sig_mask": "../brand/signature/neverhuman_mask_4096_bold06.png",
  "chat_mp4_max_mb": 24.0,
  "sci_gain": 1.5,
  "sci_glint": 0.35,
@@ -24,5 +24,7 @@
   0.55,
   1.0
  ],
- "sci_wire_px": 0.7
+ "sci_wire_px": 0.7,
+ "_sig_mask_jepson_t": "../brand/signature/jepson_t_mask_4096_bold12.png",
+ "_sig_mask_note": "DEFAULT = NeverHuman (owner 11:15). To re-enable the previous Jepson T mark, put the _sig_mask_jepson_t value into sig_mask (and see brand/signature/README.md)."
 }

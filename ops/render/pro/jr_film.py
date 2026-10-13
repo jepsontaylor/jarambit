@@ -104,7 +104,10 @@ def main():
     for k in ('label', 'badge', 'stamp', 'Sy_MPa', 'science', 'step', 'design_dir'):
         need(k in man, f'manifest lacks {k}')
     need(man['science'], 'manifest has no science shots (gate table / fem_cases mismatch)')
-    S = Stamp(work, msha, a.force)
+    # stage key = manifest + recipe + signature/art inputs: a new mark or recipe rebuilds prep and everything after
+    # (code-only changes: use --force <stage>)
+    key = hashlib.sha256((msha + Path(a.recipe).read_text() + sha256(HERE / R['sig_mask']) + sha256(os.path.expanduser(R['art']))).encode()).hexdigest()
+    S = Stamp(work, key, a.force)
     film_plan = json.loads((HERE / R['film']).read_text())
     sci_shots = [s_ for s_ in film_plan['shots'] if s_['common'].get('science')]
     for s_ in sci_shots:

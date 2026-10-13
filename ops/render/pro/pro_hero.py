@@ -631,6 +631,8 @@ def lerp_shot(S, f):
     a, b = S['start'], S['end']; t = (f - S['frames'][0]) / max(1, S['frames'][1] - 1 - S['frames'][0])
     if S['common'].get('ease', 'smooth') == 'smooth': t = t * t * (3 - 2 * t)
     sh = dict(S['common'])
+    if 'rot_table_deg' in sh:   # authored per-frame turntable angle (broadside-eased science spin)
+        sh['part_rot_deg'] = sh.pop('rot_table_deg')[f - S['frames'][0]]
     for k in set(a) | set(b):
         va, vb = a.get(k, b.get(k)), b.get(k, a.get(k))
         if isinstance(va, (int, float)) and isinstance(vb, (int, float)):

@@ -31,12 +31,20 @@ import numpy as np
 SCHEMA = "jarambit.render.signature.v1"
 HERE = os.path.dirname(os.path.abspath(__file__))
 ASSET_DIR = os.path.normpath(os.path.join(HERE, "..", "brand", "signature"))
-ASSET_MASK = os.path.join(ASSET_DIR, "jepson_t_mask_4096.png")
-ASSET_SVG = os.path.join(ASSET_DIR, "jepson_t.svg")
-INK_FRACTION = 0.0579  # mean of the mask PNG: ink pixels / bbox pixels
-ASPECT = 4096.0 / 1345.0
+# Maker's mark asset. DEFAULT = NeverHuman (owner 2026-10-13 11:15).
+ASSET_MASK = os.path.join(ASSET_DIR, "neverhuman_mask_4096.png")
+ASSET_SVG = os.path.join(ASSET_DIR, "neverhuman.svg")
+INK_FRACTION = 0.0689  # mean of the mask PNG: ink pixels / bbox pixels
+ASPECT = 4096.0 / 1009.0
 ASPECT_W_PX = 4096.0
-VARIANTS = os.path.join(ASSET_DIR, "variants.json")
+VARIANTS = os.path.join(ASSET_DIR, "variants_neverhuman.json")
+# --- Previous mark: Jepson T (v2, bold). Kept, not deleted. To re-enable it, comment out the five
+# --- NeverHuman lines above and uncomment these (assets are still in ops/render/brand/signature/):
+# ASSET_MASK = os.path.join(ASSET_DIR, "jepson_t_mask_4096.png")
+# ASSET_SVG = os.path.join(ASSET_DIR, "jepson_t.svg")
+# INK_FRACTION = 0.0579
+# ASPECT = 4096.0 / 1345.0
+# VARIANTS = os.path.join(ASSET_DIR, "variants.json")
 _VCACHE = {}
 
 
