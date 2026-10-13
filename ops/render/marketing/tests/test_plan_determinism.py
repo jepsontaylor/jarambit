@@ -81,6 +81,12 @@ def test_pick_host_skips_a_busy_or_yielding_gpu():
     assert farm.pick_host(
         [{"name": "xbabe3", "reachable": True, "yield": True}], [],
     ) is None
+    drained = [
+        {"name": "xbabe1", "reachable": True, "yield": False, "drain": True},
+        {"name": "xbabe3", "reachable": True, "yield": False},
+    ]
+    assert farm.pick_host(drained, [])["name"] == "xbabe3"
+    assert farm.pick_host(drained[:1], []) is None
 
 
 def test_azimuth_zero_is_on_minus_y():
@@ -401,6 +407,69 @@ def _silence_render_side_effects(monkeypatch):
     monkeypatch.setattr(farm, "pull_dir", pull)
     monkeypatch.setattr(farm, "remote_disk_ok", disk)
     return calls
+
+
+def test_render_and_dispatch_share_one_host_table():
+    import inspect
+    import pipeline
+    dispatch = inspect.getsource(pipeline.cmd_dispatch)
+    render = inspect.getsource(pipeline.cmd_render)
+    assert "DEFAULT_HOSTS" in dispatch
+    assert "DEFAULT_HOSTS" in render
+    assert '"drain": True' not in dispatch
+    drained = [host["name"] for host in farm.DEFAULT_HOSTS if host.get("drain")]
+    assert drained == ["xbabe1"]
+    assert pipeline.farm_mod.DEFAULT_HOSTS is farm.DEFAULT_HOSTS
+
+
+def test_render_jobs_default_hosts_skip_drained_xbabe1(tmp_path, monkeypatch):
+    """render_jobs(hosts=None) must not stage or launch the drained default host."""
+    jobs = _pending_shards(tmp_path, 2)
+    for job in jobs:
+        Path(job["request_path"]).write_text(json.dumps({
+            "shot": {"id": "turntable"},
+            "out_dir": "/local/shots/turntable/final_4k",
+        }))
+    monkeypatch.setattr(farm, "prepare_jobs", lambda *_a, **_k: jobs)
+    launches = []
+    ssh_hosts = []
+    pushes = []
+    pulls = []
+
+    def launch(_argv, _log, ssh_host=None):
+        launches.append(ssh_host)
+        return "1"
+
+    def ssh(host, *_a, **_k):
+        ssh_hosts.append(host)
+        return type("P", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+    monkeypatch.setattr(farm, "launch_shell", launch)
+    monkeypatch.setattr(farm, "_ssh", ssh)
+    monkeypatch.setattr(farm, "push_files", lambda host, *_a, **_k: pushes.append(host))
+    monkeypatch.setattr(farm, "pull_dir", lambda host, *_a, **_k: pulls.append(host))
+    monkeypatch.setattr(farm, "remote_disk_ok", lambda *_a, **_k: True)
+    monkeypatch.setattr(
+        farm, "probe_host_gpu",
+        lambda host: {
+            "name": host["name"], "reachable": True, "yield": False, "ssh": host.get("ssh"),
+        },
+    )
+    worker = tmp_path / "worker.py"
+    blender = tmp_path / "blender"
+    worker.write_text("")
+    blender.write_text("")
+    summary = farm.render_jobs(
+        {"plan_key": "k"}, str(tmp_path), "", "", str(blender), str(worker),
+        hosts=None, execute=True,
+    )
+    assert "xbabe1" not in launches
+    assert "xbabe1" not in ssh_hosts
+    assert "xbabe1" not in pushes
+    assert "xbabe1" not in pulls
+    assert {job["host"] for job in jobs} == {"xbabe3", "xbabe2"}
+    assert all(job["status"] == "launched" for job in jobs)
+    assert summary["launched"] == 2
 
 
 def test_render_jobs_does_not_launch_on_a_drained_host(tmp_path, monkeypatch):

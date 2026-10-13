@@ -30,10 +30,13 @@ CPU_THREADS = 16
 REQUEST_SCHEMA = "jarambit.render.request.v1"
 
 # ssh Host xbabe2 is a different machine (the Mac alias). The coordinator is local.
+# One host table for cmd_render and cmd_dispatch. Dope block B owns the
+# xbabe1 4090 until it reaches 400/400: adopt a Blender that is already
+# rendering there, and do not start another shard.
 DEFAULT_HOSTS = (
-    {"name": "xbabe2", "ssh": None},
+    {"name": "xbabe1", "ssh": "xbabe1", "drain": True},
     {"name": "xbabe3", "ssh": "xbabe3"},
-    {"name": "xbabe1", "ssh": "xbabe1"},
+    {"name": "xbabe2", "ssh": None},
 )
 
 
@@ -242,10 +245,13 @@ def purge_passes(out_dir):
 
 
 def pick_host(states, busy_names):
-    """First reachable host under the yield line that is not already rendering."""
+    """First reachable host under the yield line that is not already rendering.
+
+    A drained host is never chosen for new work.
+    """
     busy = set(busy_names or [])
     for state in states:
-        if state.get("name") in busy:
+        if state.get("name") in busy or state.get("drain"):
             continue
         if state.get("reachable") and not state.get("yield"):
             return state
