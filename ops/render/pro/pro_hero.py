@@ -124,7 +124,7 @@ def art_material():
     k.inputs['From Max'].default_value = LOOK['black_hi']
     col = mix_rgb(N, L, k.outputs['Result'], tuple(LOOK['dark_ti']) + (1,), hsv.outputs[0])
     col = mix_rgb(N, L, face, tuple(LOOK['wall_ti']) + (1,), col)             # side walls: dark polished Ti band
-    metal = mix_f(N, L, k.outputs['Result'], 1.0, LOOK['art_metallic'])
+    metal = mix_f(N, L, k.outputs['Result'], LOOK['black_metallic'], LOOK['art_metallic'])
     sig = mix_f(N, L, back, sig_mask(N, L, xyz, 'front'), sig_mask(N, L, xyz, 'back'))
     sig = math_node(N, L, 'MULTIPLY', sig, face)
     gold = tuple(LOOK['gold']) + (1,)

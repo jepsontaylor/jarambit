@@ -165,7 +165,7 @@ def main():
     for s, im in debug.items():
         cv2.imwrite(os.path.join(out, f'layout_{s}.png'), im[::-1])
     sha = lambda p: hashlib.sha256(open(p, 'rb').read()).hexdigest()
-    man = {'schema': 'jarambit.render.pro.prep.v1', 'source': bundle['source'], 'bundle_npz_sha256': bundle['npz_sha256'],
+    man = {'schema': 'jarambit.render.pro.prep.v1', 'toolchain': {'numpy': np.__version__, 'cv2': cv2.__version__, 'note': 'placements are cv2-version dependent at the 0.1 mm grid; pin cv2 per toolchain.lock'}, 'source': bundle['source'], 'bundle_npz_sha256': bundle['npz_sha256'],
            'out_npz_sha256': sha(os.path.join(out, 'mesh.npz')), 'config': cfg,
            'normal_repair': {'policy': 'render-only wall-normal smoothing; positions untouched',
                              'crease_deg': cfg['crease_deg'], 'wall_corners_changed': nchg},
