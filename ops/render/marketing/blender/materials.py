@@ -162,7 +162,8 @@ def assign(obj, finish, accents=()):
     for lab in LABELS:
         fname = chosen[lab]
         spec = finish['finishes'][fname]
-        obj.data.materials.append(build_finish(f'{lab}:{fname}', spec, metal, edge_break_m))
+        m_lab = {**metal, **finish.get('region_metal', {}).get(lab, {})}
+        obj.data.materials.append(build_finish(f'{lab}:{fname}', spec, m_lab, edge_break_m))
         rec[lab] = fname
     return rec
 
@@ -215,7 +216,9 @@ def _sig_mask(g, placements, image, spec):
         g.link(uu, cmb.inputs['X'])
         g.link(vv, cmb.inputs['Y'])
         tex = g.n('ShaderNodeTexImage', interpolation='Cubic', extension='CLIP')
-        tex.image = image
+        img = bpy.data.images.load(pl.get('mask') or image, check_existing=True)
+        img.colorspace_settings.name = 'Non-Color'
+        tex.image = img
         g.link(cmb.outputs['Vector'], tex.inputs['Vector'])
         # crisp edge: smoothstep 0.3..0.7 on the antialiased mask
         mr = g.n('ShaderNodeMapRange', interpolation_type='SMOOTHSTEP')
@@ -238,8 +241,7 @@ def apply_signature(obj, placements, mask_path, spec):
     placements = [p for p in placements if p.get('ok')]
     if not placements:
         return {'applied': False, 'reason': 'no placement'}
-    img = bpy.data.images.load(mask_path, check_existing=True)
-    img.colorspace_settings.name = 'Non-Color'
+    img = mask_path  # default mask; a placement's own stroke-weight variant wins
     vl = bpy.context.view_layer
     if SIG_AOV not in [a.name for a in vl.aovs]:
         a = vl.aovs.add()
@@ -267,5 +269,5 @@ def apply_signature(obj, placements, mask_path, spec):
         aov = g.n('ShaderNodeOutputAOV')
         aov.aov_name = SIG_AOV
         g.link(mask, aov.inputs['Value'])
-    return {'applied': True, 'materials': [m.name for m in obj.data.materials], 'mask_image': mask_path,
+    return {'applied': True, 'materials': [m.name for m in obj.data.materials], 'mask_image': sorted({p.get('mask') or mask_path for p in placements}),
             'aov': SIG_AOV, 'finish': {k: spec[k] for k in ('base_color_lin', 'roughness', 'specular_ior_level')}}

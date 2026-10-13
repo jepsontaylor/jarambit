@@ -64,20 +64,28 @@ def _inside_flat(V, F, pl, pts):
     return np.array(out)
 
 
-def check_placement(V, F, pl, margin_mm=1.5):
+def check_placement(V, F, pl, margin_mm=None):
     assert pl["ok"], pl
     u, v, n = (np.array(pl[k]) for k in ("u_axis", "v_axis", "normal"))
     assert abs(np.dot(u, v)) < 1e-6 and abs(np.dot(u, n)) < 1e-6
     assert v[2] >= 0, "text must read upright from the camera on that side"
     assert np.allclose(np.cross(n, u), v, atol=1e-6)
     assert pl["width_m"] / pl["height_m"] == pytest.approx(signature.ASPECT, rel=1e-4)
-    # the rectangle grown by (margin - one raster cell) must still lie on the flat face
+    assert pl["min_stroke_mm_p5"] >= 0.15, "strokes must stay manufacturable"
+    margin = (margin_mm if margin_mm is not None else pl["margin_mm"]) * 1e-3
+    # every ink cell, and the same cell pushed (margin - 0.3 mm raster slack) in 8 directions,
+    # must lie on the flat face
+    occ = signature._variant(signature.DEFAULTS, None if pl["mask_variant"] == "00" else pl["width_m"])["occ_arr"]
+    ys, xs = np.nonzero(occ[::12, ::12])
+    hh, ww = occ[::12, ::12].shape
     c = np.array(pl["center_m"])
-    m = (margin_mm - 0.15) * 1e-3
-    pts = [c + a * u * (pl["width_m"] / 2 + m) + b * v * (pl["height_m"] / 2 + m)
-           for a in np.linspace(-1, 1, 9) for b in np.linspace(-1, 1, 5)]
+    ink = [c + ((x + 0.5) / ww - 0.5) * pl["width_m"] * u + (0.5 - (y + 0.5) / hh) * pl["height_m"] * v
+           for y, x in zip(ys, xs)]
+    m = margin - 0.3e-3
+    dirs = [np.cos(a) * u + np.sin(a) * v for a in np.linspace(0, 2 * np.pi, 8, endpoint=False)]
+    pts = ink + [p + m * d for p in ink[::3] for d in dirs]
     inside = _inside_flat(V, F, pl, pts)
-    assert inside.mean() > 0.97, f"{(~inside).sum()} of {len(pts)} margin probes off the flat face"
+    assert inside.mean() > 0.985, f"{(~inside).sum()} of {len(pts)} ink/margin probes off the flat face"
 
 
 def test_asset_manifest_and_constants():
@@ -95,26 +103,27 @@ def test_asset_manifest_and_constants():
 
 def test_plate_avoids_hole_and_is_deterministic():
     V, F = plate_with_hole()
-    a = signature.place(V, F, {"sides": ["hero", "back"]})
-    b = signature.place(V, F, {"sides": ["hero", "back"]})
+    prm = {"sides": ["hero", "back"], "angle_offsets_deg": [0, -5, 5]}
+    a = signature.place(V, F, prm)
+    b = signature.place(V, F, prm)
     assert json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
     hero, back = a["placements"]
     assert hero["normal"] == [0.0, -1.0, 0.0] and back["normal"] == [0.0, 1.0, 0.0]
     for pl in (hero, back):
         check_placement(V, F, pl)
-        assert abs(pl["center_m"][0]) > 0.008 + pl["width_m"] / 2 - 1e-4  # beside the hole, not over it
     assert hero["u_axis"][0] > 0 and back["u_axis"][0] < 0  # left-to-right as seen from each side
 
 
-@pytest.mark.parametrize("name,path", [("switchback_C9.3", C93_STL), ("g3_tip+00_t60_tt3", G3_STL)])
-def test_placement_on_real_cads(name, path):
+@pytest.mark.parametrize("name,path,min_w", [("switchback_C9.3", C93_STL, 0.028), ("g3_tip+00_t60_tt3", G3_STL, 0.022)])
+def test_placement_on_real_cads(name, path, min_w):
     if not path.is_file():
         pytest.skip(f"{path} not on this host")
     V, F = posed(path)
     res = signature.place(V, F, {"sides": ["hero", "back"]})
     for pl in res["placements"]:
         check_placement(V, F, pl)
-        assert pl["width_m"] >= 0.010, f"{name}: mark under 10 mm wide"
+        assert pl["width_m"] >= min_w, f"{name}: mark {pl['width_m']*1e3:.1f} mm, expected >= {min_w*1e3} mm"
+        assert pl["fit"] == "ink" and pl["fill"] == pytest.approx(0.95)
     print(name, json.dumps(res["placements"], sort_keys=True))
 
 
@@ -137,3 +146,18 @@ def test_q15_gate():
            "frames": [{"index": 0, "signature": {"facing": True, "in_frame": True, "expected_px": 100.0,
                                                  "visible_px": 90.0, "visible_ratio": 0.9}}]}
     assert qa.check_q15(qa.signature_rows([res]))["status"] == "PASS"
+
+
+def test_anodize_presets_fresh_and_edge_raw():
+    from ops.render.marketing import anodize
+    assert anodize.main(["--check"]) == 0
+    P = ROOT / "ops" / "render" / "marketing" / "presets"
+    fam = json.loads((P / "anodize_family.json").read_text())
+    raw = json.loads((P / "finish_ti64.json").read_text())["default_assignment"]
+    for color, spec in fam["colors"].items():
+        pre = json.loads((P / f"finish_ti64_anodize_{color}.json").read_text())
+        for r in ("bevel", "edge_apex", "serration"):
+            assert pre["default_assignment"][r] == raw[r]
+        fin = pre["finishes"][pre["default_assignment"]["ring"]]
+        if "volts" in spec:
+            assert fin["thin_film_nm"] == spec["thin_film_nm"] and 15 <= spec["volts"] <= 100

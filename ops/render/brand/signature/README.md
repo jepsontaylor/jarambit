@@ -23,3 +23,12 @@ update `ASPECT` / `INK_FRACTION` in `signature.py`, and refresh `SHA256SUMS`.
 Rendering contract: the mark is the **final material overlay** in every shot (mixed into every
 material slot just before the output node), roughness 0.9, base linear 0.012, specular 0, no coat.
 QA gate Q15 fails a delivery if any shot lacks it or a hero still loses it.
+
+## v2 placement (2026-10-13): as large as the flat allows
+- `fit: "ink"`: the traced ink silhouette itself (block-any occupancy grids `occ_boldNN.npy`), not its
+  bounding box, must fit inside the flat face eroded by `margin_mm` (default 1.25 mm, band 1.0-1.5). This
+  hugs the slanted script and gains ~25-30 % width over the bbox fit. `fill` 0.95 of the largest fit;
+  no max-width cap; angles principal axis +-30 deg (2.5 deg steps); up to 4 coplanar flats tried.
+- Manufacturable strokes: `variants.json` lists stroke-weight variants (`jepson_t_mask_4096_boldNN.png`,
+  outline grown by NN px at 4096 px). Placement picks the thinnest variant whose p5 stroke width is
+  >= `min_stroke_mm` (0.15 mm) at final scale, then refits with that variant.

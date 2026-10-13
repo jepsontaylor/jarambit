@@ -1,0 +1,121 @@
+{
+ "accent_finish": "anodized_bronze",
+ "appearance_assumed": true,
+ "default_assignment": {
+  "bevel": "satin_bevel",
+  "body": "anodize_raw_stonewash",
+  "edge_apex": "edge_highlight",
+  "pad": "anodize_raw_stonewash",
+  "ring": "anodize_raw_stonewash",
+  "serration": "serration",
+  "spine": "anodize_raw_stonewash"
+ },
+ "edge_break_mm": 0.12,
+ "family": {
+  "color": "raw_stonewash",
+  "finish": "stonewash",
+  "kind": "raw",
+  "name": "ti64_anodize",
+  "signature_contrast": "high"
+ },
+ "finishes": {
+  "anodize_raw_stonewash": {
+   "anisotropy": 0.0,
+   "bump": 0.02,
+   "micro": "stonewash",
+   "roughness": 0.3,
+   "roughness_range": [
+    0.18,
+    0.45
+   ]
+  },
+  "anodized_blue": {
+   "anisotropy": 0.0,
+   "micro": "none",
+   "roughness": 0.25,
+   "thin_film_ior": 2.4,
+   "thin_film_nm": 260
+  },
+  "anodized_bronze": {
+   "anisotropy": 0.0,
+   "micro": "none",
+   "roughness": 0.25,
+   "thin_film_ior": 2.4,
+   "thin_film_nm": 210
+  },
+  "anodized_gold": {
+   "anisotropy": 0.0,
+   "micro": "none",
+   "roughness": 0.25,
+   "thin_film_ior": 2.4,
+   "thin_film_nm": 290
+  },
+  "bead_blast": {
+   "anisotropy": 0.0,
+   "bump": 0.04,
+   "grain_um": 40,
+   "micro": "bead_blast",
+   "roughness": 0.42
+  },
+  "brand_pad": {
+   "anisotropy": 0.0,
+   "micro": "none",
+   "roughness": 0.12
+  },
+  "edge_highlight": {
+   "anisotropy": 0.0,
+   "bevel_radius_mm": 0.03,
+   "bevel_samples": 8,
+   "micro": "none",
+   "roughness": 0.06
+  },
+  "mirror_bevel": {
+   "anisotropy": 0.2,
+   "micro": "none",
+   "roughness": 0.035
+  },
+  "ring_bore": {
+   "anisotropy": 0.3,
+   "micro": "none",
+   "roughness": 0.3
+  },
+  "satin_bevel": {
+   "anisotropy": 0.75,
+   "bump": 0.03,
+   "micro": "satin_lines",
+   "roughness": 0.16,
+   "stretch": 200
+  },
+  "serration": {
+   "anisotropy": 0.5,
+   "micro": "none",
+   "roughness": 0.2
+  },
+  "stonewash": {
+   "anisotropy": 0.0,
+   "bump": 0.02,
+   "micro": "stonewash",
+   "roughness": 0.3,
+   "roughness_range": [
+    0.18,
+    0.45
+   ]
+  }
+ },
+ "metal": {
+  "base_color_lin": [
+   0.542,
+   0.497,
+   0.449
+  ],
+  "f82_tint": [
+   0.62,
+   0.59,
+   0.56
+  ],
+  "model": "principled_f82_tint (Blender 4.2 Principled metallic)"
+ },
+ "name": "finish_ti64_anodize_raw_stonewash",
+ "note": "Ti-6Al-4V appearance from literature complex IOR (Ti n,k at 650/550/450 nm -> normal-incidence F0; F82 tint). Not a measured coating. Physically based visualization under stated material assumptions. Type-II/III style Ti anodize as a single TiO2 thin film (IOR 2.4) on Ti-6Al-4V (Blender 4.2 Principled thin film over the F82 conductor). Interference colour depends on oxide thickness; nominal voltages follow common shop colour charts, thicknesses were picked from a normal-incidence thin-film model so the colour matches the chart (~2.2-2.5 nm/V above ~30 V, sub-linear below). appearance_assumed, not a measured coating. Handle/ring/pad/spine anodized; bevel, edge apex and serrations stay raw bright Ti (they are ground after anodizing on real knives). Signature (maker's mark) is still mixed over every slot last.",
+ "schema": "jarambit.render.finish.v1"
+}

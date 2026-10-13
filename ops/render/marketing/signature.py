@@ -34,17 +34,89 @@ ASSET_DIR = os.path.normpath(os.path.join(HERE, "..", "brand", "signature"))
 ASSET_MASK = os.path.join(ASSET_DIR, "jepson_t_mask_4096.png")
 ASSET_SVG = os.path.join(ASSET_DIR, "jepson_t.svg")
 INK_FRACTION = 0.0579  # mean of the mask PNG: ink pixels / bbox pixels
-ASPECT = 4096.0 / 1345.0  # width / height of the mask PNG (ink bbox + 12 px pad @ source scale)
+ASPECT = 4096.0 / 1345.0
+ASPECT_W_PX = 4096.0
+VARIANTS = os.path.join(ASSET_DIR, "variants.json")
+_VCACHE = {}
+
+
+def _variant(p, width_m):
+    """Thinnest-acceptable stroke-weight variant of the mask for a final width (None = base)."""
+    v = json.load(open(VARIANTS))["variants"]
+    names = sorted(v)
+    pick = names[0]
+    if width_m is not None:
+        for nm in names:
+            pick = nm
+            if v[nm]["stroke_px_p1_p5_p50"][1] * width_m / ASPECT_W_PX >= p["min_stroke_mm"] * 1e-3:
+                break
+    rec = dict(v[pick], name=pick)
+    if pick not in _VCACHE:
+        shp = rec["occ_shape"]
+        _VCACHE[pick] = np.unpackbits(np.load(os.path.join(ASSET_DIR, rec["occ"])), axis=1)[:, :shp[1]].astype(bool)
+    rec["occ_arr"] = _VCACHE[pick]
+    rec["mask"] = os.path.join(ASSET_DIR, rec["mask"])
+    return rec
+
+
+def _kernel(occ, kw):
+    """Ink occupancy resampled to kw px wide (block-any, conservative), rows flipped to grid +y=up."""
+    kh = max(1, int(round(kw / ASPECT)))
+    H, W = occ.shape
+    S = np.pad(occ.astype(np.int32), ((1, 0), (1, 0))).cumsum(0).cumsum(1)
+    r0 = np.floor(np.arange(kh) * H / kh).astype(int); r1 = np.maximum(np.ceil((np.arange(kh) + 1) * H / kh).astype(int), r0 + 1)
+    c0 = np.floor(np.arange(kw) * W / kw).astype(int); c1 = np.maximum(np.ceil((np.arange(kw) + 1) * W / kw).astype(int), c0 + 1)
+    K = (S[r1][:, c1] - S[r0][:, c1] - S[r1][:, c0] + S[r0][:, c0]) > 0
+    return K[::-1]
+
+
+def _ink_positions(out_f, out_shape, K):
+    H, W = out_shape
+    kh, kw = K.shape
+    if kh > H or kw > W:
+        return None
+    Kp = np.zeros((H, W)); Kp[:kh, :kw] = K
+    corr = np.fft.irfft2(out_f * np.conj(np.fft.rfft2(Kp)), s=(H, W))
+    ok = corr[:H - kh + 1, :W - kw + 1] < 0.5
+    return ok if ok.any() else None
+
+
+def _ink_fit(Er, occ, w_rect, fill):
+    """Largest width (px) at which the ink silhouette fits inside Er, then the placement at
+    fill * that width nearest the centroid of feasible positions. Returns (W_max, W_final, centre_px)."""
+    out = ~Er
+    out_f = np.fft.rfft2(out.astype(float))
+    lo, hi = max(1, int(w_rect)), Er.shape[1]
+    if _ink_positions(out_f, out.shape, _kernel(occ, lo)) is None:
+        return None
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if _ink_positions(out_f, out.shape, _kernel(occ, mid)) is not None:
+            lo = mid
+        else:
+            hi = mid - 1
+    W_max = lo
+    wf = max(1, int(fill * W_max))
+    K = _kernel(occ, wf)
+    ok = _ink_positions(out_f, out.shape, K)
+    ys, xs = np.nonzero(ok)
+    cy, cx = ys.mean(), xs.mean()
+    k = int(np.argmin((ys - cy) ** 2 + (xs - cx) ** 2))
+    return W_max, wf, np.array([xs[k] + K.shape[1] / 2.0, ys[k] + K.shape[0] / 2.0])  # width / height of the mask PNG (ink bbox + 12 px pad @ source scale)
 
 DEFAULTS = {
     "sides": ["hero"],            # "hero", "back" or both
-    "margin_mm": 1.5,
-    "grid_mm": 0.1,
+    "margin_mm": 1.25,           # 1.0-1.5 mm band; ink (not bbox) keeps this clearance
+    "grid_mm": 0.2,
     "flat_deg": 2.0,
-    "fill": 0.85,
-    "max_width_mm": 42.0,
+    "fill": 0.95,
+    "max_width_mm": None,         # no cap: as large as the flat allows
+    "fit": "ink",                 # "ink": the traced ink silhouette must fit (hugs the slanted script);
+                                  # "bbox": its bounding rectangle must fit (conservative)
+    "min_stroke_mm": 0.15,        # thinnest stroke (p5 of the stroke-width distribution) at final scale
     "min_height_mm": 2.0,
-    "angle_offsets_deg": [0, -5, 5, -10, 10, -15, 15, -20, 20],
+    "angle_offsets_deg": [0, -2.5, 2.5, -5, 5, -7.5, 7.5, -10, 10, -12.5, 12.5, -15, 15, -17.5, 17.5,
+                          -20, 20, -22.5, 22.5, -25, 25, -30, 30],
     # finish of the mark (black-marked Ti: matte, no specular)
     "base_color_lin": [0.012, 0.012, 0.013],
     "roughness": 0.9,
@@ -263,37 +335,57 @@ def _best_on_plane(V, F, sel, n, plane_off, p):
     if pa[0] < 0:
         pa = -pa
     pca_deg = math.degrees(math.atan2(pa[1], pa[0]))
-    cands = []
-    for o in p["angle_offsets_deg"]:
-        ang_deg = round(pca_deg + o, 6)
-        Er, lo_r, R = _rotate_mask(E, math.radians(ang_deg), lo, grid)
-        r = largest_rect(Er, ASPECT)
-        if r is None:
-            continue
-        h, w, cy, cx = r
-        q = lo_r + np.array([cx, cy]) * grid
-        c2 = R @ q
-        cands.append((-(h * w), abs(o), ang_deg, h, w, c2))
-    if not cands:
-        return None
-    cands.sort(key=lambda c: (c[0], c[1], c[2]))
-    _, _, ang_deg, h, w, c2 = cands[0]
-    w_max_m, h_max_m = w * grid, h * grid
-    width = min(p["fill"] * w_max_m, p["max_width_mm"] * 1e-3)
+    angles = [round(pca_deg + o, 6) for o in p["angle_offsets_deg"]]
+    angles = [a for a in angles if math.cos(math.radians(a)) > 0.2]  # stays upright from this side
+    variant = _variant(p, None)
+    best = None
+    for _pass in range(2):  # pass 2 refits with the stroke-weight variant chosen in pass 1
+        cands = []
+        for ang_deg in angles:
+            Er, lo_r, R = _rotate_mask(E, math.radians(ang_deg), lo, grid)
+            r = largest_rect(Er, ASPECT)
+            if r is None:
+                continue
+            h, w, cy, cx = r
+            fit = None
+            if p["fit"] == "ink":
+                fit = _ink_fit(Er, variant["occ_arr"], w, p["fill"])
+            if fit is None:
+                wf = int(p["fill"] * w)
+                c_px = np.array([cx, cy])
+                W_max = w
+            else:
+                W_max, wf, c_px = fit
+            q = lo_r + c_px * grid
+            cands.append((-W_max, abs(ang_deg - pca_deg), ang_deg, W_max, wf, R @ q, w, h))
+        if not cands:
+            return None
+        cands.sort(key=lambda c: (c[0], c[1], c[2]))
+        _, _, ang_deg, W_max, wf, c2, rw, rh = cands[0]
+        width = wf * grid
+        if p.get("max_width_mm"):
+            width = min(width, p["max_width_mm"] * 1e-3)
+        nv = _variant(p, width)
+        if nv["name"] == variant["name"]:
+            break
+        variant = nv
+    w_max_m, h_max_m = rw * grid, rh * grid
     height = width / ASPECT
     if height < p["min_height_mm"] * 1e-3:
         return None
     a = math.radians(ang_deg)
     u = math.cos(a) * right + math.sin(a) * up
-    v = np.cross(n, u)  # text up; readable when v.z >= 0 (checked)
-    if v[2] < 0:
-        u, v = -u, -v
+    v = np.cross(n, u)
+    assert v[2] >= -1e-9
     centre = right * c2[0] + up * c2[1] + n * plane_off
-    # region area and which region labels it sits on (informational)
+    stroke_mm = variant["stroke_px_p1_p5_p50"][1] * width / ASPECT_W_PX * 1e3
     if p.get("debug_png"):
-        _debug(p["debug_png"], mask, E, lo, grid, right, up, centre, u, v, width, height)
+        _debug(p["debug_png"], mask, E, lo, grid, right, up, centre, u, v, width, height, variant["occ_arr"])
     return {
-        "ok": True, "_rect_area": w_max_m * h_max_m,
+        "ok": True, "_rect_area": W_max * grid * (W_max * grid / ASPECT),
+        "fit": p["fit"], "fit_max_width_mm": round(W_max * grid * 1e3, 3), "fill": p["fill"],
+        "mask": variant["mask"], "mask_variant": variant["name"], "ink_fraction": variant["ink_fraction"],
+        "min_stroke_mm_p5": round(stroke_mm, 4), "min_stroke_mm_required": p["min_stroke_mm"],
         "normal": _r(n), "plane_offset_m": round(plane_off, 7),
         "center_m": _r(centre), "u_axis": _r(u), "v_axis": _r(v),
         "width_m": round(width, 7), "height_m": round(height, 7),
@@ -304,7 +396,7 @@ def _best_on_plane(V, F, sel, n, plane_off, p):
     }
 
 
-def _debug(path, mask, E, lo, grid, right, up, centre, u, v, width, height):
+def _debug(path, mask, E, lo, grid, right, up, centre, u, v, width, height, occ=None):
     from PIL import Image, ImageDraw
     img = np.zeros(mask.shape + (3,), np.uint8)
     img[mask] = (90, 90, 100); img[E] = (150, 200, 150)
@@ -317,6 +409,12 @@ def _debug(path, mask, E, lo, grid, right, up, centre, u, v, width, height):
     cs = [centre + su * u * width / 2 + sv * v * height / 2 for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
     d.polygon([px(c) for c in cs], outline=(255, 40, 40))
     d.line([px(centre), px(centre + v * height / 2)], fill=(255, 255, 0))
+    if occ is not None:
+        ys, xs = np.nonzero(occ[::2, ::2])
+        hh, ww = occ[::2, ::2].shape
+        for y, x in zip(ys, xs):
+            pt = centre + (x / ww - 0.5) * width * u + (0.5 - y / hh) * height * v
+            d.point(px(pt), fill=(0, 0, 0))
     im.save(path)
 
 

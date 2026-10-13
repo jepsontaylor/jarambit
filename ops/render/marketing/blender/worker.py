@@ -167,7 +167,7 @@ def signature_expectation(part, placements, cam, sc):
             area += x0 * y1 - x1 * y0
         area = abs(area) / 2 if cosf > 0 else 0.0
         # mark ink covers ~ink_fraction of its bbox; expected px = projected bbox * ink fraction
-        exp_px = area * signature.INK_FRACTION
+        exp_px = area * p.get('ink_fraction', signature.INK_FRACTION)
         if exp_px > best['expected_px'] or best['side'] is None:
             best = {'expected_px': round(exp_px, 1), 'bbox_px': round(area, 1), 'facing': cosf > 0,
                     'facing_cos': round(cosf, 4), 'in_frame': inf, 'side': p['side']}
