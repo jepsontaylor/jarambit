@@ -84,10 +84,30 @@ pub mod fatigue {
 pub const RS_V2_ID: &str = "RS-karambit-v2";
 /// RS-karambit-v2 group `human_max` (structural human-max cases + ring finger-bearing). The bore edge radius is an
 /// export spec; here it is checked as feasible (bearing width >= 2 r + 1 mm flat).
+/// OWNER DECISION (Jepson, 2026-10-13 04:13 MT): the 1000 N in-plane tip case (hm_tip_inplane_sf, SWITCHBACK V2) is
+/// RECORD-ONLY. It is still solved and reported in every verdict but no longer gates human_max: a truly sharp point
+/// (Gate S) cannot carry it, and losing the extreme tip in overload is acceptable; a dull knife is not.
+pub const HM_TIP_INPLANE_RECORD_ONLY: bool = true;
 pub fn rs_v2_human_max_pass(f: &Fem, p: &Pheno) -> bool {
     let (bw, _) = ring_bearing(p);
-    f.hm_twist_sf >= 1.0 && f.hm_tip_inplane_sf >= 1.0 && f.hm_spine_sf >= 1.0 && f.hm_ringback_sf >= 1.0
+    f.hm_twist_sf >= 1.0 && (HM_TIP_INPLANE_RECORD_ONLY || f.hm_tip_inplane_sf >= 1.0) && f.hm_spine_sf >= 1.0 && f.hm_ringback_sf >= 1.0
         && bw >= hm::RING_BEARING_W_MIN_MM && bw >= 2.0 * hm::RING_EDGE_R_MIN_MM + 1.0
+}
+/// SHARPNESS GATE S (owner hard requirement, Jepson 2026-10-13; SWITCHBACK W79/W80-S). Genome-law form:
+/// S1 edge apex (edge_t gene) <= 0.20 mm on both edges, S3 edge half-angle <= 25 deg/side (H9 still requires >= 14).
+/// S2 (sharp tapering point: t(0.25) <= 0.30, t(1) <= 0.60, t(2) <= 1.00 mm, monotonic, taper >= 5 mm) needs the B-rep
+/// and is measured by hiking-karambit analysis/w79/sharpness_check.py; until a solid is bound it is reported unverified.
+pub mod gate_s {
+    pub const APEX_MAX_MM: f64 = 0.20;
+    pub const HALF_ANGLE_MAX_DEG: f64 = 25.0;
+    pub const TIP_T025_MAX_MM: f64 = 0.30;
+    pub const TIP_T1_MAX_MM: f64 = 0.60;
+    pub const TIP_T2_MAX_MM: f64 = 1.00;
+    pub const TIP_TAPER_MIN_MM: f64 = 5.0;
+    /// S1 + S3 from the grind law (edge thickness, inside / spine edge half-angles in degrees).
+    pub fn law_pass(edge_t_mm: f64, ea_in_deg: f64, ea_sp_deg: f64) -> bool {
+        edge_t_mm <= APEX_MAX_MM && ea_in_deg <= HALF_ANGLE_MAX_DEG && ea_sp_deg <= HALF_ANGLE_MAX_DEG
+    }
 }
 /// RS-karambit-v2 group `fatigue` (L7).
 pub fn rs_v2_fatigue_pass(f: &Fem) -> bool { f.fat_sf >= 1.0 }
@@ -398,6 +418,16 @@ mod rs_karambit_v2 {
         let s1 = 2.0 / (1.0 / se + 1.0 / fatigue::UTS_MPA);
         assert!((fatigue::goodman_sf(s1, 5.0) - 1.0).abs() < 1e-12);
         assert!(fatigue::kb(10.0) < 1.0 && fatigue::kb(2.0) == 1.0);
+    }
+    #[test]
+    fn gate_s_matches_rs_v2() {
+        assert_eq!(num("apex_max_mm"), gate_s::APEX_MAX_MM); assert_eq!(num("half_angle_max_deg"), gate_s::HALF_ANGLE_MAX_DEG);
+        assert_eq!(num("tip_t025_max_mm"), gate_s::TIP_T025_MAX_MM); assert_eq!(num("tip_t1_max_mm"), gate_s::TIP_T1_MAX_MM);
+        assert_eq!(num("tip_t2_max_mm"), gate_s::TIP_T2_MAX_MM); assert_eq!(num("tip_taper_min_mm"), gate_s::TIP_TAPER_MIN_MM);
+        assert!(gate_s::law_pass(0.15, 20.0, 23.5));        // SWITCHBACK C.10a
+        assert!(!gate_s::law_pass(0.5, 20.0, 20.0));        // C.8 / C.9.3 0.5 mm edge flat
+        assert!(!gate_s::law_pass(0.15, 47.0, 20.0));       // obtuse chisel 'apex'
+        assert!(HM_TIP_INPLANE_RECORD_ONLY && RS.contains("record_only = [\"hm_tip_inplane_sf\"]"));
     }
     #[test]
     fn no_tissue_objectives_in_rs_v2() {

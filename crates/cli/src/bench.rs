@@ -121,6 +121,9 @@ pub fn rs_v2_eval(genomes: &str, out_dir: &str, solid_dir: &str) -> bool {
             ("seq_hard", Some(f.seq_ratio >= fem::SEQ_TARGET)),
             ("human_max", Some(fem::rs_v2_human_max_pass(&f, &p))),
             ("fatigue", Some(fem::rs_v2_fatigue_pass(&f))),
+            // Gate S (owner 2026-10-13): S1+S3 from the grind law; S2 (sharp point) needs a bound B-rep -> unverified here.
+            ("gate_s_sharp_law", Some(fem::gate_s::law_pass(g.v[jarambit_crescent::genome::EDGE_TH], g.v[jarambit_crescent::genome::EA_IN], g.v[jarambit_crescent::genome::EA_SP]))),
+            ("gate_s_tip_point_brep", None),
         ];
         let all_hard = all_met(&gates.iter().map(|(_, v)| *v).collect::<Vec<_>>());
         let unverified: Vec<&str> = gates.iter().filter(|(_, v)| v.is_none()).map(|(k, _)| *k).collect();
@@ -132,7 +135,7 @@ pub fn rs_v2_eval(genomes: &str, out_dir: &str, solid_dir: &str) -> bool {
             "strict_lat_rob_0p0625_n": strict_lat, "twist_tipzone_sf_strict": strict_tz,
             "solid_tip_sf": solid.as_ref().map(|s| s.0), "solid_tip_source": solid.as_ref().map(|s| s.1.clone()),
             "solid_tip_note": "bound by evidence/fem_solid/gci/bindings.json: identical genome + design label required (finest mesh SF_nodal_max); absent or mismatched = unverified",
-            "seq_ratio": f.seq_ratio, "hm_twist_sf": f.hm_twist_sf, "hm_tip_inplane_sf": f.hm_tip_inplane_sf, "hm_spine_sf": f.hm_spine_sf,
+            "seq_ratio": f.seq_ratio, "hm_twist_sf": f.hm_twist_sf, "hm_tip_inplane_sf": f.hm_tip_inplane_sf, "hm_tip_inplane_record_only": fem::HM_TIP_INPLANE_RECORD_ONLY, "hm_spine_sf": f.hm_spine_sf,
             "hm_ringback_sf": f.hm_ringback_sf, "fat_sf": f.fat_sf, "ring_bearing_w_mm": bw, "ring_band_mm": band,
             "gates": groups, "screen": gate(screen), "unverified": unverified, "all_hard": all_hard,
             "groups": {"screen_plate": screen == Some(true), "seq_hard": f.seq_ratio >= fem::SEQ_TARGET, "human_max": fem::rs_v2_human_max_pass(&f, &p),

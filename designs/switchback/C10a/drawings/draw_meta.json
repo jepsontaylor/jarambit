@@ -1,0 +1,17 @@
+{
+ "step": "/workspace/hiking-karambit/analysis/w79/ground_c10a.step",
+ "sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+ "mass_g": 64.841,
+ "OAL": 209.49,
+ "H": 73.0,
+ "point": [
+  190.49,
+  -47.82,
+  0.0
+ ],
+ "bbox": [
+  209.490944351461,
+  72.99964243036956,
+  10.0
+ ]
+}
