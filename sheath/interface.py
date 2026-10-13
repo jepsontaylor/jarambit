@@ -21,12 +21,15 @@ def load_annotations(path, source_sha):
     """Annotation file must name the same source sha; approval requires reviewer + date. Returns (lands, status)."""
     if path is None:
         return None, "INCOMPLETE: no annotation file"
-    a = json.load(open(path))
+    with open(path) as f:
+        a = json.load(f)
     if a.get("source_sha256") != source_sha:
         return None, "INCOMPLETE: annotation bound to a different source hash"
     st = a.get("review", {})
-    approved = bool(st.get("approved")) and bool(st.get("reviewer")) and bool(st.get("date"))
-    return a, ("APPROVED" if approved else "INCOMPLETE: annotation PROPOSED, awaiting human approval")
+    approved = st.get("approved") is True and bool(st.get("reviewer")) and bool(st.get("date"))
+    if not approved:
+        return None, "INCOMPLETE: annotation PROPOSED, awaiting human approval"
+    return a, "APPROVED"
 
 
 def from_step(step_path, stl_path, annotation_path=None):
@@ -54,7 +57,8 @@ def from_step(step_path, stl_path, annotation_path=None):
         "retention_lands": ann.get("retention_lands") if ann else None,
         "seating_lands": ann.get("seating_lands") if ann else None,
         "keepouts": (ann.get("keepouts") if ann else None) or [{"name": "grip+ring", "x_max": 60.0, "origin": "default"}],
-        "annotation_status": status, "tessellation_error_mm": tess, "mass_g": raw["brep"].get("mass_g_ti64"),
+        "annotation_status": status, "approved_annotations": ann,
+        "tessellation_error_mm": tess, "mass_g": raw["brep"].get("mass_g_ti64"),
         "brep": raw["brep"],
     }
     return iface, mesh, P
@@ -108,6 +112,10 @@ def validate(iface: dict):
         return False, {"outcome": "fail", "reasons": ["schema"]}
     if not iface["sharp_regions"]:
         return False, {"outcome": "fail", "reasons": ["no sharp regions declared — refuse (a knife always has some)"]}
-    if nulls or not str(iface.get("annotation_status", "")).startswith("APPROVED"):
-        return True, {"outcome": "incomplete", "missing": nulls + ([] if str(iface.get("annotation_status", "")).startswith("APPROVED") else ["annotation_approval"])}
+    ann = iface.get("approved_annotations")
+    approved = (isinstance(ann, dict) and bool(ann.get("source_sha256")) and ann.get("source_sha256") == iface.get("source", {}).get("step_sha256")
+                and ann.get("review", {}).get("approved") is True
+                and bool(ann.get("review", {}).get("reviewer")) and bool(ann.get("review", {}).get("date")))
+    if nulls or iface.get("annotation_status") != "APPROVED" or not approved:
+        return True, {"outcome": "incomplete", "missing": nulls + ([] if approved else ["approved_annotations"])}
     return True, {"outcome": "pass"}
