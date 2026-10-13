@@ -162,6 +162,7 @@ def cmd_render(args):
         args.regions or "",
         blender,
         worker,
+        hosts=farm_mod.DEFAULT_HOSTS,
         execute=args.execute,
     )
     print(json.dumps({key: summary[key] for key in ("plan_key", "jobs", "pending", "skip", "launched", "queued", "yield")}))
@@ -454,13 +455,8 @@ def cmd_dispatch(args):
     stamp = os.path.join(dest, "started_at.txt")
     if not os.path.isfile(stamp):
         canon.atomic_write_text(stamp, f"{time.time():.3f}\n")
-    # Dope block B owns the xbabe1 4090 until it reaches 400/400. Adopt a shard
-    # that is already rendering there, and do not start another one.
-    hosts = (
-        {"name": "xbabe1", "ssh": "xbabe1", "drain": True},
-        {"name": "xbabe3", "ssh": "xbabe3"},
-        {"name": "xbabe2", "ssh": None},
-    )
+    # Same table as cmd_render. xbabe1 stays drained until Dope block B is 400/400.
+    hosts = farm_mod.DEFAULT_HOSTS
     deadline = datetime.datetime(2026, 10, 14, 6, 0, tzinfo=datetime.timezone.utc).timestamp()
     png_dir = os.path.join(dest, "shots", "turntable", "final_4k")
 
