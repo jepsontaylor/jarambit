@@ -1,17 +1,55 @@
 {
  "figures": {
-  "docs/patent/figures/fig01.png": "c6a4135a44c5b99491abc37b33929bc07f27d5db528eb4ac7a4d07c4eb48b3f8",
-  "docs/patent/figures/fig02.png": "27d007486b454e660390b0defcd16eea6d97da79fc29551509c58fa0fed04eb5",
-  "docs/patent/figures/fig03.png": "5ec2cadd316ddc25d4fc437d06ae688f337508d8d6b03ea39943d56c0b490686",
-  "docs/patent/figures/fig04.png": "cf9106f221b111a6ee3df0dc7ad9d809e1b583994701b360cddb2c7410213cc6",
-  "docs/patent/figures/fig05.png": "dedb28fcc3d0493624ad8cacd445f7c4e4956f3e009cc8d16a16d398b63405d4",
-  "docs/patent/figures/fig06.png": "003c23815fc7ad13f75c087264a00bbcc38e93f80c6dfa87c1ae0037aff0e716",
-  "docs/patent/figures/fig07.png": "e5698ab03e967311c7c7ee5bd697726eacfc7b0ecf92b91cbe66b1df2e9d91a6",
-  "docs/patent/figures/fig08.png": "c2f9166602edf40ae8fd38d5ed552788fd769013f37ce36bdca9572a495e49bc"
+  "docs/patent/figures/fig01.png": "d71e1d412deb8c28ddab255bbe2ee0c36f7d3a96010b8cd142042ac28101f38c",
+  "docs/patent/figures/fig02.png": "06836422c8642fdefa915be7db8a8f483c5f346fc40af2ea6b56b45208b8ba0e",
+  "docs/patent/figures/fig03.png": "23d68a25b1a1764b2fd525aad4140ae8720036ec8ad09a8a79b9a4709e9a7748",
+  "docs/patent/figures/fig04.png": "726af5c2b57acac0ffad16a430d4623a1f3e12e728a10e92063c5b4e3315f0e8",
+  "docs/patent/figures/fig05.png": "ac78df011c3e66b004695a63cecb23481f50848d0ef531aee1f933d9a475ac20",
+  "docs/patent/figures/fig06.png": "4423b6bce08e9c396b375249398d46360a815d9bbac6962f9fc348d13f701bc5",
+  "docs/patent/figures/fig07.png": "592257dd0f1c10dd49e3161c9a5936be322a436d569950476f1a4593cff5111f",
+  "docs/patent/figures/fig08.png": "8b16667dcdce21d4e7a42806d2d31c4f7fd902ea0515f9c1170287490c80f87a"
  },
  "inputs": {
   "evidence/wave27/g3_tip+00_t60_tt3.stl": "04404820cf8385f5e34a42ef9d39a79aecda8eb88895c78aa21f4e3a92fe28c5",
-  "evidence/wave27/g3_tip+00_t60_tt3_D1.json": "49d9ee941f991b016e5ecbad2ee3ac58c020c9e9ffbde3421ccda491957ce666"
+  "evidence/wave27/g3_tip+00_t60_tt3_D1.json": "49d9ee941f991b016e5ecbad2ee3ac58c020c9e9ffbde3421ccda491957ce666",
+  "evidence/wave27/g3_tip+00_t60_tt3_grind_law.json": "3e46b97ff9d6b0d2f69ac6e5f589a2fa19661372c32bf5afed211b0c0e9ef5d3"
+ },
+ "numeral_anchors_mm": {
+  "10": [
+   14.7328,
+   0.0,
+   3.0
+  ],
+  "12": [
+   0.0,
+   0.0,
+   3.0
+  ],
+  "20": [
+   60.246,
+   14.8442,
+   2.9398
+  ],
+  "30": [
+   151.8853,
+   -22.3886,
+   0.4792
+  ],
+  "32": [
+   149.7231,
+   -4.7247,
+   0.4972
+  ],
+  "40": [
+   187.991,
+   -53.193,
+   3.0
+  ],
+  "50": [
+   154.7395,
+   -16.1615,
+   3.0
+  ]
  },
  "reference_numerals": {
   "10": "finger ring",
@@ -20,10 +58,14 @@
   "30": "concave (inner) sharpened, serrated edge",
   "32": "convex (outer) sharpened, serrated edge",
   "40": "tip",
-  "50": "distal thickness taper / relief pockets"
+  "50": "distal thickness taper"
  },
  "schema": 1,
  "script": "ops/render/patent/figures.py",
+ "taper_mm": [
+  134.646,
+  192.056
+ ],
  "views": [
   "FIG. 1: Perspective view",
   "FIG. 2: Front elevation (left face)",

@@ -4,7 +4,7 @@ Design-patent practice: FIG.1 perspective, FIG.2 front (left side face), FIG.3 r
 FIG.6 left end, FIG.7 right end — black line-art shading on white, orthographic. Utility-style FIG.8: front view with
 reference numerals and leader lines for the claimed features (ring, grip, spine, sharpened edge, tip, thickness taper, relief pockets).
 Writes PNGs + figures.manifest.json (inputs/outputs sha256) to --out.
-usage: figures.py --stl STL --d1 D1.json --out docs/patent/figures"""
+usage: figures.py --stl STL --d1 D1.json --grind GRIND_LAW.json --out docs/patent/figures   |   figures.py --verify docs/patent/figures/figures.json"""
 import argparse, hashlib, json, os, re
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -34,13 +34,31 @@ VIEWS = [('FIG. 1', 'Perspective view', rot('x', -55) @ rot('z', -30)),
          ('FIG. 7', 'Right end view (tip end)', rot('z', -90))]
 
 
+# drawable box (fractions of W, H): clear of the caption (top-left) and the FIG. label (bottom)
+BOX = (0.06, 0.10, 0.94, 0.84)
+
+
+def fit(q):
+    """Scale + offset from the projected bounding box: the complete part fits BOX, centred on its bbox midpoint."""
+    P = q.reshape(-1, 3); lo, hi = P[:, [0, 2]].min(0), P[:, [0, 2]].max(0)
+    bw, bh = (BOX[2] - BOX[0]) * W, (BOX[3] - BOX[1]) * H
+    s = min(bw / max(hi[0] - lo[0], 1e-6), bh / max(hi[1] - lo[1], 1e-6))
+    return s, (BOX[0] + BOX[2]) / 2 * W - (lo[0] + hi[0]) / 2 * s, (BOX[1] + BOX[3]) / 2 * H + (lo[1] + hi[1]) / 2 * s
+
+
+def screen_bounds(v, R):
+    c0 = v.reshape(-1, 3).mean(0); q = (v - c0) @ R.T; s, cx, cy = fit(q)
+    X = cx + q[:, :, 0] * s; Y = cy - q[:, :, 2] * s
+    return X.min(), Y.min(), X.max(), Y.max()
+
+
 def draw_view(v, R, title, sub, numerals=None):
     c0 = v.reshape(-1, 3).mean(0); q = (v - c0) @ R.T
     n = np.cross(q[:, 1] - q[:, 0], q[:, 2] - q[:, 0]); n /= np.linalg.norm(n, axis=1)[:, None] + 1e-12
     vis = np.abs(n[:, 1]) > 1e-3
     lam = np.abs(n @ np.array([-0.4, -0.75, 0.5]) / np.linalg.norm([-0.4, -0.75, 0.5]))
-    P = q.reshape(-1, 3); ext = max(np.ptp(P[:, 0]), np.ptp(P[:, 2]) * 1.6, 1e-6) * (1.0 if np.ptp(P[:, 0]) > 40 else 4.0)
-    s = W * 0.78 / ext; X = W / 2 + q[:, :, 0] * s; Y = H * 0.52 - q[:, :, 2] * s
+    s, cx, cy = fit(q)
+    X = cx + q[:, :, 0] * s; Y = cy - q[:, :, 2] * s
     img = Image.new('RGB', (W, H), 'white'); dr = ImageDraw.Draw(img)
     for i in np.argsort(q[:, :, 1].mean(1))[::-1]:
         if not vis[i]: continue
@@ -56,10 +74,10 @@ def draw_view(v, R, title, sub, numerals=None):
     for k, fs in edges.items():
         if len(fs) == 1 or abs(nn[fs[0]] @ nn[fs[1]]) < 0.6:
             a = (np.array(k[:3]) - c0) @ R.T; b = (np.array(k[3:]) - c0) @ R.T
-            dr.line([(W / 2 + a[0] * s, H * 0.52 - a[2] * s), (W / 2 + b[0] * s, H * 0.52 - b[2] * s)], fill='black', width=2)
+            dr.line([(cx + a[0] * s, cy - a[2] * s), (cx + b[0] * s, cy - b[2] * s)], fill='black', width=2)
     if numerals:
         for num, (pt, off) in numerals.items():
-            p = (np.array(pt) - c0) @ R.T; x, y = W / 2 + p[0] * s, H * 0.52 - p[2] * s
+            p = (np.array(pt) - c0) @ R.T; x, y = cx + p[0] * s, cy - p[2] * s
             tx, ty = x + off[0], y + off[1]
             dr.line([(x, y), (tx, ty)], fill='black', width=2); dr.text((tx + 6, ty - 18), str(num), fill='black', font=font(36))
     dr.text((W / 2 - 80, H - 110), title, fill='black', font=font(48))
@@ -78,18 +96,20 @@ def verify(man_path):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(); ap.add_argument('--stl'); ap.add_argument('--d1'); ap.add_argument('--out')
+    ap = argparse.ArgumentParser(); ap.add_argument('--stl'); ap.add_argument('--d1'); ap.add_argument('--out'); ap.add_argument('--grind', help='grind law json (taper_x0, x_max) for reference numeral 50')
     ap.add_argument('--verify', metavar='FIGURES_JSON', help='check a committed figure set instead of rendering')
     a = ap.parse_args(argv)
     if a.verify:
         e = verify(a.verify); print('\n'.join(e) or f'patent figures: {a.verify} ok'); raise SystemExit(1 if e else 0)
-    if not (a.stl and a.d1 and a.out):
-        ap.error('--stl, --d1 and --out are required to render')
+    if not (a.stl and a.d1 and a.out and a.grind):
+        ap.error('--stl, --d1, --grind and --out are required to render')
     os.makedirs(a.out, exist_ok=True)
     v = np.array(re.findall(r'vertex\s+(\S+)\s+(\S+)\s+(\S+)', open(a.stl).read()), float).reshape(-1, 3, 3)
     d1 = json.load(open(a.d1)); P = v.reshape(-1, 3); zt = P[:, 2].max()
     hdr = d1['genome_header'].split(','); gv = d1['genome'].split(','); ring_id = float(gv[hdr.index('ring_id')])
-    xmin, xmax = P[:, 0].min(), P[:, 0].max(); tip = P[P[:, 0].argmax()]
+    xmin, xmax = P[:, 0].min(), P[:, 0].max()
+    t2 = d1['outline'][0]; tip = np.array([t2[0], t2[1], zt])  # actual tip point (pheno c[0] = D1 outline[0])
+    gl = json.load(open(a.grind)); x_taper = gl['taper_x0'] + 0.35 * (gl['x_max'] - gl['taper_x0'])
     def near(x, pick):  # surface point at plan x, extreme y
         sel = P[np.abs(P[:, 0] - x) < 2.0]; return sel[sel[:, 1].argmax()] if pick == 'max' else sel[sel[:, 1].argmin()]
     numerals = {10: ((ring_id / 2 + 2.0, 0.0, zt), (-160, -170)),           # finger ring
@@ -98,20 +118,21 @@ def main(argv=None):
                 30: (tuple(near(xmin + 0.80 * (xmax - xmin), 'min')), (40, -190)),   # concave (inner) edge
                 32: (tuple(near(xmin + 0.80 * (xmax - xmin), 'max')), (60, 170)),    # convex (outer) edge
                 40: (tuple(tip), (60, -120)),                                 # tip
-                50: (tuple(near(xmin + 0.62 * (xmax - xmin), 'max') * [1, 0.85, 1]), (-80, 210))}  # distal taper / relief
+                50: ((x_taper, float(np.mean([near(x_taper, 'max')[1], near(x_taper, 'min')[1]])), zt), (-260, 260))}  # distal thickness taper (inside taper_x0..x_max of the grind law)
     legend = {10: 'finger ring', 12: 'ring bore (finger-bearing surface)', 20: 'grip / spine', 30: 'concave (inner) sharpened, serrated edge',
-              32: 'convex (outer) sharpened, serrated edge', 40: 'tip', 50: 'distal thickness taper / relief pockets'}
+              32: 'convex (outer) sharpened, serrated edge', 40: 'tip', 50: 'distal thickness taper'}
     outs = []
     for i, (t, sub, R) in enumerate(VIEWS, 1):
         p = os.path.join(a.out, f'fig{i:02d}.png'); draw_view(v, R, t, sub).save(p, optimize=True); outs.append(p)
     img = draw_view(v, VIEWS[1][2], 'FIG. 8', 'Front elevation with reference numerals', numerals)
     dr = ImageDraw.Draw(img)
-    for k, (num, txt) in enumerate(sorted(legend.items())): dr.text((W * 0.62, H * 0.70 + 42 * k), f'{num}  {txt}', fill='black', font=font(30))
+    for k, (num, txt) in enumerate(sorted(legend.items())): dr.text((W * 0.04, H * 0.09 + 42 * k), f'{num}  {txt}', fill='black', font=font(30))
     p = os.path.join(a.out, 'fig08.png'); img.save(p, optimize=True); outs.append(p)
     rel = lambda p: os.path.relpath(os.path.abspath(p), ROOT)
-    man = {'schema': 1, 'script': 'ops/render/patent/figures.py', 'inputs': {rel(a.stl): sha(a.stl), rel(a.d1): sha(a.d1)},
+    man = {'schema': 1, 'script': 'ops/render/patent/figures.py', 'inputs': {rel(a.stl): sha(a.stl), rel(a.d1): sha(a.d1), rel(a.grind): sha(a.grind)},
            'figures': {rel(p): sha(p) for p in outs}, 'views': [f'{t}: {s}' for t, s, _ in VIEWS] + ['FIG. 8: Front elevation with reference numerals'],
-           'reference_numerals': {str(k): v for k, v in legend.items()}}
+           'reference_numerals': {str(k): v for k, v in legend.items()},
+           'numeral_anchors_mm': {str(k): [round(float(c), 4) for c in pt] for k, (pt, _) in numerals.items()}, 'taper_mm': [gl['taper_x0'], gl['x_max']]}
     with open(os.path.join(a.out, 'figures.json'), 'w') as fh:
         json.dump(man, fh, indent=1, sort_keys=True); fh.write('\n')
     print(json.dumps({'figures': len(outs)}))
