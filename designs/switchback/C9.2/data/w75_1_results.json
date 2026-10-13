@@ -1,0 +1,274 @@
+{
+ "rev": "C.9.2",
+ "mass_g": 66.764,
+ "sha16": "2ad2a8ecaf4fca67",
+ "fea_step_sha16": "60778acda3b9e8df",
+ "method": "cut-boundary submodel (W24/W25 recipe): sphere RS 4 mm at the governing jimping notch (77.0,12.5) \u2229 C.9.2 FEA STEP; Dirichlet u on the cut = global P2 field (c92g: 99,398 tets, 0.6 mm jimping box x62\u201392 y6\u201317, 1.0 mm blade box); grip K_HAND springs on free faces as the global; RL 1.6 ball at h 0.2/0.14/0.1 (HOUT 0.5)",
+ "loads": "13.7 N\u00b7m nominal [W63-7] / 17.39 N\u00b7m MSIS bound [W69-2]; legacy levers a1 120 mm (40 N tip), a2 75 mm (150 N mid-blade) \u2014 lever lengths W69 ASSUMPTION",
+ "global_c92g": {
+  "a1_40N": {
+   "vm_max_MPa": 164.51,
+   "SF": 5.0331,
+   "peak_xyz": [
+    76.94,
+    12.51,
+    -1.43
+   ],
+   "vm_p9999_MPa": 159.96,
+   "applied_F": [
+    0.0,
+    0.0,
+    40.0
+   ],
+   "max_abs_u_mm": 54.1257
+  },
+  "a2_150N": {
+   "vm_max_MPa": 351.04,
+   "SF": 2.3587,
+   "peak_xyz": [
+    76.94,
+    12.51,
+    -1.43
+   ],
+   "vm_p9999_MPa": 340.11,
+   "applied_F": [
+    0.0,
+    0.0,
+    150.0
+   ],
+   "max_abs_u_mm": 98.0019
+  },
+  "a1b_40N": {
+   "vm_max_MPa": 137.49,
+   "SF": 6.0224,
+   "peak_xyz": [
+    76.94,
+    12.51,
+    -1.43
+   ],
+   "vm_p9999_MPa": 134.17,
+   "applied_F": [
+    0.0,
+    0.0,
+    40.0
+   ],
+   "max_abs_u_mm": 5.1082
+  },
+  "a2b_150N": {
+   "vm_max_MPa": 294.04,
+   "SF": 2.8159,
+   "peak_xyz": [
+    79.0,
+    12.59,
+    -1.43
+   ],
+   "vm_p9999_MPa": 280.71,
+   "applied_F": [
+    0.0,
+    0.0,
+    150.0
+   ],
+   "max_abs_u_mm": 7.1533
+  }
+ },
+ "a1": {
+  "ladder": [
+   {
+    "h": 0.2,
+    "SF": 1.6132,
+    "SF_17": 1.2709,
+    "peak": [
+     76.9,
+     12.53,
+     -1.51
+    ],
+    "n_tet": 17331
+   },
+   {
+    "h": 0.14,
+    "SF": 1.5652,
+    "SF_17": 1.233,
+    "peak": [
+     76.92,
+     12.53,
+     1.53
+    ],
+    "n_tet": 31024
+   },
+   {
+    "h": 0.1,
+    "SF": 1.5526,
+    "SF_17": 1.2231,
+    "peak": [
+     77.0,
+     12.53,
+     -1.52
+    ],
+    "n_tet": 64115
+   }
+  ],
+  "ratio": 0.262,
+  "observed_order": 3.75,
+  "extrap_observed": 1.548,
+  "extrap_p1p2": 1.529,
+  "SF_converged_design": 1.529,
+  "SF_17p39_est": 1.205,
+  "PASS": true
+ },
+ "a2": {
+  "ladder": [
+   {
+    "h": 0.2,
+    "SF": 1.7717,
+    "SF_17": 1.3957,
+    "peak": [
+     76.93,
+     12.53,
+     -1.51
+    ],
+    "n_tet": 17331
+   },
+   {
+    "h": 0.14,
+    "SF": 1.7209,
+    "SF_17": 1.3558,
+    "peak": [
+     77.03,
+     12.53,
+     1.54
+    ],
+    "n_tet": 31024
+   },
+   {
+    "h": 0.1,
+    "SF": 1.6867,
+    "SF_17": 1.3288,
+    "peak": [
+     77.0,
+     12.53,
+     -1.52
+    ],
+    "n_tet": 64115
+   }
+  ],
+  "ratio": 0.673,
+  "observed_order": 1.11,
+  "extrap_observed": 1.616,
+  "extrap_p1p2": 1.623,
+  "SF_converged_design": 1.616,
+  "SF_17p39_est": 1.273,
+  "PASS": true
+ },
+ "a1b": {
+  "ladder": [
+   {
+    "h": 0.2,
+    "SF": 1.9333,
+    "SF_17": 1.523,
+    "peak": [
+     76.9,
+     12.53,
+     -1.51
+    ],
+    "n_tet": 17331
+   },
+   {
+    "h": 0.14,
+    "SF": 1.8758,
+    "SF_17": 1.4778,
+    "peak": [
+     76.92,
+     12.53,
+     1.53
+    ],
+    "n_tet": 31024
+   },
+   {
+    "h": 0.1,
+    "SF": 1.8729,
+    "SF_17": 1.4755,
+    "peak": [
+     77.0,
+     12.53,
+     -1.52
+    ],
+    "n_tet": 64115
+   }
+  ],
+  "ratio": 0.05,
+  "observed_order": 8.37,
+  "extrap_observed": 1.873,
+  "extrap_p1p2": 1.867,
+  "SF_converged_design": 1.867,
+  "SF_17p39_est": 1.471,
+  "PASS": true
+ },
+ "a2b": {
+  "ladder": [
+   {
+    "h": 0.2,
+    "SF": 2.1854,
+    "SF_17": 1.7217,
+    "peak": [
+     76.9,
+     12.53,
+     -1.51
+    ],
+    "n_tet": 17331
+   },
+   {
+    "h": 0.14,
+    "SF": 2.1206,
+    "SF_17": 1.6706,
+    "peak": [
+     76.92,
+     12.53,
+     1.53
+    ],
+    "n_tet": 31024
+   },
+   {
+    "h": 0.1,
+    "SF": 2.0932,
+    "SF_17": 1.6491,
+    "peak": [
+     77.0,
+     12.53,
+     -1.52
+    ],
+    "n_tet": 64115
+   }
+  ],
+  "ratio": 0.423,
+  "observed_order": 2.41,
+  "extrap_observed": 2.073,
+  "extrap_p1p2": 2.042,
+  "SF_converged_design": 2.042,
+  "SF_17p39_est": 1.609,
+  "PASS": true
+ },
+ "checks": {
+  "RS5_h0p14_a1": 1.5874,
+  "RS5_note": "RS 5 sphere +1.4 % vs RS 4 at h 0.14 (cut layer has probe spikes; RS 4 kept, conservative)",
+  "notch_B_73p1_h0p14_a1": 1.6708,
+  "notch_B_note": "neighbour notch (73.1,12.9) is less critical (1.67 at h 0.14 vs 1.565); its cut layer shows probe spikes, so it is reported only as a ranking check"
+ },
+ "W73_estimate": {
+  "a1": 1.61,
+  "a2": 1.77,
+  "method": "1.0\u21920.3 mm local \u00d7 W20 ratio 0.952 (C.5)"
+ },
+ "V6": {
+  "a1": 1.529,
+  "a2": 1.616,
+  "a1b": 1.867,
+  "a2b": 2.042
+ },
+ "V6_PASS": true,
+ "V6_margin_pct": 1.9,
+ "governor": {
+  "SF": 1.529,
+  "case": "V6 a1 tip pry jimping"
+ },
+ "fitness_minSF_per_100g": 2.29
+}

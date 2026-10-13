@@ -1,0 +1,180 @@
+{
+ "rev": "C.9.2",
+ "mass_g": 66.764,
+ "sha16": "2ad2a8ecaf4fca67",
+ "TE_TIP": [
+  1.45,
+  160.0,
+  182.0
+ ],
+ "variant": "vF",
+ "of_record_C8": {
+  "mass_g": 45.71,
+  "sha16": "095183fc4928907f"
+ },
+ "provisional_prior_C91": {
+  "mass_g": 66.671,
+  "sha16": "04d6af8c2f8909d0"
+ },
+ "variants_tried": [
+  {
+   "tag": "c91",
+   "TE_TIP": "1.2,160,175",
+   "mass_g": 66.671,
+   "sha16": "f7958bbbf246b3ad",
+   "delta_g": 0.0,
+   "t178": 2.2609
+  },
+  {
+   "tag": "vA",
+   "TE_TIP": "1.35,160,175",
+   "mass_g": 66.792,
+   "sha16": "71eb0b3c51bf85f4",
+   "delta_g": 0.121,
+   "t178": 2.3627
+  },
+  {
+   "tag": "vB",
+   "TE_TIP": "1.4,160,175",
+   "mass_g": 66.839,
+   "sha16": "d122fc0a6febe18f",
+   "delta_g": 0.168,
+   "t178": 2.3966
+  },
+  {
+   "tag": "vC",
+   "TE_TIP": "1.5,160,175",
+   "mass_g": 66.923,
+   "sha16": "12b8c550efc8377b",
+   "delta_g": 0.252,
+   "t178": 2.4644
+  },
+  {
+   "tag": "vD",
+   "TE_TIP": "1.2,160,185",
+   "mass_g": 66.547,
+   "sha16": "5627a52cb26a3ceb",
+   "delta_g": -0.124,
+   "t178": 2.1041
+  },
+  {
+   "tag": "vE",
+   "TE_TIP": "1.4,165,185",
+   "mass_g": 66.595,
+   "sha16": "5b8df95eb63b4561",
+   "delta_g": -0.076,
+   "t178": 2.1445
+  },
+  {
+   "tag": "vF",
+   "TE_TIP": "1.45,160,182",
+   "mass_g": 66.764,
+   "sha16": "2ad2a8ecaf4fca67",
+   "delta_g": 0.093,
+   "t178": 2.2765
+  }
+ ],
+ "V2": {
+  "case": "tip 1 kN near-axial thrust (165 deg), hand-resolved envelope",
+  "ladder": [
+   {
+    "h_local_mm": 1.0,
+    "mesh": "c92r",
+    "SF": 1.738
+   },
+   {
+    "h_local_mm": 0.35,
+    "mesh": "c92t",
+    "SF": 1.661
+   },
+   {
+    "h_local_mm": 0.22,
+    "mesh": "c92uf",
+    "SF": 1.647
+   }
+  ],
+  "geometric_ratio": 0.182,
+  "SF_extrap": 1.644,
+  "SF_design": 1.644,
+  "peak_xyz": [
+   180.99,
+   -43.41
+  ],
+  "W69_literal_1kN_any_dir": {
+   "deg": 55,
+   "lever_mm": 145.7,
+   "F_resolved_N": 212,
+   "SF_1kN": 0.855,
+   "SF_1kN_noPatch": 0.855,
+   "SF_resolved": 4.032,
+   "SF_resolved_noPatch": 4.032,
+   "peak_noPatch": [
+    108.14,
+    -10.92
+   ]
+  },
+  "W69_dir_75deg": {
+   "deg": 75,
+   "lever_mm": 149.2,
+   "F_resolved_N": 212,
+   "SF_1kN": 0.903,
+   "SF_1kN_noPatch": 0.903,
+   "SF_resolved": 4.261,
+   "SF_resolved_noPatch": 4.261,
+   "peak_noPatch": [
+    108.14,
+    -10.92
+   ]
+  },
+  "C91_extrap": 1.449,
+  "status": "PASS"
+ },
+ "V4": {
+  "SF_3427": 1.755,
+  "SF_3427_outside_patch": 1.88,
+  "SF_4741": 1.269,
+  "status": "PASS",
+  "note": "from same ps_grip multi-RHS as V2; tip TE_TIP change does not unload ring"
+ },
+ "V1": {
+  "SF": 2.01,
+  "status": "PASS (carry)",
+  "note": "tip-zone edge flat thickened 1.2\u21921.45 mm; tip-strip twist SF can only rise vs W72 2.01"
+ },
+ "V3": {
+  "SF": 1.597,
+  "status": "PASS (carry)",
+  "note": "spine strike mid-blade; tip grind change aft of x160 cannot drop V3"
+ },
+ "V5": {
+  "SF_641N": 8.2,
+  "status": "PASS (carry)",
+  "note": "ring/bead + hook-seat; tip TE_TIP irrelevant"
+ },
+ "V6": {
+  "a1_conv_est": 1.607,
+  "a2_conv_est": 1.766,
+  "status": "PASS (carry)",
+  "note": "jimping/handle pry; tip TE_TIP irrelevant"
+ },
+ "V7": {
+  "SF": 1.624,
+  "status": "PASS (carry)",
+  "note": "comet-slot nose handle twist; tip TE_TIP irrelevant"
+ },
+ "V8": {
+  "mass_g": 66.764
+ },
+ "red_team": {
+  "carry": "fixed sheath only",
+  "ring_dangle": false,
+  "wounding_objective": false,
+  "loads": "W69 sourced"
+ },
+ "governor_SF": 1.597,
+ "fitness_minSF_per_100g": 2.392,
+ "material_improvement": true,
+ "decision_needed": false,
+ "promoted": false,
+ "note": "C.8 remains of record; C.9.2 provisional with first complete V1\u2013V8 PASS board on a C.9.x solid (V1/V3/V5/V6/V7 carried with tip-only thickening justification; V2/V4 re-solved)."
+}

@@ -34,6 +34,8 @@ Verdicts are scoped to a requirement set (`requirements/RS-karambit-v1.toml`): *
 *Top: faceted STL preview, not a validated STEP. The wave27 STEP imports as an unsewable shell, so the whole-part solid mesh uses the STL twin (84.86 g vs 84.80 g). Colour = position along the blade. Bottom: **historical** wave27 D1 plate (RS-karambit-v1 W27 screen scope; it labels seq SOFT, which RS-karambit-v2 makes HARD). Solid-tip SF 1.534 at the production mesh.*
 <!-- GEN:FIGS:END -->
 
+> **SWITCHBACK Rev C.9.2 (rc2)** — [`designs/switchback/C9.2/`](designs/switchback/C9.2/README.md): B-rep STEP, drawings and FEM plates from the hiking-karambit study. C.9.2 is a **release candidate, not the design of record**: its V1–V8 gates are the C.9 study set (not an RS-karambit-v2 verdict from this repo), the lateral-pry margin is below the 5 % promotion rule, and nothing is machined or tested.
+
 </div>
 
 <!-- GEN:RELEASE:BEGIN -->
