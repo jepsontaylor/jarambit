@@ -1,0 +1,85 @@
+{
+ "n_designs": 40,
+ "sigma_max": 0.07,
+ "cases": {
+  "lat_rob": {
+   "factor_t2_over_t1": 0.94678,
+   "sigma": 0.06524,
+   "max_abs_residual": 0.17099,
+   "pass_sigma": true
+  },
+  "ring_rob": {
+   "factor_t2_over_t1": 1.05937,
+   "sigma": 0.05457,
+   "max_abs_residual": 0.17195,
+   "pass_sigma": true
+  },
+  "twist_joint": {
+   "factor_t2_over_t1": 0.8645,
+   "sigma": 0.10798,
+   "max_abs_residual": 0.39109,
+   "pass_sigma": false
+  },
+  "pry20": {
+   "factor_t2_over_t1": 0.9245,
+   "sigma": 0.03255,
+   "max_abs_residual": 0.08363,
+   "pass_sigma": true
+  }
+ },
+ "rs_v2": {
+  "hm_twist_sf": {
+   "min": 0.0445,
+   "median": 0.06,
+   "max": 0.0749,
+   "n_pass": 0
+  },
+  "hm_tip_inplane_sf": {
+   "min": 0.4207,
+   "median": 0.5858,
+   "max": 0.6941,
+   "n_pass": 0
+  },
+  "hm_spine_sf": {
+   "min": 0.2955,
+   "median": 0.4494,
+   "max": 0.502,
+   "n_pass": 0
+  },
+  "hm_ringback_sf": {
+   "min": 1.4916,
+   "median": 2.0086,
+   "max": 2.1218,
+   "n_pass": 40
+  },
+  "fat_sf": {
+   "min": 0.6123,
+   "median": 0.7243,
+   "max": 0.8073,
+   "n_pass": 0
+  },
+  "ring_bearing_w_mm": {
+   "min": 4.519,
+   "median": 4.86,
+   "max": 5.298,
+   "n_pass": 0
+  },
+  "ring_band_mm": {
+   "min": 5.21,
+   "median": 5.296,
+   "max": 5.616
+  },
+  "mass_g": {
+   "min": 70.088,
+   "median": 76.453,
+   "max": 79.976
+  },
+  "seq_ratio": {
+   "min": 0.6932,
+   "median": 0.8063,
+   "max": 1.0624,
+   "n_pass": 0
+  },
+  "n_pass_human_max_all": 0
+ }
+}

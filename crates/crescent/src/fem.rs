@@ -39,6 +39,66 @@ pub struct Fem {
     /// 3D factor at the body peak section; TIP SUBMODEL = peak restricted to the 4..15 mm tip annulus with its own
     /// 3D factor (taken from the strict 0.0625 mm^2 solve in crescent-d1 / certification).
     pub twist_body_kc: f64, pub twist_body_sf: f64, pub twist_tipzone_kc: f64, pub twist_tipzone_joint_nmm: f64, pub twist_tipzone_sf: f64,
+    /// RS-karambit-v2 human-max structural cases (PR-0.31.3): joint first-yield capacities (N or N*mm) and SF vs the
+    /// RS-v2 load (`hm::*`). Structural only: no-permanent-set capacity of the part, nothing about what it is pressed into.
+    /// twist = tip torque about the chord (3D-corrected, as `twist_joint_nmm`); tip in-plane = worst of the
+    /// chord-normal and chord-axial tip loads (T6, ring held); spine = distributed in-plane load on the spine edge
+    /// toward the sharpened edge (T6, ring held); ring-back = L6 static-equivalent +x load on the ring back
+    /// (T6, grip band seated, like the ring-pull case).
+    pub hm_twist_nmm: f64, pub hm_tip_inplane_n: f64, pub hm_spine_n: f64, pub hm_ringback_n: f64,
+    pub hm_twist_sf: f64, pub hm_tip_inplane_sf: f64, pub hm_spine_sf: f64, pub hm_ringback_sf: f64,
+    /// L7 fatigue (Marin-corrected endurance limit, modified Goodman), cyclic hiker lateral 0..180 N (R = 0).
+    pub fat_sf: f64,
+}
+
+/// RS-karambit-v2 human-max structural load cases (requirements/RS-karambit-v2.toml [human_max]).
+pub mod hm {
+    pub const TWIST_NMM: f64 = 16_200.0;
+    pub const TIP_INPLANE_N: f64 = 1000.0;
+    pub const SPINE_N: f64 = 3427.0;
+    /// L6 ring-back impact, static equivalent = dynamic amplification 2.0 (suddenly applied load) x ring pull 1500 N.
+    pub const RINGBACK_DAF: f64 = 2.0;
+    pub const RINGBACK_N: f64 = RINGBACK_DAF * 1500.0;
+    /// Ring finger-bearing: bearing width (bore length along the finger axis = local thickness at the bore) and bore edge radius.
+    pub const RING_BEARING_W_MIN_MM: f64 = 10.0;
+    pub const RING_EDGE_R_MIN_MM: f64 = 1.5;
+}
+
+/// L7 fatigue: Ti-6Al-4V annealed minimum UTS, Marin factors (Shigley 10th ed. eqs 6-18..6-20, table 6-5), Goodman line.
+pub mod fatigue {
+    pub const UTS_MPA: f64 = 895.0;
+    /// Se' = 0.5 Sut (Ti alloys, rotating-beam, 1e7 cycles; conservative for Ti-6Al-4V).
+    pub const SE_PRIME_RATIO: f64 = 0.5;
+    /// ka = a Sut^b, machined: a = 4.51, b = -0.265.
+    pub fn ka() -> f64 { 4.51 * UTS_MPA.powf(-0.265) }
+    /// kb for bending with effective dimension = plate thickness t (mm), 2.79..51 mm: 1.24 t^-0.107 capped at 1.
+    pub fn kb(t: f64) -> f64 { (1.24 * t.max(2.79).powf(-0.107)).min(1.0) }
+    /// ke = 0.814 (99 % reliability); kc = kd = kf-misc = 1 (bending, room temperature).
+    pub const KE: f64 = 0.814;
+    pub fn se(t: f64) -> f64 { SE_PRIME_RATIO * UTS_MPA * ka() * kb(t) * KE }
+    /// Goodman SF for a 0..smax cycle (R = 0): sa = sm = smax/2.
+    pub fn goodman_sf(smax: f64, t: f64) -> f64 { if smax <= 0.0 { return f64::INFINITY; } 1.0 / (0.5 * smax / se(t) + 0.5 * smax / UTS_MPA) }
+    pub const CYCLIC_LATERAL_N: f64 = 180.0;
+}
+
+pub const RS_V2_ID: &str = "RS-karambit-v2";
+/// RS-karambit-v2 group `human_max` (structural human-max cases + ring finger-bearing). The bore edge radius is an
+/// export spec; here it is checked as feasible (bearing width >= 2 r + 1 mm flat).
+pub fn rs_v2_human_max_pass(f: &Fem, p: &Pheno) -> bool {
+    let (bw, _) = ring_bearing(p);
+    f.hm_twist_sf >= 1.0 && f.hm_tip_inplane_sf >= 1.0 && f.hm_spine_sf >= 1.0 && f.hm_ringback_sf >= 1.0
+        && bw >= hm::RING_BEARING_W_MIN_MM && bw >= 2.0 * hm::RING_EDGE_R_MIN_MM + 1.0
+}
+/// RS-karambit-v2 group `fatigue` (L7).
+pub fn rs_v2_fatigue_pass(f: &Fem) -> bool { f.fat_sf >= 1.0 }
+
+/// Ring finger-bearing geometry (RS-v2): min local thickness along the ring bore (= bearing width along the finger
+/// axis for a straight bore) and the radial band width (ring OD - ID)/2. Edge radius r needs t >= 2 r + flat.
+pub fn ring_bearing(p: &Pheno) -> (f64, f64) {
+    let rr = p.ring_id / 2.0;
+    let w = (0..72).map(|k| { let a = k as f64 * std::f64::consts::PI / 36.0; let q = ((rr + 0.3) * a.cos(), (rr + 0.3) * a.sin());
+        if point_in_poly(q, &p.outline) { p.field.at(q) } else { f64::INFINITY } }).fold(f64::INFINITY, f64::min);
+    (if w.is_finite() { w } else { p.t }, (p.ring_od - p.ring_id) / 2.0)
 }
 
 pub struct Fields { pub xy: Vec<P2>, pub tris: Vec<[usize; 3]>, pub te: Vec<f64>, pub env_vm: Vec<f64>, pub sf: Vec<f64>,
@@ -124,6 +184,10 @@ pub fn certify(p: &Pheno) -> Option<(Fem, Fields)> {
         twist_tipzone_kc: if a.twist_tipzone_sf <= b.twist_tipzone_sf { a.twist_tipzone_kc } else { b.twist_tipzone_kc }, twist_tipzone_joint_nmm: a.twist_tipzone_joint_nmm.min(b.twist_tipzone_joint_nmm), twist_tipzone_sf: a.twist_tipzone_sf.min(b.twist_tipzone_sf),
         twist_tipdist: tg.twist_tipdist, twist_body_joint_nmm: a.twist_body_joint_nmm.min(b.twist_body_joint_nmm), twist_hand_joint_nmm: a.twist_hand_joint_nmm.min(b.twist_hand_joint_nmm),
         seq_ratio: if a.seq_ratio <= b.seq_ratio { a.seq_ratio } else { b.seq_ratio }, seq_case: if a.seq_ratio <= b.seq_ratio { a.seq_case } else { b.seq_case },
+        hm_twist_nmm: a.hm_twist_nmm.min(b.hm_twist_nmm), hm_tip_inplane_n: a.hm_tip_inplane_n.min(b.hm_tip_inplane_n),
+        hm_spine_n: a.hm_spine_n.min(b.hm_spine_n), hm_ringback_n: a.hm_ringback_n.min(b.hm_ringback_n),
+        hm_twist_sf: a.hm_twist_sf.min(b.hm_twist_sf), hm_tip_inplane_sf: a.hm_tip_inplane_sf.min(b.hm_tip_inplane_sf),
+        hm_spine_sf: a.hm_spine_sf.min(b.hm_spine_sf), hm_ringback_sf: a.hm_ringback_sf.min(b.hm_ringback_sf), fat_sf: a.fat_sf.min(b.fat_sf),
         sf_hiker: lat_rob / floors::HIKER_LATERAL_N, sf_hunter: lat_rob / floors::HUNTER_LATERAL_N, sf_ring: ring_rob / floors::RING_PULL_N,
         lat_at: gov.lat_at, ring_at: if a.ring20 <= b.ring20 { a.ring_at } else { b.ring_at }, nodes: b.nodes, tris: b.tris,
         floors_ok: lat_rob >= floors::HIKER_LATERAL_N && lat_rob >= floors::HUNTER_LATERAL_N && ring_rob >= floors::RING_PULL_N };
@@ -199,6 +263,17 @@ fn run_b(p: &Pheno, max_area: f64, keep: bool, bias_lat: f64, bias_ring: f64) ->
     for &i in &patch { f_pr[i * 2] = nvec.0 / k; f_pr[i * 2 + 1] = nvec.1 / k; }
     let u_pr = t6.solve(&sys6, &f_pr);
     let pry = t6.centroid_vm(&u_pr); let nod_pr = t6.nodal_stress(&u_pr);
+    // human-max (RS-v2): chord-axial tip load and distributed spine load on the same ring-held factor
+    let mut f_ax = vec![0.0; n6 * 2];
+    for &i in &patch { f_ax[i * 2] = -dvec.0 / k; f_ax[i * 2 + 1] = -dvec.1 / k; }
+    let nod_ax = t6.nodal_stress(&t6.solve(&sys6, &f_ax));
+    let nn_sp = Nn::new(&densify(&p.edge_sp, 0.25, false), 2.0);
+    let on_sp = |i: usize| i < n && plate.mesh.on_outer[i] && nn_sp.nearest(xy[i], 1.0) < 0.6 && dist(xy[i], tp) > fine::TIP_EXCL_MM;
+    let ce = |v: &[P2]| { let k = v.len().max(1) as f64; (v.iter().map(|q| q.0).sum::<f64>() / k, v.iter().map(|q| q.1).sum::<f64>() / k) };
+    let sp_dir = norm(sub(ce(&p.edge_in), ce(&p.edge_sp)));
+    let mut f_sp = vec![0.0; n6 * 2];
+    let per_sp = t6.edge_traction(&on_sp, sp_dir, &mut f_sp);
+    let nod_sp = if per_sp > 0.0 { for v in f_sp.iter_mut() { *v /= per_sp; } Some(t6.nodal_stress(&t6.solve(&sys6, &f_sp))) } else { None };
     drop(sys6);
     let (sx0, sx1) = (76.0 + p.dx, 100.0 + p.dx);
     let seat: Vec<bool> = t6.xy.iter().map(|q| q.0 >= sx0 && q.0 <= sx1).collect();
@@ -211,6 +286,12 @@ fn run_b(p: &Pheno, max_area: f64, keep: bool, bias_lat: f64, bias_ring: f64) ->
     for v in f_ring.iter_mut() { *v /= per; }
     let u_ring = t6.solve(&sys6, &f_ring);
     let ring = t6.centroid_vm(&u_ring); let nod_ring = t6.nodal_stress(&u_ring);
+    // L6 ring-back impact (static equivalent): +x load on the outer ring back (x < -0.7 r_od), grip band seated
+    let ro = p.ring_od / 2.0;
+    let on_rb = |i: usize| i < n && plate.mesh.on_outer[i] && xy[i].0 < -0.7 * ro && (xy[i].0.hypot(xy[i].1) - ro).abs() < 1.0;
+    let mut f_rb = vec![0.0; n6 * 2];
+    let per_rb = t6.edge_traction(&on_rb, (1.0, 0.0), &mut f_rb);
+    let nod_rb = if per_rb > 0.0 { for v in f_rb.iter_mut() { *v /= per_rb; } Some(t6.nodal_stress(&t6.solve(&sys6, &f_rb))) } else { None };
     let mut pry_pk = 0.0f64; let mut ring_pk = (0.0f64, (0.0, 0.0));
     for i in 0..n6 { let q = t6.xy[i]; if dist(q, tp) < fine::TIP_EXCL_MM { continue; }
         pry_pk = pry_pk.max(fine::von_mises(nod_pr[i]));
@@ -221,6 +302,14 @@ fn run_b(p: &Pheno, max_area: f64, keep: bool, bias_lat: f64, bias_ring: f64) ->
         if q.0 >= p.heel.0 { pb = pb.max(v); } else if q.0 < p.heel.0 - 3.0 && !ring6[i] { ph = ph.max(v); } }
     if ph > 0.0 && pb > 0.0 && pb / ph < seq.0 { seq = (pb / ph, "pry"); }
     let sy20 = m.yield_at(20.0);
+    // human-max peaks (T6 nodal vm; tip patch excluded; grip seat excluded for the seated case)
+    let pk6 = |nod: &[[f64; 3]], seated: bool| { let mut v = 0.0f64; for i in 0..n6 { let q = t6.xy[i]; if dist(q, tp) < fine::TIP_EXCL_MM { continue; }
+        if seated && q.0 >= sx0 - 3.0 { continue; } v = v.max(fine::von_mises(nod[i])); } v };
+    let jk1 = joint_k(&m, p.t_joint, 1);
+    let cap = |pk: f64| if pk > 0.0 { sy20 / pk * jk1 } else { 0.0 };
+    let hm_tip = cap(pry_pk.max(pk6(&nod_ax, false)));
+    let hm_sp = nod_sp.as_ref().map(|v| cap(pk6(v, false))).unwrap_or(0.0);
+    let hm_rb = nod_rb.as_ref().map(|v| cap(pk6(v, true))).unwrap_or(0.0);
     let lat20 = sy20 / sl.max(1e-12); let ring20 = sy20 / ring_pk.0.max(1e-12);
     let lat_rob = lat20 * joint_k(&m, p.t_joint, 2) / bias_lat;
     let ring_rob = ring20 * joint_k(&m, p.t_joint, 1) / bias_ring;
@@ -231,6 +320,9 @@ fn run_b(p: &Pheno, max_area: f64, keep: bool, bias_lat: f64, bias_ring: f64) ->
         twist_tipdist: dist(cen[et_e], tp), twist_body_joint_nmm: sy20 / st_body.max(1e-12) * joint_k(&m, p.t_joint, 2),
         twist_hand_joint_nmm: sy20 / st_hand.max(1e-12) * joint_k(&m, p.t_joint, 2),
         twist_body_kc: kc_body, twist_body_sf: body_j3 / TWIST_FLOOR_NMM, twist_tipzone_kc: kc_tz, twist_tipzone_joint_nmm: tz_j3, twist_tipzone_sf: tz_j3 / TWIST_FLOOR_NMM,
+        hm_twist_nmm: tw_joint, hm_tip_inplane_n: hm_tip, hm_spine_n: hm_sp, hm_ringback_n: hm_rb,
+        hm_twist_sf: tw_joint / hm::TWIST_NMM, hm_tip_inplane_sf: hm_tip / hm::TIP_INPLANE_N, hm_spine_sf: hm_sp / hm::SPINE_N, hm_ringback_sf: hm_rb / hm::RINGBACK_N,
+        fat_sf: fatigue::goodman_sf(sl * fatigue::CYCLIC_LATERAL_N / joint_k(&m, p.t_joint, 2), p.t_joint),
         sf_hiker: lat_rob / floors::HIKER_LATERAL_N, sf_hunter: lat_rob / floors::HUNTER_LATERAL_N, sf_ring: ring_rob / floors::RING_PULL_N,
         lat_at: cen[el], ring_at: ring_pk.1, nodes: n, tris: ne,
         floors_ok: lat_rob >= floors::HIKER_LATERAL_N && lat_rob >= floors::HUNTER_LATERAL_N && ring_rob >= floors::RING_PULL_N };
@@ -278,3 +370,39 @@ mod rs_karambit_v1 {
         assert!((num("blade_limit_mm") - jarambit_genotype::limits::BLADE_LIMIT_MM).abs() < 1e-9);
     }
 }
+
+#[cfg(test)]
+mod rs_karambit_v2 {
+    use super::*;
+    const RS: &str = include_str!("../../../requirements/RS-karambit-v2.toml");
+    fn num(key: &str) -> f64 {
+        RS.lines().map(|l| l.split('#').next().unwrap().trim()).find(|l| l.starts_with(&format!("{key} ")))
+            .unwrap_or_else(|| panic!("{key} missing")).split_once('=').unwrap().1.trim().parse().unwrap()
+    }
+    #[test]
+    fn rs_karambit_v2_matches_code() {
+        assert!(RS.contains(&format!("id = \"{RS_V2_ID}\"")));
+        assert_eq!(num("seq_target"), SEQ_TARGET);
+        assert_eq!(num("mass_target_g"), MASS_TARGET_G); assert_eq!(num("mass_stretch_g"), MASS_STRETCH_G);
+        assert_eq!(num("twist_nmm"), hm::TWIST_NMM); assert_eq!(num("tip_inplane_n"), hm::TIP_INPLANE_N);
+        assert_eq!(num("spine_n"), hm::SPINE_N); assert_eq!(num("ringback_daf"), hm::RINGBACK_DAF);
+        assert_eq!(num("ringback_n"), hm::RINGBACK_N);
+        assert_eq!(num("ring_bearing_w_min_mm"), hm::RING_BEARING_W_MIN_MM); assert_eq!(num("ring_edge_r_min_mm"), hm::RING_EDGE_R_MIN_MM);
+        assert_eq!(num("uts_mpa"), fatigue::UTS_MPA); assert_eq!(num("ke"), fatigue::KE);
+        assert_eq!(num("se_prime_ratio"), fatigue::SE_PRIME_RATIO); assert_eq!(num("cyclic_lateral_n"), fatigue::CYCLIC_LATERAL_N);
+    }
+    #[test]
+    fn goodman_and_marin() {
+        // Se for t = 5 mm: 0.5*895*ka*kb*0.814; Goodman R=0 at smax = 2/(1/Se + 1/Sut) gives SF = 1 exactly.
+        let se = fatigue::se(5.0); assert!(se > 250.0 && se < 300.0, "{se}");
+        let s1 = 2.0 / (1.0 / se + 1.0 / fatigue::UTS_MPA);
+        assert!((fatigue::goodman_sf(s1, 5.0) - 1.0).abs() < 1e-12);
+        assert!(fatigue::kb(10.0) < 1.0 && fatigue::kb(2.0) == 1.0);
+    }
+    #[test]
+    fn no_tissue_objectives_in_rs_v2() {
+        let body: String = RS.lines().filter(|l| !l.trim_start().starts_with('#')).collect::<Vec<_>>().join("\n").to_lowercase();
+        for w in ["gel", "bone", "muscle", "hide", "tissue", "penetrat", "lethal"] { assert!(!body.contains(w), "{w}"); }
+    }
+}
+
