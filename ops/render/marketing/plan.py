@@ -142,7 +142,7 @@ STILLS = [
     {"id": "white_ecom", "rig_preset": "rig_product_white", "az": 0.0, "el": 0.0,
      "focal_mm": 85.0, "fstop": 8.0, "hero": True, "fill_axis": "width"},
     {"id": "flat_lay", "rig_preset": "rig_studio_softbox", "az": 0.0, "el": 90.0,
-     "focal_mm": 85.0, "fstop": 8.0, "hero": False, "fill_axis": "max"},
+     "focal_mm": 85.0, "fstop": 8.0, "hero": False, "fill_axis": "max", "pose": "lay_flat"},
 ]
 
 TURNTABLE = {
@@ -513,7 +513,20 @@ def _camera_dict(focal_mm, fstop, focus):
     }
 
 
+# Part poses applied by the worker before framing (must equal blender/worker.py POSES).
+POSES = {
+    "as_is": ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)),
+    "lay_flat": ((1.0, 0.0, 0.0), (0.0, 0.0, 1.0), (0.0, -1.0, 0.0)),
+    "stand_up": ((1.0, 0.0, 0.0), (0.0, 0.0, -1.0), (0.0, 1.0, 0.0)),
+}
+
+
 def _resolve_still(spec, points, plan_key, frame_profile, profiles, focus, external):
+    pose = spec.get("pose", "as_is")
+    if pose not in POSES:
+        raise PlanError(f"unknown pose {pose!r}")
+    # fit against the posed geometry the worker will actually render
+    points = np.asarray(points, float) @ np.asarray(POSES[pose]).T
     res = PROFILES[frame_profile]["res"]
     camera = {"focal_mm": spec["focal_mm"], "sensor_mm": SENSOR_MM, "res": res}
     trajectory = [{
@@ -525,6 +538,7 @@ def _resolve_still(spec, points, plan_key, frame_profile, profiles, focus, exter
     return {
         "id": spec["id"],
         "kind": "still",
+        "pose": pose,
         "hero": bool(spec.get("hero")),
         "rig_preset": spec["rig_preset"],
         "fps": None,

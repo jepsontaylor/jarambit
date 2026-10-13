@@ -148,9 +148,25 @@ def resolve_point(p, pivot, label_pts):
     return np.asarray(p, float), 'given'
 
 
-def verify_receipt(rp):
+def frame_identity(req, f, prof, res, seed):
+    """What a resumable frame must match: plan, shot, frame, resolution, sample budget, seed."""
+    return {'plan_key': req['plan_key'], 'shot_id': req['shot']['id'], 'index': int(f['index']),
+            'res': [int(res[0]), int(res[1])], 'spp': int(prof['spp_max']), 'seed': int(seed)}
+
+
+def planned_seed(req, f, prof):
+    """The resolved plan's per-frame seed (carried in the request), independent of sharding.
+    Requests without it (old lookdev) fall back to the plan_key/index formula with no shard input."""
+    if f.get('seed') is not None:
+        return int(f['seed'])
+    return rigmath.frame_seed(req['plan_key'], f['index'], prof.get('seed', 0))
+
+
+def verify_receipt(rp, identity=None):
     try:
         r = json.load(open(rp))
+        if identity is not None and r.get('identity') != identity:
+            return None  # another plan/frame/profile: rerender, never resume
         for k, (path, sha) in r['files'].items():
             if not os.path.isfile(path) or scene.sha256(path) != sha:
                 return None
@@ -206,7 +222,7 @@ def run(req, force=False, threads=16):
         tgt, tsrc = resolve_point(f.get('target'), pivot, label_pts)
         frames.append({'index': int(f['index']), 'az': float(f['az']), 'el': float(f['el']),
                        'roll': float(shot.get('roll_deg', 0.0)), 'target': tgt, 'target_src': tsrc,
-                       'distance_m': f.get('distance_m')})
+                       'distance_m': f.get('distance_m'), 'seed': f.get('seed')})
     res = prof['res']
     focal, sensor = float(cam_spec['focal_mm']), float(cam_spec.get('sensor_mm', 36.0))
     framing = {'source': 'request'}
@@ -276,8 +292,10 @@ def run(req, force=False, threads=16):
     for f in frames:
         stem = os.path.join(out_dir, f'{sid}_{f["index"]:04d}')
         rp = stem + '.receipt.json'
+        seed = planned_seed(req, f, prof)
+        ident = frame_identity(req, f, prof, res, seed)
         if not force:
-            r = verify_receipt(rp)
+            r = verify_receipt(rp, ident)
             if r:
                 results.append({**r['frame'], 'resumed': True})
                 continue
@@ -294,7 +312,6 @@ def run(req, force=False, threads=16):
         if fstop_req and dof_policy == 'whole_object':
             fstop = rigmath.auto_fstop(near, far, focus_dist, focal, sensor, res[0], fmin=float(fstop_req))
         cameras.set_dof(cam, focus_dist, fstop)
-        seed = rigmath.frame_seed(req['plan_key'], f['index'], prof.get('seed', 0))
         sc.cycles.seed = seed
         for p in glob.glob(os.path.join(tmp_root, '*')):
             os.remove(p)
@@ -323,7 +340,7 @@ def run(req, force=False, threads=16):
               'sha256': shas['raw'], 'sha256_all': shas, 'seed': seed, 'az': f['az'], 'el': f['el'],
               'distance_m': f['distance_m'], 'fstop': fstop, 'focus_m': round(focus_dist, 5)}
         atomic_json(rp, {'host': host, 'frame': fr, 'files': {k: [p, shas[k]] for k, p in files.items()},
-                         'plan_key': req['plan_key'], 'time_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())})
+                         'plan_key': req['plan_key'], 'identity': ident, 'time_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())})
         results.append(fr)
         print(f'[worker] {sid} frame {f["index"]} {secs:.1f}s spp_mean {spp_mean:.0f}', flush=True)
     shutil.rmtree(tmp_root, ignore_errors=True)

@@ -551,11 +551,11 @@ def ingest(path, out, *, units=None, validated_brep=False, expected_sha256=None,
     _deterministic_npz(mesh_dir / "mesh.npz", {"V": V.astype(np.float64), "F": mesh.F.astype(np.int32),
                       "N_corner": N, "face_id": mesh.face_id, "region_id": labels, "tangent": tangent, "uv": uv})
     source = {"path": str(path), "format": path.suffix[1:].lower(), "sha256": mesh.source_sha256, "units": mesh.source_units}
-    info = plan_mod.source_info(mesh.source_sha256)  # keyed by the --cad file's verified hash
-    if info is not None:
-        source["model"] = info["model"]
-        source["reference_mass_g"] = info["reference_mass_g"]
-        source["role"] = info["role"]
+    src_info = plan_mod.source_info(mesh.source_sha256)  # keyed by the --cad file's verified hash
+    if src_info is not None:
+        source["model"] = src_info["model"]
+        source["reference_mass_g"] = src_info["reference_mass_g"]
+        source["role"] = src_info["role"]
     if tags is not None:
         source["regions_sidecar"] = {"path": str(sidecar), "sha256": sha256(sidecar)}
     bundle = {"schema": "jarambit.render.mesh.v1", "source": source, "unit_scale_to_m": mesh.unit_scale_to_m,
