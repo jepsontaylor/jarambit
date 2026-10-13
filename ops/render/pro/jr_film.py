@@ -17,6 +17,10 @@ Stages (each is skipped when its outputs exist AND carry the same manifest sha; 
 Any missing input, sha mismatch, failed QA gate or empty stage output exits non-zero. Nothing is ever placeholdered."""
 import argparse, hashlib, json, os, shutil, subprocess, sys, time
 from pathlib import Path
+try:
+    from .runtime import ensure_memcap, GIB
+except ImportError:
+    from runtime import ensure_memcap, GIB
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
@@ -55,22 +59,19 @@ class Stamp:
         p = self.d / f'{st}.json'
         if st in self.force or not p.is_file(): return False
         rec = json.loads(p.read_text())
-        return rec.get('manifest_sha256') == self.msha and all(Path(o).exists() for o in outputs)
+        return (rec.get('manifest_sha256') == self.msha
+                and all(Path(o).is_file() and rec.get('output_sha256', {}).get(str(o)) == sha256(o) for o in outputs))
 
     def mark(self, st, outputs, **extra):
         for o in outputs: need(Path(o).exists(), f'stage {st} produced no {o}')
         (self.d / f'{st}.json').write_text(json.dumps({'manifest_sha256': self.msha, 'outputs': list(map(str, outputs)),
+                                                        'output_sha256': {str(o): sha256(o) for o in outputs},
                                                         'utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), **extra}, indent=1))
 
 
 def blender():
     b = os.environ.get('JR_BLENDER') or shutil.which('blender') or os.path.expanduser('~/opt/blender-4.2.23-linux-x64/blender')
     need(os.path.isfile(b), f'Blender not found ({b}); set JR_BLENDER'); return b
-
-
-def memcap():
-    m = os.environ.get('JR_MEMCAP') or shutil.which('memcap') or os.path.expanduser('~/bin/memcap')
-    need(os.path.isfile(m), f'memcap not found ({m}); runtime.ensure_memcap refuses uncapped renders (#55)'); return [m]
 
 
 def main():
@@ -87,14 +88,18 @@ def main():
     ap.add_argument('--until', help='stop after this stage')
     ap.add_argument('--res', help='override recipe res key (e.g. low for a preview)'); ap.add_argument('--spp-scale', type=float, default=1.0)
     a = ap.parse_args()
+    ensure_memcap()   # The parent scope contains every child, including all encoder passes.
     need(a.fem_store, '--fem-store (or $JR_FEM_STORE) is required: the solver output is the source of every stress pixel')
     R = json.loads(Path(a.recipe).read_text())
     if a.res:
         R['res'] = a.res; R['size'] = json.loads((HERE / 'shots.json').read_text())['resolutions'][a.res]
     R['spp'] = {k: max(1, int(round(v * a.spp_scale))) for k, v in R['spp'].items()}
+    workers = ensure_memcap(fixed_bytes=2 * GIB + R['size'][0] * R['size'][1] * 256)
     work = Path(a.work).expanduser(); work.mkdir(parents=True, exist_ok=True)
     logs = work / 'logs'; logs.mkdir(exist_ok=True)
     py = sys.executable
+    resolved_recipe = work / 'render_recipe.resolved.json'
+    resolved_recipe.write_text(json.dumps(R, sort_keys=True, indent=1))
 
     # ---- manifest
     dm = work / 'design_manifest.json'
@@ -104,14 +109,22 @@ def main():
     for k in ('label', 'badge', 'stamp', 'Sy_MPa', 'science', 'step', 'design_dir'):
         need(k in man, f'manifest lacks {k}')
     need(man['science'], 'manifest has no science shots (gate table / fem_cases mismatch)')
-    # stage key = manifest + recipe + signature/art inputs: a new mark or recipe rebuilds prep and everything after
-    # (code-only changes: use --force <stage>)
-    inputs = Path(a.recipe).read_text() + sha256(HERE / R['sig_mask']) + sha256(os.path.expanduser(R['art']))
+    # Effective overrides and referenced file contents must invalidate cached stages.
+    paths = [HERE / R['film'], HERE / R['prep_config'], HERE / 'shots.json', HERE / R['sig_mask'],
+             Path(os.path.expanduser(R['art'])), HERE / 'fonts/Inter-VariableFont_opsz,wght.ttf',
+             REPO / 'ops/render/marketing/presets/rig_dark_arc_key.json']
+    cfg = json.loads((HERE / 'shots.json').read_text())
+    if cfg.get('flame', {}).get('lut'): paths.append(HERE / cfg['flame']['lut'])
+    if cfg.get('flame', {}).get('sig_inner_mask'):
+        paths.append(HERE / '../brand/signature' / cfg['flame']['sig_inner_mask'])
+    for root in (HERE, REPO / 'ops/render/marketing', REPO / 'ops/render/marketing/blender'):
+        paths.extend(sorted(root.glob('*.py')))
+    inputs = json.dumps({'recipe': R, 'files': {str(p): sha256(p) for p in paths}}, sort_keys=True)
     # render stages depend only on geometry + solver fields + recipe; text (verdicts, labels) only on assemble/encode
     rkey = hashlib.sha256((man['step']['sha256'] + str(man['Sy_MPa']) + json.dumps([s_['fem'] for s_ in man['science']], sort_keys=True)
                            + man['fem']['mesh']['sha256'] + inputs).encode()).hexdigest()
     key = hashlib.sha256((msha + inputs).encode()).hexdigest()
-    S = Stamp(work, rkey, a.force); SA = Stamp(work, key, a.force)
+    S = Stamp(work, rkey, a.force)
     film_plan = json.loads((HERE / R['film']).read_text())
     sci_shots = [s_ for s_ in film_plan['shots'] if s_['common'].get('science')]
     for s_ in sci_shots:
@@ -150,13 +163,15 @@ def main():
         run([py, HERE / 'fem_asset.py', a.fem_store, bundle, dm, fem], logs / 'fem.log'); S.mark('fem', [fem])
     if stop('fem'): return
 
-    B = [*memcap(), blender(), '-b', '-P', HERE / 'pro_hero.py', '--']
+    workers = ensure_memcap(fixed_bytes=2 * GIB + R['size'][0] * R['size'][1] * 256)
+    B = [blender(), '-b', '--threads', workers, '--python-exit-code', 1, '-P', HERE / 'pro_hero.py', '--']
     base = ['--prep', prep, '--res', R['res'], '--finish', R['finish']]
     # ---- film
     film = work / 'film'
     nfr = film_plan['shots'][-1]['frames'][1]
     if not S.done('film', [film / 'anim_qa.json']):
-        run([*B, *base, '--out', film, '--spp', R['spp']['film'], '--anim', HERE / R['film'], '--step', 1, '--resume', 1], logs / 'film.log')
+        run([*B, *base, '--out', film, '--spp', R['spp']['film'], '--anim', HERE / R['film'], '--step', 1,
+             '--resume', 0 if 'film' in a.force else 1], logs / 'film.log')
         S.mark('film', [film / 'anim_qa.json'])
     got = len(list(film.glob('f[0-9]*.png'))); need(got == nfr, f'film has {got} frames, plan says {nfr}')
     if stop('film'): return
@@ -175,26 +190,33 @@ def main():
     if stop('sci'): return
 
     # ---- assemble + encode
+    # A forced/rebuilt render also invalidates assembly when its receipt changes.
+    key = hashlib.sha256((key + ''.join(sha256(d / 'anim_qa.json') for d in (film, *sci_dirs.values()))).encode()).hexdigest()
+    SA = Stamp(work, key, a.force)
     final = work / 'final'; seq = final / f'{stamp}_seq'
     if not SA.done('assemble', [final / f'{stamp}_assembly.json']):
-        run([py, HERE / 'assemble_film.py', film, sci_dirs['wire'], sci_dirs['heat'], dm, HERE / R['film'], a.recipe, seq, final / f'{stamp}_assembly.json', '--size', f'{R["size"][0]}x{R["size"][1]}'], logs / 'assemble.log')
+        run([py, HERE / 'assemble_film.py', film, sci_dirs['wire'], sci_dirs['heat'], dm, HERE / R['film'], resolved_recipe, seq, final / f'{stamp}_assembly.json', '--size', f'{R["size"][0]}x{R["size"][1]}'], logs / 'assemble.log')
         SA.mark('assemble', [final / f'{stamp}_assembly.json'])
     asm = json.loads((final / f'{stamp}_assembly.json').read_text()); need(asm['text_qa_pass'], 'text QA failed')
     W, H = R['size']; fps = R['fps']; fin = R['finish']
     mkv = final / f'{stamp}_{fin}_{W}x{H}_ffv1.mkv'; h265 = final / f'{stamp}_{fin}_{W}x{H}_h265.mp4'; chat = final / f'{stamp}_{fin}_chat.mp4'
     if not SA.done('encode', [mkv, h265, chat]):
+        workers = ensure_memcap(fixed_bytes=2 * GIB + W * H * 256)
         inp = ['-framerate', fps, '-i', seq / 'f%05d.png']
-        ff = lambda *x: run(['ffmpeg', '-y', '-loglevel', 'error', *x], logs / 'encode.log')
-        ff(*inp, '-c:v', 'ffv1', '-level', 3, '-g', 1, '-slicecrc', 1, '-pix_fmt', 'rgb48le', mkv)
-        ff(*inp, '-c:v', 'libx265', '-preset', 'slow', '-crf', 12, '-pix_fmt', 'yuv420p10le', '-tag:v', 'hvc1', '-movflags', '+faststart', h265)
+        ff = lambda *x: run(['ffmpeg', '-y', '-loglevel', 'error', '-threads', workers,
+                            '-filter_threads', workers, '-filter_complex_threads', workers, *x], logs / 'encode.log')
+        ff(*inp, '-c:v', 'ffv1', '-threads', workers, '-level', 3, '-g', 1, '-slicecrc', 1, '-pix_fmt', 'rgb48le', mkv)
+        ff(*inp, '-c:v', 'libx265', '-threads', workers, '-x265-params', f'pools=none:frame-threads={workers}:wpp=0',
+           '-preset', 'slow', '-crf', 12, '-pix_fmt', 'yuv420p10le', '-tag:v', 'hvc1', '-movflags', '+faststart', h265)
         dur = asm['frames'] / fps; kbps = int(R['chat_mp4_max_mb'] * 8e3 * 0.92 / dur)
         for crf_pass in (1, 2):
-            ff(*inp, '-c:v', 'libx264', '-preset', 'slow', '-b:v', f'{kbps}k', '-pass', crf_pass, '-passlogfile', work / 'x264pass',
+            ff(*inp, '-c:v', 'libx264', '-threads', workers, '-x264-params', f'threads={workers}:lookahead_threads=1',
+               '-preset', 'slow', '-b:v', f'{kbps}k', '-pass', crf_pass, '-passlogfile', work / 'x264pass',
                '-pix_fmt', 'yuv420p', '-movflags', '+faststart', *(['-f', 'mp4', '/dev/null'] if crf_pass == 1 else [chat]))
         need(chat.stat().st_size < R['chat_mp4_max_mb'] * 1e6, f'chat copy {chat.stat().st_size/1e6:.1f} MB over budget')
         SA.mark('encode', [mkv, h265, chat])
     for p in (mkv, h265, chat):
-        n = int(subprocess.run(['ffprobe', '-v', 'error', '-count_frames', '-select_streams', 'v:0', '-show_entries', 'stream=nb_read_frames',
+        n = int(subprocess.run(['ffprobe', '-v', 'error', '-threads', str(workers), '-count_frames', '-select_streams', 'v:0', '-show_entries', 'stream=nb_read_frames',
                                 '-of', 'csv=p=0', p], capture_output=True, text=True).stdout.strip() or 0)
         need(n == asm['frames'], f'{p.name}: {n} frames, expected {asm["frames"]}')
     receipt = {'schema': 'jarambit.render.pro.autofilm_receipt.v1', 'manifest_sha256': msha, 'stamp': stamp, 'label': man['label'],

@@ -1,0 +1,290 @@
+{
+  "schema": "jarambit.render.pro.issue64_validation.v1",
+  "base": "97af59cf14299af583b344aeaefb4594d089465a",
+  "branch": "fix/64-bare-metal-mark",
+  "issue": "https://github.com/neverhuman/jarambit/issues/64",
+  "review": "https://github.com/neverhuman/jarambit/pull/63#pullrequestreview-5510265257",
+  "pytest": {
+    "passed": 256,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 262.29
+  },
+  "workspace": {
+    "passed": 111,
+    "failed": 0,
+    "ignored": 1
+  },
+  "gates": {
+    "scope": "PASS",
+    "required-tools": "PASS",
+    "marketing-pro-tests": "PASS",
+    "font-checksum": "PASS",
+    "signature-checksums": "PASS",
+    "version": "PASS",
+    "global-metric": "PASS",
+    "metrics": "PASS",
+    "claims": "PASS",
+    "status": "PASS",
+    "media": "PASS",
+    "readme": "PASS",
+    "whitepaper": "PASS",
+    "patent": "PASS",
+    "figures": "PASS",
+    "ci-tests": "PASS",
+    "fem-tests": "PASS",
+    "workspace": "PASS",
+    "clippy": "PASS",
+    "d1-lock": "PASS",
+    "d1-build": "PASS",
+    "d1-run": "PASS",
+    "d1-smoke": "PASS",
+    "strict-json": "PASS"
+  },
+  "gate_log_sha256": {
+    "scope": "8f928dc8e52fb1bfb662bb4f0613773de4645583be9878eeeea7d31fd3e2c3ce",
+    "required-tools": "07251ca89c058a6945b02359b97fdc76539b9c689b0e0a1517048dd9da160cd2",
+    "marketing-pro-tests": "568d71cb4a1881dc0709eb1aec0cb42dd4fb63fdb5c01340d8f4811b70d5b935",
+    "font-checksum": "8e47bfd8d42476d15bc2f3ad6e0d1dad46c4b3a6aca7aae9c47239d9baa03dfb",
+    "signature-checksums": "3b5f45104ae2b8825367d19fec5c701f7852f246512550d8346e4de7ff13e5e3",
+    "version": "dfc9afea302b71ea0d4db3c8e4a566ec5afdf3108119827a20c49f49623f9d28",
+    "global-metric": "49081d353be7fd3baff7bbc490994f8e271a72ca1c1594dbb1934297748b5a0d",
+    "metrics": "e514609bcacc5d323dc10f77696570948e79b78f724332686fed7c5805b957ad",
+    "claims": "d8d0af14d0a5604a8a27c0df23c3de3acbaf9c95ac1168cb3629a95d0a12d938",
+    "status": "0c4ab919e0661a65b9f92513305efcbdbd5f69b4a2c4475dae822c5ac2a15e06",
+    "media": "47f13e2685a6f86c9cacf207a1e315b57602adb46aa98990b61412722398aea1",
+    "readme": "9b838d201823323c4b3d42955c1a7eb39b095a3d5d59885b774439f84c8ec516",
+    "whitepaper": "1fc25281da76622eb2a59121fc0266a1c1dc0eeec55fe9ee6b846a857b257a94",
+    "patent": "d983b5a64e1d862f895d0bf4bd47240cc93a979ce25f6a3bf1f0a84ecbcd6d28",
+    "figures": "975820044dbca5245402a4c9c754cf3e57b3c64eeec2abd8d3d03632e70422a7",
+    "ci-tests": "31a27b5c982978c6b2a85f80ad7e46f2d1a1ff8551d1fd3b67255b67b73d8d81",
+    "fem-tests": "d29e1b3e8a3c9e57efa30ecf27a8f11ed320bacf6ba9705f967bfc3cec285a68",
+    "workspace": "c81250cb1f0144f2751a4ba5aa0d6865b91ae2fc2d9d404c464f2f4b69497db9",
+    "clippy": "ed1b73eca9e6239ee747752d6ef1dcb54c5cbb90bd2cdbe090654d844c013c66",
+    "d1-lock": "c223ffe04110eeb43d37f13b66bae317a7b1d976885eadd4badacb03fb24572e",
+    "d1-build": "5c2c53584568ed1400f12ce6a3ef6ca30d21c2b4645dfec0b70fc014ece1751d",
+    "d1-run": "23ba013eb4220ac63649c19419c8402e367ff2f3be87796b3c607e0788ea2530",
+    "d1-smoke": "2e726adc02d8f325bd126f4caec42912ea3d7dd47df6640b9df28c4cf42ff272",
+    "strict-json": "24a4dd81650de5830eadca6d6ae666e504022af6b38a9d66c0a10cfcac0dfd85"
+  },
+  "limits": {
+    "memory_max_bytes": 34359738368,
+    "memory_swap_max_bytes": 0,
+    "nice": 19,
+    "cpu_affinity": "0-7",
+    "device": "CPU",
+    "native_math_threads": 1,
+    "scope_probe": {
+      "limits": [
+        [
+          34359738368,
+          34353496064,
+          "0"
+        ]
+      ],
+      "workers": 8
+    }
+  },
+  "source_sha256": {
+    "docs/render/AUTOFILM.md": "83f645b47765d29f60add3c8adaee70ccc793198e23c7232e5ccb4760e376e5b",
+    "ops/render/pro/jr_film.py": "057ec76912d2cfcb828f6c1500ef2b0ab7ceb8d3e6c6583b766d515f9f8dc542",
+    "ops/render/pro/pro_hero.py": "0d6a29b0d29b9e396abe1297c6d406440fd2208797269b766f1f2e794d0af322",
+    "ops/render/pro/qa.py": "b41ae70344850024a7d369b0a0bb10bf33e80cd646bac89a503731b6d862b47d",
+    "ops/render/pro/shots.json": "415e599c85f9bbc18717301945d5a95d539b2af36014a8c641377ee773680ee3",
+    "ops/render/pro/tests/blender_regions.py": "9ac37aa49e8d0ce87ec13f99cb0a0ae8327018c48b1da8af068b98451cb57ab5",
+    "ops/render/pro/tests/test_issue53.py": "9426a21fc1298da4e4e7593f27909f07d0dbc4b34bc880c39d35f53b730c9f8d",
+    "ops/render/pro/tests/test_issue64.py": "7e95441e6c783a7ec42be4cd8e15bd748eb4817a9906815b686677c28492b5f8",
+    "ops/render/pro/fonts/SHA256SUMS": "d63c508baed15d010cd41de97b7c4b995c5a2709b76ffec1ee620e0d5111b2d4"
+  },
+  "protected_shaders": {
+    "finishes": [
+      {
+        "finish": "art",
+        "override": false,
+        "protected_inputs": {
+          "Coat Weight": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Thin Film Thickness": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Anisotropic": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Emission Strength": {
+            "value": 0.0,
+            "linked": false
+          }
+        },
+        "mark_metallic": 1.0,
+        "mark_metallic_linked": false,
+        "mark_pixel_max_diff": 0.0,
+        "grind_pixel_max_diff": 0.0,
+        "antialiased_mark_pixel_max_diff": 0.0,
+        "body_pixel_diff": 0.0
+      },
+      {
+        "finish": "art",
+        "override": true,
+        "protected_inputs": {
+          "Coat Weight": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Thin Film Thickness": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Anisotropic": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Emission Strength": {
+            "value": 0.0,
+            "linked": false
+          }
+        },
+        "mark_metallic": 1.0,
+        "mark_metallic_linked": false,
+        "mark_pixel_max_diff": 0.0,
+        "grind_pixel_max_diff": 0.0,
+        "antialiased_mark_pixel_max_diff": 0.0,
+        "body_pixel_diff": 0.032073378562927246
+      },
+      {
+        "finish": "flame",
+        "override": false,
+        "protected_inputs": {
+          "Coat Weight": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Thin Film Thickness": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Anisotropic": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Emission Strength": {
+            "value": 0.0,
+            "linked": false
+          }
+        },
+        "mark_metallic": 1.0,
+        "mark_metallic_linked": false,
+        "mark_pixel_max_diff": 0.0,
+        "grind_pixel_max_diff": 0.0,
+        "antialiased_mark_pixel_max_diff": 0.0,
+        "body_pixel_diff": 0.3897750973701477
+      },
+      {
+        "finish": "flame",
+        "override": true,
+        "protected_inputs": {
+          "Coat Weight": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Thin Film Thickness": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Anisotropic": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Emission Strength": {
+            "value": 0.0,
+            "linked": false
+          }
+        },
+        "mark_metallic": 1.0,
+        "mark_metallic_linked": false,
+        "mark_pixel_max_diff": 0.0,
+        "grind_pixel_max_diff": 0.0,
+        "antialiased_mark_pixel_max_diff": 0.0,
+        "body_pixel_diff": 0.3897753059864044
+      },
+      {
+        "finish": "satin_blue",
+        "override": false,
+        "protected_inputs": {
+          "Coat Weight": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Thin Film Thickness": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Anisotropic": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Emission Strength": {
+            "value": 0.0,
+            "linked": false
+          }
+        },
+        "mark_metallic": 1.0,
+        "mark_metallic_linked": false,
+        "mark_pixel_max_diff": 0.0,
+        "grind_pixel_max_diff": 0.0,
+        "antialiased_mark_pixel_max_diff": 0.0,
+        "body_pixel_diff": 0.41588136553764343
+      },
+      {
+        "finish": "satin_blue",
+        "override": true,
+        "protected_inputs": {
+          "Coat Weight": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Thin Film Thickness": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Anisotropic": {
+            "value": 0.0,
+            "linked": false
+          },
+          "Emission Strength": {
+            "value": 0.0,
+            "linked": false
+          }
+        },
+        "mark_metallic": 1.0,
+        "mark_metallic_linked": false,
+        "mark_pixel_max_diff": 0.0,
+        "grind_pixel_max_diff": 0.0,
+        "antialiased_mark_pixel_max_diff": 0.0,
+        "body_pixel_diff": 0.40010955929756165
+      }
+    ],
+    "qa_images_retained": 0
+  },
+  "fixes": [
+    "Pre-#63 bare laser-etched Ti mark restored; Metallic=1 required by shader and six actual-Blender CPU cases.",
+    "Per-frame input/state/output hashes gate reuse; PNG and both QA plates must match; failed QA never seeds cache.",
+    "Stage keys include resolved resolution/sampling, film/config/asset contents and source hashes; assembly uses resolved recipe.",
+    "Direct jr-film establishes verified parent 32G/no-swap scope; current memory admission bounds native/codec pools.",
+    "Inter TTF pinned in fonts/SHA256SUMS with requested 0be2399e digest; verification gate passes."
+  ],
+  "force_film": "Disables frame reuse; changed render receipts invalidate downstream assembly/encoding.",
+  "real_encoders": "FFV1, H.265 and two-pass H.264 executed on a 3-frame CPU fixture under memcap; full outputs decoded.",
+  "unchanged": [
+    "production farm/processes",
+    "live hero bundles",
+    "CAD geometry and pins",
+    "Rust sources"
+  ],
+  "isolation": "A concurrent wt_pro writer overwrote core edits. Final validation ran only in the reused Codex checkout on main 97af59c; wt_pro results are excluded. Foreign C.10d edits and both owner COORD entries are preserved.",
+  "logs": "/home/ubuntu/jarambit_render/codex/target/fix64/gates",
+  "production_art_review": "pending; no production rendering or publication was performed"
+}

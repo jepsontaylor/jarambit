@@ -54,3 +54,21 @@ pass with zero skips, and 18 local gates pass under memcap 32G/nice19/CPU.
 All six canonical C.10a artifact hashes and the C.9.2 v2 label/tangent pins
 remain unchanged; live bundles and the farm were untouched. Signature and
 shader code are unchanged. See [POSE_59_validation.json](POSE_59_validation.json).
+
+Issue #64: restored the pre-#63 bare laser-etched Ti signature and required
+Metallic=1 in every finish. Resume now requires per-frame input, physical
+state and PNG/QA-plate hashes; failed QA cannot seed a cache. Effective
+resolution/sampling and film/config/asset contents enter stage keys, assembly
+uses the resolved recipe, and forced film renders bypass frame reuse.
+Direct jr-film establishes the verified 32G/no-swap parent scope; current
+memory admission bounds Blender, encoder and filter workers. Inter has the
+requested checksum manifest entry.
+
+All 256 marketing/pro tests passed with zero skips, including six actual
+Blender CPU metal/isolation cases and real encoder round trips. All 24 local
+gates passed; workspace tests passed 111 with one existing ignored test.
+Validation ran in the reused Codex checkout on main 97af59c after a concurrent
+wt_pro writer overwrote core edits. Foreign C.10d edits and both owner COORD
+entries are preserved; live farm/bundles and CAD/Rust sources are untouched.
+See [ISSUE64_validation.json](ISSUE64_validation.json); production art review
+is pending. Executor owns opening the single PR; this lane opens or merges none.
