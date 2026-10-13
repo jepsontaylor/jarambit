@@ -193,6 +193,8 @@ def _passing_measurements():
         "sizes": {name: 1000 for name in qa.SIZE_LIMITS},
         "plan_bytes_a": b"same",
         "plan_bytes_b": b"same",
+        "image_a": flat,
+        "image_b": flat,
         "manifest": manifest,
         "sums_ok": True,
         "art_review": "pending",

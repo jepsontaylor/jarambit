@@ -183,7 +183,7 @@ def _gif_from_files(names, frames_dir, out_path, width, height, fps):
     lst = os.path.join(frames_dir, ".gif_concat.txt")
     with open(lst, "w", encoding="utf-8") as fh:
         for name in names:
-            path = os.path.join(frames_dir, name).replace("'", "'\\''")
+            path = os.path.abspath(os.path.join(frames_dir, name)).replace("'", "'\\''")
             fh.write(f"file '{path}'\n")
             fh.write(f"duration {1.0 / float(fps):.6f}\n")
     vf = (

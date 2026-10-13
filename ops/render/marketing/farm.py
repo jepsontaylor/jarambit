@@ -130,13 +130,58 @@ def write_receipt(out_dir, index, artifact_path, host, device_uuid, spp, seconds
     return receipt
 
 
-def frame_done(out_dir, index, shot_id=None) -> bool:
+PLAN_STAMP = ".plan_key"
+
+
+def _record_ok(record, plan_key, index=None):
+    """A completion record binds to the plan when it names the plan (and frame, if it says)."""
+    if plan_key and record.get("plan_key") not in (None, plan_key):
+        return False
+    if index is not None and record.get("frame_index") not in (None, int(index)):
+        return False
+    return True
+
+
+def read_plan_stamp(out_dir):
+    try:
+        with open(os.path.join(out_dir, PLAN_STAMP), encoding="utf-8") as fh:
+            return fh.read().strip() or None
+    except OSError:
+        return None
+
+
+def claim_out_dir(out_dir, plan_key):
+    """Bind out_dir to plan_key. Completion records from another plan are moved aside
+    (stale_<key16>/), so they can never be resumed under the new plan."""
+    old = read_plan_stamp(out_dir)
+    if old == plan_key:
+        return
+    if os.path.isdir(out_dir):
+        names = [n for n in os.listdir(out_dir)
+                 if n.endswith((".done.json", ".receipt.json"))]
+        if names:
+            stale = os.path.join(out_dir, f"stale_{(old or 'unbound')[:16]}")
+            os.makedirs(stale, exist_ok=True)
+            for n in names:
+                os.replace(os.path.join(out_dir, n), os.path.join(stale, n))
+    os.makedirs(out_dir, exist_ok=True)
+    canon.atomic_write_bytes(os.path.join(out_dir, PLAN_STAMP), (plan_key + "\n").encode())
+
+
+def frame_done(out_dir, index, shot_id=None, plan_key=None) -> bool:
+    """True only when a verified artifact exists for this frame under this plan.
+
+    With plan_key set, out_dir must carry the same plan stamp, and any record that names a
+    plan or frame must match it; otherwise the frame is rerendered."""
+    if plan_key and read_plan_stamp(out_dir) != plan_key:
+        return False
     path = frame_receipt_path(out_dir, index)
     if os.path.isfile(path):
         with open(path, encoding="utf-8") as fh:
             receipt = json.load(fh)
         artifact = receipt.get("path")
-        if artifact and os.path.isfile(artifact) and canon.sha256_file(artifact) == receipt.get("sha256"):
+        if (_record_ok(receipt, plan_key, index) and artifact and os.path.isfile(artifact)
+                and canon.sha256_file(artifact) == receipt.get("sha256")):
             return True
     if not shot_id:
         return False
@@ -145,7 +190,8 @@ def frame_done(out_dir, index, shot_id=None) -> bool:
         with open(marker, encoding="utf-8") as fh:
             record = json.load(fh)
         png = record.get("png")
-        if png and os.path.isfile(png) and canon.sha256_file(png) == record.get("png_sha256"):
+        if (_record_ok(record, plan_key) and png and os.path.isfile(png)
+                and canon.sha256_file(png) == record.get("png_sha256")):
             return True
     receipt_path = os.path.join(out_dir, f"{shot_id}_{int(index):04d}.receipt.json")
     if not os.path.isfile(receipt_path):
@@ -156,7 +202,7 @@ def frame_done(out_dir, index, shot_id=None) -> bool:
         files = receipt.get("files") or {}
     except (OSError, json.JSONDecodeError):
         return False
-    if not files:
+    if not files or not _record_ok(receipt, plan_key):
         return False
     for _name, pair in files.items():
         if not isinstance(pair, (list, tuple)) or len(pair) != 2:
@@ -275,7 +321,8 @@ def prepare_jobs(plan, dest, bundle_path, regions_path, hosts=None):
     for shot, profile_name, shard_i, frames in iter_shards(plan):
         out_dir = os.path.join(dest, "shots", shot["id"], profile_name)
         os.makedirs(out_dir, exist_ok=True)
-        done = all(frame_done(out_dir, frame["index"], shot["id"]) for frame in frames)
+        claim_out_dir(out_dir, plan["plan_key"])
+        done = all(frame_done(out_dir, frame["index"], shot["id"], plan["plan_key"]) for frame in frames)
         request = build_request(plan, shot, frames, profile_name, out_dir, bundle_path, regions_path)
         request_path = os.path.join(dest, "requests", f"{shot['id']}_{profile_name}_{shard_i:03d}.json")
         canon.atomic_write_json(request_path, request)
@@ -466,9 +513,16 @@ def render_jobs(plan, dest, bundle_path, regions_path, blender, worker, hosts=No
     assign_hosts(jobs, host_states)
     by_name = {state["name"]: state for state in host_states}
     if execute:
+        # One Blender per GPU: launch at most one shard per host in this call. The rest stay
+        # "queued" (not "launched"); rerun render --execute or use supervise() to drain them.
+        busy_hosts = set()
         for job in jobs:
             if job["status"] != "pending" or not job.get("host"):
                 continue
+            if job["host"] in busy_hosts:
+                job["status"] = "queued"
+                continue
+            busy_hosts.add(job["host"])
             state = by_name[job["host"]]
             ssh_host = state.get("ssh")
             if not remote_disk_ok(ssh_host, root if ssh_host else dest):
@@ -517,6 +571,7 @@ def render_jobs(plan, dest, bundle_path, regions_path, blender, worker, hosts=No
         "pending": sum(1 for job in jobs if job["status"] == "pending"),
         "skip": sum(1 for job in jobs if job["status"] == "skip"),
         "launched": sum(1 for job in jobs if job["status"] == "launched"),
+        "queued": sum(1 for job in jobs if job["status"] == "queued"),
         "yield": sum(1 for job in jobs if job["status"] == "yield"),
         "items": jobs,
     }
