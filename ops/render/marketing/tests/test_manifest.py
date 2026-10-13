@@ -241,7 +241,13 @@ def test_contact_sheet(tmp_path):
 
 
 def test_peer_stages_fail_instead_of_skipping():
+    """An empty peer invocation fails closed.
+
+    Before the peer file exists the CLI says it is not in this worktree.
+    After the lanes are merged, the peer's own parser still rejects an empty call.
+    """
     for cmd in ("ingest", "finish"):
         proc = subprocess.run([sys.executable, str(PIPE), cmd], capture_output=True, text=True)
         assert proc.returncode == 2
-        assert "not" in proc.stderr.lower()
+        text = (proc.stderr or "").lower()
+        assert "not" in text or "required" in text or "error" in text
