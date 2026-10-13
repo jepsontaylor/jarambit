@@ -35,7 +35,7 @@ Verdicts are scoped to a requirement set (`requirements/RS-karambit-v1.toml`): *
 
 ### SWITCHBACK Rev C.9.2 — hiking/utility renders
 
-Physically based visualization of the SWITCHBACK-class titanium hiking/utility karambit under stated material assumptions. Source STEP [`designs/switchback/C9.2/cad/switchback_revC9_2_ground.step`](designs/switchback/C9.2/cad/switchback_revC9_2_ground.step). The stills and the turntable are files in this repository. Art review is pending.
+SWITCHBACK Rev C.9.2 is a release candidate, not the design of record. Physically based visualization of the SWITCHBACK-class titanium hiking/utility karambit under stated material assumptions. Source STEP [`designs/switchback/C9.2/cad/switchback_revC9_2_ground.step`](designs/switchback/C9.2/cad/switchback_revC9_2_ground.step). The stills and the turntable are files in this repository. Art review is pending.
 
 <img src="docs/media/marketing/hero_3q_1920.jpg" width="100%" alt="Three-quarter hero preview: SWITCHBACK-class titanium hiking/utility karambit"/>
 

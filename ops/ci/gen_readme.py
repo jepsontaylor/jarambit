@@ -115,6 +115,7 @@ def marketing_downloads():
     lines = [
         '### SWITCHBACK Rev C.9.2 — hiking/utility renders',
         '',
+        'SWITCHBACK Rev C.9.2 is a release candidate, not the design of record. '
         'Physically based visualization of the SWITCHBACK-class titanium hiking/utility karambit under stated material assumptions. '
         f'Source STEP [`{step}`]({step}). '
         'The stills and the turntable are files in this repository. Art review is pending.',
