@@ -34,9 +34,9 @@ def first_contact_screen(K, C, sharp_pts, land_pts, ndir=36, mouth=None, L=10.0,
         gl = min((ray_dist(q, u, ring, L) for q in Lp), default=L)
         if hole_land is not None:
             # bump (sheath) inside the closed guard hole (knife): non-camming flanks lock in-plane shifts that are
-            # 45..135 deg off the draw axis at the bump/hole clearance; within +-45 deg of the axis the ramps cam (detent)
+            # outside +-cam_half_deg of the draw axis at the bump/hole clearance; within +-45 deg of the axis the ramps cam (detent)
             off = abs(((math.degrees(a) - hole_land["draw_deg"]) + 180.0) % 360.0 - 180.0)
-            if 45.0 <= off <= 135.0:
+            if hole_land.get("cam_half_deg", 45.0) <= off <= 180.0 - hole_land.get("cam_half_deg", 45.0):
                 gl = min(gl, hole_land["gap_mm"])
         if gs >= L - 1e-9:
             out.append({"dir_deg": math.degrees(a), "gap_sharp": None, "gap_land": gl, "margin": None, "exit": True}); continue

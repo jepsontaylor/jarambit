@@ -42,6 +42,8 @@ class SheathParams:
     tip_reserve: float = 1.5         # tip-to-pocket reserve along the insertion direction once seated on the stop
     collar_frame: float = 2.0        # collar module: frame width around the tab window (mm)
     collar_flange: float = 0.8       # collar module: outer flange thickness (mm)
+    bump_cam_half_deg: float = 20.0  # bump ramps only within +-this of the draw/insert axis; flanks outside are >=75 deg
+                                     # (non-camming) so in-plane drops off-axis are locked by the closed guard hole
     c_land: float = 0.3              # in-plane clearance at approved bumper lands (non-sharp) -> lands hit before edges
 
 

@@ -11,8 +11,17 @@ import numpy as np
 def mesh_polygon(poly, max_area=0.6, refine_at=None, r_ref=4.0, a_ref=0.05):
     import triangle as tr
     from skfem import MeshTri
-    poly = poly.simplify(0.05)
+    poly = poly.simplify(0.05).buffer(0)
+    if poly.geom_type != "Polygon":
+        poly = max(poly.geoms, key=lambda q: q.area)
     ext = np.array(poly.exterior.coords)[:-1]
+    # drop vertices closer than 0.15 mm to the previous kept one (near-duplicate input vertices make Triangle's quality
+    # refinement run away: observed >90 GB on the C.9.3 c_edge-1.3 cavity)
+    keep = [ext[0]]
+    for q in ext[1:]:
+        if np.hypot(*(q - keep[-1])) >= 0.15: keep.append(q)
+    if np.hypot(*(keep[-1] - keep[0])) < 0.15: keep.pop()
+    ext = np.array(keep)
     n = len(ext)
     verts, segs = list(ext), [[i, (i + 1) % n] for i in range(n)]
     A = dict(vertices=np.array(verts), segments=np.array(segs))

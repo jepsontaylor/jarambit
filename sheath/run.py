@@ -195,8 +195,8 @@ def main():
         r_b = det0["eq_radius_mm"] - p.c_land
         # flank bearing: 2 bumps (both faces) x engaged height (undercut - c_face, nominal 1.0 mm before the search) x chord
         A_flank = 2 * max(p.detent_undercut - p.c_face, 1.0) * 2 * r_b * math.sin(math.radians(45))
-        hole_land = {"draw_deg": p.direction_deg, "gap_mm": p.c_land, "r_bump_mm": r_b, "flank_bearing_mm2": A_flank,
-                     "requirement": "bump lateral flanks >= 75 deg (non-camming); ramps only on the draw/insert axis +-45 deg"}
+        hole_land = {"draw_deg": p.direction_deg, "gap_mm": p.c_land, "cam_half_deg": p.bump_cam_half_deg, "r_bump_mm": r_b, "flank_bearing_mm2": A_flank,
+                     "requirement": "bump lateral flanks >= 75 deg (non-camming); ramps only on the draw/insert axis +-%g deg" % p.bump_cam_half_deg}
     fc = SS.first_contact_screen(K, g["cavity"], sharp_pts, land_all, mouth=(g["m"], g["n"]), hole_land=hole_land)
     A_stop = 0.5 * len(g["stop_land_pts"]) * 3.6 if g["stop_land_pts"] else 0.0
     A_bump = [0.5 * len(b) * 3.0 for b in bumper]
