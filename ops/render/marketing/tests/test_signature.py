@@ -158,6 +158,14 @@ def test_anodize_presets_fresh_and_edge_raw():
         pre = json.loads((P / f"finish_ti64_anodize_{color}.json").read_text())
         for r in ("bevel", "edge_apex", "serration"):
             assert pre["default_assignment"][r] == raw[r]
-        fin = pre["finishes"][pre["default_assignment"]["ring"]]
         if "volts" in spec:
-            assert fin["thin_film_nm"] == spec["thin_film_nm"] and 15 <= spec["volts"] <= 100
+            assert 15 <= spec["volts"] <= 100
+            for r in fam["anodized_regions"]:
+                assert pre["region_metal"][r] == anodize.film_metal(spec["thin_film_nm"])
+    # interference hues follow the chart: bronze (R>G>B), blue (B>R), gold (R,G >> B), teal (G,B >> R)
+    hue = {c: anodize.film_metal(fam["colors"][c]["thin_film_nm"])["base_color_lin"]
+           for c in ("bronze_20v", "blue_35v", "gold_60v", "teal_80v")}
+    assert hue["bronze_20v"][0] > hue["bronze_20v"][1] > hue["bronze_20v"][2]
+    assert hue["blue_35v"][2] > 2 * hue["blue_35v"][0]
+    assert min(hue["gold_60v"][:2]) > 3 * hue["gold_60v"][2]
+    assert min(hue["teal_80v"][1:]) > 3 * hue["teal_80v"][0]

@@ -2,22 +2,89 @@
  "schema": "jarambit.render.finish_family.v1",
  "name": "ti64_anodize",
  "appearance_assumed": true,
- "note": "Type-II/III style Ti anodize as a single TiO2 thin film (IOR 2.4) on Ti-6Al-4V (Blender 4.2 Principled thin film over the F82 conductor). Interference colour depends on oxide thickness; nominal voltages follow common shop colour charts, thicknesses were picked from a normal-incidence thin-film model so the colour matches the chart (~2.2-2.5 nm/V above ~30 V, sub-linear below). appearance_assumed, not a measured coating. Handle/ring/pad/spine anodized; bevel, edge apex and serrations stay raw bright Ti (they are ground after anodizing on real knives). Signature (maker's mark) is still mixed over every slot last.",
+ "note": "Type-II/III style Ti anodize as a single TiO2 thin film (IOR 2.4) on Ti-6Al-4V (Blender 4.2's Thin Film input does not act on metals, so anodize.py evaluates a normal/82-degree thin-film model of air/TiO2/Ti and bakes the interference colour into the conductor F0 + F82 tint of the anodized regions). Interference colour depends on oxide thickness; nominal voltages follow common shop colour charts, thicknesses were picked from a normal-incidence thin-film model so the colour matches the chart (~2.2-2.5 nm/V above ~30 V, sub-linear below). appearance_assumed, not a measured coating. Handle/ring/pad/spine anodized; bevel, edge apex and serrations stay raw bright Ti (they are ground after anodizing on real knives). Signature (maker's mark) is still mixed over every slot last.",
  "base": "finish_ti64",
- "anodized_regions": ["body", "ring", "pad", "spine"],
- "raw_regions": ["bevel", "edge_apex", "serration"],
+ "anodized_regions": [
+  "body",
+  "ring",
+  "pad",
+  "spine"
+ ],
+ "raw_regions": [
+  "bevel",
+  "edge_apex",
+  "serration"
+ ],
  "film_ior": 2.4,
- "film_base": {"roughness": 0.36, "anisotropy": 0.0, "micro": "bead_blast", "grain_um": 40, "bump": 0.03},
+ "film_base": {
+  "roughness": 0.36,
+  "anisotropy": 0.0,
+  "micro": "bead_blast",
+  "grain_um": 40,
+  "bump": 0.03
+ },
  "colors": {
-  "raw_stonewash":  {"kind": "raw", "finish": "stonewash", "signature_contrast": "high"},
-  "bronze_20v":     {"volts": 20, "thin_film_nm": 26,  "signature_contrast": "high"},
-  "purple_30v":     {"volts": 30, "thin_film_nm": 40,  "signature_contrast": "low (dark film)"},
-  "blue_35v":       {"volts": 35, "thin_film_nm": 56,  "signature_contrast": "medium"},
-  "lightblue_40v":  {"volts": 40, "thin_film_nm": 64,  "signature_contrast": "high"},
-  "gold_60v":       {"volts": 60, "thin_film_nm": 116, "signature_contrast": "high"},
-  "violet_70v":     {"volts": 70, "thin_film_nm": 148, "signature_contrast": "medium"},
-  "teal_80v":       {"volts": 80, "thin_film_nm": 188, "signature_contrast": "high"},
-  "green_90v":      {"volts": 90, "thin_film_nm": 204, "signature_contrast": "high"},
-  "dark_smoke":     {"kind": "coating", "note": "dark grey PVD/DLC-like (not anodize: Ti anodize cannot make black)", "base_color_lin": [0.035, 0.034, 0.033], "metallic": 1.0, "roughness": 0.42, "signature_contrast": "low (black on near-black; reads by roughness only)"}
+  "raw_stonewash": {
+   "kind": "raw",
+   "finish": "stonewash",
+   "signature_contrast": "high"
+  },
+  "bronze_20v": {
+   "volts": 20,
+   "thin_film_nm": 26,
+   "signature_contrast": "high"
+  },
+  "purple_30v": {
+   "volts": 30,
+   "thin_film_nm": 40,
+   "signature_contrast": "low (dark film)"
+  },
+  "blue_35v": {
+   "volts": 35,
+   "thin_film_nm": 56,
+   "signature_contrast": "medium"
+  },
+  "lightblue_40v": {
+   "volts": 40,
+   "thin_film_nm": 64,
+   "signature_contrast": "high"
+  },
+  "gold_60v": {
+   "volts": 60,
+   "thin_film_nm": 116,
+   "signature_contrast": "high"
+  },
+  "violet_70v": {
+   "volts": 70,
+   "thin_film_nm": 148,
+   "signature_contrast": "medium"
+  },
+  "teal_80v": {
+   "volts": 80,
+   "thin_film_nm": 188,
+   "signature_contrast": "high"
+  },
+  "green_90v": {
+   "volts": 90,
+   "thin_film_nm": 204,
+   "signature_contrast": "high"
+  },
+  "dark_smoke": {
+   "kind": "coating",
+   "note": "dark grey PVD/DLC-like (not anodize: Ti anodize cannot make black)",
+   "base_color_lin": [
+    0.035,
+    0.034,
+    0.033
+   ],
+   "metallic": 1.0,
+   "roughness": 0.42,
+   "signature_contrast": "low (black on near-black; reads by roughness only)"
+  },
+  "raw_bead_blast": {
+   "kind": "raw",
+   "finish": "bead_blast",
+   "signature_contrast": "high"
+  }
  }
 }

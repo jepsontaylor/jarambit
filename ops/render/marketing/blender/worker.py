@@ -267,6 +267,10 @@ def run(req, force=False, threads=16):
     part = scene.build_part(mesh)
     tt = scene.build_turntable(part, pivot)
     mat_rec = materials.assign(part, finish, req.get('accents', []))
+    # material_index written in build_part (before any slot existed) does not survive: re-apply it now
+    # that the region slots exist, otherwise every face renders with slot 0 (body)
+    part.data.polygons.foreach_set("material_index", np.asarray(mesh["region_id"], np.int32))
+    part.data.update()
 
     # maker's mark: automatic placement on the canonical mesh, then posed; final material overlay.
     # On by default for every shot; a request may only turn it off explicitly (recorded).

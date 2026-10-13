@@ -22,11 +22,10 @@
   "anodize_green_90v": {
    "anisotropy": 0.0,
    "bump": 0.03,
+   "film_thickness_nm": 204.0,
    "grain_um": 40,
    "micro": "bead_blast",
-   "roughness": 0.36,
-   "thin_film_ior": 2.4,
-   "thin_film_nm": 204.0
+   "roughness": 0.36
   },
   "anodized_blue": {
    "anisotropy": 0.0,
@@ -115,6 +114,56 @@
   "model": "principled_f82_tint (Blender 4.2 Principled metallic)"
  },
  "name": "finish_ti64_anodize_green_90v",
- "note": "Ti-6Al-4V appearance from literature complex IOR (Ti n,k at 650/550/450 nm -> normal-incidence F0; F82 tint). Not a measured coating. Physically based visualization under stated material assumptions. Type-II/III style Ti anodize as a single TiO2 thin film (IOR 2.4) on Ti-6Al-4V (Blender 4.2 Principled thin film over the F82 conductor). Interference colour depends on oxide thickness; nominal voltages follow common shop colour charts, thicknesses were picked from a normal-incidence thin-film model so the colour matches the chart (~2.2-2.5 nm/V above ~30 V, sub-linear below). appearance_assumed, not a measured coating. Handle/ring/pad/spine anodized; bevel, edge apex and serrations stay raw bright Ti (they are ground after anodizing on real knives). Signature (maker's mark) is still mixed over every slot last.",
+ "note": "Ti-6Al-4V appearance from literature complex IOR (Ti n,k at 650/550/450 nm -> normal-incidence F0; F82 tint). Not a measured coating. Physically based visualization under stated material assumptions. Type-II/III style Ti anodize as a single TiO2 thin film (IOR 2.4) on Ti-6Al-4V (Blender 4.2's Thin Film input does not act on metals, so anodize.py evaluates a normal/82-degree thin-film model of air/TiO2/Ti and bakes the interference colour into the conductor F0 + F82 tint of the anodized regions). Interference colour depends on oxide thickness; nominal voltages follow common shop colour charts, thicknesses were picked from a normal-incidence thin-film model so the colour matches the chart (~2.2-2.5 nm/V above ~30 V, sub-linear below). appearance_assumed, not a measured coating. Handle/ring/pad/spine anodized; bevel, edge apex and serrations stay raw bright Ti (they are ground after anodizing on real knives). Signature (maker's mark) is still mixed over every slot last.",
+ "region_metal": {
+  "body": {
+   "base_color_lin": [
+    0.3789,
+    0.6537,
+    0.2258
+   ],
+   "f82_tint": [
+    0.948,
+    0.7458,
+    0.9967
+   ]
+  },
+  "pad": {
+   "base_color_lin": [
+    0.3789,
+    0.6537,
+    0.2258
+   ],
+   "f82_tint": [
+    0.948,
+    0.7458,
+    0.9967
+   ]
+  },
+  "ring": {
+   "base_color_lin": [
+    0.3789,
+    0.6537,
+    0.2258
+   ],
+   "f82_tint": [
+    0.948,
+    0.7458,
+    0.9967
+   ]
+  },
+  "spine": {
+   "base_color_lin": [
+    0.3789,
+    0.6537,
+    0.2258
+   ],
+   "f82_tint": [
+    0.948,
+    0.7458,
+    0.9967
+   ]
+  }
+ },
  "schema": "jarambit.render.finish.v1"
 }
