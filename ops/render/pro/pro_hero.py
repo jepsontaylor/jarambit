@@ -217,8 +217,15 @@ def flame_material():
     coat = math_node(N, L, 'MULTIPLY', math_node(N, L, 'MULTIPLY', face, math_node(N, L, 'SUBTRACT', 1.0, outer)), F['coat'])
     L(coat, bs.inputs['Coat Weight']); bs.inputs['Coat Roughness'].default_value = F['coat_rough']
     if F.get('aniso'):   # satin brush along the blade arc: tangent circles about the plate normal (Y)
-        tg = N('ShaderNodeTangent'); tg.direction_type = 'RADIAL'; tg.axis = 'Y'
-        L(tg.outputs[0], bs.inputs['Tangent']); L(math_node(N, L, 'MULTIPLY', face, F['aniso']), bs.inputs['Anisotropic'])
+        # tangent = Y x (p - C), C far off the part (brush_center_m): gentle arcs, no singularity on the part.
+        # (Radial tangents about the object origin had a pole on the handle flat -> an anisotropic streak line.)
+        tc_ = N('ShaderNodeTexCoord'); sub = N('ShaderNodeVectorMath'); sub.operation = 'SUBTRACT'
+        sub.inputs[1].default_value = tuple(F.get('brush_center_m', [0.0, 0.0, 0.30]))
+        crs = N('ShaderNodeVectorMath'); crs.operation = 'CROSS_PRODUCT'; crs.inputs[0].default_value = (0, 1, 0)
+        nrm = N('ShaderNodeVectorMath'); nrm.operation = 'NORMALIZE'
+        L(tc_.outputs['Object'], sub.inputs[0]); L(sub.outputs[0], crs.inputs[1]); L(crs.outputs[0], nrm.inputs[0])
+        vt = N('ShaderNodeVectorTransform'); vt.vector_type = 'VECTOR'; vt.convert_from = 'OBJECT'; vt.convert_to = 'WORLD'
+        L(nrm.outputs[0], vt.inputs[0]); L(vt.outputs[0], bs.inputs['Tangent']); L(math_node(N, L, 'MULTIPLY', face, F['aniso']), bs.inputs['Anisotropic'])
     L(protect_signature(N, L, outer, bs.outputs[0]), out.inputs['Surface'])
     aov = N('ShaderNodeOutputAOV'); aov.aov_name = 'sig'; L(outer, aov.inputs['Value'])
     return m
@@ -628,6 +635,37 @@ def run_animation():
                     print('QAFAIL', json.dumps(rec), flush=True); return 1
     return 0 if receipt.all_pass else 1
 
+# ---------- science shots (real solver mesh + von Mises; see fem_asset.py). Same shot camera as the photoreal pass.
+INFERNO = [(0.0, (0.0015, 0.0005, 0.0139)), (0.125, (0.0828, 0.0448, 0.2203)), (0.25, (0.2582, 0.0386, 0.4065)),
+           (0.375, (0.4163, 0.0904, 0.4329)), (0.5, (0.5783, 0.148, 0.4044)), (0.625, (0.7357, 0.2161, 0.3302)),
+           (0.75, (0.8650, 0.3168, 0.2261)), (0.875, (0.9545, 0.4686, 0.0998)), (1.0, (0.9884, 0.9984, 0.6449))]
+SCI = None
+if '--sci' in A:
+    _z = np.load(A['--sci']); SCI = {'case': A['--sci_case'], 'mode': A['--sci_mode'], 'Sy': float(A['--sci_vmax'])}   # Sy from the design manifest (jr_film)
+    lin = lambda c: tuple(((x + 0.055) / 1.055) ** 2.4 if x > 0.04045 else x / 12.92 for x in c)   # ramp stops are sRGB
+    me = bpy.data.meshes.new('fem_rc4'); me.from_pydata(_z['V'].astype(float).tolist(), [], _z['F'].tolist()); me.update()
+    at = me.attributes.new('vm', 'FLOAT', 'FACE'); at.data.foreach_set('value', _z['vm_' + SCI['case']].astype(np.float32))
+    fem_ob = bpy.data.objects.new('fem_rc4', me); sc.collection.objects.link(fem_ob); fem_ob.hide_viewport = True   # keep QA raycasts on the part
+    m_, nt_, N_, L_ = mk('fem_' + SCI['mode']); o_ = N_('ShaderNodeOutputMaterial'); em = N_('ShaderNodeEmission')
+    if SCI['mode'] == 'heat':
+        a_ = N_('ShaderNodeAttribute'); a_.attribute_type = 'GEOMETRY'; a_.attribute_name = 'vm'
+        mr_ = N_('ShaderNodeMapRange'); mr_.inputs['From Max'].default_value = SCI['Sy']
+        cr = N_('ShaderNodeValToRGB'); el = cr.color_ramp.elements
+        el[0].position, el[0].color = INFERNO[0][0], (*lin(INFERNO[0][1]), 1); el[1].position, el[1].color = INFERNO[-1][0], (*lin(INFERNO[-1][1]), 1)
+        for p_, c_ in INFERNO[1:-1]:
+            e_ = el.new(p_); e_.color = (*lin(c_), 1)
+        L_(a_.outputs['Fac'], mr_.inputs['Value']); L_(mr_.outputs['Result'], cr.inputs['Fac']); L_(cr.outputs['Color'], em.inputs['Color'])
+        em.inputs['Strength'].default_value = 1.0
+        L_(em.outputs[0], o_.inputs['Surface'])
+    else:   # tet-mesh wireframe: surface triangles of the solver mesh, 1 px lines over a dark ghost
+        wf = N_('ShaderNodeWireframe'); wf.use_pixel_size = True; wf.inputs['Size'].default_value = float(A.get('--sci_wire_px', 0.6))
+        mix = N_('ShaderNodeMixRGB'); mix.inputs['Color1'].default_value = (0.010, 0.016, 0.030, 1); mix.inputs['Color2'].default_value = (0.10, 0.30, 0.75, 1)
+        L_(wf.outputs['Fac'], mix.inputs['Fac']); L_(mix.outputs['Color'], em.inputs['Color']); em.inputs['Strength'].default_value = 1.0
+        L_(em.outputs[0], o_.inputs['Surface'])
+    me.materials.append(m_)
+    sc.view_settings.view_transform = 'Standard'; sc.view_settings.look = 'None'; sc.view_settings.exposure = 0.0
+    part.hide_render = True
+
 
 def run_stills():
     only = set(A['--shots'].split(',')) if '--shots' in A else None
@@ -641,6 +679,9 @@ def run_stills():
         dist = place_camera(sh)
         aim_mirror_lights(sh)
         tag = f"{sh['name']}_{RES}" + ('' if FINISH == 'art' else '_' + FINISH)
+        if SCI:
+            tag += f"_sci_{SCI['case']}_{SCI['mode']}"; fem_ob.matrix_world = part.matrix_world.copy()
+            cd.dof.use_dof = False   # data plates stay crisp (same camera pose/lens, so still pixel-registered)
         light_adj = clear_lights()
         ql = qa_lights(); ql['raised_el_deg'] = light_adj; qs = qa_sig_frame(sh['sig_side'])
         qa = {'shot': tag, 'lights': ql, 'signature_frame': qs, 'signature_mesh': mesh_qa,
@@ -671,7 +712,8 @@ def run_stills():
         except Exception as e:
             qa['clipping'] = {'pass': False, 'error': str(e)}
         try:
-            qa['image'] = frame_qa_image(png, tag)
+            qa['image'] = frame_qa_image(png, tag) if not SCI else {'pass': True, 'note': 'science plate (emission data view): white-blob gate n/a'}
+            if SCI: qa['science'] = {**SCI, 'colormap': 'inferno (perceptually uniform)', 'vmin_MPa': 0.0, 'vmax_MPa': SCI['Sy'], 'fem': A['--sci'], 'fem_sha256': sha(A['--sci'])}
         except Exception as e:
             qa['image'] = {'pass': False, 'error': str(e)}
         st_, h_ = physical_state()

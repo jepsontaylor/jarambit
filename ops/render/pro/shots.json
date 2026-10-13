@@ -127,7 +127,8 @@
     "4k_portrait",
     "8k",
     "preview",
-    "preview_portrait"
+    "preview_portrait",
+    "hd"
    ]
   },
   {
@@ -145,7 +146,8 @@
     "4k_portrait",
     "8k",
     "preview",
-    "preview_portrait"
+    "preview_portrait",
+    "hd"
    ]
   },
   {
@@ -161,7 +163,8 @@
    "res": [
     "preview",
     "4k",
-    "8k"
+    "8k",
+    "hd"
    ],
    "part_rot_deg": 180
   },
@@ -182,7 +185,8 @@
    "sig_side": "front",
    "res": [
     "preview",
-    "4k"
+    "4k",
+    "hd"
    ]
   },
   {
@@ -200,7 +204,8 @@
     "4k_portrait",
     "8k",
     "preview",
-    "preview_portrait"
+    "preview_portrait",
+    "hd"
    ]
   },
   {
@@ -219,7 +224,8 @@
    "sig_side": "front",
    "res": [
     "preview",
-    "4k"
+    "4k",
+    "hd"
    ]
   }
  ],
