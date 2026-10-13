@@ -55,7 +55,7 @@ Code paths are relative to `ops/render/pro/`. Run evidence is on xbabe3 under `~
 |---|---|---|---|
 | 5.1 | Image and rig gate must FAIL on a floor-reflected source (C§14) | DONE | `--fault light_in_frame` → gate fails (`director_gates.json fault_light_in_frame`) |
 | 5.2 | Signature/overlay never crosses the blade (A§6 + owner) | DONE | Mesh glyph gate (1,500 samples + 1.5 mm ring on the flat), frame gate (in frame, unoccluded). `--fault sig_off_flat` must fail |
-| 5.3 | Temporal state gate (shard-relative reference must fail) (C§14) | DONE | Partition hash test, 4.2 |
+| 5.3 | Temporal state gate (shard-relative reference must fail) (C§14) | DONE | Partition hash test, 4.2; gates2/director_gates.json all_pass (33 frames, 0 mismatches; light rig rebuilt from authored base each frame, 1e-5 quantised hash) |
 | 5.4 | Delivery: correct frame count/rate, no duplicate endpoint, full decode (C§14) | PARTIAL | Frames [0,1140) with virtual 1140 = frame 0 (S08 end state = S01). ffprobe decoded count vs PNG count. The 30 fps master encode is still **missing** (animatic only) |
 | 5.5 | Don't disable gates globally; gates know the shot's purpose (C§14) | DONE | Gates run per shot with shot-specific `sig_side`/fit. Macros are tested against their feature (sig) |
 | 5.6 | Human creative + presentation approval; automated QA ≠ art approval (all) | DONE | `release_ready:false` until sign-off. This audit and the animatic are for that review |
