@@ -86,3 +86,27 @@ def test_c92_label_mark_becomes_zone5(tmp_path):
     rep = blade_mask.compute(str(src / 'bundle.json'), str(src / 'regions.json'), str(tmp_path / 'o'), allow_warn=True)
     z = np.load(rep['masks_npz'])['zone']
     assert (z[body] == 5).all() and rep['checks']['mark_faces_bare'] and 'labels' in rep['mark']['sources']
+
+
+def test_raster_rejects_huge_extent(tmp_path):
+    """100x scaled mesh must fail closed before allocating multi-hundred-GiB distance maps."""
+    import json
+    import numpy as np
+    import blade_mask
+    V = np.array([[0, 0, 0], [1, 0, 0], [0, 0.3, 0], [0.2, 0.1, 0.002]], float) * 100.0
+    F = np.array([[0, 1, 2], [0, 2, 3]], np.int32)
+    np.savez(tmp_path / "mesh.npz", V=V, F=F)
+    (tmp_path / "bundle.json").write_text(json.dumps({"npz": "mesh.npz", "npz_sha256": "x"}))
+    out = tmp_path / "masks"
+    out.mkdir()
+    # Force the hard reject: tiny budget + huge max_grid so coarsening still exceeds bytes.
+    raised = False
+    try:
+        blade_mask.compute(
+            str(tmp_path / "bundle.json"), None, str(out), allow_warn=True,
+            params={"max_grid_px": 200000, "max_raster_bytes": 8 * 1024 * 1024, "raster_mm": 0.1},
+        )
+    except ValueError as e:
+        raised = any(k in str(e).lower() for k in ("raster", "budget", "gib"))
+        assert raised, e
+    assert raised

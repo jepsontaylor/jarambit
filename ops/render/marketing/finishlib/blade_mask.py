@@ -159,7 +159,7 @@ def arc_params(V, P2, S, lo, res_m, s0_hint):
 
 def compute(bundle_path, regions_path=None, out_dir='.', params=None, allow_warn=False):
     p = {'apex_band_mm': 0.3, 'bevel_min_deg': 8.0, 'bevel_max_deg': 80.0, 'raster_mm': 0.1,
-         'max_flat_mm': 30.0, 'mark_depth_mm': [0.02, 0.6], 'mark_glyph_max_mm2': 40.0, 'mark_min_glyphs': 4, 'guard_mm': 0.6, 'wall_mm': 0.6, 'tip_guard_mm': 6.0, 'tip_check_mm': 10.0, 'blade_frac_range': [0.12, 0.65]}
+         'max_flat_mm': 30.0, 'mark_depth_mm': [0.02, 0.6], 'mark_glyph_max_mm2': 40.0, 'mark_min_glyphs': 4, 'guard_mm': 0.6, 'wall_mm': 0.6, 'tip_guard_mm': 6.0, 'tip_check_mm': 10.0, 'blade_frac_range': [0.12, 0.65], 'max_grid_px': 4096, 'max_raster_bytes': 512 * 1024 * 1024}
     p.update(params or {})
     os.makedirs(out_dir, exist_ok=True)
     bundle, mesh, labels_src = load_mesh(bundle_path, regions_path)
@@ -194,14 +194,28 @@ def compute(bundle_path, regions_path=None, out_dir='.', params=None, allow_warn
         zone[(zone == 0) & geo_edge] = 2
         zone[(zone == 0) & geo_apex] = 3
     edge = zone >= 2
-    # footprint raster
+    # footprint raster — bound grid like signature.max_grid_px so inch-as-mm / huge meshes cannot OOM the host
     lo = P2.min(0) - 1e-3; hi = P2.max(0) + 1e-3
     r = p['raster_mm'] * 1e-3
+    ext = float(np.max(hi - lo))
+    max_px = int(p.get('max_grid_px', 4096))
+    if ext / r > max_px:
+        r = ext / max_px
     shape = (int((hi[0] - lo[0]) / r) + 1, int((hi[1] - lo[1]) / r) + 1)
+    # hard reject pathological allocations (two int64 HxW arrays in sandwiched)
+    bytes_est = 2 * shape[0] * shape[1] * 8
+    max_bytes = int(p.get('max_raster_bytes', 512 * 1024 * 1024))  # 512 MiB default for the two distance maps
+    if bytes_est > max_bytes or shape[0] * shape[1] > max_px * max_px:
+        raise ValueError(
+            f"blade_mask raster {shape[0]}x{shape[1]} (~{bytes_est/1e9:.2f} GiB distance maps) exceeds "
+            f"budget max_grid_px={max_px} max_raster_bytes={max_bytes}; "
+            f"mesh extent {ext*1e3:.1f} mm — check units or raise max_grid_px deliberately")
     S = raster(P2, F, np.ones(len(F), bool), lo, r, shape)
     E = raster(P2, F, edge, lo, r, shape)
-    B = sandwiched(E, S, int(p['max_flat_mm'] / p['raster_mm']))
-    B |= dilate(E, int(round(p['guard_mm'] / p['raster_mm']))) & S
+    max_flat_px = max(1, int(round((p['max_flat_mm'] * 1e-3) / r)))
+    guard_px = max(1, int(round((p['guard_mm'] * 1e-3) / r)))
+    B = sandwiched(E, S, max_flat_px)
+    B |= dilate(E, guard_px) & S
     B &= ~E
     # face lookup (centroid pixel) for non-edge faces
     cen2 = P2[F].mean(1)
@@ -218,7 +232,7 @@ def compute(bundle_path, regions_path=None, out_dir='.', params=None, allow_warn
     # their centroids sit ON the outline). Any non-pad/ring face whose centroid lies within wall_mm of the
     # blade footprint and whose normal is near-perpendicular to the blade plane is bare (bevel finish).
     tilt = np.degrees(np.arccos(np.clip(np.abs(fn @ n), 0, 1)))
-    Bfoot = dilate(B | E, max(1, int(round(p['wall_mm'] / p['raster_mm'])))) 
+    Bfoot = dilate(B | E, max(1, int(round((p['wall_mm'] * 1e-3) / r)))) 
     wall = (zone == 0) & (tilt > p['bevel_max_deg'] - 10) & Bfoot[ij[:, 1], ij[:, 0]]
     if 'region_id' in mesh:
         rid = np.asarray(mesh['region_id'])

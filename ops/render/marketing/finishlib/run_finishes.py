@@ -152,6 +152,15 @@ def main():
     ap.add_argument('--masks-only', action='store_true'); ap.add_argument('--allow-mask-warn', action='store_true')
     ap.add_argument('--no-mask-render', action='store_true')
     args = ap.parse_args()
+    # Contain mask + render RAM: re-exec under ~/bin/memcap 32G (no-swap cgroup) unless already inside one.
+    if os.environ.get('JARAMBIT_FINISHLIB_MEMCAP') != '1':
+        memcap = os.path.expanduser('~/bin/memcap')
+        if os.path.isfile(memcap) and os.access(memcap, os.X_OK):
+            env = os.environ.copy()
+            env['JARAMBIT_FINISHLIB_MEMCAP'] = '1'
+            raise SystemExit(subprocess.call([memcap, '32G', '--', sys.executable, *sys.argv], env=env))
+        else:
+            print('[finishlib] WARNING: ~/bin/memcap missing; continuing without cgroup MemoryMax', flush=True)
     out = os.path.abspath(args.out); os.makedirs(out, exist_ok=True)
     if args.cad:
         py = os.environ.get('JARAMBIT_CAD_PYTHON', sys.executable)

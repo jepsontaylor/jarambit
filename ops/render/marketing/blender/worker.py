@@ -275,10 +275,31 @@ def run(req, force=False, threads=16):
     if req.get('finish_library'):  # finishlib: zone masks -> library coat on zone 0, bare blade zones; mark=zone5
         sys.path.insert(0, os.path.join(os.path.dirname(HERE), 'finishlib'))
         import blender_finish  # noqa: E402
-        mat_rec = blender_finish.apply(part, req['finish_library'], finish)
-        # maker mark handled inside finishlib (zone 5); do not double-apply signature overlay
-        sig_rec = {'enabled': False, 'via': 'finish_library'}
-        sig_pl = []
+        flib = dict(req['finish_library'])
+        # Placements from blade_mask are in canonical mesh space; the part is already posed by Rp.
+        # Transform centers/normals/u/v into the posed frame (same as signature.transform) so flat_lay etc. keep the mark.
+        raw_pls = list(flib.get('mark_placements') or [])
+        posed_pls = []
+        for pl in raw_pls:
+            if not pl:
+                continue
+            posed_pls.append(signature.transform(pl, Rp) if pl.get('ok', True) else pl)
+        flib['mark_placements'] = posed_pls
+        # Keep sig_pl for Q15 / signature_expectation even though the overlay is applied via finishlib.
+        sig_pl = [p for p in posed_pls if p.get('ok', True)]
+        sig_rec = {
+            'enabled': bool(sig_pl),
+            'via': 'finish_library',
+            'placements_canonical': raw_pls,
+            'placements_posed': posed_pls,
+        }
+        mat_rec = blender_finish.apply(part, flib, finish)
+        if posed_pls:
+            sig_rec['material'] = {'via': 'finish_library', 'n_placements': len(posed_pls)}
+            for p in posed_pls:
+                if p.get('ok', True) and 'side' in p:
+                    print(f"[worker] finishlib mark {p.get('side')}: centre {p.get('center_m')} "
+                          f"{(p.get('width_m') or 0)*1e3:.2f}x{(p.get('height_m') or 0)*1e3:.2f} mm", flush=True)
     else:
         # maker's mark: automatic placement on the canonical mesh, then posed; final material overlay.
         # On by default for every shot; a request may only turn it off explicitly (recorded).
@@ -376,6 +397,33 @@ def run(req, force=False, threads=16):
         'finish_sha256': finish_sha, 'rig_sha256': rig_sha, 'accents': list(req.get('accents') or []),
         'pose': pose_name, 'camera': cam_spec, 'hdri_sha256': (hdri_rec or {}).get('sha256'),
     }
+    # Bind finish-library inputs into receipt identity so changing entry/masks/LUT/mark cannot resume a stale EXR.
+    flib_req = req.get('finish_library')
+    if flib_req:
+        entry = flib_req.get('entry') or {}
+        bare = flib_req.get('bare_specs') or {}
+        pls = flib_req.get('mark_placements') or []
+        gain = entry.get('exposure_boost_ev', flib_req.get('coat_boost'))
+        def _fsha(path):
+            return scene.sha256(path) if path and os.path.isfile(path) else None
+        mark_mask_shas = []
+        for pl in pls:
+            m = (pl or {}).get('mask') or (pl or {}).get('asset', {}).get('mask')
+            if m:
+                mark_mask_shas.append(_fsha(m))
+        input_ident['finish_library'] = {
+            'entry_id': entry.get('id') or entry.get('label'),
+            'entry': entry,
+            'bare_specs': bare,
+            'gain': gain,
+            'coat_boost': flib_req.get('coat_boost'),
+            'arc_length_m': flib_req.get('arc_length_m'),
+            'lut_dmax_nm': flib_req.get('lut_dmax_nm'),
+            'masks_npz_sha256': _fsha(flib_req.get('masks_npz')),
+            'lut_npy_sha256': _fsha(flib_req.get('lut_npy')),
+            'mark_mask_sha256': mark_mask_shas,
+            'mark_placements': pls,
+        }
     for f in frames:
         stem = os.path.join(out_dir, f'{sid}_{f["index"]:04d}')
         rp = stem + '.receipt.json'
