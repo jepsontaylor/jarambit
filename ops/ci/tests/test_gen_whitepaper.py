@@ -29,6 +29,20 @@ class GenWhitepaper(unittest.TestCase):
                             '--out', os.path.join(os.path.dirname(MAN_TMP), 'mm')], capture_output=True, text=True)
         self.assertNotEqual(r.returncode, 0); self.assertIn('is not the D1 design', r.stderr)
 
+    def test_components_reject_legacy_padded_genome(self):
+        import csv
+        sys.path.insert(0, os.path.join(ROOT, 'ops', 'render'))
+        import components
+        d1 = json.load(open(os.path.join(ROOT, 'evidence/wave27/g3_tip+00_t60_tt3_D1.json')))
+        rs = json.load(open(os.path.join(ROOT, 'evidence/rs_v2/g3_tip+00_t60_tt3.json')))
+        self.assertTrue(components.same_design(d1, rs)[0])
+        rows = list(csv.reader(open(os.path.join(ROOT, rs['genome']))))
+        leg = os.path.join(os.path.dirname(MAN_TMP), 'legacy.csv')
+        with open(leg, 'w', newline='') as fh:
+            w = csv.writer(fh); w.writerow(rows[0][:90] + ['material']); w.writerow(rows[1][:90] + [rows[1][-1]])
+        self.assertFalse(components.same_design(d1, dict(rs, genome=leg))[0], 'legacy 90-gene CSV must not match')
+        self.assertFalse(components.same_design(d1, dict(rs, mass_g=rs['mass_g'] + 3.0))[0], 'mass mismatch must not match')
+
     def test_tip_reports_locked_gate_values(self):
         c = json.load(open(os.path.join(ROOT, 'docs/figures/components/components.json')))
         tip = [x for x in c['components'] if x['component'] == 'tip'][0]['rs_v2']

@@ -70,14 +70,21 @@ def genome_fields(header, values):
 
 
 def same_design(d1, rs):
-    """The RS-v2 record must be for the genome in the D1 record (every shared field equal)."""
+    """The RS-v2 record must be for exactly the D1 genome: identical gene/material column set (from cp00 on, no
+    missing or extra fields, so a legacy CSV padded with defaults cannot match) and equal values, and the same mass."""
     import csv
-    a = genome_fields(d1['genome_header'].split(','), d1['genome'].split(','))
+    h, v = d1['genome_header'].split(','), d1['genome'].split(',')
+    a = genome_fields(h[h.index('cp00'):], v[h.index('cp00'):])
     rows = list(csv.reader(open(os.path.join(ROOT, rs['genome']) if not os.path.isabs(rs['genome']) else rs['genome'])))
-    b = genome_fields(rows[0], rows[1])
-    common = [k for k in b if k in a]
-    bad = [k for k in common if (a[k] != b[k]) if not (isinstance(a[k], float) and isinstance(b[k], float) and abs(a[k] - b[k]) <= 1e-9 * max(1.0, abs(a[k])))]
-    return len(common) >= 40 and not bad, bad[:5]
+    if 'cp00' not in rows[0]:
+        return False, ['no cp00 column']
+    o = rows[0].index('cp00'); b = genome_fields(rows[0][o:], rows[1][o:])
+    if set(a) != set(b):
+        return False, sorted(set(a) ^ set(b))[:5]
+    bad = [k for k in a if a[k] != b[k] and not (isinstance(a[k], float) and isinstance(b[k], float) and abs(a[k] - b[k]) <= 1e-9 * max(1.0, abs(a[k])))]
+    if abs(d1['metrics']['mass_g'] - rs['mass_g']) > 0.01:
+        bad.append(f'mass {rs["mass_g"]:.3f} g != D1 {d1["metrics"]["mass_g"]:.3f} g')
+    return not bad, bad[:5]
 
 
 def main(argv=None):
