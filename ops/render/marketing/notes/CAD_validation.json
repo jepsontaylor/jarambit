@@ -123,6 +123,7 @@
     "d1-smoke-run": 0,
     "fem-tests": 0,
     "figures": 0,
+    "global-metric-smoke": 0,
     "json-strict": 0,
     "media": 0,
     "metrics": 0,

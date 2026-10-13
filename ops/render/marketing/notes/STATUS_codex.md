@@ -15,7 +15,7 @@ NPZ SHA256: `062be78fe0828a5f0fc5f2e20e2f4ed07f2d9ffa07741b0645fbb053aa232228`.
 There are 50,980 vertices and 101,972 triangles, with analytic B-rep corner normals.
 The final path and hashes are posted in the shared COORD log for Claude/Grok.
 
-Validation: **47 pytest tests passed, zero skips**, plus all 16 repository gates
+Validation: **47 pytest tests passed, zero skips**, plus all 17 repository gates
 (workspace release tests, Clippy, D1 smoke, version/generated-doc/media/evidence
 checks and existing Python suites). The production CAD gate passed in 207 s:
 repeated bundle/region/overlay bytes identical; geometry round-trip error
