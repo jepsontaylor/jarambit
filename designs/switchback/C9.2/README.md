@@ -18,5 +18,5 @@
 Not promotable yet: promotion needs ≥ 5 % V6 margin (owner rule), and 1.9 % is within CNC notch tolerance. Before C.9.2 can be called a design of record it also needs an RS-karambit-v2 evaluation in this repo (or a documented mapping of the C.9 gates onto it), owner aesthetic sign-off and physical test. Next: W76 least-mass jimping relief.
 
 Files: `cad/` B-rep STEP (the geometry of record for this candidate; not a manufacturing release) + reference STL; `drawings/` 00–09 generated from the STEP; `plates/` FEM wave plates W70–W75.1.
-Full machinist pack (spec, docs, data, manifest) is published as a release asset: `SWITCHBACK_RevC9_2_RC_machinist_pack.zip` (sha256 in SHA256SUMS).
+Full machinist pack (spec, docs, data, manifest): `SWITCHBACK_RevC9_2_RC_machinist_pack.zip` (sha256 in SHA256SUMS). **Publication pending** — it is not yet attached to any GitHub release; it will be attached to the v0.32.0 release-candidate release. The drawings in `drawings/` are regenerated in-repo by `drawings/draw_c92.py` from the committed STEP and `data/w75_1_results.json` (W75.1 governor; W74 shown as historical).
 Public disclosure approved by the owner, Jepson Taylor (2026-10-12). Source of record: hiking-karambit tag `switchback-revC.9.2-rc2`.
