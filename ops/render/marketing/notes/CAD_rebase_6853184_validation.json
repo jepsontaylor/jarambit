@@ -1,0 +1,87 @@
+{
+  "art_review": "pending (not part of this CAD rebase)",
+  "constraints": {
+    "cpu_affinity": "0-7",
+    "device": "CPU",
+    "farm_touched": false,
+    "memcap": "32G",
+    "nice": 19
+  },
+  "finishlib_mark_budget_tests": {
+    "deselected_fixture_tests": 5,
+    "passed": 2,
+    "skipped": 0
+  },
+  "gates": {
+    "ci-tests": 0,
+    "claims": 0,
+    "fem-tests": 0,
+    "figures": 0,
+    "global-metric": 0,
+    "marketing-pro-tests": 0,
+    "media": 0,
+    "metrics": 0,
+    "patent": 0,
+    "production-cad": 0,
+    "readme": 0,
+    "required-tools": 0,
+    "status": 0,
+    "version": 0,
+    "whitepaper": 0
+  },
+  "live_bundle_files_unchanged": true,
+  "logs": "/home/ubuntu/jarambit_render/codex/target/cadmesh-rebase-6853184/gates",
+  "marketing_pro_tests": {
+    "passed": 214,
+    "seconds": 223.02,
+    "skipped": 0
+  },
+  "matches_all_published_artifact_hashes": true,
+  "owner_coord_additions": "two original owner additions saved in named stash/backup and excluded from commits",
+  "production_gate": {
+    "chamfer_iou": 1.0,
+    "framing": {
+      "frames": 36,
+      "maximum_width_fill": 0.6999999999992967,
+      "minimum_margin": 0.14500461856670588,
+      "pass": true,
+      "resolution": [
+        3840,
+        2160
+      ]
+    },
+    "identical_repeated_bundle_bytes": true,
+    "identical_repeated_labels": true,
+    "labels_sha256": "6f75f4c29378ea6f103eea125504443b26ba70879ea3e2ffe6afa34aa17302e6",
+    "n_triangles": 101372,
+    "n_vertices": 50680,
+    "normal_policy": "brep_analytic",
+    "outputs": {
+      "bundle.json": "655138786aeb20c357a3cdcfd1925d1e82e75587a0936692a268ddca57099d71",
+      "framing.json": "a8df89920457afc0065c0e934ede3786f3fdc163c50b39db22754b6f4bd889d3",
+      "mesh.npz": "85f37bb8ba50b991251761576b22a3049caf6a568ba3cb5a4f153669a5d0a973",
+      "regions.json": "7453a2a312c5a733fe40937c4abeda7077d3226c659c36032027b257e8ba50f6",
+      "regions_debug.png": "120dfd7039f53df9e87bc027479751c0ca07186588d790c945cc3be453e26d33",
+      "regions_debug_3q.png": "ded9eb801b67d27fd928c76fb043180c85eb7485f85016a6bcf07c8056086eac"
+    },
+    "pass": true,
+    "seconds": 53.3,
+    "source": {
+      "format": "step",
+      "model": "SWITCHBACK Rev C.10a",
+      "path": "/home/ubuntu/jarambit_render/inputs/switchback_C10a/switchback_revC10a_ground.step",
+      "reference_mass_g": 64.841,
+      "role": "hero",
+      "sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "units": "mm"
+    },
+    "source_roundtrip_max_abs_error_m": 5.551115123125783e-17,
+    "validated_brep": true
+  },
+  "published_tip_before_rebase": "09091ca54ea4088d63f3700a75ca3f412d0f40c1",
+  "repository_base_sha": "685318498bf3b073e9e8d2c566c62dd5ab7cbafc",
+  "rust_tree_matches_main": true,
+  "schema": "jarambit.render.cad_rebase_validation.v1",
+  "signature": "protected bare laser-etched metal; raw grinds/apex retained; CPU shader regressions PASS",
+  "tested_code_sha": "9957a7624a3080aba047319d4b3a3c86edb6750d"
+}

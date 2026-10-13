@@ -1,0 +1,92 @@
+{
+  "art_review": "pending",
+  "c92_regions_v2": {
+    "annotated_patch_iou": {
+      "bevel": 1.0,
+      "body": 1.0,
+      "edge_apex": 1.0,
+      "ring": 1.0,
+      "serration": 1.0
+    },
+    "bundle_byte_identical": true,
+    "deterministic_labels_and_tangent": true,
+    "labels_sha256": "219a10369e9cb3fb02b09f8c4405725a1b48bbe8a6c584f28a16ade7ea6125e0",
+    "npz_byte_identical": true
+  },
+  "canonical_production": {
+    "all_six_hashes_unchanged": true,
+    "chamfer_iou": 1.0,
+    "framing_angles": 36,
+    "minimum_margin": 0.14500461856670588,
+    "outputs": {
+      "bundle.json": "655138786aeb20c357a3cdcfd1925d1e82e75587a0936692a268ddca57099d71",
+      "framing.json": "a8df89920457afc0065c0e934ede3786f3fdc163c50b39db22754b6f4bd889d3",
+      "mesh.npz": "85f37bb8ba50b991251761576b22a3049caf6a568ba3cb5a4f153669a5d0a973",
+      "regions.json": "7453a2a312c5a733fe40937c4abeda7077d3226c659c36032027b257e8ba50f6",
+      "regions_debug.png": "120dfd7039f53df9e87bc027479751c0ca07186588d790c945cc3be453e26d33",
+      "regions_debug_3q.png": "ded9eb801b67d27fd928c76fb043180c85eb7485f85016a6bcf07c8056086eac"
+    }
+  },
+  "fix": "surface-area PCA principal length axis, oriented away from the analytic bore",
+  "live_bundle_files_unchanged": true,
+  "local_gates": {
+    "c92-regions-gate": 0,
+    "c92-regions-write": 0,
+    "ci-tests": 0,
+    "claims": 0,
+    "fem-tests": 0,
+    "figures": 0,
+    "finishlib-protection": 0,
+    "global-metric": 0,
+    "marketing-pro-tests": 0,
+    "media": 0,
+    "metrics": 0,
+    "patent": 0,
+    "production-cad": 0,
+    "readme": 0,
+    "required-tools": 0,
+    "status": 0,
+    "version": 0,
+    "whitepaper": 0
+  },
+  "logs": "/home/ubuntu/jarambit_render/codex/target/cadmesh-fix59/gates",
+  "marketing_pro_pytest": {
+    "passed": 218,
+    "seconds": 276.94,
+    "skipped": 0
+  },
+  "public_cli_regressions": {
+    "geometry_and_analytic_normals_follow_pose": true,
+    "labels_byte_identical": true,
+    "labels_sha256": "6f75f4c29378ea6f103eea125504443b26ba70879ea3e2ffe6afa34aa17302e6",
+    "poses": [
+      "identity",
+      "rotZ180",
+      "rotZ90",
+      "arbitrary proper rotation + translation"
+    ],
+    "source": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+    "source_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7"
+  },
+  "red_repro": {
+    "old_labels_changed": 15961,
+    "pose": "rotZ180",
+    "regression_exit_code": 1,
+    "source_head": "973dc8078bebdc9e4065c8a9b6c41524c4a8901f"
+  },
+  "review": 5508074795,
+  "reviewed_parent_sha": "973dc8078bebdc9e4065c8a9b6c41524c4a8901f",
+  "runtime": {
+    "cpu_affinity": "0-7",
+    "device": "CPU",
+    "memcap": "32G",
+    "native_numeric_threads": 1,
+    "nice": 19
+  },
+  "schema": "jarambit.render.pose_region_validation.v1",
+  "signature_and_shader_code_changed": false,
+  "source_sha256": {
+    "ops/render/marketing/regions.py": "163ddd079e82f9ed4d8e3bbcee0b42636982ec2fb4dca3e72fcb3be120e4cc52",
+    "ops/render/marketing/tests/test_ingest_pose_regions.py": "2024d5d411ea67e43d9a18f08f06aa5d85123ca2d7cf9333844ac7278cbf4f76"
+  }
+}
