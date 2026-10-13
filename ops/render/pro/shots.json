@@ -328,16 +328,29 @@
  },
  "finishes": {
   "satin_blue": {
-   "d_start_nm": 50.0,
-   "d_end_nm": 50.0,
+   "d_start_nm": 45.0,
+   "d_end_nm": 45.0,
    "lick_amp": 0.0,
    "rough": 0.3,
    "wall_rough": 0.38,
    "coat": 0.0,
    "aniso": 0.6,
    "bevel_flamed": false,
-   "exposure_ev": 0.35,
+   "exposure_ev": -0.6,
    "note": "satin brushed Ti, single mid blue (~30-35 V); bevel/edge/serration grinds and laser-etched signature stay bare metal"
   }
+ },
+ "protected": {
+  "mark": {
+   "base_rgb": [
+    0.02,
+    0.02,
+    0.022
+   ],
+   "roughness": 0.1,
+   "note": "owner 5:56: deep glossy black ink; one design-wide protected mark material (identical in every finish, #53)"
+  },
+  "grind_roughness": 0.24,
+  "note": "#53 protected regions: values are design-wide, never finish-dependent"
  }
 }
