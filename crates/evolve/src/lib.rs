@@ -297,7 +297,15 @@ fn historical_obj(i: &Indiv, k: usize) -> Result<f64, String> {
 /// Current domination. A historical cut or historical summary is not a current result.
 /// Feasible designs compare fit and mass only. Infeasible designs compare fit, including
 /// an explicit `Unavailable` summary.
+fn malformed_credited(stats: &SampleStatistics) -> bool {
+    match *stats {
+        SampleStatistics::Credited { mean, sharp_p05 } => !mean.is_finite() || !sharp_p05.is_finite(),
+        _ => false,
+    }
+}
+
 pub fn dominates(a: &Indiv, b: &Indiv) -> bool {
+    if malformed_credited(&a.stats) || malformed_credited(&b.stats) { return false; }
     if historical_cut_value(a).is_some() || historical_cut_value(b).is_some() { return false; }
     if matches!(a.stats, SampleStatistics::Historical { .. }) || matches!(b.stats, SampleStatistics::Historical { .. }) { return false; }
     let (fa, fb) = (a.feasible(), b.feasible());
@@ -537,6 +545,14 @@ pub fn calibrated_floors_ok(lat: f64, ring: f64) -> bool {
     lat >= floors::HIKER_LATERAL_N && lat >= floors::HUNTER_LATERAL_N && ring >= floors::RING_PULL_N
 }
 
+/// One graded-fine expression. A nonfinite mean never reaches `rej`.
+fn fine_infeasible_fitness(hot_lat: f64, hot_ring: f64, lat: f64, ring: f64, mean: f64) -> Result<f64, String> {
+    if !mean.is_finite() { return Err("nonfinite_credited_statistics".into()); }
+    let d = |l: f64, r: f64| (1.0 - l / floors::HUNTER_LATERAL_N).max(0.0) + (1.0 - r / floors::RING_PULL_N).max(0.0);
+    let rej = (-mean / 1e3).clamp(0.0, 1.0);
+    Ok(-1.0 - 5.0 * d(hot_lat, hot_ring) - 5.0 * d(lat, ring) - 10.0 * rej)
+}
+
 fn evaluate_fine(g: Genotype, sample_seed: u64, mc: usize, threads: usize, q: &mut Vec<(Genotype, String)>, caps: Option<FineCaps>) -> Indiv {
     let (p, rt, e) = nominal(&g);
     let crazy = !e.mass_g.is_finite() || !(5.0..=250.0).contains(&e.mass_g);
@@ -561,9 +577,7 @@ fn evaluate_fine(g: Genotype, sample_seed: u64, mc: usize, threads: usize, q: &m
         let m = material(g.material);
         let hot = m.yield_at(100.0) / m.yield_at(20.0);
         let (lh, rh) = (c.lateral_n / calib::MESH_BIAS_LAT_MAX * hot, c.ring_pull_n / calib::MESH_BIAS_RING_MAX * hot);
-        let d = |l: f64, r: f64| (1.0 - l / floors::HUNTER_LATERAL_N).max(0.0) + (1.0 - r / floors::RING_PULL_N).max(0.0);
-        let rej = (-tails[0].mean / 1e3).clamp(0.0, 1.0);
-        -1.0 - 5.0 * d(lh, rh) - 5.0 * d(lat, ring) - 10.0 * rej
+        fine_infeasible_fitness(lh, rh, lat, ring, tails[0].mean).expect("credited mean")
     };
     retired(g, fit, stats, lat, e.mass_g, ok)
 }
@@ -715,7 +729,7 @@ fn parse_indiv_v3(line: &str) -> Result<Indiv, String> {
     let f: Vec<&str> = line.splitn(7, ' ').collect();
     if f.len() != 7 { return Err(format!("indiv fields {}", f.len())); }
     Ok(Indiv {
-        fit: unhx(f[0])?, stats: parse_stats_token(f[1])?, strength_n: unhx(f[2])?, mass_g: unhx(f[3])?,
+        fit: f64::from_bits(hex16(f[0])?), stats: parse_stats_token(f[1])?, strength_n: f64::from_bits(hex16(f[2])?), mass_g: f64::from_bits(hex16(f[3])?),
         floors_ok: parse_floors(f[4])?, cut: parse_cut_token(f[5])?, g: parse_genes_hex(f[6])?,
     })
 }
@@ -770,40 +784,65 @@ fn kv<'a>(l: Option<&'a str>, key: &str) -> Result<&'a str, String> {
     let l = l.ok_or_else(|| format!("missing {key}"))?; l.strip_prefix(key).and_then(|r| r.strip_prefix(' ')).ok_or_else(|| format!("expected {key}, got {l:?}"))
 }
 
+fn bounded_reserve<T>(declared: usize, remaining: usize) -> Result<Vec<T>, String> {
+    if declared > remaining {
+        return Err(format!("checkpoint count {declared} exceeds remaining records {remaining}"));
+    }
+    let mut out = Vec::new();
+    out.try_reserve_exact(declared).map_err(|_| format!("checkpoint count {declared} exceeds remaining records {remaining}"))?;
+    Ok(out)
+}
+
+fn take_line<'a>(lines: &'a [&str], at: &mut usize) -> Option<&'a str> {
+    let line = lines.get(*at).copied();
+    if line.is_some() { *at += 1; }
+    line
+}
+
 fn load_ckpt(path: &str) -> Result<Loaded, String> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
-    let mut lines = text.lines();
-    let format_version = match lines.next() {
+    let lines: Vec<&str> = text.lines().collect();
+    let mut at = 0usize;
+    let format_version = match take_line(&lines, &mut at) {
         Some("jarambit-ckpt 3") => 3,
         Some("jarambit-ckpt 2") => 2,
         Some("jarambit-ckpt 1") => return Err("checkpoint format 1 is lossy (rounded decimals) and has no manifest; resume and fork are refused. Extract best genomes with --seed-ckpt and re-evaluate. --fork does not extract v1 genomes.".into()),
         m => return Err(format!("bad magic {m:?}")),
     };
-    let manifest_sha = kv(lines.next(), "manifest_sha256")?.to_string();
-    let manifest_json = kv(lines.next(), "manifest")?.to_string();
-    let next_gen: usize = kv(lines.next(), "next_gen")?.parse().map_err(|_| "next_gen")?;
-    let nisl: usize = kv(lines.next(), "islands")?.parse().map_err(|_| "islands")?;
-    let mut islands = Vec::with_capacity(nisl);
+    let manifest_sha = kv(take_line(&lines, &mut at), "manifest_sha256")?.to_string();
+    let manifest_json = kv(take_line(&lines, &mut at), "manifest")?.to_string();
+    let next_gen: usize = kv(take_line(&lines, &mut at), "next_gen")?.parse().map_err(|_| "next_gen")?;
+    let nisl: usize = kv(take_line(&lines, &mut at), "islands")?.parse().map_err(|_| "islands")?;
+    let mut islands: Vec<Island> = bounded_reserve(nisl, lines.len().saturating_sub(at))?;
     for i in 0..nisl {
-        let hdr = lines.next().ok_or("island header")?;
+        let hdr = take_line(&lines, &mut at).ok_or("island header")?;
         let p: Vec<&str> = hdr.split(' ').collect();
         if p.len() != 6 || p[0] != "island" || p[1] != i.to_string() || p[2] != "rng" || p[4] != "n" { return Err(format!("island header {hdr}")); }
-        let rng = Rng(u64::from_str_radix(p[3], 16).map_err(|_| "rng")?);
+        let rng_bits = if format_version == 3 {
+            hex16(p[3])?
+        } else {
+            u64::from_str_radix(p[3], 16).map_err(|_| "rng".to_string())?
+        };
         let n: usize = p[5].parse().map_err(|_| "pop n")?;
-        let mut pop = Vec::with_capacity(n);
+        let mut pop: Vec<Indiv> = bounded_reserve(n, lines.len().saturating_sub(at))?;
         for _ in 0..n {
-            let line = lines.next().ok_or("truncated population")?;
+            let line = take_line(&lines, &mut at).ok_or("truncated population")?;
             pop.push(if format_version == 3 { parse_indiv_v3(line)? } else { parse_indiv_v2(line)? });
         }
-        islands.push(Island { rng, pop });
+        islands.push(Island { rng: Rng(rng_bits), pop });
     }
-    let an: usize = kv(lines.next(), "archive")?.parse().map_err(|_| "archive n")?;
-    let mut archive = Vec::with_capacity(an);
+    let an: usize = kv(take_line(&lines, &mut at), "archive")?.parse().map_err(|_| "archive n")?;
+    let mut archive: Vec<Indiv> = bounded_reserve(an, lines.len().saturating_sub(at))?;
     for _ in 0..an {
-        let line = lines.next().ok_or("truncated archive")?;
+        let line = take_line(&lines, &mut at).ok_or("truncated archive")?;
         archive.push(if format_version == 3 { parse_indiv_v3(line)? } else { parse_indiv_v2(line)? });
     }
-    if lines.next() != Some("end") { return Err("checkpoint not terminated (torn write?)".into()); }
+    if take_line(&lines, &mut at) != Some("end") { return Err("checkpoint not terminated (torn write?)".into()); }
+    if format_version == 3 {
+        if let Some(extra) = take_line(&lines, &mut at) {
+            return Err(format!("checkpoint trailing record {extra:?}"));
+        }
+    }
     Ok(Loaded { format_version, next_gen, manifest_sha, manifest_json, islands, archive })
 }
 
@@ -902,6 +941,9 @@ pub fn try_run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> Result<(Indiv, V
             man = man.param("forked_from_manifest_sha256", loaded.manifest_sha.clone()).param("forked_at_gen", loaded.next_gen);
         }
         if loaded.islands.len() != n_islands { return Err(format!("checkpoint has {} islands, config asks for {n_islands}", loaded.islands.len())); }
+        if loaded.islands.iter().any(|isl| isl.pop.is_empty()) {
+            return Err(format!("resume {path}: empty current population"));
+        }
         start = loaded.next_gen;
         archive = loaded.archive;
         loaded.islands
@@ -1076,6 +1118,58 @@ mod tests {
         assert_eq!(parse_indiv_v3(&token_line.replacen(CutAvailability::TOKEN, "0000000000000000", 1)).unwrap_err(), "active cut value in current checkpoint");
         assert_eq!(format_cut_for_current_log(&retired_ind(1.0, 1.0, true).cut).unwrap(), CutAvailability::TOKEN);
         assert_eq!(format_stats_sharp_cell(&SampleStatistics::unavailable(AbsenceReason::EmptySample), SharpFormat::Report3).unwrap(), "unavailable:empty_sample");
+    }
+
+    #[test]
+    fn direct_malformed_credit_does_not_dominate() {
+        let unavailable = direct(SampleStatistics::unavailable(AbsenceReason::ThreadBudget), CutAvailability::retired(), -1000.0, false);
+        let finite_infeasible = direct(SampleStatistics::credited(1.0, 0.5).unwrap(), CutAvailability::retired(), 4.0, false);
+        let sentinel = direct(SampleStatistics::credited(-1000.0, 0.0).unwrap(), CutAvailability::retired(), -1000.0, false);
+        assert!(dominates(&finite_infeasible, &unavailable));
+        assert!(!dominates(&unavailable, &finite_infeasible));
+        assert!(dominates(&finite_infeasible, &sentinel));
+        assert!(!dominates(&sentinel, &finite_infeasible));
+        let historical = historical_ind(4.0, 20.0, 0.1, true);
+        assert!(!dominates(&historical, &finite_infeasible));
+        assert!(!dominates(&finite_infeasible, &historical));
+        let bad_stats = [
+            SampleStatistics::Credited { mean: f64::NAN, sharp_p05: 0.5 },
+            SampleStatistics::Credited { mean: 0.5, sharp_p05: f64::NAN },
+            SampleStatistics::Credited { mean: f64::INFINITY, sharp_p05: 0.5 },
+            SampleStatistics::Credited { mean: 0.5, sharp_p05: f64::INFINITY },
+            SampleStatistics::Credited { mean: f64::NEG_INFINITY, sharp_p05: 0.5 },
+            SampleStatistics::Credited { mean: 0.5, sharp_p05: f64::NEG_INFINITY },
+        ];
+        for stats in bad_stats {
+            let bad = direct(stats, CutAvailability::retired(), 4.0, true);
+            assert!(!bad.feasible());
+            assert!(!dominates(&bad, &unavailable));
+            assert!(!dominates(&unavailable, &bad));
+            assert!(!dominates(&bad, &finite_infeasible));
+            assert!(!dominates(&finite_infeasible, &bad));
+            assert!(!dominates(&bad, &sentinel));
+            assert!(!dominates(&sentinel, &bad));
+        }
+        assert_eq!(truncate(vec![finite_infeasible.clone()], 1).unwrap().len(), 1);
+        println!("S04_CASE id=T03-04-dominates malformed_either_order=0 finite_infeasible_beats_unavailable=1 sentinel_bits={:016x}", (-1000.0f64).to_bits());
+    }
+
+    #[test]
+    fn fine_rejection_share_is_the_one_formula() {
+        let planted = Eval {
+            mass_g: 40.0, strength_n: 300.0, blade_lat_n: 300.0, grip_lat_n: 300.0, ring_pull_n: 2000.0,
+            inplane_n: 0.0, strength_per_gram: 7.5, hiker_ok: true, hunter_ok: true, ring_ok: true,
+            safety_factor: 1.0, sharpness: 0.5, serration_score: 0.0, ergonomics: 0.0,
+        };
+        assert!(planted.mass_g.is_finite() && planted.strength_n.is_finite());
+        let zero = fine_infeasible_fitness(260.0, 1500.0, 260.0, 1500.0, 0.0).unwrap();
+        let full = fine_infeasible_fitness(260.0, 1500.0, 260.0, 1500.0, -1000.0).unwrap();
+        assert_eq!(zero, -1.0);
+        assert_eq!(full, -11.0);
+        assert_eq!(fine_infeasible_fitness(260.0, 1500.0, 260.0, 1500.0, f64::NAN).unwrap_err(), "nonfinite_credited_statistics");
+        assert!(fine_infeasible_fitness(260.0, 1500.0, 260.0, 1500.0, f64::INFINITY).is_err());
+        assert!(fine_infeasible_fitness(260.0, 1500.0, 260.0, 1500.0, f64::NEG_INFINITY).is_err());
+        println!("S04_CASE id=T03-04-rej mean0={zero} mean_neg1000={full} planted_mass_g={} label=software_fixture", planted.mass_g);
     }
 
     #[test] fn v2_historical_bits_reencode_and_headers_are_token_equal() {
@@ -1257,6 +1351,74 @@ mod tests {
         assert!(e.contains("format 1") && !e.contains("manifest mismatch"), "{e}");
         let _ = std::fs::remove_file(&v2);
         let _ = std::fs::remove_file(&v1);
+    }
+
+    #[test]
+    fn current_checkpoint_bounds_counts_grammar_and_framing() {
+        let path = scratch("frame.ckpt");
+        let mut cfg = Config::new(4, 2, 8, 1, 42);
+        cfg.checkpoint = Some(path.clone());
+        write_current(&path, &cfg, cfg.gens);
+        let original = std::fs::read_to_string(&path).unwrap();
+        let loaded = load_ckpt(&path).unwrap();
+        assert_eq!(loaded.format_version, 3);
+        assert_eq!(loaded.archive.len(), 0);
+        assert_eq!(loaded.islands[0].pop[0].fit.to_bits(), 3.0f64.to_bits());
+        assert_eq!(loaded.islands[0].rng.0, 1);
+        let again = indiv_v3(&loaded.islands[0].pop[0]).unwrap();
+        assert!(original.contains(&again));
+        let refuse_text = |name: &str, body: String| {
+            let p = scratch(name);
+            std::fs::write(&p, body).unwrap();
+            load_ckpt(&p).unwrap_err()
+        };
+        assert!(refuse_text("trail", format!("{original}AFTER_END\n")).contains("trailing record"));
+        assert!(refuse_text("extra-end", format!("{original}end\n")).contains("trailing record"));
+        assert!(refuse_text("second", format!("{original}{original}")).contains("trailing record"));
+        let credited = original.lines().find(|l| l.split(' ').nth(1).is_some_and(|t| t.starts_with("credited:"))).unwrap();
+        let retoken = |index: usize, token: &str| {
+            let mut parts: Vec<&str> = credited.splitn(7, ' ').collect();
+            parts[index] = token;
+            original.replace(credited, &parts.join(" "))
+        };
+        assert!(refuse_text("short-fit", retoken(0, "0")).contains("bad f64 bits"));
+        assert!(refuse_text("long-fit", retoken(0, "00000000000000000")).contains("bad f64 bits"));
+        assert!(refuse_text("bad-fit", retoken(0, "zzzzzzzzzzzzzzzz")).contains("bad f64 bits"));
+        assert!(refuse_text("short-strength", retoken(2, "0")).contains("bad f64 bits"));
+        assert!(refuse_text("short-mass", retoken(3, "0")).contains("bad f64 bits"));
+        assert!(refuse_text("short-rng", original.replace("rng 0000000000000001", "rng 0")).contains("bad f64 bits"));
+        assert!(refuse_text("long-rng", original.replace("rng 0000000000000001", "rng 00000000000000001")).contains("bad f64 bits"));
+        assert!(refuse_text("bad-rng", original.replace("rng 0000000000000001", "rng gggggggggggggggg")).contains("bad f64 bits"));
+        assert!(refuse_text("huge-islands", original.replace("\nislands 1\n", "\nislands 18446744073709551615\n")).contains("exceeds remaining records"));
+        assert!(refuse_text("huge-pop", original.replace(" n 1\n", " n 18446744073709551615\n")).contains("exceeds remaining records"));
+        assert!(refuse_text("huge-archive", original.replace("\narchive 0\n", "\narchive 18446744073709551615\n")).contains("exceeds remaining records"));
+        let header_only = original.lines().take_while(|l| !l.split(' ').nth(1).is_some_and(|t| t.starts_with("credited:"))).collect::<Vec<_>>().join("\n");
+        assert!(refuse_text("truncated", format!("{header_only}\n")).contains("exceeds remaining records"));
+        let empty = scratch("empty-pop.ckpt");
+        save_ckpt(&empty, cfg.gens, &manifest(&cfg), &[Island { rng: Rng(1), pop: vec![] }], &[]).unwrap();
+        assert_eq!(load_ckpt(&empty).unwrap().archive.len(), 0);
+        cfg.checkpoint = Some(empty.clone());
+        cfg.resume = true;
+        let e = refuse(&cfg);
+        assert!(e.contains("empty current population") && !e.contains("manifest mismatch"), "{e}");
+        cfg.resume = false;
+        cfg.fork = true;
+        let e = refuse(&cfg);
+        assert!(e.contains("empty current population"), "{e}");
+        let v2 = scratch("v2-short.ckpt");
+        let historical = direct(SampleStatistics::historical(0.2f64.to_bits(), 0.5f64.to_bits()), CutAvailability::Historical { value: f64::from_bits(0x3fc999999999999a) }, 1.5, true);
+        let v2_line = indiv_v2_historical(&historical).unwrap();
+        let short_fit = format!("0 {}", v2_line.split_once(' ').unwrap().1);
+        std::fs::write(&v2, format!("jarambit-ckpt 2\nmanifest_sha256 {}\nmanifest {{}}\nnext_gen 1\nislands 1\nisland 0 rng 1 n 1\n{short_fit}\narchive 0\nend\nAFTER_END\n", "ab".repeat(32))).unwrap();
+        let old = load_ckpt(&v2).unwrap();
+        assert_eq!(old.format_version, 2);
+        assert_eq!(old.islands[0].rng.0, 1);
+        assert_eq!(old.islands[0].pop[0].fit, 0.0);
+        println!("S04_CASE id=T03-10-framing v3_roundtrip=1 archive0=1 trailing=refused huge=refused empty_resume=refused v2_short_fit=kept v2_trailing=kept");
+        println!("S04_CASE id=T03-10-manifest-digest oracle=absent reason=no_independent_literal_digest");
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(&empty);
+        let _ = std::fs::remove_file(&v2);
     }
 
     #[test] fn checkpoint_roundtrip_and_short_search() {

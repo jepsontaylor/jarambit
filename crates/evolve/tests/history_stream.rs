@@ -18,8 +18,12 @@ fn ind(fit: f64, floors: bool, seed: u64) -> Indiv {
 fn mixed_population_mean_is_over_feasible_only() {
     // feasible = floors_ok && fit > 0. Graded infeasible scores (-1 .. -60) used to enter the CLI mean (filter fit > -100).
     let pop = vec![ind(8.0, true, 1), ind(6.0, true, 2), ind(-1.5, false, 3), ind(-55.0, false, 4), ind(-1000.0, false, 5), ind(3.0, false, 6), ind(-0.0, true, 7)];
-    assert_eq!(feasible_mean(&pop), Some(7.0));
+    let mean = feasible_mean(&pop);
+    assert_eq!(mean, Some(7.0));
     assert_eq!(feasible_mean(&pop[2..6]), None);
+    assert!(matches!(pop[0].cut, CutAvailability::Historical { value } if value == 0.1));
+    assert!(matches!(pop[0].stats, SampleStatistics::Credited { .. }));
+    println!("S04_CASE id=T03-10-history-mean feasible_mean={} cut_class=historical cut_value=0.1 stats_class=credited", mean.unwrap());
 }
 
 #[test]
@@ -31,5 +35,8 @@ fn final_best_is_in_terminal_snapshot_and_hash_is_stable() {
     assert!(last.1, "last snapshot must be terminal"); assert_eq!(last.0, 4);
     assert_eq!(snaps.iter().filter(|s| s.1).count(), 1);
     assert!(last.2.contains(&genotype_hash(&best.g)), "returned best missing from the terminal snapshot");
-    assert_eq!(genotype_hash(&best.g), genotype_hash(&best.g.clone())); assert_eq!(genotype_hash(&best.g).len(), 16);
+    assert_eq!(genotype_hash(&best.g), genotype_hash(&best.g.clone()));
+    let hash_len = genotype_hash(&best.g).len();
+    assert_eq!(hash_len, 16);
+    println!("S04_CASE id=T03-10-hash-len genotype_hash_len={hash_len} meaning=hash_length_not_population_states");
 }
