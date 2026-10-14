@@ -13,7 +13,8 @@ from urllib.parse import quote
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, 'ops', 'ci')); sys.path.insert(0, os.path.join(ROOT, 'metrics'))
-import rs_verdicts  # noqa: E402
+sys.path.insert(0, ROOT)
+from ops.ci import rs_verdicts  # noqa: E402
 import global_metric  # noqa: E402
 
 REPO = 'https://github.com/neverhuman/jarambit'
@@ -66,7 +67,7 @@ def ring_bore(d1):
     return 2 * min(seg(ring[i], ring[(i + 1) % len(ring)]) for i in range(len(ring)))
 
 
-def head():
+def head(context=None):
     v = rd('docs/VERSION').strip()
     rec = next(r for r in js(IDX) if r.get('label') == LABEL)
     g, _ = global_metric.global_G(rec)
@@ -82,7 +83,7 @@ def head():
     return '\n'.join(L)
 
 
-def figs():
+def figs(context=None):
     v = rd('docs/VERSION').strip()
     rec = next(r for r in js(IDX) if r.get('label') == LABEL)
     tip = rec['solid_tip_sf_nodal_max']
@@ -99,7 +100,7 @@ def figs():
     return '\n'.join(L)
 
 
-def release():
+def release(context=None):
     v = rd('docs/VERSION').strip()
     rs1, rs2 = toml('requirements/RS-karambit-v1.toml'), toml('requirements/RS-karambit-v2.toml')
     c1, c2 = rs1['constants'], {**rs2['constants'], **rs2['human_max'], **rs2['fatigue']}
@@ -199,12 +200,14 @@ def release():
     return '\n'.join(L)
 
 
-def render(text):
+def render(text, context=None):
     for name, fn in (('HEAD', head), ('FIGS', figs), ('RELEASE', release)):
         pat = re.compile(rf'(<!-- GEN:{name}:BEGIN -->\n).*?(\n<!-- GEN:{name}:END -->)', re.S)
         if not pat.search(text):
             raise SystemExit(f'gen_readme: README.md lacks the GEN:{name} block')
-        text = pat.sub(lambda m: m.group(1) + fn() + m.group(2), text)
+        text = pat.sub(lambda m: m.group(1) + fn(context) + m.group(2), text)
+    if context is not None:
+        text = rs_verdicts.replace_claim_block(text, context)
     return text
 
 

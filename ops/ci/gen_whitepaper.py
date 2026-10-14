@@ -7,7 +7,9 @@ usage: gen_whitepaper.py [--check]"""
 import glob, json, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, 'ops', 'ci'))
+from ops.ci import rs_verdicts  # noqa: E402
 from gen_readme import rd, js, toml, f  # noqa: E402
 
 WP = 'docs/WHITEPAPER.md'
@@ -26,7 +28,7 @@ def gate_mins():
     return r['constants']['seq_target'], r['human_max']['ring_bearing_w_min_mm']
 
 
-def status():
+def status(context=None):
     ds = rsv2(); n = sum(d['all_hard'] for d in ds)
     v = rd('docs/VERSION').strip()
     return (f'**Honest status (v{v}, generated from `evidence/rs_v2/*.json`).** {n} of {len(ds)} named designs meet every RS-karambit-v2 hard gate; '
@@ -35,7 +37,7 @@ def status():
             'Table IV-A lists every shortfall.')
 
 
-def methods():
+def methods(context=None):
     b0, b1 = js('evidence/bench/baseline_0.31.1_xbabe3.json'), js('evidence/bench/faer_0.31.2_xbabe3.json')
     dr, vf = js('evidence/bench/issue32_drift.json'), js('evidence/fem_solid/verify_0.30.2.json')
     cc, wp = vf['cross_check_skfem'], vf['whole_part_mesh']
@@ -43,7 +45,11 @@ def methods():
     L = ['| method (version) | evidence | result |', '|---|---|---|',
          f'| Solid FEM cross-check (v0.30) | `evidence/fem_solid/verify_0.30.2.json` | {vf["container"].split(" (")[0]} vs scikit-fem on the {cc["design"]} tip submodel ({cc["n_dof"]} DOF): SF nodal max {f(cc["SF_nodal_max"], 4)} vs {f(cc["ref_SF_nodal_max"], 4)} (rel. err {cc["rel_err_nodal_max"]:.1e}) |',
          f'| Whole-part solid mesh (v0.30) | same | {wp["n_tet10"]} TET10, {wp["n_dof"]} DOF at h = {wp["h_mm"]} mm; mass {wp["mass_g_at_4.43"]} g vs {wp["ref_mass_g"]} g reference |']
-    for fp in sorted(glob.glob(os.path.join(ROOT, 'evidence/fem_solid/gci/*_gci.json'))):
+    history_paths = sorted(glob.glob(os.path.join(ROOT, 'evidence/fem_solid/gci/*_gci.json')))
+    if context is not None:
+        history = rs_verdicts.historical_gci_reports(history_paths)
+        L.append(f'| Historical GCI software binding | admitted S02 reclassification | {len(history["rows"])} records; ordinary GCI unsupported, physical qualification not established |')
+    for fp in history_paths:
         g = json.load(open(fp)); vm, sfb = g['vm_nodal_max_MPa'], g['SF_nodal_max']
         L.append(f'| GCI mesh study (v0.30) | `{os.path.relpath(fp, ROOT)}` | {g["design"]}: {len(g["levels"])} levels to {g["levels"][-1]["n_dof"]} DOF; '
                  f'GCI_fine (vM max) {100 * vm["gci_fine"]:.1f} %, p = {f(vm["p"], 2) if vm["p"] else "n/a"}; SF nodal max {f(sfb["fine"], 4)} [{f(sfb["lo"], 4)}, {f(sfb["hi"], 4)}] |')
@@ -52,7 +58,7 @@ def methods():
     return '\n'.join(L)
 
 
-def components():
+def components(context=None):
     c = js(COMP); p = c['partition']
     L = [f'Design `{c["label"][:-3] if c["label"].endswith("_D1") else c["label"]}` ({f(c["mass_g"], 2)} g). Plan partition (`ops/render/components.py`): ring = within bore radius + 1.6 × ring band '
          f'({f(p["bore_radius_est_mm"], 2)} + 1.6 × {f(p["ring_band_mm"], 2)} mm) of the ring centre; grip/spine = next {p["grip_mm"]:.0f} mm; tip = within {p["tip_radius_mm"]:.0f} mm of the tip; blade = rest. '
@@ -68,7 +74,7 @@ def components():
     return '\n'.join(L)
 
 
-def rsv2_table():
+def rsv2_table(context=None):
     seq_t, bw = gate_mins(); ds = rsv2()
     st = lambda v: {'pass': 'PASS', 'fail': 'FAIL', 'unverified': 'unverified'}[v]
     num = lambda x, n=3: '—' if x is None else f(x, n)
@@ -82,12 +88,14 @@ def rsv2_table():
     return '\n'.join(L)
 
 
-def render(text):
+def render(text, context=None):
     for name, fn in (('WP_STATUS', status), ('WP_METHODS', methods), ('WP_COMPONENTS', components), ('WP_RSV2', rsv2_table)):
         pat = re.compile(rf'(<!-- GEN:{name}:BEGIN -->\n).*?(\n<!-- GEN:{name}:END -->)', re.S)
         if not pat.search(text):
             raise SystemExit(f'gen_whitepaper: {WP} lacks the GEN:{name} block')
-        text = pat.sub(lambda m: m.group(1) + fn() + m.group(2), text)
+        text = pat.sub(lambda m: m.group(1) + fn(context) + m.group(2), text)
+    if context is not None:
+        text = rs_verdicts.replace_claim_block(text, context)
     return text
 
 

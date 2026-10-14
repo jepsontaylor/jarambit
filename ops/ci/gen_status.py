@@ -8,7 +8,8 @@ import json, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, 'ops', 'ci')); sys.path.insert(0, os.path.join(ROOT, 'metrics'))
-import rs_verdicts  # noqa: E402
+sys.path.insert(0, ROOT)
+from ops.ci import rs_verdicts  # noqa: E402
 import global_metric  # noqa: E402
 
 PROVISIONAL = ('docs/wave27_diversity/plates/wave27_D1_index.json', 'g3_tip+00_t60_tt3_D1')
@@ -23,7 +24,7 @@ def vkey(v):
     return tuple(int(x) for x in re.match(r'v?(\d+)\.(\d+)\.(\d+)', v).groups())
 
 
-def generate():
+def generate(context=None):
     version = rd('docs/VERSION').strip()
     idx, label = PROVISIONAL
     rec = next(r for r in json.loads(rd(idx)) if r.get('label') == label)
@@ -57,11 +58,12 @@ def generate():
             state = 'planned'
         L.append(f"| {v} | {ms['title']} | {state} | {len(ms.get('work_items', []))} |")
     L += ['', 'History: `docs/history/` (archived root STATUS.md / GAPS.md snapshots). Release notes: `docs/RELEASES.md`.', '']
-    return '\n'.join(L)
+    output = '\n'.join(L)
+    return rs_verdicts.replace_claim_block(output, context) if context is not None else output
 
 
-def main():
-    out = generate()
+def main(context=None):
+    out = generate(context)
     path = os.path.join(ROOT, 'STATUS.md')
     if '--check' in sys.argv:
         cur = open(path, encoding='utf-8').read() if os.path.exists(path) else ''
