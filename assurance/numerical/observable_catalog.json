@@ -2163,7 +2163,1278 @@
     "required": true
    }
   ],
-  "cases_sha256": "94a6c26511a9e1701a6ab6adc4337f403dd1cb8f9c4eea579e174afdf6d0ea31"
+  "cases_sha256": "94a6c26511a9e1701a6ab6adc4337f403dd1cb8f9c4eea579e174afdf6d0ea31",
+  "forward_controls_052": {
+   "source": "independent review lanes/review/s07-7a28102-001 FINDINGS_FINAL.json sha256 8a2684cd49522647c4c5efb5d023e9bd732957d7f4093c5f8d93f750c15e6018",
+   "rule": "additive paired controls for three reviewed P2s; each row maps to an existing S07 bucket with its own polarity, input and typed expected outcome; the original 10 cases / 44 buckets / 107 rows / 6 provider controls and their hashes are unchanged; no row inherits a parent PASS; all not_run",
+   "counts": {
+    "rows": 59,
+    "positive": 4,
+    "adverse": 55,
+    "by_finding": {
+     "S07-SRC-R001-P2-1": 12,
+     "S07-SRC-R001-P2-2": 45,
+     "S07-SRC-R001-P2-3": 2
+    }
+   },
+   "rows": [
+    {
+     "id": "52-gci-healthy",
+     "finding": "S07-SRC-R001-P2-1",
+     "bucket": "09-producer-positive",
+     "case": "T05-09-certificate_field",
+     "polarity": "positive",
+     "test": "fem_solid/tests/test_field_semantics.py::GciIdentity.test_healthy_identity_is_the_regenerated_object",
+     "subtest": null,
+     "input": {
+      "descriptor": "source-produced dg_von_mises P2-DG1 MPa whole_domain",
+      "seams": [
+       "validate_observable_contract",
+       "recover_vertex_vm"
+      ]
+     },
+     "expected": {
+      "returns": "regenerated descriptor",
+      "gci_observable": {
+       "id": "dg_vm_interpolation.v1@<content_sha256[:16]>",
+       "units": "MPa",
+       "region": "whole_domain",
+       "projection": "dg_vm_interpolation.v1",
+       "metric": "von_mises_stress"
+      }
+     },
+     "input_ref": "264e0c3dd2040c66c0f1d0483fcf9dd27f411b8729204666e4d3889a99a9d96c",
+     "oracle_ref": "d58a7dd8b3499137372ec0a5d457024e7da2955a3678cfd3c9955ceceeb6e596",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-gci-id",
+     "finding": "S07-SRC-R001-P2-1",
+     "bucket": "09-producer-adverse",
+     "case": "T05-09-certificate_field",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::GciIdentity.test_nested_identity_tampering_refuses_at_validator_and_recovery",
+     "subtest": "id",
+     "input": {
+      "tamper": "id",
+      "seams": [
+       "validate_observable_contract",
+       "recover_vertex_vm"
+      ]
+     },
+     "expected": {
+      "ModelError.reason": "gci_observable_mismatch",
+      "at_both_seams": true
+     },
+     "input_ref": "bb2549fdc771eed8acd5bf9d3050af06b87aacc792f889bc3c1f2861e0b69177",
+     "oracle_ref": "d1a309bfabc58775f30d3339131b63c618d411e4d4dc5d24c2d54a425d606363",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-gci-projection",
+     "finding": "S07-SRC-R001-P2-1",
+     "bucket": "09-producer-adverse",
+     "case": "T05-09-certificate_field",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::GciIdentity.test_nested_identity_tampering_refuses_at_validator_and_recovery",
+     "subtest": "projection",
+     "input": {
+      "tamper": "projection",
+      "seams": [
+       "validate_observable_contract",
+       "recover_vertex_vm"
+      ]
+     },
+     "expected": {
+      "ModelError.reason": "gci_observable_mismatch",
+      "at_both_seams": true
+     },
+     "input_ref": "e6f39b955fbcc594efda8c1073aed024a184e4f9d82ffd77e361251ded3f3633",
+     "oracle_ref": "d1a309bfabc58775f30d3339131b63c618d411e4d4dc5d24c2d54a425d606363",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-gci-units",
+     "finding": "S07-SRC-R001-P2-1",
+     "bucket": "09-producer-adverse",
+     "case": "T05-09-certificate_field",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::GciIdentity.test_nested_identity_tampering_refuses_at_validator_and_recovery",
+     "subtest": "units",
+     "input": {
+      "tamper": "units",
+      "seams": [
+       "validate_observable_contract",
+       "recover_vertex_vm"
+      ]
+     },
+     "expected": {
+      "ModelError.reason": "gci_observable_mismatch",
+      "at_both_seams": true
+     },
+     "input_ref": "61a0ad4166065f0d1d4d27ab4e666cf0b2f77a2023268601b075a399edca339f",
+     "oracle_ref": "d1a309bfabc58775f30d3339131b63c618d411e4d4dc5d24c2d54a425d606363",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-gci-region",
+     "finding": "S07-SRC-R001-P2-1",
+     "bucket": "09-producer-adverse",
+     "case": "T05-09-certificate_field",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::GciIdentity.test_nested_identity_tampering_refuses_at_validator_and_recovery",
+     "subtest": "region",
+     "input": {
+      "tamper": "region",
+      "seams": [
+       "validate_observable_contract",
+       "recover_vertex_vm"
+      ]
+     },
+     "expected": {
+      "ModelError.reason": "gci_observable_mismatch",
+      "at_both_seams": true
+     },
+     "input_ref": "de046f5731ebffc8afbf45ed7c9dca54349c9765bc4cf4a45c9ed0ebd89c81cc",
+     "oracle_ref": "d1a309bfabc58775f30d3339131b63c618d411e4d4dc5d24c2d54a425d606363",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-gci-metric",
+     "finding": "S07-SRC-R001-P2-1",
+     "bucket": "09-producer-adverse",
+     "case": "T05-09-certificate_field",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::GciIdentity.test_nested_identity_tampering_refuses_at_validator_and_recovery",
+     "subtest": "metric",
+     "input": {
+      "tamper": "metric",
+      "seams": [
+       "validate_observable_contract",
+       "recover_vertex_vm"
+      ]
+     },
+     "expected": {
+      "ModelError.reason": "gci_observable_mismatch",
+      "at_both_seams": true
+     },
+     "input_ref": "a507342abe04089e9f0d7b05e487bf766a48bd9ef0dd474d8de4309788919d8d",
+     "oracle_ref": "d1a309bfabc58775f30d3339131b63c618d411e4d4dc5d24c2d54a425d606363",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-gci-missing-object",
+     "finding": "S07-SRC-R001-P2-1",
+     "bucket": "09-producer-adverse",
+     "case": "T05-09-certificate_field",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::GciIdentity.test_nested_identity_tampering_refuses_at_validator_and_recovery",
+     "subtest": "missing object",
+     "input": {
+      "tamper": "missing object",
+      "seams": [
+       "validate_observable_contract",
+       "recover_vertex_vm"
+      ]
+     },
+     "expected": {
+      "ModelError.reason": "incomplete_observable_contract",
+      "at_both_seams": true
+     },
+     "input_ref": "ed471d19ccdd75972afad7a35cf52c3309f64b018bbfeba5b3e54756a7fd8c83",
+     "oracle_ref": "200804e5e7384b241c853b9c8200bb6e2ddd932880c2b6ccb902c5f8a0555938",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-gci-missing-nested-key",
+     "finding": "S07-SRC-R001-P2-1",
+     "bucket": "09-producer-adverse",
+     "case": "T05-09-certificate_field",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::GciIdentity.test_nested_identity_tampering_refuses_at_validator_and_recovery",
+     "subtest": "missing nested key",
+     "input": {
+      "tamper": "missing nested key",
+      "seams": [
+       "validate_observable_contract",
+       "recover_vertex_vm"
+      ]
+     },
+     "expected": {
+      "ModelError.reason": "gci_observable_schema",
+      "at_both_seams": true
+     },
+     "input_ref": "3ac67e0a195f26807b16ceee3e9eeb62ab3a68ce505362f4a14fa81057d6fa6d",
+     "oracle_ref": "e0e2606d093eb3161ec10ee5647bb0674ebc01acec50902e5d180593f2c9fdc4",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-gci-extra-nested-field",
+     "finding": "S07-SRC-R001-P2-1",
+     "bucket": "09-producer-adverse",
+     "case": "T05-09-certificate_field",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::GciIdentity.test_nested_identity_tampering_refuses_at_validator_and_recovery",
+     "subtest": "extra nested field",
+     "input": {
+      "tamper": "extra nested field",
+      "seams": [
+       "validate_observable_contract",
+       "recover_vertex_vm"
+      ]
+     },
+     "expected": {
+      "ModelError.reason": "gci_observable_schema",
+      "at_both_seams": true
+     },
+     "input_ref": "90a223940638ea1dacf20a991fe140b7e91a8c01a3bb940e6155de5d9bedf75d",
+     "oracle_ref": "e0e2606d093eb3161ec10ee5647bb0674ebc01acec50902e5d180593f2c9fdc4",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-gci-malformed-string",
+     "finding": "S07-SRC-R001-P2-1",
+     "bucket": "09-producer-adverse",
+     "case": "T05-09-certificate_field",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::GciIdentity.test_nested_identity_tampering_refuses_at_validator_and_recovery",
+     "subtest": "malformed string",
+     "input": {
+      "tamper": "malformed string",
+      "seams": [
+       "validate_observable_contract",
+       "recover_vertex_vm"
+      ]
+     },
+     "expected": {
+      "ModelError.reason": "gci_observable_schema",
+      "at_both_seams": true
+     },
+     "input_ref": "38786602f2d26317bf00b7282579be6f5a111a2d6d632576e706a727ea79b77c",
+     "oracle_ref": "e0e2606d093eb3161ec10ee5647bb0674ebc01acec50902e5d180593f2c9fdc4",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-gci-malformed-list",
+     "finding": "S07-SRC-R001-P2-1",
+     "bucket": "09-producer-adverse",
+     "case": "T05-09-certificate_field",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::GciIdentity.test_nested_identity_tampering_refuses_at_validator_and_recovery",
+     "subtest": "malformed list",
+     "input": {
+      "tamper": "malformed list",
+      "seams": [
+       "validate_observable_contract",
+       "recover_vertex_vm"
+      ]
+     },
+     "expected": {
+      "ModelError.reason": "gci_observable_schema",
+      "at_both_seams": true
+     },
+     "input_ref": "7697f11db2a2dfaa3af098fe1c0dbcdc767200735558197b49e29edeafdabdd6",
+     "oracle_ref": "e0e2606d093eb3161ec10ee5647bb0674ebc01acec50902e5d180593f2c9fdc4",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-gci-extra-top-level-key-re-hashed",
+     "finding": "S07-SRC-R001-P2-1",
+     "bucket": "09-producer-adverse",
+     "case": "T05-09-certificate_field",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::GciIdentity.test_nested_identity_tampering_refuses_at_validator_and_recovery",
+     "subtest": "extra top-level key, re-hashed",
+     "input": {
+      "tamper": "extra top-level key, re-hashed",
+      "seams": [
+       "validate_observable_contract",
+       "recover_vertex_vm"
+      ]
+     },
+     "expected": {
+      "ModelError.reason": "descriptor_mismatch",
+      "at_both_seams": true
+     },
+     "input_ref": "01f304ebe73b5a2076375614349cfd7bd60d4eb7c4a484874e6554b2c1d71079",
+     "oracle_ref": "d7fa0300276c32a9a5bccab34fadf4c447ad96edfb6b0efdbeb55111b19759bb",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-none-empty-units",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-positive",
+     "case": "T05-05-bc_failure",
+     "polarity": "positive",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_valid_none_and_empty_symmetry_stay_healthy",
+     "subtest": null,
+     "input": {
+      "sym_tags": [
+       "None",
+       "{}"
+      ],
+      "units": [
+       [
+        "mm",
+        "N",
+        "MPa"
+       ],
+       "('m','N','Pa') tuple"
+      ]
+     },
+     "expected": {
+      "solve": "healthy axial patch u_top 1/1000 mm",
+      "validated_sym_tags": {}
+     },
+     "input_ref": "e2f6e76f591249d192faab3c4c0c063c170e889f23fdc2591ecb11aaa8a9ab8a",
+     "oracle_ref": "7c1f6a32dfac9d64a893ff172f9149803efe8ec93bd411a70f11a68dba6064b6",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-duplicate-clamps-numpy-ints",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-positive",
+     "case": "T05-05-bc_failure",
+     "polarity": "positive",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_duplicate_compatible_zero_clamps_and_numpy_integer_tags_stay_healthy",
+     "subtest": null,
+     "input": {
+      "clamp_tags": [
+       "[1, 1]",
+       "[np.int64(1)]"
+      ],
+      "traction_keys": [
+       "np.int32(2)"
+      ]
+     },
+     "expected": {
+      "validated_clamp_tags": [
+       1
+      ],
+      "validated_traction_tags": [
+       2
+      ]
+     },
+     "input_ref": "736cbb0ddc80735c806d04d3847ff5f556894f6b2c3bf43ab75ed9dc448a96f2",
+     "oracle_ref": "06f7ebccb10b5949777d2948cfff60b38a33f28c16aecec967882009e7c47009",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-01-sym-False",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "sym False",
+     "input": {
+      "case": "sym False",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_symmetry_component",
+      "before_assembly": true
+     },
+     "input_ref": "734491b2de234915c7ecb97536ddc084daf606bbac1e9e71a3e2b992b65c55db",
+     "oracle_ref": "6a51bf848430c3933fdbf63e02100a8df8c5a653ab09f70165086b0b6e30c862",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-02-sym-0",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "sym 0",
+     "input": {
+      "case": "sym 0",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_symmetry_component",
+      "before_assembly": true
+     },
+     "input_ref": "fd9516e064d5136c00619f9ee64a6b816087a9e8d80cba529c6177ffe2d16008",
+     "oracle_ref": "6a51bf848430c3933fdbf63e02100a8df8c5a653ab09f70165086b0b6e30c862",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-03-sym",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "sym []",
+     "input": {
+      "case": "sym []",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_symmetry_component",
+      "before_assembly": true
+     },
+     "input_ref": "e5850c7ac295bff91089d4feeee47a26d999462d476f1428d8cece00483b2645",
+     "oracle_ref": "6a51bf848430c3933fdbf63e02100a8df8c5a653ab09f70165086b0b6e30c862",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-04-sym",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "sym ()",
+     "input": {
+      "case": "sym ()",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_symmetry_component",
+      "before_assembly": true
+     },
+     "input_ref": "1ff266f5f9591ead6c33a414d888a89dbbb3c9938b4f6a20b471ac06333319af",
+     "oracle_ref": "6a51bf848430c3933fdbf63e02100a8df8c5a653ab09f70165086b0b6e30c862",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-05-sym",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "sym ''",
+     "input": {
+      "case": "sym ''",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_symmetry_component",
+      "before_assembly": true
+     },
+     "input_ref": "8020b84b3a16ce8a2f5a40b8664216b49bd6dd0a14d845f6ed9b058717d2e15a",
+     "oracle_ref": "6a51bf848430c3933fdbf63e02100a8df8c5a653ab09f70165086b0b6e30c862",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-06-sym-component-True",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "sym component True",
+     "input": {
+      "case": "sym component True",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_symmetry_component",
+      "before_assembly": true
+     },
+     "input_ref": "d12a0b3837551bf803665ac15cdc2bba5d8d8bbd5a362648e8036ffe1d4eb850",
+     "oracle_ref": "6a51bf848430c3933fdbf63e02100a8df8c5a653ab09f70165086b0b6e30c862",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-07-sym-key-True",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "sym key True",
+     "input": {
+      "case": "sym key True",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_tag",
+      "before_assembly": true
+     },
+     "input_ref": "3844cdaa6415252633be454066404ee4af217ca015188950a95b603892a597aa",
+     "oracle_ref": "263c1d48cda9f5ba5c72f6daccfc437555c9a373a765349d858697af1ca33058",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-08-sym-key--1",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "sym key '1'",
+     "input": {
+      "case": "sym key '1'",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_tag",
+      "before_assembly": true
+     },
+     "input_ref": "bb6e884f2ae4f4f848fc62053dbc887abed64283191b9014c7f0aec068bd9c75",
+     "oracle_ref": "263c1d48cda9f5ba5c72f6daccfc437555c9a373a765349d858697af1ca33058",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-09-units-nested-list",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "03-adverse",
+     "case": "T05-03-unit_consistency",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "units nested list",
+     "input": {
+      "case": "units nested list",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "incoherent_units",
+      "before_assembly": true
+     },
+     "input_ref": "c9f0a0d0567bbbe4a1662ac6230f150677f3f9c781c196e64725e83f8c78fed6",
+     "oracle_ref": "f9ea2852d3d044a8111675a8cb2ee844ff26b13e5c95cb79371e23eeca42cda5",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-10-units-arity-2",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "03-adverse",
+     "case": "T05-03-unit_consistency",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "units arity 2",
+     "input": {
+      "case": "units arity 2",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "incoherent_units",
+      "before_assembly": true
+     },
+     "input_ref": "9a4bdb6d8b8821a84211a71980babe8a2e1d765389105acc539430f0efdba073",
+     "oracle_ref": "f9ea2852d3d044a8111675a8cb2ee844ff26b13e5c95cb79371e23eeca42cda5",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-11-units-arity-4",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "03-adverse",
+     "case": "T05-03-unit_consistency",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "units arity 4",
+     "input": {
+      "case": "units arity 4",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "incoherent_units",
+      "before_assembly": true
+     },
+     "input_ref": "b2d36c0756b003b07e117919fab83787881b03566d3f02b8f89593b7ab73e98a",
+     "oracle_ref": "f9ea2852d3d044a8111675a8cb2ee844ff26b13e5c95cb79371e23eeca42cda5",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-12-units-string",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "03-adverse",
+     "case": "T05-03-unit_consistency",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "units string",
+     "input": {
+      "case": "units string",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "incoherent_units",
+      "before_assembly": true
+     },
+     "input_ref": "0bb79a4e39266e6e2ac9078b4e062b43e1b9aba1cbea0f04e43c2819096f05c0",
+     "oracle_ref": "f9ea2852d3d044a8111675a8cb2ee844ff26b13e5c95cb79371e23eeca42cda5",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-13-units-dict",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "03-adverse",
+     "case": "T05-03-unit_consistency",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "units dict",
+     "input": {
+      "case": "units dict",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "incoherent_units",
+      "before_assembly": true
+     },
+     "input_ref": "28a1216e11ec9498be93a0f68c1946636a102c824e71674daca1c9db9002b3b6",
+     "oracle_ref": "f9ea2852d3d044a8111675a8cb2ee844ff26b13e5c95cb79371e23eeca42cda5",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-14-clamp--1--True",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "clamp [1, True]",
+     "input": {
+      "case": "clamp [1, True]",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_tag",
+      "before_assembly": true
+     },
+     "input_ref": "181e634d1e18e54eaeedded94257b63a84916c69e872f34ee49c09043cee0f10",
+     "oracle_ref": "263c1d48cda9f5ba5c72f6daccfc437555c9a373a765349d858697af1ca33058",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-15-clamp--1--1-0",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "clamp [1, 1.0]",
+     "input": {
+      "case": "clamp [1, 1.0]",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_tag",
+      "before_assembly": true
+     },
+     "input_ref": "071b8b33dec0f6f4c3dd4a20af8a9efdbf6695a0c5b9a8b4a990cd9e114fd239",
+     "oracle_ref": "263c1d48cda9f5ba5c72f6daccfc437555c9a373a765349d858697af1ca33058",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-16-clamp---1",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "clamp [[1]]",
+     "input": {
+      "case": "clamp [[1]]",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_tag",
+      "before_assembly": true
+     },
+     "input_ref": "027d83bd4ac9556fea91ea71ce5372bb69b928ada5d480d92d008f7011d3b4ce",
+     "oracle_ref": "263c1d48cda9f5ba5c72f6daccfc437555c9a373a765349d858697af1ca33058",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-17-clamp---1",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "clamp ['1']",
+     "input": {
+      "case": "clamp ['1']",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_tag",
+      "before_assembly": true
+     },
+     "input_ref": "7a0e5eb7643159a767225363164caa3a99b91735ddc8af34e50f6fc2edf7e91b",
+     "oracle_ref": "263c1d48cda9f5ba5c72f6daccfc437555c9a373a765349d858697af1ca33058",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-18-clamp--1--None",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "clamp [1, None]",
+     "input": {
+      "case": "clamp [1, None]",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_tag",
+      "before_assembly": true
+     },
+     "input_ref": "7458bcde29ae02808de11bf3e9d5f4268a59c3b162c9fd21a4f7f4164425d290",
+     "oracle_ref": "263c1d48cda9f5ba5c72f6daccfc437555c9a373a765349d858697af1ca33058",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-19-clamp--1",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "clamp '1'",
+     "input": {
+      "case": "clamp '1'",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_tag",
+      "before_assembly": true
+     },
+     "input_ref": "72a1e2bc59bfdc0e3e8a130d78dcbe655f058c922c7fc7a28673e4d37c772822",
+     "oracle_ref": "263c1d48cda9f5ba5c72f6daccfc437555c9a373a765349d858697af1ca33058",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-20-clamp--1",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "clamp {1}",
+     "input": {
+      "case": "clamp {1}",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_tag",
+      "before_assembly": true
+     },
+     "input_ref": "1a7ebbdd9ef88d72e4d40c2dabe926025f0a693cff8b3747f35833b8ba96a84c",
+     "oracle_ref": "263c1d48cda9f5ba5c72f6daccfc437555c9a373a765349d858697af1ca33058",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-21-traction-key-True",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "traction key True",
+     "input": {
+      "case": "traction key True",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_tag",
+      "before_assembly": true
+     },
+     "input_ref": "00596f1ae4baa37a4ca83fbfd49d1931b9645475910464c932552ba4854b7c62",
+     "oracle_ref": "263c1d48cda9f5ba5c72f6daccfc437555c9a373a765349d858697af1ca33058",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-22-traction-key--2",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "traction key '2'",
+     "input": {
+      "case": "traction key '2'",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_tag",
+      "before_assembly": true
+     },
+     "input_ref": "8ff197d2022a79c2a26144823e581f6f6d8b297914858745ac6788bd82c95368",
+     "oracle_ref": "263c1d48cda9f5ba5c72f6daccfc437555c9a373a765349d858697af1ca33058",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-23-traction-list",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "05-load-and-symmetry",
+     "case": "T05-05-bc_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "traction list",
+     "input": {
+      "case": "traction list",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_traction",
+      "before_assembly": true
+     },
+     "input_ref": "3ef9c67a8ccfe70cd33ceb2ed8fb06ec69f50be86e38b10378a211b16c2fbecf",
+     "oracle_ref": "067936344af8b15ca6ba633de19bbd2113fcff6ecabeff1b98b9784e2f2f1c81",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-24-prefix",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "12-producer-adverse",
+     "case": "T05-12-tier_collision",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "prefix ''",
+     "input": {
+      "case": "prefix ''",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_options_prefix",
+      "before_assembly": true
+     },
+     "input_ref": "ce0f10363b2d54bb628b511592ac242077042489b95a2cce29515c21091955ed",
+     "oracle_ref": "5dc6197db6957723f7e7096f93fdf2d96ec894f4efc50ada76d249a42bcac0ba",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-25-prefix-False",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "12-producer-adverse",
+     "case": "T05-12-tier_collision",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "prefix False",
+     "input": {
+      "case": "prefix False",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_options_prefix",
+      "before_assembly": true
+     },
+     "input_ref": "58120b4ca571b4da5e936ecedf595b42458dab2a38bd4e7fbcdbaea88ec92878",
+     "oracle_ref": "5dc6197db6957723f7e7096f93fdf2d96ec894f4efc50ada76d249a42bcac0ba",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-26-prefix-0",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "12-producer-adverse",
+     "case": "T05-12-tier_collision",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "prefix 0",
+     "input": {
+      "case": "prefix 0",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_options_prefix",
+      "before_assembly": true
+     },
+     "input_ref": "d7793088592cd92e5e9274f6149e9a55a74a21daefdec8cdedbaf849d7495e47",
+     "oracle_ref": "5dc6197db6957723f7e7096f93fdf2d96ec894f4efc50ada76d249a42bcac0ba",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-ingress-27-prefix-bytes",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "12-producer-adverse",
+     "case": "T05-12-tier_collision",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::IngressTypes.test_malformed_ingress_refuses_with_typed_reasons",
+     "subtest": "prefix bytes",
+     "input": {
+      "case": "prefix bytes",
+      "seam": "solve -> validate_model / _check_prefix"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_options_prefix",
+      "before_assembly": true
+     },
+     "input_ref": "56fa008a5ac7904bf7a342039976f18afdb60fa2ce323ec2c7a8f2d3cba47317",
+     "oracle_ref": "5dc6197db6957723f7e7096f93fdf2d96ec894f4efc50ada76d249a42bcac0ba",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-integer-ids",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "02-association-positive",
+     "case": "T05-02-rigid_transform",
+     "polarity": "positive",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_integer_ids_select_exact_nodes",
+     "subtest": null,
+     "input": {
+      "input_nodes": [
+       "[3, 0]",
+       "(3, 0)",
+       "np.array([3, 0], int64)"
+      ]
+     },
+     "expected": {
+      "selected_input_nodes": [
+       3,
+       0
+      ]
+     },
+     "input_ref": "5973a69b18e43fe7511af885a587932ed9599296c54caa3249965bb0ee6f8279",
+     "oracle_ref": "69465c0cb2a8e3cbb539235cfcc321cd6690a208ac1344e4da698075cec3ab37",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-fractional",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "fractional",
+     "input": {
+      "input_nodes": "fractional",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "dae6bd2116962103730d4571adacbbf11d2d2b7bacde3891a9195f9df48faeb5",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-bool",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "bool",
+     "input": {
+      "input_nodes": "bool",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "1d93fdb6dfb1c75833d222c3f0f183b38a0be507075fea64028a4d777e9d194a",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-bool-true",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "bool true",
+     "input": {
+      "input_nodes": "bool true",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "70b3f8f2d520489be4bb9493edf3b4445ee83e38b66546ea2ceac94d814033d9",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-nan",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "nan",
+     "input": {
+      "input_nodes": "nan",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "b2b672a2d74061407c885eb7821244c6750e703d7f564e03c30dacb0c6df3225",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-inf",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "inf",
+     "input": {
+      "input_nodes": "inf",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "e988e4c29df7f468dd1d5f10c4eb74408eacf2960c08375fc8944bf24754d172",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-unhashable",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "unhashable",
+     "input": {
+      "input_nodes": "unhashable",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "952cb001fef70eee741167303193a1ff5489b0c64f197995ba4188ccaef49a54",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-string",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "string",
+     "input": {
+      "input_nodes": "string",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "c4824486c3f5be4451ebbe815c639c25a53cc79020ffa139a9fb1a981ccf0677",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-negative",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "negative",
+     "input": {
+      "input_nodes": "negative",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "8151100375989eaf9782f32cc34b0d9e82e043d49e5bc1fba8b90de4d6e0f60e",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-out-of-range",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "out of range",
+     "input": {
+      "input_nodes": "out of range",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "11a66389cf8f97ac4d819a07ab4d3823be2a1ed34755f0f25fcb3ef4b8a2c9d9",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-empty",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "empty",
+     "input": {
+      "input_nodes": "empty",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "017cd5a06a59510ae6bcffb939f2418a61bbc6b03acba3c2d16714807d71aa24",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-scalar",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "scalar",
+     "input": {
+      "input_nodes": "scalar",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "13340fcdd9b6a5ca77234058dfa64c82452b9552c1e9aa75316f9338391b0dac",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-string-container",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "string container",
+     "input": {
+      "input_nodes": "string container",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "b4fe216d758a5357efb50f54d08cc60e50d28ca811141cf14029c591aa460a99",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-set",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "set",
+     "input": {
+      "input_nodes": "set",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "e2fcc197e991bb3b9c25a203825aad607480347274b8eaca327bb774f029b55d",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-float-array",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "float array",
+     "input": {
+      "input_nodes": "float array",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "fabecc9e52387c30a2cc4cad6886fcae3584c7e6a7169b4f9bac4d2ba05a6ead",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-entity-2-D-array",
+     "finding": "S07-SRC-R001-P2-2",
+     "bucket": "07-unsupported-recovery",
+     "case": "T05-07-field_semantics",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_field_semantics.py::EntityIds.test_malformed_ids_refuse_before_cast",
+     "subtest": "2-D array",
+     "input": {
+      "input_nodes": "2-D array",
+      "seam": "recover_vertex_vm"
+     },
+     "expected": {
+      "ModelError.reason": "invalid_entity_id",
+      "before_cast_or_lookup": true
+     },
+     "input_ref": "bc92e192e5ca3afb5590097ee6e2255fc9690ced4be5451ea3949eb13ecafe29",
+     "oracle_ref": "1ab33313dd9a3da5cf8a1cb74f838b730669ee53f8bda855317ec45cc02e3377",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-degenerate-healthy-first",
+     "finding": "S07-SRC-R001-P2-3",
+     "bucket": "06-degenerate",
+     "case": "T05-06-mesh_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_degenerate",
+     "subtest": null,
+     "input": {
+      "construct": "healthy tet4 (-1,0,0),(1,0,0),(-1,1,0),(-1,0,1)",
+      "then": "materialize input vertex 3 := vertex 0 (topology fixed)"
+     },
+     "expected": {
+      "healthy_validate_mesh_min_jacobian": "> 0",
+      "degenerate_ModelError.reason": "degenerate_cell",
+      "constructor_errors": "propagate (test fails), never PASS"
+     },
+     "input_ref": "d1586bcefb4a762fee617368e5eeb9b1aa867686de21c2f9cf112c55da55ac8d",
+     "oracle_ref": "badc6bee93027e435cdee40f7b6f4afa36692f4372146d14db45dfc3962d1c00",
+     "execution": "not_run"
+    },
+    {
+     "id": "52-degenerate-wrong-error-control",
+     "finding": "S07-SRC-R001-P2-3",
+     "bucket": "06-degenerate",
+     "case": "T05-06-mesh_failure",
+     "polarity": "adverse",
+     "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_degenerate_wrong_error_control",
+     "subtest": null,
+     "input": {
+      "refusal_helper": "assertRefused('degenerate_cell', fn)",
+      "fn": [
+       "MemoryError",
+       "OSError",
+       "AttributeError",
+       "ModelError('inverted_cell')",
+       "returns normally"
+      ]
+     },
+     "expected": {
+      "MemoryError/OSError/AttributeError": "propagate",
+      "wrong ModelError reason": "AssertionError",
+      "no refusal": "AssertionError"
+     },
+     "input_ref": "6734008636609c211bef3e7ff23a8399c3ed9d758ea62a46f9b1c03444642c60",
+     "oracle_ref": "402c2e891070412698d9d46748912be1b2e935c563b323ec07d20b3c12cc32e3",
+     "execution": "not_run"
+    }
+   ]
+  },
+  "forward_controls_052_sha256": "e61f40a292b3cdb3a6cf38ea9a4cfc59fcaeb10337277c732f5c539cd4021a21"
  },
  "execution": "not_run"
 }
