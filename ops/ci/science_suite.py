@@ -867,15 +867,15 @@ def _caller_execution(execution, execution_sha256):
 
 
 def publish_attempt(directory, catalog, log, argv, exit_code, attempt_id, expected, history, history_sha256,
-                    execution=None, execution_sha256=None):
+                    execution_receipt=None, execution_sha256=None):
     """Publish one immutable receipt per frozen case; pass/fail derives only from the transcript checked
     against the trusted expected inventory. history=None means unavailable: every executed case is error.
-    execution is the caller-pinned current-execution receipt, needed when output bytes equal history."""
+    execution_receipt is the caller-pinned current-execution receipt, needed when output bytes equal history."""
     directory = Path(directory)
     require(not os.path.lexists(directory), 'fresh attempt directory required')
     require(type(log) is bytes and len(log) <= LIMITS['max_bytes'], 'raw transcript bytes required')
     expected = trusted_inventory(expected)
-    _caller_execution(execution, execution_sha256)
+    _caller_execution(execution_receipt, execution_sha256)
     parsed = collect_unittest(log.decode('utf-8'), expected)
     input_sha256 = catalog[0]['input_sha256']
     require(all(case['input_sha256'] == input_sha256 for case in catalog), 'catalog input identity differs')
@@ -888,7 +888,7 @@ def publish_attempt(directory, catalog, log, argv, exit_code, attempt_id, expect
     else:
         attempts = validate_history(history, history_sha256)
         try:
-            classify_run(run, input_sha256, attempts, execution, execution_sha256, argv, exit_code)
+            classify_run(run, input_sha256, attempts, execution_receipt, execution_sha256, argv, exit_code)
             freshness = None
         except ContractError as error:
             freshness = 'freshness refused: ' + str(error)
@@ -936,14 +936,14 @@ def publish_attempt(directory, catalog, log, argv, exit_code, attempt_id, expect
     return directory
 
 
-def collect(catalog, directory, expected, history, history_sha256, execution=None, execution_sha256=None):
+def collect(catalog, directory, expected, history, history_sha256, execution_receipt=None, execution_sha256=None):
     """Resolve frozen receipts through S01 and re-derive every pass from the raw transcript, the trusted
     expected inventory, the caller-pinned history and any caller-pinned execution receipt.
     history=None (unavailable) credits nothing."""
     directory = Path(directory).absolute()
     expected = trusted_inventory(expected)
     attempts = None if history is None else validate_history(history, history_sha256)
-    _caller_execution(execution, execution_sha256)
+    _caller_execution(execution_receipt, execution_sha256)
     names = list_owned(directory)
     receipts, artifacts = [], {}
     for name in names:
@@ -981,7 +981,7 @@ def collect(catalog, directory, expected, history, history_sha256, execution=Non
             continue
         require(run['history_sha256'] == history_sha256, 'attempt bound to a different history')
         require(run['execution_sha256'] == execution_sha256, 'attempt bound to a different execution receipt')
-        classify_run(run['run'], record['input_sha256'], attempts, execution, execution_sha256,
+        classify_run(run['run'], record['input_sha256'], attempts, execution_receipt, execution_sha256,
                      record['argv'], record['exit_code'])
         credited.add(record['case_id'])
     missing = sorted(set(inventory['expected_ids']) - credited)
@@ -989,7 +989,7 @@ def collect(catalog, directory, expected, history, history_sha256, execution=Non
             'denominator': len(inventory['expected_ids']), 'execution': execution,
             'findings': inventory['findings'], 'support': 'complete' if not missing else 'incomplete', 'missing': missing,
             'freshness': 'history_unavailable' if attempts is None else 'caller_pinned_history',
-            'execution_receipt': 'none' if execution is None else 'caller_pinned',
+            'execution_receipt': 'none' if execution_receipt is None else 'caller_pinned',
             'expected_tests': len(expected), 'upstream_not_run': sorted(set(UPSTREAM) & set(missing)),
             'tiers': {'T0_software': 'complete' if not missing else 'incomplete', 'T1_numerical': 'not_run_here',
                       'T2_laboratory': 'not_run_here', 'T3_research': 'not_activated'},
