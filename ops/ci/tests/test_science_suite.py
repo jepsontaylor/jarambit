@@ -784,43 +784,49 @@ MUTANTS = {
     'publisher inventory from transcript': (
         "    parsed = collect_unittest(log.decode('utf-8'), expected)\n",
         "    parsed = collect_unittest(log.decode('utf-8'), sorted({m.group(2) for m in START.finditer(log.decode('utf-8'))}))\n",
-        ['Collector']),
+        ['Collector.test_T19_01_adverse_removed_expected_test_stays_incomplete_in_publisher_and_collector']),
     'collector inventory from transcript': (
         "        parsed = collect_unittest(artifacts[LOG].decode('utf-8'), expected)\n",
         "        parsed = collect_unittest(artifacts[LOG].decode('utf-8'), sorted({m.group(2) for m in START.finditer(artifacts[LOG].decode('utf-8'))}))\n",
-        ['Collector']),
+        ['Collector.test_T19_01_adverse_removed_expected_test_stays_incomplete_in_publisher_and_collector']),
     'publisher treats unavailable history as fresh': (
-        "        freshness = 'attempt history unavailable; freshness unproven'\n", "        freshness = None\n", ['Collector']),
+        "        freshness = 'attempt history unavailable; freshness unproven'\n", "        freshness = None\n",
+        ['Collector.test_T19_06_adverse_unavailable_or_historical_transcript_not_fresh']),
     'historical bytes accepted as fresh': (
         "        require(not old_hashes & set(run['artifacts'].values()), 'historical artifact bytes claimed fresh')\n",
-        "        pass\n", ['FreshVsReuse', 'Collector']),
+        "        pass\n", ['FreshVsReuse.test_T19_06_adverse_historical_evidence_claimed_fresh_rejected']),
     'collector credits without history': (
         "        if attempts is None:\n            continue\n",
-        "        if attempts is None:\n            credited.add(record['case_id'])\n            continue\n", ['Collector']),
+        "        if attempts is None:\n            credited.add(record['case_id'])\n            continue\n",
+        ['Collector.test_T19_06_adverse_unavailable_or_historical_transcript_not_fresh']),
     'path read follows symlinks': (
         '    """Bytes of root/path; any symlink component, non-regular file, size or identity change refuses."""\n',
         '    """Bytes of root/path; any symlink component, non-regular file, size or identity change refuses."""\n'
-        '    return (Path(root) / path).read_bytes()\n', ['UploadMissing', 'Collector']),
+        '    return (Path(root) / path).read_bytes()\n',
+        ['UploadMissing.test_T19_05_adverse_replaced_symlinked_or_special_uploads_refused']),
     'read identity not rechecked': (
         "        if not _identity(after) == _identity(opened) == _identity(named) or len(data) != opened.st_size:\n",
-        "        if False:\n", ['UploadMissing', 'Collector']),
+        "        if False:\n", ['UploadMissing.test_T19_05_adverse_replaced_symlinked_or_special_uploads_refused']),
     'absolute argv path not rooted': (
         "        raise ContractError('argv path escapes owned root: ' + value)\n", "        return Path(value)\n",
-        ['RunnerEscape']),
+        ['RunnerEscape.test_T19_04_adverse_argv_paths_must_match_admitted_scope_and_outputs']),
     'argv outputs not bound to declared outputs': (
         "        require(sorted(map(str, bound['output'])) == sorted(map(str, declared)),\n"
-        "                'argv outputs do not match declared outputs')\n", "        pass\n", ['RunnerEscape']),
+        "                'argv outputs do not match declared outputs')\n", "        pass\n",
+        ['RunnerEscape.test_T19_04_adverse_argv_paths_must_match_admitted_scope_and_outputs']),
     'inline trigger mapping ignored': (
         "            require(value in (None, '{}', 'null', '~'), 'unsupported inline trigger value: ' + line.strip())\n",
-        "            pass\n", ['PathFilter']),
+        "            pass\n", ['PathFilter.test_T19_02_adverse_unsupported_forms_refuse_and_restrictions_report']),
     'quoted filter key skipped': (
         "        require(match is not None, 'unsupported trigger filter syntax: ' + line.strip())\n",
-        "        if match is None:\n            continue\n", ['PathFilter']),
+        "        if match is None:\n            continue\n",
+        ['PathFilter.test_T19_02_adverse_unsupported_forms_refuse_and_restrictions_report']),
 }
 
 
 class Mutants(unittest.TestCase):
     def test_guard_removal_mutants_are_killed(self):
+        """Each mutant runs only the control that must kill it, keeping the suite cheap inside version-check."""
         source = (ROOT/'ops/ci/science_suite.py').read_text()
         here = sys.modules[__name__]
         for name, (old, new, targets) in MUTANTS.items():
@@ -833,8 +839,7 @@ class Mutants(unittest.TestCase):
                     exec(compile(source.replace(old, new), module.__file__ + ' [mutant]', 'exec'), module.__dict__)
                 finally:
                     sys.path[:] = saved
-                suite = unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(getattr(here, target))
-                                           for target in targets)
+                suite = unittest.TestSuite(unittest.TestLoader().loadTestsFromName(target, here) for target in targets)
                 with mock.patch.object(here, 's', module):
                     result = unittest.TextTestRunner(stream=io.StringIO(), verbosity=0).run(suite)
                 self.assertTrue(result.failures or result.errors, name + ' survived')
