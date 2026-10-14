@@ -1167,10 +1167,18 @@ mod tests {
         let full = fine_infeasible_fitness(planted.blade_lat_n, planted.ring_pull_n, planted.strength_n, planted.ring_pull_n, -1000.0).unwrap();
         assert_eq!(zero, -1.0);
         assert_eq!(full, -11.0);
+        // Case values reject a hyphen, so a leading minus is spelled neg.
+        let case_num = |value: f64| {
+            let text = format!("{value}");
+            match text.strip_prefix('-') {
+                Some(rest) => format!("neg{rest}"),
+                None => text,
+            }
+        };
         assert_eq!(fine_infeasible_fitness(planted.blade_lat_n, planted.ring_pull_n, planted.strength_n, planted.ring_pull_n, f64::NAN).unwrap_err(), "nonfinite_credited_statistics");
         assert!(fine_infeasible_fitness(planted.blade_lat_n, planted.ring_pull_n, planted.strength_n, planted.ring_pull_n, f64::INFINITY).is_err());
         assert!(fine_infeasible_fitness(planted.blade_lat_n, planted.ring_pull_n, planted.strength_n, planted.ring_pull_n, f64::NEG_INFINITY).is_err());
-        println!("S04_CASE id=T03-04-rej mean0={zero} mean_neg1000={full} lat={} ring={} planted_mass_g={} label=software_fixture", planted.strength_n, planted.ring_pull_n, planted.mass_g);
+        println!("S04_CASE id=T03-04-rej mean0={} mean_neg1000={} lat={} ring={} planted_mass_g={} label=software_fixture", case_num(zero), case_num(full), planted.strength_n, planted.ring_pull_n, planted.mass_g);
     }
 
     #[test] fn v2_historical_bits_reencode_and_headers_are_token_equal() {

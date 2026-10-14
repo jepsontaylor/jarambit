@@ -309,6 +309,7 @@ mod science_s04_tests {
         let credited = SampleStatistics::credited(-1000.0, 0.0).unwrap();
         assert_eq!(format_stats_mean_cell(&credited).unwrap(), "-1000.00000");
         assert_eq!(format_stats_sharp_cell(&credited, SharpFormat::Csv4).unwrap(), "0.0000");
-        println!("S04_CASE id=T03-10-cli-cells historical_cut=refused unavailable=thread_budget mean=-1000.00000 sharp=0.0000");
+        // The formatted cell is "-1000.00000". Case values reject a hyphen, so the minus is spelled neg.
+        println!("S04_CASE id=T03-10-cli-cells historical_cut=refused unavailable=thread_budget mean=neg1000.00000 sharp=0.0000");
     }
 }

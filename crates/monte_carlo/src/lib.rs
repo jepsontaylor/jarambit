@@ -784,7 +784,7 @@ mod tests {
                 if obs.pass27 && obs.pass28 { joint_ids.push(i); }
                 let token = worker_token(obs.worker);
                 println!(
-                    "S04_CASE id=T03-08-indexed sample={i} threads={threads} slot={} range={i0}-{i1} draw1={observed_draw1:016x} draw27={:016x} draw28={:016x} margin27={:016x} margin28={:016x} pass27={} pass28={} returned={:016x} worker={token}",
+                    "S04_CASE id=T03-08-indexed sample={i} threads={threads} slot={} i0={i0} i1={i1} draw1={observed_draw1:016x} draw27={:016x} draw28={:016x} margin27={:016x} margin28={:016x} pass27={} pass28={} returned={:016x} worker={token}",
                     obs.slot, obs.draw27, obs.draw28, obs.margin27, obs.margin28, u8::from(obs.pass27), u8::from(obs.pass28), obs.returned
                 );
             }
