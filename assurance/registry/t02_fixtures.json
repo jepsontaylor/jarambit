@@ -282,5 +282,174 @@
     "adverse_refusal_reason": "untrusted_policy_root",
     "whole_authority_and_policy_raw_roots_independently_pinned": true,
     "execution": "not_run"
+  },
+  "review78_controls": [
+    {
+      "id": "Source78-table-single-positive",
+      "kind": "table_scope",
+      "group": "T02-03-wrong_candidate",
+      "bucket": "positive",
+      "base_control_id": "exact-subject-current-role",
+      "fragment_utf8": "| RS-T02-fixture | status |\n| software_fixture | PASS |\n",
+      "independent_oracle": {
+        "checker_exit": 0,
+        "violation_substring": null,
+        "provider_resolution_unchanged": true,
+        "report_values_unchanged": true
+      },
+      "execution": "not_run",
+      "authority_rule": "Unchanged admitted caller/request/authority/provider and independently approved canonical block; only table prose changes."
+    },
+    {
+      "id": "Source78-table-class-adverse",
+      "kind": "table_scope",
+      "group": "T02-03-wrong_candidate",
+      "bucket": "adverse",
+      "base_control_id": "exact-subject-current-role",
+      "fragment_utf8": "| RS-T02-fixture | status |\n| software_fixture | PASS; software_fixture class=physical_validation PASS |\n",
+      "independent_oracle": {
+        "checker_exit": 1,
+        "violation_substring": "asserted class differs",
+        "provider_resolution_unchanged": true,
+        "report_values_unchanged": true
+      },
+      "execution": "not_run",
+      "authority_rule": "Unchanged admitted caller/request/authority/provider and independently approved canonical block; only table prose changes.",
+      "paired_positive_id": "Source78-table-single-positive"
+    },
+    {
+      "id": "Source78-table-group-adverse",
+      "kind": "table_scope",
+      "group": "T02-03-wrong_candidate",
+      "bucket": "adverse",
+      "base_control_id": "exact-subject-current-role",
+      "fragment_utf8": "| RS-T02-fixture | status |\n| software_fixture | PASS; physical_validation PASS |\n",
+      "independent_oracle": {
+        "checker_exit": 1,
+        "violation_substring": "asserted group differs",
+        "provider_resolution_unchanged": true,
+        "report_values_unchanged": true
+      },
+      "execution": "not_run",
+      "authority_rule": "Unchanged admitted caller/request/authority/provider and independently approved canonical block; only table prose changes.",
+      "paired_positive_id": "Source78-table-single-positive"
+    },
+    {
+      "id": "Source78-table-unscoped-adverse",
+      "kind": "table_scope",
+      "group": "T02-03-wrong_candidate",
+      "bucket": "adverse",
+      "base_control_id": "exact-subject-current-role",
+      "fragment_utf8": "| RS-T02-fixture | status |\n| software_fixture | PASS; unscoped PASS |\n",
+      "independent_oracle": {
+        "checker_exit": 1,
+        "violation_substring": "asserted group differs",
+        "provider_resolution_unchanged": true,
+        "report_values_unchanged": true
+      },
+      "execution": "not_run",
+      "authority_rule": "Unchanged admitted caller/request/authority/provider and independently approved canonical block; only table prose changes.",
+      "paired_positive_id": "Source78-table-single-positive"
+    },
+    {
+      "id": "Source78-table-qualified-semicolon-positive",
+      "kind": "table_scope",
+      "group": "T02-03-wrong_candidate",
+      "bucket": "positive",
+      "base_control_id": "exact-subject-current-role",
+      "fragment_utf8": "| RS-T02-fixture | status |\n| software_fixture | PASS; software_fixture candidate=fixture-A class=software_contract PASS |\n",
+      "independent_oracle": {
+        "checker_exit": 0,
+        "violation_substring": null,
+        "provider_resolution_unchanged": true,
+        "report_values_unchanged": true
+      },
+      "execution": "not_run",
+      "authority_rule": "Unchanged admitted caller/request/authority/provider and independently approved canonical block; only table prose changes."
+    },
+    {
+      "id": "Source78-table-cells-noise-positive",
+      "kind": "table_scope",
+      "group": "T02-03-wrong_candidate",
+      "bucket": "positive",
+      "base_control_id": "exact-subject-current-role",
+      "fragment_utf8": "| RS-T02-fixture | status |\n| software_fixture | PASS | software_fixture candidate=fixture-A class=software_contract PASS | [evidence](https://example.invalid/PASS) `PASS` |\n",
+      "independent_oracle": {
+        "checker_exit": 0,
+        "violation_substring": null,
+        "provider_resolution_unchanged": true,
+        "report_values_unchanged": true
+      },
+      "execution": "not_run",
+      "authority_rule": "Unchanged admitted caller/request/authority/provider and independently approved canonical block; only table prose changes."
+    },
+    {
+      "id": "Source78-table-candidate-adverse",
+      "kind": "table_scope",
+      "group": "T02-03-wrong_candidate",
+      "bucket": "adverse",
+      "base_control_id": "exact-subject-current-role",
+      "fragment_utf8": "| RS-T02-fixture | status |\n| software_fixture | PASS; software_fixture candidate=fixture-B class=software_contract PASS |\n",
+      "independent_oracle": {
+        "checker_exit": 1,
+        "violation_substring": "asserted candidate differs",
+        "provider_resolution_unchanged": true,
+        "report_values_unchanged": true
+      },
+      "execution": "not_run",
+      "authority_rule": "Unchanged admitted caller/request/authority/provider and independently approved canonical block; only table prose changes.",
+      "paired_positive_id": "Source78-table-qualified-semicolon-positive"
+    },
+    {
+      "id": "Source78-table-bare-PASS-adverse",
+      "kind": "table_scope",
+      "group": "T02-03-wrong_candidate",
+      "bucket": "adverse",
+      "base_control_id": "exact-subject-current-role",
+      "fragment_utf8": "| RS-T02-fixture | status |\n| software_fixture | PASS; PASS |\n",
+      "independent_oracle": {
+        "checker_exit": 1,
+        "violation_substring": "unscoped or unsupported PASS assertion",
+        "provider_resolution_unchanged": true,
+        "report_values_unchanged": true
+      },
+      "execution": "not_run",
+      "authority_rule": "Unchanged admitted caller/request/authority/provider and independently approved canonical block; only table prose changes.",
+      "paired_positive_id": "Source78-table-single-positive"
+    },
+    {
+      "id": "Source78-table-trailing-class-adverse",
+      "kind": "table_scope",
+      "group": "T02-03-wrong_candidate",
+      "bucket": "adverse",
+      "base_control_id": "exact-subject-current-role",
+      "fragment_utf8": "| RS-T02-fixture | status |\n| software_fixture | PASS | class=physical_validation |\n",
+      "independent_oracle": {
+        "checker_exit": 1,
+        "violation_substring": "unsupported table assertion field",
+        "provider_resolution_unchanged": true,
+        "report_values_unchanged": true
+      },
+      "execution": "not_run",
+      "authority_rule": "A trailing qualifier is not an independent complete assertion and cannot borrow an earlier table PASS; original provider/caller/body unchanged.",
+      "paired_positive_id": "Source78-table-single-positive"
+    }
+  ],
+  "review78_receipt_overlay": {
+    "T02-03-wrong_candidate": {
+      "positive": [
+        "Source78-table-single-positive",
+        "Source78-table-qualified-semicolon-positive",
+        "Source78-table-cells-noise-positive"
+      ],
+      "adverse": [
+        "Source78-table-class-adverse",
+        "Source78-table-group-adverse",
+        "Source78-table-unscoped-adverse",
+        "Source78-table-candidate-adverse",
+        "Source78-table-bare-PASS-adverse",
+        "Source78-table-trailing-class-adverse"
+      ]
+    }
   }
 }

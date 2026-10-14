@@ -113,6 +113,8 @@ def publish_paired_group(group, row_results):
     wanted=corpus()['paired_group_subcontrols'][group]
     additions=corpus().get('review54_receipt_overlay',{}).get(group,{'positive':[],'adverse':[]})
     wanted={bucket:[*wanted[bucket],*additions[bucket]] for bucket in wanted}
+    table_additions=corpus().get('review78_receipt_overlay',{}).get(group,{'positive':[],'adverse':[]})
+    wanted={bucket:[*wanted[bucket],*table_additions[bucket]] for bucket in wanted}
     claims.require(all(len(row_results[b])==len(wanted[b]) and {r['id'] for r in row_results[b]}==set(wanted[b]) for b in wanted), 'exact_child_inventory_required')
     claims.require(all(type(v) is list and v and all(r['execution']=='passed' and r['comparison_passed'] is True for r in v) for v in row_results.values()), 'child_control_missing_or_failed')
     artifact = (json.dumps(row_results,sort_keys=True,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'\n').encode()
@@ -258,6 +260,31 @@ class ClaimIntegrity(unittest.TestCase):
                 # from the checker/provider whose scope guard is under test.
                 self.assertEqual(blocks.canonical_body(context.last_report),blocks.canonical_body(expected))
                 immutable(Path(runtime()['output_dir'])/'review54'/case['id']/'control-comparison.json',{'id':case['id'],'execution':'passed','comparison_passed':True,'frozen_oracle':oracle,'document_sha256':raw_hash(document.encode()),'checker_exit':result.exit_code,'violations':result.violations,'actual_provider':result.provider.output,'input_sha256':result.provider.input_sha256,'scientific_publication':False})
+
+    def test_source78_table_scope_pairs(self):
+        fixed=corpus();base={r['id']:r for r in fixed['original_controls']}
+        for case in fixed['review78_controls']:
+            with self.subTest(control=case['id']):
+                row=runtime()['rows'][case['base_control_id']]
+                context=context_for(case['base_control_id'])
+                request=claims.read_bounded(context.request_path)
+                authority=claims.read_bounded(context.authority_path)
+                expected=current_expected(row,base[case['base_control_id']]['fixed_metadata']['literal_expected_report'])
+                document=case['fragment_utf8']+blocks.write_block('claim-a',expected)+'\n'
+                result=check_claims.check_document(document,context)
+                oracle=case['independent_oracle']
+                self.assertEqual(result.exit_code,oracle['checker_exit'])
+                self.assertIsNotNone(result.provider)
+                self.assertEqual({k:result.provider.output[k] for k in ['verdict','publication_eligible','release_authorized']},base[case['base_control_id']]['expected_provider']['Resolution'])
+                if oracle['violation_substring']:
+                    self.assertTrue(any(oracle['violation_substring'] in v for v in result.violations))
+                else:self.assertEqual(result.violations,[])
+                self.assertEqual(blocks.canonical_body(context.last_report),blocks.canonical_body(expected))
+                self.assertEqual(claims.read_bounded(context.request_path),request)
+                self.assertEqual(claims.read_bounded(context.authority_path),authority)
+                self.assertEqual(result.provider.output['input_binding']['request_raw_sha256'],raw_hash(request))
+                self.assertEqual(result.provider.output['input_binding']['authority_raw_sha256'],raw_hash(authority))
+                immutable(Path(runtime()['output_dir'])/'review78'/case['id']/'control-comparison.json',{'id':case['id'],'execution':'passed','comparison_passed':True,'frozen_oracle':oracle,'document_sha256':raw_hash(document.encode()),'checker_exit':result.exit_code,'violations':result.violations,'actual_provider':result.provider.output,'input_sha256':result.provider.input_sha256,'scientific_publication':False})
 
     def test_source54_actual_request_binding_pairs(self):
         fixed=corpus()

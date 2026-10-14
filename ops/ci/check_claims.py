@@ -71,6 +71,29 @@ def assertion_errors(assertion, report, registration):
     return errors
 
 
+def table_assertion_texts(line, rs_id):
+    """Keep each cell/semicolon outcome in its own inherited RS context.
+
+    Fields and outcome may occupy adjacent cells. Once an outcome appears,
+    later cells start another assertion rather than borrowing its coverage.
+    """
+    texts, pending = [], []
+    for cell in re.split(r'[;|]', line):
+        cell = cell.strip()
+        if not cell:
+            continue
+        pending.append(cell)
+        if re.search(r'\b(?:PASS|FAIL|INCOMPLETE)\b', cell):
+            text = ' '.join(pending)
+            if not re.search(r'\bRS-[A-Za-z0-9_-]+\s*:', text):
+                text = f'{rs_id}: {text}'
+            texts.append(text)
+            pending = []
+    if pending:
+        texts.append(' '.join(pending))
+    return texts
+
+
 def scan_pass(rel, text, report, registry, parsed=(), stop=None, *, registration):
     if stop and stop in text:
         text = text[:text.index(stop)]
@@ -85,21 +108,18 @@ def scan_pass(rel, text, report, registry, parsed=(), stop=None, *, registration
         if not in_table:
             table_scope = False
         prev_table = in_table
-        assertions = list(ASSERTION.finditer(line))
-        table_assertion = False
-        if not assertions and in_table and table_scope and re.search(r'\b(?:PASS|FAIL|INCOMPLETE)\b', line):
-            # In a table scoped by its RS header, cells use the same explicit
-            # group/qualifier/outcome grammar; a header cannot bless any group.
-            cells = ' '.join(cell.strip() for cell in stripped.strip('|').split('|'))
-            assertions = list(ASSERTION.finditer(f'{rs_id}: {cells}'))
-            table_assertion = bool(assertions)
-        for assertion in assertions:
-            errors.extend(f'{rel}:{number}: {reason}' for reason in assertion_errors(assertion, report, registration))
         heading = CURRENT_MARKER_HEADING.match(line) or CURRENT_HEADING.match(line)
-        covered = assertions + ([heading] if heading else [])
-        if not table_assertion and any(not any(s.start() <= token.start() and token.end() <= s.end() for s in covered)
-                                       for token in re.finditer(r'\bPASS\b', line)):
-            errors.append(f'{rel}:{number}: unscoped or unsupported PASS assertion')
+        texts = table_assertion_texts(line, rs_id) if in_table and table_scope else [line]
+        for assertion_text in texts:
+            assertions = list(ASSERTION.finditer(assertion_text))
+            if in_table and table_scope and not assertions and re.search(r'\b(?:group|candidate|class)=', assertion_text):
+                errors.append(f'{rel}:{number}: unsupported table assertion field')
+            for assertion in assertions:
+                errors.extend(f'{rel}:{number}: {reason}' for reason in assertion_errors(assertion, report, registration))
+            covered = assertions + ([heading] if heading else [])
+            if any(not any(s.start() <= token.start() and token.end() <= s.end() for s in covered)
+                   for token in re.finditer(r'\bPASS\b', assertion_text)):
+                errors.append(f'{rel}:{number}: unscoped or unsupported PASS assertion')
         if heading:
             candidate = heading['candidate']
             current = registry['current_by_scope'].get(group)
