@@ -1,0 +1,55 @@
+{
+ "variant": "sr9 = w80d + spine-root shoulder GW_ROOT 3.5,94,98,108,116, EB_ROOT 1.2",
+ "mass_g": 67.089,
+ "gates": {
+  "V1": 1.739,
+  "V2": 1.245,
+  "V3": 1.603,
+  "V4": 1.654,
+  "V5": 7.55,
+  "V6": 1.611,
+  "V7": 1.62
+ },
+ "sources": {
+  "V3": "DIRECT r0p2 b1 1.603 @ (139.6,6.1)",
+  "GateS": "PASS (S1 apex/t(0.05) max, mm: spine 0.1611/0.2018; inside 0.1713/0.2074; S3 23.5 deg/side)",
+  "V1": "w80d g2 carry (tip strip g2 identical 1.835)",
+  "V4": "w80d v4r 1.662 x sr9/w80d g2 0.995",
+  "V5": "g2",
+  "V6": "w80d direct 1.630 x g2 ratio 0.988",
+  "V7": "w80d direct 1.620 (handle g2 ratio 1.02, not credited)",
+  "V2": "w80d record 1.245 (planform unchanged)"
+ },
+ "others": {
+  "sr2": {
+   "V3": 1.594,
+   "S3": 26.2,
+   "GateS": false
+  },
+  "sr10": {
+   "V3": 1.562,
+   "GateS": true
+  }
+ },
+ "scores": {
+  "C.10a": {
+   "eligible": true,
+   "governor": "V6",
+   "governor_SF": 1.578,
+   "fitness_legacy": 2.434,
+   "tip_reward": 1.0984,
+   "fitness": 2.673,
+   "fails": []
+  },
+  "sr9": {
+   "eligible": true,
+   "governor": "V3",
+   "governor_SF": 1.603,
+   "fitness_legacy": 2.389,
+   "tip_reward": 1.166,
+   "fitness": 2.786,
+   "fails": []
+  }
+ },
+ "auto_pick": "sr9"
+}
