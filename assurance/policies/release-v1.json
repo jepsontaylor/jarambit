@@ -1,0 +1,196 @@
+{
+  "schema": "jarambit.science.release_policy.v1",
+  "source_commit": "b81aa99d43cc56b9338969f76e3214785fa7559a",
+  "target": "1.0.0",
+  "version_change_authorized_in_this_cut": false,
+  "status": "baseline freeze; does not authorize release",
+  "master_spec": {
+    "path": "docs/v1/JARAMBIT_V1_ENGINEERING_SPEC.md",
+    "sha256": "393db8a9d1a1d86dedb829c8412e14654c6fa4047ed6b6ad838aae4969c58d6c",
+    "bytes": 54387
+  },
+  "requirements": [
+    {
+      "path": "requirements/RS-karambit-v1.toml",
+      "sha256": "ed3d61ab386e8e6c52c96d15d44e00b2542532f6898374706ef376cef742fff3",
+      "bytes": 2296,
+      "id": "RS-karambit-v1",
+      "declared_revision": 2,
+      "inherits": null,
+      "revision_status": "declared"
+    },
+    {
+      "path": "requirements/RS-karambit-v2.toml",
+      "sha256": "3d73b27cac953eae7f4d334a13351efd20dfe799d4f3c8d2584edef8d803cecc",
+      "bytes": 4850,
+      "id": "RS-karambit-v2",
+      "declared_revision": 2,
+      "inherits": "RS-karambit-v1",
+      "revision_status": "declared"
+    },
+    {
+      "path": "requirements/RS-sheath-runner-v1.toml",
+      "sha256": "8abd26ac8ce64f51783c38ca46b797d6914d7a09f839a9e813d2c21f811a354f",
+      "bytes": 1312,
+      "id": "RS-sheath-runner-v1",
+      "declared_revision": null,
+      "inherits": null,
+      "revision_status": "not_declared_in_file"
+    }
+  ],
+  "scopes": {
+    "RS_mass": "80 g target / 70 g stretch are soft; no promotion failure from mass alone",
+    "native_C10a_study": "separate <70 g / SF>=1.575 / Gate S study; no RS-v2 equivalence",
+    "V2_tip": "record-only with separately bound soft objective",
+    "G1": "unchanged; all required inputs remain mandatory"
+  },
+  "final_release": {
+    "inherited_section": "19",
+    "amendments": [],
+    "authorization": "owner_required",
+    "gates": [
+      {
+        "id": "master-19-1",
+        "required": true,
+        "text": "100% README/whitepaper numbers obs-linked; AT01–AT24; replay on 3 seeds",
+        "status": "incomplete"
+      },
+      {
+        "id": "master-19-2",
+        "required": true,
+        "text": "In-repo T2/T3 GCI<=3%; grouped T0 MAPE<=8%; T2<=15s on 3090",
+        "status": "incomplete"
+      },
+      {
+        "id": "master-19-3",
+        "required": true,
+        "text": "HV>=1.3x at fixed budget; CVT coverage>=60%",
+        "status": "not_demonstrated"
+      },
+      {
+        "id": "master-19-4",
+        "required": true,
+        "text": "At least one tier-2-verified all-hard RS-v2 design<=75g; <70g stretch; Pareto errors",
+        "status": "incomplete"
+      },
+      {
+        "id": "master-19-5",
+        "required": true,
+        "text": "Clean AP242; 3 RFQs; first-article CTQs; coupon agreement<=15%",
+        "status": "no_physical_or_RFQ_evidence"
+      },
+      {
+        "id": "master-19-6",
+        "required": true,
+        "text": "Learned preference>=70% held-out accuracy; blinded A/B vs C6>=50%",
+        "status": "not_demonstrated"
+      },
+      {
+        "id": "master-19-7",
+        "required": true,
+        "text": "Bracket demonstration meets section16",
+        "status": "not_implemented"
+      }
+    ]
+  },
+  "pending_owner_decisions": [
+    "Disposition of inherited performance/algorithm/cost/aesthetic targets",
+    "Any amendment of final physical/manufacturing obligations",
+    "Actual manufacturing/material qualification route",
+    "Any future hard mass or requirement semantic amendment"
+  ],
+  "software_contracts": {
+    "catalog": {
+      "path": "docs/v1/science/tests/TEST_CASE_CATALOG.json",
+      "sha256": "63d31d9d75de872369c4373f5c0be7fc537d921df0f5df13970fd9964e77d89d"
+    },
+    "gate_policy_reference": {
+      "path": "docs/v1/science/tests/CI_GATE_POLICY.json",
+      "sha256": "9b3f73151d5ebc1ac4293f8c466b7d3a31b97ea6de8924457e3f0bff20986a68"
+    },
+    "required_case_ids": [
+      "T00-01-inventory_delete", "T00-02-inventory_duplicate", "T00-03-optional_skip", "T00-04-strict_json",
+      "T00-05-receipt_tamper", "T00-06-receipt_crash", "T00-07-schema_bounds", "T00-08-controls_missing",
+      "T00-09-finding_vs_execution", "T00-10-claim_mutant", "T00-11-standard_scope", "T01-01-analytic_order",
+      "T01-02-divergent_order", "T01-03-zero_order", "T01-04-plateau", "T01-05-oscillatory",
+      "T01-06-exact_equal", "T01-07-invalid_ratio", "T01-08-zero_reference", "T01-09-precision_floor",
+      "T01-10-mesh_sequence", "T01-11-observable_identity", "T01-12-threshold_edge", "T01-13-negative_error_band",
+      "T01-14-inventory_empty", "T01-15-stale_noop", "T01-16-cache_identity", "T01-17-partial_atomic",
+      "T01-18-peak_singularity", "T02-01-contradictory_block", "T02-02-missing_reopened", "T02-03-wrong_candidate",
+      "T02-04-requirement_content", "T02-05-wrong_physics", "T02-06-revoked_review", "T02-07-presentation_noise",
+      "T02-08-nonfinite_scalar", "T02-09-mass_scope", "T02-10-physical_missing", "T02-11-g1_delete",
+      "T02-12-truthful_negative", "T03-01-empty_count", "T03-02-quantile_boundary", "T03-03-finite_reduction",
+      "T03-04-invalid_sample", "T03-05-worker_panic", "T03-06-joint_correlation", "T03-07-independence_control",
+      "T03-08-thread_replay", "T03-09-population_shift", "T03-10-media_retirement", "T04-01-all_infeasible",
+      "T04-02-legal_vs_feasible", "T04-03-partial_nonfinite", "T04-04-novelty_context", "T04-05-ties_duplicates",
+      "T04-06-invalid_config", "T04-07-checkpoint_matrix", "T04-08-checkpoint_corrupt", "T04-09-resume_identity",
+      "T04-10-durability_boundary", "T04-11-duplicate_resume", "T04-12-lineage_orphan", "T05-01-linear_scaling",
+      "T05-02-rigid_transform", "T05-03-unit_consistency", "T05-04-analytic_balance", "T05-05-bc_failure",
+      "T05-06-mesh_failure", "T05-07-field_semantics", "T05-08-localized_peak", "T05-09-certificate_field",
+      "T05-10-native_binding", "T05-11-calibration_failures", "T05-12-tier_collision", "T06-01-cpu_accounting",
+      "T06-02-workload_collision", "T06-03-equal_budget", "T06-04-related_split", "T06-05-session_shortcut",
+      "T06-06-preprocessing_leak", "T06-07-single_specimen", "T06-08-uncertainty_censor", "T06-09-null_benchmark",
+      "T06-10-surrogate_gate", "T07-01-specimen_identity", "T07-02-unapproved_transfer", "T07-03-history_prefix",
+      "T07-04-clock_segments", "T07-05-raw_calibration", "T07-06-lab_reduction", "T07-07-finished_mass",
+      "T07-08-frame_unit", "T07-09-censored_zero", "T07-10-chemistry_scope", "T07-11-measurement_lineage",
+      "T07-12-interpretation_unknown", "T07-13-historical_adapter", "T19-01-required_skip", "T19-02-path_filter",
+      "T19-03-capability_omission", "T19-04-runner_escape", "T19-05-upload_missing", "T19-06-fresh_vs_reuse",
+      "T19-07-dossier_mismatch", "T19-08-render_finish_metadata", "T19-09-protective_interface", "T19-10-final_policy"
+    ],
+    "T00_frozen": [
+      {"id": "T00-01-inventory_delete", "oracle": "Incomplete; deletion cannot strengthen coverage", "definition_sha256": "ae0b1b14c4749b9b9c3039414cd823cf42301837dec34c523964d6f9a1d961e6", "controls_required": ["positive", "adverse"]},
+      {"id": "T00-02-inventory_duplicate", "oracle": "Error with duplicate identity", "definition_sha256": "bc980f4e14d9f31cc7cb1824383e8c7eb810a9be2732a883e86c176f50629fb8", "controls_required": ["positive", "adverse"]},
+      {"id": "T00-03-optional_skip", "oracle": "Explicit optional reason accepted; required incomplete", "definition_sha256": "cc69ce0567436489f78bbb409eeb957efe4fee957fbd471f7a8c5fca3b33a330", "controls_required": ["positive", "adverse"]},
+      {"id": "T00-04-strict_json", "oracle": "Reject with structural reason; finite genuine zero accepted", "definition_sha256": "3fc658272fb0838a88d02a34ad2aed931792fd16372596dd032c0a59da956119", "controls_required": ["positive", "adverse"]},
+      {"id": "T00-05-receipt_tamper", "oracle": "Integrity error; no claim support", "definition_sha256": "ec4835af533594b87d8f90f42176ccd95791373958bf70cf3be610bc55053f87", "controls_required": ["positive", "adverse"]},
+      {"id": "T00-06-receipt_crash", "oracle": "Incomplete attempt, not empty pass", "definition_sha256": "4ac64a338eb1136cc3b21eaf6dc7b3db33618bc338b2843e3c48f41c67016a0c", "controls_required": ["positive", "adverse"]},
+      {"id": "T00-07-schema_bounds", "oracle": "Reject ambiguity/resource limit; bounded valid record accepted", "definition_sha256": "7af26282698111774255fcf7c804efb88aa88e2338aceb54c1014baaa3fae926", "controls_required": ["positive", "adverse"]},
+      {"id": "T00-08-controls_missing", "oracle": "Incomplete test family", "definition_sha256": "cf2e90e5ea39919b2f2ef45075b708dfc0e822878d2fb89bc14517880b5719ba", "controls_required": ["positive", "adverse"]},
+      {"id": "T00-09-finding_vs_execution", "oracle": "Execution passed; finding rejected/inconclusive remains distinct", "definition_sha256": "a19ee44027486a91c3a78c5cb3c3ca7d0cc763786008e08203320c4454dd92be", "controls_required": ["positive", "adverse"]},
+      {"id": "T00-10-claim_mutant", "oracle": "Targeted control kills mutant", "definition_sha256": "7ed832c9bef2b0d5bf10088dfef2b4c4038a310ed67531b0706c498168dad8a8", "controls_required": ["positive", "adverse"]},
+      {"id": "T00-11-standard_scope", "oracle": "Reject scope/edition/method mismatch; applicable verified control accepted", "definition_sha256": "31a5c75740be007ab98b3ca769dc3ec902d4bdc7249a7c96bf3e5d82588be141", "controls_required": ["positive", "adverse"]}
+    ],
+    "T00_state": "not_implemented; S01-owned after S00 core freeze",
+    "required_unavailable": "incomplete",
+    "execution_finding_separate": true,
+    "ingest_limits": {
+      "max_bytes": 1048576,
+      "max_depth": 64,
+      "max_nodes": 100000
+    },
+    "canonical_wire": "jarambit.science.canonical.v1; exact contract in ROADMAP_AMENDMENT.md"
+  },
+  "research": {
+    "T08_T18": "disabled pending dependencies/admission; no capability or strength claims",
+    "shipped_contracts_required": true,
+    "physical_gates_waived": false
+  },
+  "prohibited_transfers": [
+    "different genome/CAD/mesh",
+    "ratio-carried native SF",
+    "screening material to physical specimen",
+    "finish to structural strength",
+    "simulation to physical validation"
+  ],
+  "original_regressions": {
+    "divergent_monotone": "T01-02-divergent_order",
+    "zero_observed_order": "T01-03-zero_order",
+    "fine_pair_plateau": "T01-04-plateau",
+    "invalid_refinement_ratio": "T01-07-invalid_ratio",
+    "nonfinite_input": "T01-07-invalid_ratio",
+    "zero_reference_quantity": "T01-08-zero_reference",
+    "empty_expected_inventory": "T01-14-inventory_empty",
+    "nonfinite_monte_carlo_sample_is_not_sorted_as_equal": "T03-04-invalid_sample",
+    "zero_samples_is_rejected_explicitly": "T03-01-empty_count",
+    "invalid_sample_counts_are_preserved": "T03-04-invalid_sample",
+    "joint_requirement_outcomes_preserve_sample_identity": "T03-06-joint_correlation",
+    "requirement_hash_mismatch_rejects_claim": "T02-04-requirement_content",
+    "superseded_candidate_cannot_become_current_from_stale_heading": "T02-03-wrong_candidate",
+    "material_process_or_surface_change_invalidates_unapproved_transfer": "T07-02-unapproved_transfer",
+    "missing_physical_evidence_cannot_produce_physically_validated_label": "T02-10-physical_missing",
+    "render_finish_metadata_cannot_populate_structural_properties": "T19-08-render_finish_metadata",
+    "negative_uncertainty_cannot_pass_upper_threshold": "T01-13-negative_error_band",
+    "interpolated_field_is_not_labeled_as_l2_projection": "T05-07-field_semantics",
+    "out_of_scope_coating_test_cannot_claim_standard_compliance": "T00-11-standard_scope"
+  }
+}
