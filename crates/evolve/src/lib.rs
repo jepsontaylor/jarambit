@@ -843,8 +843,11 @@ fn score_carry_ok(raw: &str, header_sha: &str, live: &jarambit_evidence::RunMani
     for key in ID {
         if loaded_obj.get(*key) != live_obj.get(*key) { return Err("source_identity_mismatch".into()); }
     }
-    let present = |v| match v { Some(x) => !x.is_null(), None => false };
-    if present(loaded_obj.get("scientific")) || present(live_obj.get("scientific")) || present(loaded_obj.get("runtime")) || present(live_obj.get("runtime")) {
+    if loaded_obj.get("scientific").is_some_and(|value| !value.is_null())
+        || live_obj.get("scientific").is_some_and(|value| !value.is_null())
+        || loaded_obj.get("runtime").is_some_and(|value| !value.is_null())
+        || live_obj.get("runtime").is_some_and(|value| !value.is_null())
+    {
         return Err("source_identity_mismatch".into());
     }
     let loaded_params = loaded_obj.get("params").and_then(|v| v.as_object()).ok_or_else(|| "manifest_json_rejected".to_string())?;
@@ -1037,7 +1040,7 @@ mod tests {
     #[test] fn direct_nonfinite_credited_is_refused_before_the_fast_path() {
         let nan = direct(SampleStatistics::Credited { mean: f64::NAN, sharp_p05: 0.5 }, CutAvailability::retired(), 4.0, true);
         let inf = direct(SampleStatistics::Credited { mean: 1.0, sharp_p05: f64::INFINITY }, CutAvailability::retired(), 4.0, true);
-        assert!(nan.credited_pair().is_none() && inf.credited_pair().is_none());
+        assert!(nan.stats.credited_pair().is_none() && inf.stats.credited_pair().is_none());
         assert!(!nan.feasible() && !inf.feasible());
         assert_eq!(truncate(vec![nan.clone()], 1).unwrap_err(), "nonfinite_credited_statistics");
         assert_eq!(rank_crowd(&[inf.clone()]).unwrap_err(), "nonfinite_credited_statistics");
@@ -1241,7 +1244,10 @@ mod tests {
         let g = Genotype::random(&mut Rng(3));
         let row = format!("1.5 1.5 10 40 1 0.2 0.5 {}", g.to_csv_row());
         std::fs::write(&v1, format!("jarambit-ckpt 1\n0\nislands 1\n1\n1\nisland 0 rng 0000000000000001 n 1\n{row}\n")).unwrap();
-        let e = load_ckpt(&v1).unwrap_err();
+        let e = match load_ckpt(&v1) {
+            Err(e) => e,
+            Ok(_) => panic!("format 1 returned Loaded"),
+        };
         assert!(e.contains("format 1") && e.contains("seed-ckpt") && e.contains("--fork does not extract v1 genomes."), "{e}");
         assert_eq!(checkpoint_best(&v1).unwrap().to_vec().len(), 24);
         cfg.checkpoint = Some(v1.clone());
