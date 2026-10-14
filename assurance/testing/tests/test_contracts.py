@@ -5,6 +5,7 @@ import os
 import re
 from pathlib import Path
 import subprocess
+import threading
 import tempfile
 import unittest
 import unicodedata
@@ -131,6 +132,88 @@ class Contracts(unittest.TestCase):
             bad = case(); bad[key] = value
             with self.assertRaises(c.ContractError):
                 c.validate_case(bad)
+
+    def test_same_pid_publishers_preserve_one_durable_winner(self):
+        cs = case(); rec = receipt(cs)
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)/'receipt.json'
+            barrier = threading.Barrier(2); linked = threading.Event(); loser_done = threading.Event()
+            original_exists, original_open, original_link = Path.exists, Path.open, os.link
+            checked, temporaries, outcomes = set(), {}, {}
+            lock = threading.Lock()
+
+            def exists(path):
+                value = original_exists(path); name = threading.current_thread().name
+                with lock:
+                    first = path == target and name in ('winner', 'loser') and name not in checked
+                    if first: checked.add(name)
+                if first:
+                    self.assertFalse(value); barrier.wait(5)
+                return value
+
+            def opening(path, *args, **kwargs):
+                name = threading.current_thread().name
+                if '.pending.' in path.name and args and args[0] == 'xb':
+                    temporaries[name] = path
+                    if name == 'loser': self.assertTrue(linked.wait(5))
+                return original_open(path, *args, **kwargs)
+
+            def linking(source, destination):
+                result = original_link(source, destination)  # real atomic filesystem operation
+                if threading.current_thread().name == 'winner':
+                    linked.set(); self.assertTrue(loser_done.wait(5))
+                return result
+
+            def worker(name):
+                try: outcomes[name] = publish_receipt(target, rec, cs, ARTIFACTS)
+                except Exception as error: outcomes[name] = error
+                finally:
+                    if name == 'loser': loser_done.set()
+
+            with mock.patch('assurance.testing.receipt.Path.exists', exists), \
+                 mock.patch('assurance.testing.receipt.Path.open', opening), \
+                 mock.patch('assurance.testing.receipt.os.link', linking):
+                threads = [threading.Thread(target=worker, args=(name,), name=name) for name in ('winner', 'loser')]
+                for thread in threads: thread.start()
+                for thread in threads: thread.join(10)
+                self.assertFalse(any(thread.is_alive() for thread in threads))
+            self.assertEqual(outcomes['winner'], target)
+            self.assertIsInstance(outcomes['loser'], FileExistsError)
+            self.assertNotEqual(temporaries['winner'], temporaries['loser'])
+            self.assertEqual(json.loads(target.read_text()), rec)
+            self.assertFalse(temporaries['winner'].exists())
+            self.assertTrue(temporaries['loser'].exists())  # independent incomplete attempt retained
+            before = target.read_bytes()
+            with self.assertRaises(c.ContractError): publish_receipt(target, rec, cs, ARTIFACTS)
+            self.assertEqual(target.read_bytes(), before)
+            # Same PID, independent destinations: both real publications succeed.
+            outcomes.clear()
+            def separate(name): outcomes[name] = publish_receipt(Path(directory)/(name+'.json'), rec, cs, ARTIFACTS)
+            threads = [threading.Thread(target=separate, args=(name,)) for name in ('one', 'two')]
+            for thread in threads: thread.start()
+            for thread in threads: thread.join(10)
+            self.assertEqual(set(outcomes), {'one', 'two'})
+            for path in outcomes.values(): self.assertEqual(json.loads(path.read_text()), rec)
+
+    def test_closed_review_receipt_and_event_schemas(self):
+        import jsonschema
+        schema = json.loads((ROOT/'assurance/schemas/evidence.v2.json').read_text())
+        record = {'schema': 1, 'sequence': 1, 'observation': 'fixture', 'observation_sha256': 'a'*64,
+                  'action': 'approved', 'reviewer': 'independent-fixture',
+                  'scope': {'requirement_set': 'RS-fixture', 'group': 'numerical-fixture'}}
+        validator = jsonschema.Draft202012Validator({'$defs': schema['$defs'], '$ref': '#/$defs/review_receipt'})
+        validator.validate(record)
+        for bad in [{**record, 'unknown': True}, {**record, 'schema': 99}, {**record, 'sequence': 0},
+                    {**record, 'sequence': True}, {**record, 'action': 'unreviewed'},
+                    {**record, 'scope': {**record['scope'], 'unknown': True}}]:
+            self.assertTrue(list(validator.iter_errors(bad)))
+        event = {k: v for k, v in record.items() if k != 'schema'}
+        event['receipt'] = {'id': 'review-fixture', 'revision': '1', 'sha256': 'b'*64}
+        validator = jsonschema.Draft202012Validator({'$defs': schema['$defs'], '$ref': '#/$defs/review_event'})
+        validator.validate(event)
+        for field in event:
+            bad = dict(event); del bad[field]
+            self.assertTrue(list(validator.iter_errors(bad)))
 
     def test_T00_08_controls_missing(self):
         cs = case(); rec = receipt(cs); c.validate_receipt(rec, cs, ARTIFACTS)
