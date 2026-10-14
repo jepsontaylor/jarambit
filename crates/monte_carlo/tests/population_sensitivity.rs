@@ -13,6 +13,15 @@ fn population_shift_rates_stay_constant_for_repetitions() {
         assert_eq!(s.label, "assumed_model_population_discrepancy");
         assert_eq!(s.mc_error, 0);
         assert_ne!(s.service.text(), "3/10");
+        println!(
+            "S04_CASE id=T03-09 k={} service={} discovery={} gap={} label={} mc_error={}",
+            k,
+            s.service.text(),
+            s.discovery.text(),
+            s.gap.text(),
+            s.label,
+            s.mc_error
+        );
     }
     assert_eq!(population_shift(0), Err(CheckedError::InvalidConfig));
     assert_eq!(population_shift(u64::MAX / 10 + 1), Err(CheckedError::InvalidConfig));

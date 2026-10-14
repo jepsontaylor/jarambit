@@ -19,6 +19,13 @@ fn joint_requirement_outcomes_preserve_sample_identity() {
     assert_ne!(same.joint.text(), same.product.text());
     let swapped = paired_joint(&[pair(0, -1.0, 1.0), pair(1, -2.0, 2.0), pair(2, 1.0, -1.0), pair(3, 2.0, -2.0)]).unwrap();
     assert_eq!(swapped.joint.text(), "0/4");
+    assert_eq!((swapped.marginal_a.text(), swapped.marginal_b.text()), ("2/4".into(), "2/4".into()));
+    println!(
+        "S04_CASE id=T03-06-swap joint={} marginal_a={} marginal_b={}",
+        swapped.joint.text(),
+        swapped.marginal_a.text(),
+        swapped.marginal_b.text()
+    );
     let permuted = paired_joint(&[pair(2, -1.0, 1.0), pair(0, 1.0, -1.0), pair(3, -2.0, 2.0), pair(1, 2.0, -2.0)]).unwrap();
     assert_eq!(permuted.joint.text(), "0/4");
     let a = [ColumnSample { id: 0, value: 1.0 }, ColumnSample { id: 1, value: 2.0 }, ColumnSample { id: 2, value: -1.0 }, ColumnSample { id: 3, value: -2.0 }];

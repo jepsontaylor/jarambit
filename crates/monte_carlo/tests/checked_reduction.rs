@@ -39,12 +39,16 @@ fn quantile_boundaries_match_historical_floor_ratio() {
     assert_eq!(b.mean_ratio.unwrap().text(), "10/1");
     assert_eq!(b.p95_index, Some(19));
     assert_eq!(b.p95, Some(19.0));
+    assert_eq!((b.p05_index, b.p05), (Some(1), Some(1.0)));
+    println!("S04_CASE id=T03-02-n21 p05_index={} p05_value={}", b.p05_index.unwrap(), b.p05.unwrap());
     let c = reduce_rows(3, &rows_of(&[10.0, 20.0, 30.0])).unwrap();
     assert_eq!((c.p05, c.p95, c.mean_ratio.unwrap().text()), (Some(10.0), Some(30.0), "20/1".to_string()));
     let d = reduce_rows(3, &rows_of(&[-2.0, 0.0, 2.0])).unwrap();
     assert_eq!((d.p05, d.p95, d.mean_ratio.unwrap().text()), (Some(-2.0), Some(2.0), "0/1".to_string()));
     let e = reduce_rows(4, &rows_of(&[1.0, 2.0, 3.0, 4.0])).unwrap();
     assert_eq!(e.mean_ratio.unwrap().text(), "5/2");
+    assert_eq!((e.p05_index, e.p95_index), (Some(0), Some(3)));
+    println!("S04_CASE id=T03-02-n4 p05_index={} p95_index={}", e.p05_index.unwrap(), e.p95_index.unwrap());
     assert_eq!(quantile_index(194176253407468965, 95, 100), Err(CheckedError::QuantileOverflow));
     assert_eq!(quantile_index(3689348814741910324, 5, 100), Err(CheckedError::QuantileOverflow));
     assert_eq!(quantile_index(194176253407468964, 95, 100).unwrap(), 184467440737095515);
