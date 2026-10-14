@@ -123,10 +123,17 @@ fn integer_value(x: f64) -> Option<i128> {
     if !x.is_finite() || x.fract() != 0.0 {
         return None;
     }
-    if x < i128::MIN as f64 || x > i128::MAX as f64 {
+    // `i128::MAX as f64` rounds up to 2^127, and `as i128` then saturates back
+    // to `i128::MAX`. The positive side is half-open: [-2^127, 2^127).
+    let upper = (1u128 << 127) as f64;
+    if x < i128::MIN as f64 || x >= upper {
         return None;
     }
-    Some(x as i128)
+    let v = x as i128;
+    if v as f64 != x {
+        return None;
+    }
+    Some(v)
 }
 
 /// Compensated sum. The acceptance oracle is the exact f64 bits, not this name.
@@ -221,7 +228,7 @@ pub fn reduce_rows(requested_n: u64, rows: &[Row]) -> Result<ColumnSummary, Chec
     let mut ordered = valid_values;
     ordered.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
     let mut ratio = None;
-    if let Some(total) = ordered.iter().try_fold(0i128, |acc, x| integer_value(*x).map(|v| acc + v)) {
+    if let Some(total) = ordered.iter().try_fold(0i128, |acc, x| integer_value(*x).and_then(|v| acc.checked_add(v))) {
         ratio = Some(Ratio::reduced(total, requested_n));
     }
     summary.statistical_credit = true;

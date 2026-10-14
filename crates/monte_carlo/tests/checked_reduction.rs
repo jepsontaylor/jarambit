@@ -143,3 +143,32 @@ fn thread_admission_and_planner_do_not_spawn() {
     assert_eq!(MIX_SEED_3, 0x94D0_49BB_1331_11EB);
     assert_eq!(mix_seed(99, 3), mix_seed(99, 3));
 }
+
+#[test]
+fn exact_ratio_stops_at_the_half_open_i128_bound() {
+    let two127 = (1u128 << 127) as f64;
+    let upper = reduce_rows(1, &[finite(0, two127)]).unwrap();
+    assert!(upper.statistical_credit);
+    assert!(upper.mean_ratio.is_none());
+    assert_eq!(upper.mean, Some(two127));
+    assert_eq!(upper.sum, Some(two127));
+    assert_eq!(upper.finding, Finding::SupportedWithinScope);
+    let cancel = reduce_rows(3, &[finite(0, -two127), finite(1, -two127), finite(2, two127)]).unwrap();
+    assert!(cancel.statistical_credit);
+    assert!(cancel.mean_ratio.is_none());
+    assert_eq!(cancel.sum, Some(-two127));
+    assert!(cancel.mean.unwrap().is_finite());
+    assert!(cancel.p05.is_some() && cancel.p95.is_some());
+    let two126 = (1u128 << 126) as f64;
+    let overflow = reduce_rows(2, &[finite(0, two126), finite(1, two126)]).unwrap();
+    assert!(overflow.statistical_credit);
+    assert!(overflow.mean_ratio.is_none());
+    assert_eq!(overflow.sum, Some(two127));
+    let ordinary = reduce_rows(3, &rows_of(&[-2.0, 0.0, 2.0])).unwrap();
+    assert_eq!(ordinary.mean_ratio.unwrap().text(), "0/1");
+    let sentinel = reduce_rows(1, &[finite(0, -1000.0)]).unwrap();
+    assert_eq!(sentinel.mean_ratio.unwrap().text(), "-1000/1");
+    let endpoint = reduce_rows(1, &[finite(0, -two127)]).unwrap();
+    assert_eq!(endpoint.mean_ratio.unwrap().num, i128::MIN);
+    assert_eq!(endpoint.mean_ratio.unwrap().den, 1);
+}
