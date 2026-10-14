@@ -973,6 +973,16 @@ class Collector(Workspace):
         self.assertEqual(result['sha256'], scientific_hash(result['expected_inventory']))
 
 
+# Operators whose bypass must be caught by an assertion on the wrong result, never by an execution error.
+ASSERTION_KILLS = {'collector credits without history'}
+# Errors of these kinds mean the operator itself is broken (stale name, bad syntax), not that a guard caught it.
+INVALID_OPERATOR_ERRORS = {'NameError', 'UnboundLocalError', 'SyntaxError', 'ImportError', 'ModuleNotFoundError'}
+
+
+def error_kind(trace):
+    return trace.strip().splitlines()[-1].split(':')[0].strip()
+
+
 MUTANTS = {
     'publisher inventory from transcript': (
         "    parsed = collect_unittest(log.decode('utf-8'), expected)\n",
@@ -1001,7 +1011,9 @@ MUTANTS = {
         ['FreshVsReuse.test_T19_06_adverse_unattested_or_unbound_identical_output_refused']),
     'collector credits without history': (
         "        if attempts is None:\n            continue\n",
-        "        if attempts is None:\n            credited.add(record['case_id'])\n            continue\n",
+        "        if attempts is None:\n"
+        "            provenance[record['case_id']] = {'mode': 'fresh', 'counts_as_fresh_execution': True}\n"
+        "            continue\n",
         ['Collector.test_T19_06_adverse_unavailable_or_historical_transcript_not_fresh']),
     'path read follows symlinks': (
         '    """Bytes of root/path; any symlink component, non-regular file, size or identity change refuses."""\n',
@@ -1029,13 +1041,22 @@ MUTANTS = {
 
 
 class Mutants(unittest.TestCase):
-    def test_guard_removal_mutants_are_killed(self):
-        """Each mutant runs only the control that must kill it, keeping the suite cheap inside version-check."""
-        source = (ROOT/'ops/ci/science_suite.py').read_text()
+    def run_targets(self, targets, module):
         here = sys.modules[__name__]
+        suite = unittest.TestSuite(unittest.TestLoader().loadTestsFromName(target, here) for target in targets)
+        with mock.patch.object(here, 's', module):
+            return unittest.TextTestRunner(stream=io.StringIO(), verbosity=0).run(suite)
+
+    def test_guard_removal_mutants_are_killed(self):
+        """Each mutant runs only the control that must kill it, keeping the suite cheap inside version-check.
+        The control must first pass on the real module, and a kill by a NameError-style error is an invalid
+        operator. One MUTANT_RESULT line per operator goes to stderr so reviewers see how each was detected."""
+        source = (ROOT/'ops/ci/science_suite.py').read_text()
+        sys.stderr.write('\n')
         for name, (old, new, targets) in MUTANTS.items():
             with self.subTest(name):
                 self.assertEqual(source.count(old), 1, name)
+                healthy = self.run_targets(targets, s)
                 module = types.ModuleType('science_suite_mutant')
                 module.__file__ = str(ROOT/'ops/ci/science_suite.py')
                 saved = list(sys.path)
@@ -1043,10 +1064,16 @@ class Mutants(unittest.TestCase):
                     exec(compile(source.replace(old, new), module.__file__ + ' [mutant]', 'exec'), module.__dict__)
                 finally:
                     sys.path[:] = saved
-                suite = unittest.TestSuite(unittest.TestLoader().loadTestsFromName(target, here) for target in targets)
-                with mock.patch.object(here, 's', module):
-                    result = unittest.TextTestRunner(stream=io.StringIO(), verbosity=0).run(suite)
-                self.assertTrue(result.failures or result.errors, name + ' survived')
+                result = self.run_targets(targets, module)
+                errors = [error_kind(trace) for _, trace in result.errors]
+                failures = [trace.strip().splitlines()[-1][:160] for _, trace in result.failures]
+                sys.stderr.write('MUTANT_RESULT ' + json.dumps({'name': name, 'targets': targets, 'healthy_ok': healthy.wasSuccessful(),
+                                                                'failures': failures, 'error_kinds': errors}, sort_keys=True) + '\n')
+                self.assertTrue(healthy.wasSuccessful(), name + ': control fails without the mutant')
+                self.assertFalse(set(errors) & INVALID_OPERATOR_ERRORS, name + ': invalid operator ' + repr(errors))
+                self.assertTrue(failures or errors, name + ' survived')
+                if name in ASSERTION_KILLS:
+                    self.assertTrue(failures and not errors, name + ': must be killed by an assertion, got ' + repr(errors))
 
 
 if __name__ == '__main__':
