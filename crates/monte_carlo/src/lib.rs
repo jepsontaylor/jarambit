@@ -5,6 +5,11 @@ use jarambit_genotype::{Genotype, Rng};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{mpsc, Arc, Mutex, OnceLock};
 
+mod scenario;
+mod stats;
+pub use scenario::*;
+pub use stats::*;
+
 /// Perturb a genotype by CNC/waterjet tolerances (thickness +-0.05 mm, profile +-0.1 mm).
 /// NOTE: no clamp/repair here except the caller re-quantises nothing — thickness
 /// as-machined is applied separately via [`thickness_sample`], so tolerance
@@ -33,9 +38,15 @@ pub fn thickness_sample(g: &Genotype, r: &mut Rng) -> f64 { g.thickness + r.norm
 /// Environment sample: temperature -10..100 C with 25% of samples at the extremes.
 #[derive(Clone, Copy, Debug)]
 pub struct Env { pub temp_c: f64 }
+/// `Some` for the two extreme bands. `None` means the caller still draws `range(-10, 100)`
+/// and must not draw that extra sample on the extreme bands.
+pub fn env_temp_band(u: f64) -> Option<f64> {
+    if u < 0.125 { Some(-10.0) } else if u < 0.25 { Some(100.0) } else { None }
+}
+
 pub fn env_sample(r: &mut Rng) -> Env {
     let u = r.f64();
-    let temp_c = if u < 0.125 { -10.0 } else if u < 0.25 { 100.0 } else { r.range(-10.0, 100.0) };
+    let temp_c = match env_temp_band(u) { Some(t) => t, None => r.range(-10.0, 100.0) };
     Env { temp_c }
 }
 
@@ -68,8 +79,8 @@ impl CutMedia {
 }
 
 /// Mix: wood 20%, cord/webbing 20%, hide 15%, muscle 20%, bone/joint 10%, gel 15%.
-pub fn media_sample(r: &mut Rng) -> CutMedia {
-    let u = r.f64();
+/// Thresholds are on the unit draw: `[0, 0.20) wood`, then cord, hide, muscle, bone, else gel.
+pub fn media_from_unit(u: f64) -> CutMedia {
     if u < 0.20 { CutMedia::Wood }
     else if u < 0.40 { CutMedia::Cord }
     else if u < 0.55 { CutMedia::Hide }
@@ -77,6 +88,8 @@ pub fn media_sample(r: &mut Rng) -> CutMedia {
     else if u < 0.85 { CutMedia::Bone }
     else { CutMedia::Gel }
 }
+
+pub fn media_sample(r: &mut Rng) -> CutMedia { media_from_unit(r.f64()) }
 
 /// Blade-first cut margin. Positive means the sampled medium clears both the
 /// section capacity and the edge-quality demand. `blade_lat_n` / `inplane_n`
@@ -95,10 +108,16 @@ pub fn cut_margin(blade_lat_n: f64, inplane_n: f64, sharp: f64, serr: f64, media
 #[derive(Clone, Copy, Debug)]
 pub struct Tails { pub mean: f64, pub p05: f64, pub p95: f64 }
 
-fn mix_seed(seed: u64, i: u64) -> u64 {
-    let mut z = seed.wrapping_add(i.wrapping_mul(0x9E37_79B9_7F4A_7C15)).wrapping_add(0xD1B5_4A32_D192_ED03);
-    z = (z ^ (z >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
-    z = (z ^ (z >> 27)).wrapping_mul(0x94D049BB133111EB);
+pub const MIX_SEED_0: u64 = 0x9E37_79B9_7F4A_7C15;
+pub const MIX_SEED_1: u64 = 0xD1B5_4A32_D192_ED03;
+pub const MIX_SEED_2: u64 = 0xBF58_476D_1CE4_E5B9;
+pub const MIX_SEED_3: u64 = 0x94D0_49BB_1331_11EB;
+
+/// Production sample index mixer. Exact 1/2/4 worker replay must call this, not a copy.
+pub fn mix_seed(seed: u64, i: u64) -> u64 {
+    let mut z = seed.wrapping_add(i.wrapping_mul(MIX_SEED_0)).wrapping_add(MIX_SEED_1);
+    z = (z ^ (z >> 30)).wrapping_mul(MIX_SEED_2);
+    z = (z ^ (z >> 27)).wrapping_mul(MIX_SEED_3);
     z ^ (z >> 31)
 }
 
@@ -195,6 +214,99 @@ pub fn run<F>(g: &Genotype, n: usize, threads: usize, seed: u64, f: F) -> (f64, 
 where F: Fn(&Genotype, &mut Rng) -> f64 + Sync + Send + 'static {
     let t = run_cols(g, n, threads, seed, move |h, r| [f(h, r)]);
     (t[0].mean, t[0].p05)
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct CheckedTails { pub mean: f64, pub p05: f64, pub p95: f64 }
+
+#[derive(Clone, Debug)]
+pub struct CheckedCols<const K: usize> {
+    pub cols: Option<[CheckedTails; K]>,
+    pub statistical_credit: bool,
+    pub attempted: u64,
+    pub valid: u64,
+    pub invalid: u64,
+    pub model_failed: u64,
+    pub numerically_failed: u64,
+}
+
+/// Checked column runner. `n == 0` is [`CheckedError::EmptySample`] and does not coerce to 1.
+/// [`ThreadRequest::Exact`] does not clamp. A worker panic or a lost worker publishes no tails.
+/// The legacy [`run`] / [`run_cols`] path is unchanged.
+pub fn try_run_cols<const K: usize, F>(g: &Genotype, n: usize, request: ThreadRequest, admitted: usize, seed: u64, f: F) -> Result<CheckedCols<K>, CheckedError>
+where F: Fn(&Genotype, &mut Rng) -> [f64; K] + Sync + Send + 'static {
+    if n == 0 { return Err(CheckedError::EmptySample); }
+    let plan = admit_threads(request, admitted, n)?;
+    let threads = plan.actual.ok_or(CheckedError::ThreadBudget)?;
+    if threads == 0 { return Err(CheckedError::ThreadBudget); }
+    let ranges = plan_ranges(n, threads);
+    let workers = ranges.len();
+    let pool = pool();
+    pool.ensure(workers);
+    let (done_tx, done_rx) = mpsc::channel();
+    let f = Arc::new(f);
+    for (t, (i0, i1)) in ranges.iter().copied().enumerate() {
+        let f = Arc::clone(&f);
+        let g = g.clone();
+        let done_tx = done_tx.clone();
+        let job = Box::new(move || {
+            let rows = catch_unwind(AssertUnwindSafe(|| {
+                (i0..i1).map(|i| {
+                    let mut r = Rng(mix_seed(seed, i as u64));
+                    let h = perturb(&g, &mut r);
+                    f(&h, &mut r)
+                }).collect::<Vec<_>>()
+            }));
+            let _ = done_tx.send((t, rows));
+        });
+        if pool.tx.lock().unwrap()[t].send(job).is_err() {
+            return Err(CheckedError::WorkerLost);
+        }
+    }
+    drop(done_tx);
+    let mut parts: Vec<Option<Vec<[f64; K]>>> = (0..workers).map(|_| None).collect();
+    for _ in 0..workers {
+        let (t, rows) = done_rx.recv().map_err(|_| CheckedError::WorkerLost)?;
+        match rows {
+            Ok(v) => parts[t] = Some(v),
+            Err(_) => return Err(CheckedError::WorkerPanic),
+        }
+    }
+    let all: Vec<[f64; K]> = parts.into_iter().flat_map(|p| p.unwrap()).collect();
+    if all.len() != n { return Err(CheckedError::WorkerLost); }
+    let mut tails = [CheckedTails { mean: 0.0, p05: 0.0, p95: 0.0 }; K];
+    let mut credit = true;
+    let mut valid = u64::MAX;
+    let mut invalid = 0u64;
+    let mut numerical = 0u64;
+    for k in 0..K {
+        let rows: Vec<Row> = all.iter().enumerate().map(|(id, row)| Row {
+            id: id as u64,
+            value: Observation::Finite(row[k]),
+        }).collect();
+        let summary = reduce_rows(n as u64, &rows)?;
+        valid = valid.min(summary.valid);
+        invalid = invalid.max(summary.invalid);
+        numerical = numerical.max(summary.numerically_failed);
+        if let Some(CheckedError::UnrepresentableAggregate) = summary.aggregate_error {
+            return Err(CheckedError::UnrepresentableAggregate);
+        }
+        if !summary.statistical_credit {
+            credit = false;
+            continue;
+        }
+        tails[k] = CheckedTails { mean: summary.mean.unwrap(), p05: summary.p05.unwrap(), p95: summary.p95.unwrap() };
+    }
+    if !credit { valid = valid.min(n as u64); }
+    Ok(CheckedCols {
+        cols: if credit { Some(tails) } else { None },
+        statistical_credit: credit,
+        attempted: n as u64,
+        valid,
+        invalid,
+        model_failed: 0,
+        numerically_failed: numerical,
+    })
 }
 
 #[cfg(test)]

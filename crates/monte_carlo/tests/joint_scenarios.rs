@@ -1,0 +1,49 @@
+//! T03-06 and T03-07. Pairing uses the sample id on the original row.
+use jarambit_monte_carlo::{
+    accept_sourced_correlation, check_audit_ids, joint_columns, paired_joint, AuditIds, CheckedError,
+    ColumnSample, CommonRandomNumbers, Pair,
+};
+
+fn pair(id: u64, a: f64, b: f64) -> Pair { Pair { id, a, b } }
+
+fn j2() -> Vec<Pair> {
+    vec![pair(0, 1.0, -1.0), pair(1, 2.0, -2.0), pair(2, -1.0, 1.0), pair(3, -2.0, 2.0)]
+}
+
+#[test]
+fn joint_requirement_outcomes_preserve_sample_identity() {
+    let j1 = paired_joint(&[pair(0, 1.0, 1.0), pair(1, 1.0, 1.0), pair(2, -1.0, -1.0), pair(3, -1.0, -1.0)]).unwrap();
+    assert_eq!((j1.joint.text(), j1.marginal_a.text(), j1.product.text(), j1.product_label), ("2/4".into(), "2/4".into(), "1/4".into(), "assumed_independent"));
+    let same = paired_joint(&j2()).unwrap();
+    assert_eq!((same.joint.text(), same.marginal_a.text(), same.marginal_b.text(), same.product.text()), ("0/4".into(), "2/4".into(), "2/4".into(), "1/4".into()));
+    assert_ne!(same.joint.text(), same.product.text());
+    let swapped = paired_joint(&[pair(0, -1.0, 1.0), pair(1, -2.0, 2.0), pair(2, 1.0, -1.0), pair(3, 2.0, -2.0)]).unwrap();
+    assert_eq!(swapped.joint.text(), "0/4");
+    let permuted = paired_joint(&[pair(2, -1.0, 1.0), pair(0, 1.0, -1.0), pair(3, -2.0, 2.0), pair(1, 2.0, -2.0)]).unwrap();
+    assert_eq!(permuted.joint.text(), "0/4");
+    let a = [ColumnSample { id: 0, value: 1.0 }, ColumnSample { id: 1, value: 2.0 }, ColumnSample { id: 2, value: -1.0 }, ColumnSample { id: 3, value: -2.0 }];
+    let b = [ColumnSample { id: 2, value: 1.0 }, ColumnSample { id: 1, value: -2.0 }, ColumnSample { id: 0, value: -1.0 }, ColumnSample { id: 3, value: 2.0 }];
+    assert_eq!(joint_columns(&a, &b), Err(CheckedError::MismatchedSampleId));
+    let mut sorted_a = [1.0, 2.0, -1.0, -2.0];
+    let mut sorted_b = [-1.0, -2.0, 1.0, 2.0];
+    sorted_a.sort_by(|x, y| x.partial_cmp(y).unwrap());
+    sorted_b.sort_by(|x, y| x.partial_cmp(y).unwrap());
+    let mutant = sorted_a.iter().zip(sorted_b.iter()).filter(|(x, y)| **x > 0.0 && **y > 0.0).count();
+    assert_eq!(mutant, 2);
+    assert_ne!(same.joint.passes, mutant as u64);
+}
+
+#[test]
+fn four_state_joint_matches_product_and_audit_ids_are_not_reused() {
+    let rows = [pair(0, 1.0, 1.0), pair(1, 1.0, -1.0), pair(2, -1.0, 1.0), pair(3, -1.0, -1.0)];
+    let est = paired_joint(&rows).unwrap();
+    assert_eq!((est.joint.text(), est.product.text()), ("1/4".into(), "1/4".into()));
+    assert_eq!(est.product_label, "assumed_independent");
+    let j2 = paired_joint(&j2()).unwrap();
+    assert_ne!(j2.joint.passes, j2.product.num as u64);
+    check_audit_ids(AuditIds { search: 11, calibration: 22, final_audit: 33 }).unwrap();
+    assert_eq!(check_audit_ids(AuditIds { search: 11, calibration: 22, final_audit: 11 }), Err(CheckedError::AuditStreamNotIndependent));
+    let _crn = CommonRandomNumbers { stream: 11 };
+    assert_eq!(accept_sourced_correlation(false), Err(CheckedError::UnsourcedCorrelation));
+    accept_sourced_correlation(true).unwrap();
+}
