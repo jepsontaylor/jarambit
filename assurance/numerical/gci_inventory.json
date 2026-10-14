@@ -1,0 +1,536 @@
+{
+  "schema": 2,
+  "method_id": "relative_gci.v2",
+  "scope": "Owned T01 software contracts; no solver or physical qualification",
+  "threshold": 0.03,
+  "precision_floor_ulps": 16,
+  "refinement_convention": "uniform_h",
+  "fit_tolerance_ulps": 1,
+  "expected_designs": [
+    "a0_tip+00_t60_tt3",
+    "g3_tip+00_t58_tt3",
+    "g3_tip+00_t60_tt0",
+    "g3_tip+00_t60_tt3",
+    "w271b_11772"
+  ],
+  "cases": [
+    {
+      "id": "T01-01-analytic_order",
+      "test_file": "fem_solid/tests/test_gci.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": {
+          "family": "f(h)=100+8*h*h",
+          "h_fine_mid_coarse": [
+            0.25,
+            0.5,
+            1.0
+          ],
+          "f1": 100.5,
+          "f2": 102.0,
+          "f3": 108.0,
+          "r": 2,
+          "fs": 1.25
+        },
+        "adverse": "Use T01-02 as the broken counterpart. This case does not have a second passing twin.",
+        "independent_oracle": "p = 2, f_ext = 100, gci_fine = 5/804. Accept each within 1 ulp of the float64 rational. The float expression 1.25*abs((100.5-102)/100.5)/3 is 1 ulp below float(5/804), so matching that expression is not the oracle.",
+        "expected_finding": "supported_within_scope for the software arithmetic contract only"
+      },
+      "oracle_sha256": "8116eabbfc99f38a077ed1a9f7324ff3939c8e70cf5a03f677e9e0b6dcc97ec6"
+    },
+    {
+      "id": "T01-02-divergent_order",
+      "test_file": "fem_solid/tests/test_gci.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": "The T01-01 triple. Finding supported_within_scope for that arithmetic contract only.",
+        "adverse": {
+          "f1": 10,
+          "f2": 12,
+          "f3": 13,
+          "r": 2,
+          "fs": 1.25
+        },
+        "independent_oracle": "Formula arithmetic gives p = -1 and gci_fine = -0.5. That pair is the current bug recorded in the regression observed_current. Do not require returning -0.5 as success. Do not absolute-value the negative result into a pass.",
+        "expected_finding": "rejected_within_scope; classification nonpositive order or unresolved. Never PASS."
+      },
+      "oracle_sha256": "172494d36a01e6023048fd8324c16435bfe76a4a4aa5bb56d77adf070a3a82fc"
+    },
+    {
+      "id": "T01-03-zero_order",
+      "test_file": "fem_solid/tests/test_gci.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": "The T01-01 triple, observed order 2, denominator r^p-1 = 3.",
+        "adverse": {
+          "f1": 10,
+          "f2": 11,
+          "f3": 12,
+          "r": 2,
+          "fs": 1.25
+        },
+        "independent_oracle": "Structured unresolved result. No ZeroDivisionError and no published PASS. Do not invent a tiny denominator or return an infinite GCI.",
+        "expected_finding": "inconclusive or rejected_within_scope. Observed order 0 makes r^p-1 = 0."
+      },
+      "oracle_sha256": "14372d9e32b7073ce035727a5faf79329efdc71c6186ea9d213a3074737ca83b"
+    },
+    {
+      "id": "T01-04-plateau",
+      "test_file": "fem_solid/tests/test_gci.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": "The T01-01 triple, where the fine pair differs.",
+        "adverse": {
+          "f1": 10,
+          "f2": 10,
+          "f3": 100,
+          "r": 2,
+          "meaning": "equal finest and mid; coarse differs"
+        },
+        "independent_oracle": "Regression fine_pair_plateau uses this tuple and currently observes zero GCI with infinite order because e21 == 0. Required outcome is additional evidence, never PASS.",
+        "expected_finding": "inconclusive. Pair equality is not convergence and is not a zero-GCI PASS."
+      },
+      "oracle_sha256": "d371ba66c0fe68343be9a12cc5b32342539ac35f3aaf1d46077859836fe5991f"
+    },
+    {
+      "id": "T01-05-oscillatory",
+      "test_file": "fem_solid/tests/test_gci.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": "The T01-01 monotone triple remains admissible as arithmetic. It is not an oscillatory pass.",
+        "adverse": {
+          "synthetic": {
+            "f1": 100.0,
+            "f2": 100.5,
+            "f3": 100.25,
+            "r": 2,
+            "fs": 1.25
+          },
+          "existing_flag_only": {
+            "f1": 100.0,
+            "f2": 101.0,
+            "f3": 99.5,
+            "r": 2
+          },
+          "archived_named": "evidence/fem_solid/gci/w271b_11772_gci.json sha256 bb306086ed3f7301b61cceb96050f788b93fa93d082db87f70e1402eefd04140",
+          "archived_second_row": "g3_tip+00_t60_tt0 vm_nodal_avg_MPa monotone false, gci_fine 0.009813947351058897"
+        },
+        "independent_oracle": "The synthetic bound fs*abs(e21/f1)*3 equals 0.01875, which is <= 0.03, so a bare threshold check would pass. Required status is oscillatory and nonpassing. The existing (100, 101, 99.5) triple has bound 0.0375 and does not kill that mutant; keep it only as the monotone-false and p-none flag. w271b vm_nodal_max has p null, monotone false, and gci_fine 0.004841252613419533.",
+        "expected_finding": "rejected_within_scope for ordinary GCI admission. Display may show an oscillatory heuristic. Physical design failure is not claimed."
+      },
+      "oracle_sha256": "a61cabb7137f09a8d0da9bd73a5a0aa266a08677bda6ddfa9bff06e8fee113f0"
+    },
+    {
+      "id": "T01-06-exact_equal",
+      "test_file": "fem_solid/tests/test_gci.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": "The T01-01 triple.",
+        "adverse": {
+          "f1": 10,
+          "f2": 10,
+          "f3": 10,
+          "r": 2,
+          "reason_code": "all_levels_equal"
+        },
+        "independent_oracle": "All three values equal is a different reason from the T01-04 fine-pair plateau, where the coarse value differs. Current code treats every e21 == 0 as p inf, gci 0, monotone true.",
+        "expected_finding": "inconclusive. Not automatic qualification."
+      },
+      "oracle_sha256": "a6d7082523fe81883446c070dd5edcd1b4a1d3d94de10ced464c3919288c9163"
+    },
+    {
+      "id": "T01-07-invalid_ratio",
+      "test_file": "fem_solid/tests/test_gci.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": {
+          "f1": 100.5,
+          "f2": 102.0,
+          "f3": 108.0,
+          "r": 2,
+          "fs": 1.25,
+          "types": "finite real numbers, not bool"
+        },
+        "adverse": {
+          "ratios": [
+            0,
+            1,
+            -2
+          ],
+          "also_reject": "every finite r <= 1",
+          "nonfinite_quantities_ratio_or_order": [
+            "NaN",
+            "+Infinity",
+            "-Infinity"
+          ],
+          "booleans": "True and False are invalid even though bool is an int subclass"
+        },
+        "independent_oracle": "Reject before a fit is published. No ZeroDivisionError, ValueError, or other exception becomes the receipt. Nonfinite fixtures are symbolic inputs, not JSON numbers.",
+        "expected_finding": "rejected_within_scope, reason invalid input"
+      },
+      "oracle_sha256": "3f56f5b4612fc515196a5fd0f053f303a7cb5c526434869781d26f1a5b2624cf"
+    },
+    {
+      "id": "T01-08-zero_reference",
+      "test_file": "fem_solid/tests/test_gci.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": "The T01-01 triple, fine value 100.5, relative denominator defined.",
+        "adverse": {
+          "f1": 0,
+          "f2": 1,
+          "f3": 2,
+          "r": 2
+        },
+        "independent_oracle": "The relative formula divides by f1. f1 = 0 leaves that metric undefined. This case does not require an absolute-error implementation. If an absolute-error method is added later, it uses a different method id and cannot flip this relative claim to PASS.",
+        "expected_finding": "inconclusive for the relative GCI gate. Relative claim stays not PASS."
+      },
+      "oracle_sha256": "647feecebca5ae956dc67686e3ee9ee4a6574e18e93eb2c7bd355c27a93f23b1"
+    },
+    {
+      "id": "T01-09-precision_floor",
+      "test_file": "fem_solid/tests/test_gci.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": "Unscaled analytic family and exact binary rescalings 2**-60 and2**60 remain above their pair-local ULP floors; relative GCI arithmetic should be scale-consistent, within independently frozen floating tolerance.",
+        "adverse": {
+          "f1": 1.0,
+          "f2": "nextafter(1.0, 2.0)",
+          "f3": "nextafter(f2, 2.0)",
+          "r": 2
+        },
+        "independent_oracle": "For each finite successive pair (a,b), nonzero abs(a-b) <= 16*max(ulp(a),ulp(b)) is precision_limited and nonpassing. No max(...,1) unit floor. Equality is handled by separate plateau/all-equal reasons; overflowed differences are unresolved. Factor16 is this software policy conservative guard, not a validated physical error bound.",
+        "expected_finding": "inconclusive. No fabricated observed order."
+      },
+      "oracle_sha256": "8720f9116e1a53cd037d9252abc68ac8357a804e1063fc590d65412d3d38bc62"
+    },
+    {
+      "id": "T01-10-mesh_sequence",
+      "test_file": "fem_solid/tests/test_gci.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": {
+          "mesh_ids": [
+            "m_fine",
+            "m_mid",
+            "m_coarse"
+          ],
+          "h_fine_mid_coarse": [
+            0.25,
+            0.5,
+            1.0
+          ],
+          "r": 2,
+          "meaning": "ordered fine-to-coarse h increasing; resolution density decreases; unique exact content-bound meshes; uniform fixture ratios h_mid/h_fine=h_coarse/h_mid=2"
+        },
+        "adverse": [
+          "permuted level order",
+          "duplicate mesh id",
+          "anisotropic or nonuniform refinement without an approved effective-r definition"
+        ],
+        "independent_oracle": "Baseline convergence.py calls gci with hardcoded r = 2 after doubling both NSUB and NL. Doubling layer counts is not permission to insert r = 2.",
+        "expected_finding": "supported_within_scope only for the approved sequence. Adverse sequences are rejected_within_scope or unsupported."
+      },
+      "oracle_sha256": "e4e239aafa04067458350cf432eca1690bc1445005a0f3abbbf74b4cf0c316ab"
+    },
+    {
+      "id": "T01-11-observable_identity",
+      "test_file": "fem_solid/tests/test_gci.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": {
+          "id": "vm_nodal_max",
+          "units": "MPa",
+          "region": "tip-4-15mm",
+          "projection": "nodal",
+          "metric": "max",
+          "same_on_all_three_levels": true
+        },
+        "adverse": "Change exactly one of id, units, region, projection, or metric on one level.",
+        "independent_oracle": "The three levels are one sequence only when every identity field matches. The implementation must not silently switch the observable.",
+        "expected_finding": "rejected_within_scope when any identity field differs"
+      },
+      "oracle_sha256": "1e765a1d6ef473f3d32a83abf098bd78017049e1fbc68ed9f2a3eb9de46de67d"
+    },
+    {
+      "id": "T01-12-threshold_edge",
+      "test_file": "fem_solid/tests/test_gci_evidence.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": "An otherwise admitted synthetic record whose gci_fine field is nextafter(float64(0.03), 0), and another whose field is the exact float64 value of decimal 0.03.",
+        "adverse": [
+          "nextafter(float64(0.03), 1)",
+          "gci_fine -0.5",
+          "a nonfinite gci_fine"
+        ],
+        "independent_oracle": "Compare the stored field to the float64 operand of decimal 0.03. Diagnostic reprs are in diagnostic-arithmetic.json. Estimator rounding stays in T01-01. A value that renders as 3.00% with :.2f can still sit above the operand.",
+        "expected_finding": "Numeric edge and exact literal can be admitted only together with the other gates. Above-threshold, negative, and nonfinite records are rejected_within_scope."
+      },
+      "oracle_sha256": "ea50fbde244c7f88d5fb3a07edb954033c9f29f15eed01f56aace1f3f4ec25c3"
+    },
+    {
+      "id": "T01-13-negative_error_band",
+      "test_file": "fem_solid/tests/test_gci_evidence.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": "fs = 1.25 and the T01-01 nonnegative finite GCI. Publish an SF band only when the record is admitted and 0 <= gci_fine < 1.",
+        "adverse": {
+          "fs": -1.25,
+          "synthetic_gci_fine": -0.01,
+          "also": "the T01-02 value -0.5 and any gci_fine >= 1"
+        },
+        "independent_oracle": "The regression name has no numeric body. The catalog oracle is the authority for the status. Baseline convergence.main rounds SF lo/hi before any validity check; a negative or >= 1 GCI makes that band inverted, negative, or undefined.",
+        "expected_finding": "rejected_within_scope. Never an upper-threshold PASS."
+      },
+      "oracle_sha256": "afc651c9a78995e9b80dbdaffcd6945efc31bfe31c7b6dedb937ef0ff949d44f"
+    },
+    {
+      "id": "T01-14-inventory_empty",
+      "test_file": "fem_solid/tests/test_gci_evidence.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": {
+          "expected_ids": [
+            "d1",
+            "d2"
+          ],
+          "actual": "exactly those two ids, both otherwise valid, no extras"
+        },
+        "adverse": [
+          "expected count 1 with actual count 0",
+          "one missing id",
+          "a duplicate id",
+          "an extra id",
+          "a mismatched id",
+          "a mixture of valid and invalid records"
+        ],
+        "independent_oracle": "The expected set is the explicit nonempty inventory that will live at assurance/numerical/gci_inventory.json. It is not the glob of evidence/fem_solid/gci/*_gci.json. Baseline empty glob leaves ok true and prints that all 0 designs meet the bar.",
+        "expected_finding": "inconclusive. expected 1 and actual 0 is UNVERIFIED, not an all-pass statement."
+      },
+      "oracle_sha256": "8212ffa3e6d480ca1ec42b91b586c076b444a20e86607da5e656816205c075d8"
+    },
+    {
+      "id": "T01-15-stale_noop",
+      "test_file": "fem_solid/tests/test_fresh_attempts.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": "The mock records an actual invocation, a new attempt id, exit 0, and a completion receipt whose output bytes were produced by that invocation.",
+        "adverse": "A preexisting L{nsub}{nl}.json or OUT.json, plus a no-op, a failed invocation, or a nonzero solver status.",
+        "independent_oracle": "Baseline level() reuses a result file when the filename exists. run_tip.main can leave OUT.json from tip_solid and write the manifest afterward.",
+        "expected_finding": "The execution receipt and the numerical finding are separate fields. Stale bytes cannot satisfy a new execution claim."
+      },
+      "oracle_sha256": "be1e9407ccd5b4a574abed11b052125206d3be06aeb08ac87acf999068293167"
+    },
+    {
+      "id": "T01-16-cache_identity",
+      "test_file": "fem_solid/tests/test_fresh_attempts.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": {
+          "key": [
+            "input",
+            "code",
+            "config",
+            "image_digest",
+            "mesh",
+            "material",
+            "observable"
+          ],
+          "content": "exact match",
+          "label": "reuse"
+        },
+        "adverse": "Change any one key field. A mutable image tag is not a digest.",
+        "independent_oracle": "Filename equality is not content identity. Baseline image default is the tag ghcr.io/fenics/dolfinx/dolfinx:v0.9.0.",
+        "expected_finding": "A changed key is rejected_within_scope as a cache hit. The matching key is not_applicable as fresh numerical execution."
+      },
+      "oracle_sha256": "81c16116a21dd230f768352569ad2c1c0be0d0cba625c8ccb4402aaee9cfd8a7"
+    },
+    {
+      "id": "T01-17-partial_atomic",
+      "test_file": "fem_solid/tests/test_fresh_attempts.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": "Exclusive attempt directory, temporary output, verify exit 0 plus fresh schema and identities, then atomic publish.",
+        "adverse": [
+          "missing completion or manifest",
+          "interrupted rename",
+          "injected IOError standing in for disk-full",
+          "two concurrent attempts with the same key"
+        ],
+        "independent_oracle": "Publish only after verification. Retain the failed attempt. Baseline run_tip writes OUT.json and a separate manifest with no reservation.",
+        "expected_finding": "inconclusive. Partial attempts must not become fresh execution, and one attempt must not overwrite the other."
+      },
+      "oracle_sha256": "8ea98584b7a8d3601e8065f42009430082247449de6493b2ff860b8baa16a2e2"
+    },
+    {
+      "id": "T01-18-peak_singularity",
+      "test_file": "fem_solid/tests/test_gci.py",
+      "required": true,
+      "controls": [
+        "positive",
+        "adverse"
+      ],
+      "oracle": {
+        "positive": "Global sequence uses the T01-01 numbers and may be supported_within_scope as software arithmetic only.",
+        "adverse": {
+          "local_peak": {
+            "f1": 10,
+            "f2": 12,
+            "f3": 13,
+            "r": 2
+          },
+          "claim": "local peak certified because the global sequence was admissible"
+        },
+        "independent_oracle": "The local triple is the same nonpassing divergent fixture as T01-02. No singular mesh is solved.",
+        "expected_finding": "rejected_within_scope for local certification. Global-only convergence does not certify a local peak."
+      },
+      "oracle_sha256": "0cbd881905804798e468fa2d1ad8b960e1054f51bbc2ee717309dc1035c50ec8"
+    }
+  ],
+  "regressions": [
+    {
+      "name": "divergent_monotone",
+      "owners": [
+        "S02"
+      ],
+      "case": "T01-02-divergent_order"
+    },
+    {
+      "name": "zero_observed_order",
+      "owners": [
+        "S02"
+      ],
+      "case": "T01-03-zero_order"
+    },
+    {
+      "name": "fine_pair_plateau",
+      "owners": [
+        "S02"
+      ],
+      "case": "T01-04-plateau"
+    },
+    {
+      "name": "invalid_refinement_ratio",
+      "owners": [
+        "S02"
+      ],
+      "case": "T01-07-invalid_ratio"
+    },
+    {
+      "name": "nonfinite_input",
+      "owners": [
+        "S02"
+      ],
+      "case": "T01-07-invalid_ratio"
+    },
+    {
+      "name": "zero_reference_quantity",
+      "owners": [
+        "S02"
+      ],
+      "case": "T01-08-zero_reference"
+    },
+    {
+      "name": "empty_expected_inventory",
+      "owners": [
+        "S02"
+      ],
+      "case": "T01-14-inventory_empty"
+    },
+    {
+      "name": "negative_uncertainty_cannot_pass_upper_threshold",
+      "owners": [
+        "S02"
+      ],
+      "case": "T01-13-negative_error_band"
+    }
+  ],
+  "raw_history_sha256": {
+    "evidence/fem_solid/gci/a0_tip+00_t60_tt3_gci.json": "5d30c024a7657b179f9cc68043acdd5e74dc4c3a98f21c5173b5413987a6f5c3",
+    "evidence/fem_solid/gci/g3_tip+00_t58_tt3_gci.json": "1ed1e007dd75d41517858ca4b8384c60d8b2d2a73e26fea2dc3260e11472dc08",
+    "evidence/fem_solid/gci/g3_tip+00_t60_tt0_gci.json": "4bc40166b23b0d72d869fc0e14d2947e69c495a8f2765482769e2b319c752c0f",
+    "evidence/fem_solid/gci/g3_tip+00_t60_tt3_gci.json": "cf4657f3bdcf4d0c349b203ad89be38675e25dd63c3cbe01ea985627b5743076",
+    "evidence/fem_solid/gci/w271b_11772_gci.json": "bb306086ed3f7301b61cceb96050f788b93fa93d082db87f70e1402eefd04140",
+    "evidence/fem_solid/gci/bindings.json": "6946fc34d2b8d5506fde92dac55bb01f53e8897434412348a3530925c88481b4"
+  },
+  "planning_fixtures_sha256": "b03ef2792f31a3a840a13112dc0373f0733bd83076c8aed4c471e77588a0d4c1",
+  "fresh_solver_studies": {
+    "status": "not_run",
+    "reason": "No Docker/FEM/image/physical execution admitted; no required software case waived"
+  },
+  "observable": {
+    "id": "vm_nodal_max",
+    "units": "MPa",
+    "region": "tip-4-15mm",
+    "projection": "nodal",
+    "metric": "max"
+  }
+}

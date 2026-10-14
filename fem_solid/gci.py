@@ -57,11 +57,18 @@ class Estimate:
 
     @property
     def relative_error_available(self):
-        return self.fit_status == FitStatus.VALID and self.gci_fine is not None
+        try:
+            p, extrapolated, error = map(finite, (self.p, self.f_ext, self.gci_fine))
+            return self.method_id == METHOD and self.fit_status == FitStatus.VALID and self.monotone is True and p > 0 and error >= 0
+        except (ContractError, OverflowError):
+            return False
 
     @property
     def admitted(self):
-        return self.relative_error_available and self.sequence_valid and self.observable_valid
+        if not (self.relative_error_available and self.sequence_valid is True and self.observable_valid is True):
+            return False
+        try: return validate_sequence(self.levels, finite(self.levels[1].h)/finite(self.levels[0].h)) is None
+        except (AttributeError, IndexError, TypeError, ContractError, OverflowError, ZeroDivisionError): return False
 
     def to_dict(self):
         return {**asdict(self), 'fit_status': self.fit_status.value,
@@ -73,6 +80,7 @@ def validate_sequence(levels, r):
     if type(levels) not in (tuple, list) or len(levels) != 3 or not all(isinstance(x, Level) for x in levels):
         return 'three_ordered_levels_required'
     try:
+        if finite(r) <= 1: return 'invalid_refinement_ratio'
         if not all(isinstance(x.mesh, MeshRef) and isinstance(x.observable, Observable) for x in levels):
             return 'invalid_mesh_or_observable'
         unique_ids(x.mesh.id for x in levels)
