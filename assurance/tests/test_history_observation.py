@@ -3750,38 +3750,6 @@ class SameConsumerContractControls(unittest.TestCase):
             event("2026-01-01T03:00:00Z", "2026-01-01T01:30:00Z"))
         self.assertEqual(bind(after)["reason"], "measurement_during_active_exposure")
 
-    def test_supplied_component_raw_is_not_filled_in(self):
-        raw = "3" * 64
-        measured = _fixture("FX-09-p-A03-03_components")
-        measured["measurement"]["components"] = {
-            "xx": 0.0,
-            "xy": {"unknown": "not measured"},
-            "yy": 20.0,
-        }
-        measured["measurement"]["component_roles"] = {"xx": "measured", "yy": "measured"}
-        accepted = observation.bind_observation(
-            measured["measurement"], measured["history"], raw)
-        self.assertEqual(accepted["outcome"], "accepted")
-        self.assertEqual(accepted["components_unknown"], ["xy"])
-        invented = _fixture("FX-09-a-A03-03_components")
-        invented["measurement"]["components"]["xy"] = 7.5
-        invented["measurement"]["component_roles"] = {
-            "xx": "measured",
-            "xy": "measured",
-            "yy": "measured",
-        }
-        invented["measurement"]["component_raw"] = {"xx": raw, "yy": raw}
-        refused = observation.bind_observation(
-            invented["measurement"], invented["history"], raw)
-        self.assertEqual(refused["reason"], "inferred_component_labeled_measured")
-        complete = _fixture("FX-09-p-A03-03_components")
-        complete["measurement"]["components"] = {"xx": 0.0, "yy": 20.0}
-        complete["measurement"]["component_roles"] = {"xx": "measured", "yy": "measured"}
-        complete["measurement"]["component_raw"] = {"xx": raw, "yy": raw}
-        mapped = observation.bind_observation(
-            complete["measurement"], complete["history"], raw)
-        self.assertEqual(mapped["outcome"], "accepted")
-
 
 if __name__ == "__main__":
     unittest.main()

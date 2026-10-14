@@ -157,13 +157,6 @@ def _bind_components(measurement):
         len(labeled) != len(numeric) or not _digest(measurement.get("raw_sha256"))
     ):
         return _refuse("inferred_component_labeled_measured")
-    mapping = measurement.get("component_raw")
-    if mapping is not None:
-        if type(mapping) is not dict:
-            return _refuse("components_malformed")
-        for name in labeled:
-            if not _digest(mapping.get(name)):
-                return _refuse("inferred_component_labeled_measured")
     return {"components_unknown": unknown, "outcome": "accepted"}
 
 

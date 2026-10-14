@@ -20,7 +20,6 @@
     "value": {},
     "components": {"type": "object"},
     "component_roles": {"type": "object"},
-    "component_raw": {"type": "object"},
     "censoring": {},
     "uncertainty": {"type": "array"},
     "covariance_ref": {"type": "object"},
