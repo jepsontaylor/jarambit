@@ -293,10 +293,10 @@ where F: Fn(&Genotype, &mut Rng) -> f64 + Sync + Send + 'static {
     (t[0].mean, t[0].p05)
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CheckedTails { pub mean: f64, pub p05: f64, pub p95: f64 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CheckedCols<const K: usize> {
     pub cols: Option<[CheckedTails; K]>,
     pub statistical_credit: bool,
