@@ -4,7 +4,7 @@
   "description": "Opaque material-route identity. Properties stay unknown until measured. No strength, process recommendation, or finish transfer is stored here.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "id", "passport_id", "route_id", "state", "properties"],
+  "required": ["id", "passport_id", "route_id", "state", "properties"],
   "properties": {
     "schema": {"const": "material_state.v1"},
     "id": {"type": "string", "minLength": 1},

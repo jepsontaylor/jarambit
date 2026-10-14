@@ -4,7 +4,7 @@
   "description": "Segmented UTC exposure history. continuous elapsed time is not a field.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "id", "specimen", "segments", "events"],
+  "required": ["id", "specimen", "segments", "events"],
   "properties": {
     "schema": {"const": "exposure_history.v1"},
     "id": {"type": "string", "minLength": 1},
@@ -19,7 +19,7 @@
           "id": {"type": "string", "minLength": 1},
           "clock": {"const": "monotonic"},
           "origin_utc": {"type": "string", "minLength": 1},
-          "uncertainty_s": {"type": "number"}
+          "uncertainty_s": {"type": "number", "minimum": 0}
         }
       }
     },

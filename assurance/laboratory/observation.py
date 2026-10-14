@@ -4,9 +4,11 @@ count is an instrument axis, not an observation unit. Alias N is not newton.
 A censored nondetection stays null. A measured zero stays a value.
 Declared alternatives are tested by exact fractions, with no solver.
 """
+import math
 from fractions import Fraction
 
 from assurance.laboratory.history import history_prefix, parse_utc
+from assurance.laboratory.records import _digest
 
 S01_UNITS = (
     "dimensionless",
@@ -27,26 +29,58 @@ def _refuse(reason, **extra):
     return payload
 
 
-def _fraction(value):
-    if type(value) is float:
-        return Fraction(str(value))
-    return Fraction(value)
+def _unable(reason, **extra):
+    payload = {
+        "diagnostic": "unable_to_determine",
+        "finding": "inconclusive",
+        "outcome": "refused",
+        "reason": reason,
+    }
+    payload.update(extra)
+    return payload
+
+
+def _number(value):
+    if type(value) is bool or type(value) not in (int, float) or not math.isfinite(value):
+        return None
+    return Fraction(str(value)) if type(value) is float else Fraction(value)
+
+
+def _value_reason(value):
+    if type(value) is bool or type(value) not in (int, float):
+        return "non_numeric_value"
+    if not math.isfinite(value):
+        return "non_finite_value"
+    return None
 
 
 def bind_observation(measurement, history, raw_bytes_sha256=None):
     """Bind one observation to the history prefix, raw bytes, calibration, and unit."""
+    if type(measurement) is not dict:
+        return _refuse("measurement_not_an_object")
     unit = measurement.get("unit")
     if unit not in S01_UNITS:
         return _refuse("unknown_unit")
+    value = measurement.get("value")
+    if value is not None:
+        value_reason = _value_reason(value)
+        if value_reason is not None:
+            return _refuse(value_reason)
     prefix = history_prefix(history, measurement.get("time_utc"))
     if prefix.get("outcome") == "refused":
         return prefix
     claimed = list(measurement.get("history_prefix_events") or [])
     if prefix["event_ids"] != claimed:
         return _refuse("history_prefix_mismatch")
+    if prefix.get("active_event_ids"):
+        return _refuse("measurement_during_active_exposure")
+    if not _digest(measurement.get("raw_sha256")):
+        return _refuse("raw_identity_unavailable")
     if raw_bytes_sha256 is not None and raw_bytes_sha256 != measurement.get("raw_sha256"):
         return _refuse("raw_acquisition_mismatch")
     calibration = measurement.get("calibration") or {}
+    if type(calibration) is not dict:
+        return _refuse("calibration_malformed")
     when, when_reason = parse_utc(measurement.get("time_utc"))
     opened, open_reason = parse_utc(calibration.get("valid_from_utc"))
     closed, close_reason = parse_utc(calibration.get("valid_to_utc"))
@@ -55,18 +89,10 @@ def bind_observation(measurement, history, raw_bytes_sha256=None):
     if when < opened or when > closed:
         return _refuse("calibration_not_valid_at_acquisition")
     censoring = measurement.get("censoring")
-    if censoring is not None and measurement.get("value") is not None:
+    if censoring is not None and value is not None:
         return _refuse("censored_value_not_null")
     if "components" in measurement:
-        roles = measurement.get("component_roles") or {}
-        unknown = []
-        for name, value in measurement["components"].items():
-            if type(value) is dict and "unknown" in value:
-                unknown.append(name)
-                continue
-            if (value == 0 or value == 0.0) and roles.get(name) == "measured":
-                return _refuse("inferred_component_labeled_measured")
-        return {"components_unknown": unknown, "outcome": "accepted"}
+        return _bind_components(measurement)
     if censoring is not None:
         return {
             "censoring": censoring.get("type"),
@@ -74,36 +100,92 @@ def bind_observation(measurement, history, raw_bytes_sha256=None):
             "outcome": "accepted",
             "value": None,
         }
-    if measurement.get("value") == 0 or measurement.get("value") == 0.0:
+    if value == 0 or value == 0.0:
         return {"censoring": None, "outcome": "accepted", "value": 0.0}
     if raw_bytes_sha256 is not None:
         return {"available": True, "outcome": "accepted"}
     return {"history_prefix_events": prefix["event_ids"], "outcome": "accepted"}
 
 
+def _bind_components(measurement):
+    """Unknown stays unknown. A measured label needs a complete raw binding.
+
+    A partial measured label on one numeric sibling is an unprovenanced fill
+    at every value, including zero. A complete measured labeling bound to the
+    observation raw digest keeps a measured zero as a value.
+    """
+    components = measurement.get("components")
+    roles = measurement.get("component_roles") or {}
+    if type(components) is not dict or type(roles) is not dict:
+        return _refuse("components_malformed")
+    unknown = []
+    numeric = []
+    for name, component in components.items():
+        if type(name) is not str:
+            return _refuse("components_malformed")
+        if type(component) is dict:
+            if (
+                set(component) == {"unknown"}
+                and type(component.get("unknown")) is str
+                and component["unknown"]
+            ):
+                unknown.append(name)
+                continue
+            return _refuse("components_malformed")
+        reason = _value_reason(component)
+        if reason is not None:
+            return _refuse(reason)
+        numeric.append(name)
+    labeled = [name for name in numeric if roles.get(name) == "measured"]
+    if labeled and (
+        len(labeled) != len(numeric) or not _digest(measurement.get("raw_sha256"))
+    ):
+        return _refuse("inferred_component_labeled_measured")
+    return {"components_unknown": unknown, "outcome": "accepted"}
+
+
+def _trace_number(value):
+    number = _number(value)
+    if number is None:
+        return None, "non_numeric_value"
+    return number, None
+
+
 def reduce_trace(trace):
     """Exact gain*(raw-baseline-drift*t). Missing samples stay null."""
+    if type(trace) is not dict:
+        return _refuse("trace_not_an_object")
     if trace.get("unit_out") not in S01_UNITS:
         return _refuse("unknown_unit")
-    gain = _fraction(trace["gain_n_per_count"])
-    baseline = _fraction(trace["baseline_counts"])
-    drift = _fraction(trace["drift_counts_per_s"])
+    gain, gain_reason = _trace_number(trace.get("gain_n_per_count"))
+    baseline, baseline_reason = _trace_number(trace.get("baseline_counts"))
+    drift, drift_reason = _trace_number(trace.get("drift_counts_per_s"))
+    if gain_reason or baseline_reason or drift_reason:
+        return _refuse(gain_reason or baseline_reason or drift_reason)
+    samples = trace.get("samples")
+    if type(samples) is not list:
+        return _refuse("trace_malformed")
     values = []
     missing = 0
-    for sample in trace["samples"]:
+    for sample in samples:
+        if type(sample) is not list or len(sample) != 2:
+            return _refuse("trace_malformed")
         time_s, raw = sample
         if raw is None:
             values.append(None)
             missing += 1
             continue
-        reduced = gain * (_fraction(raw) - baseline - drift * _fraction(time_s))
-        values.append(float(reduced))
+        time_number, time_reason = _trace_number(time_s)
+        raw_number, raw_reason = _trace_number(raw)
+        if time_reason or raw_reason:
+            return _refuse(time_reason or raw_reason)
+        values.append(float(gain * (raw_number - baseline - drift * time_number)))
     return {
         "outcome": "accepted",
         "reduction": {
             "failure_observed": trace.get("termination") == "failure",
             "n_missing": missing,
-            "n_samples": len(trace["samples"]),
+            "n_samples": len(samples),
             "termination": trace.get("termination"),
             "values_n": values,
         },
@@ -111,40 +193,64 @@ def reduce_trace(trace):
 
 
 def validate_reduction(summary, trace):
-    """Recompute the trace. Omission and runout relabel are separate refusals."""
+    """Compare a supplied summary with the independent reduction of the trace.
+
+    Healthy and adverse inputs use this function. Omission and runout relabel
+    keep their reasons. Any other disagreement is reduction_mismatch. An exact
+    match is accepted, so a reject-all implementation fails the healthy path.
+    """
+    if type(summary) is not dict:
+        return _refuse("summary_not_an_object")
     fresh = reduce_trace(trace)
     if fresh.get("outcome") != "accepted":
         return fresh
     expected = fresh["reduction"]
     summary_values = list(summary.get("values_n") or [])
-    expected_missing = any(value is None for value in expected["values_n"])
-    summary_missing = any(value is None for value in summary_values)
-    if summary.get("termination") != expected["termination"] and expected_missing and summary_missing:
-        return _refuse("runout_relabeled_failure")
-    if expected_missing and not summary_missing and summary.get("termination") == "runout_censored":
+    expected_values = list(expected["values_n"])
+    if any(value is None for value in expected_values) and not any(
+        value is None for value in summary_values
+    ):
         return _refuse("reduction_omits_missing")
-    if summary.get("termination") != trace.get("termination"):
+    if summary_values != expected_values:
+        return _refuse("reduction_mismatch")
+    if summary.get("termination") != expected["termination"]:
         return _refuse("runout_relabeled_failure")
-    return _refuse("reduction_mismatch")
+    for key in ("failure_observed", "n_missing", "n_samples"):
+        if summary.get(key) != expected[key]:
+            return _refuse("reduction_mismatch")
+    return {"outcome": "accepted", "reduction": expected}
 
 
 def validate_observation_support(observation, claim):
     """Unit, frame, and support are separate. Equal numbers do not match support."""
+    if type(observation) is not dict or type(claim) is not dict:
+        return _refuse("support_record_malformed")
     frame = claim.get("frame")
     observed_frame = observation.get("frame") or {}
-    if frame is not None and frame.get("handedness") != observed_frame.get("handedness"):
-        return _refuse("frame_handedness_mismatch")
+    if frame is not None:
+        if type(frame) is not dict or type(observed_frame) is not dict:
+            return _refuse("frame_axes_mismatch")
+        if frame.get("handedness") != observed_frame.get("handedness"):
+            return _refuse("frame_handedness_mismatch")
+        if frame.get("axes") != observed_frame.get("axes"):
+            return _refuse("frame_axes_mismatch")
+        if frame.get("id") != observed_frame.get("id"):
+            return _refuse("frame_axes_mismatch")
+        if "roi" in frame and frame.get("roi") != observed_frame.get("roi"):
+            return _refuse("frame_roi_mismatch")
+    if "unit" in claim and claim.get("unit") != observation.get("unit"):
+        return _refuse("unit_mismatch")
     support = claim.get("support")
     observed_support = observation.get("support") or {}
     if support is not None:
+        if type(support) is not dict or type(observed_support) is not dict:
+            return _refuse("support_or_reference_mismatch")
         for key in ("kind", "reference_state", "size_mm"):
             if support.get(key) != observed_support.get(key):
                 return _refuse("support_or_reference_mismatch")
-    if "unit" in claim and claim.get("unit") != observation.get("unit"):
-        return _refuse("frame_handedness_mismatch")
     scope = claim.get("scope")
-    kind = observed_support.get("kind")
-    if scope == "local_organization" and kind == "bulk":
+    kind = observed_support.get("kind") if type(observed_support) is dict else None
+    if scope == "local_organization" and kind in (None, "", "unknown", "bulk"):
         return _refuse("scope_exceeds_support")
     if scope == "bulk_composition" and kind != "bulk":
         return _refuse("scope_exceeds_support")
@@ -152,11 +258,19 @@ def validate_observation_support(observation, claim):
 
 
 def validate_intervention(intervention, claim):
-    """A preparation that can introduce a species blocks an intrinsic claim for it."""
-    species = claim.get("species")
-    introduced = intervention.get("may_introduce") or []
-    if claim.get("scope") == "intrinsic" and species in introduced:
-        return _refuse("preparation_induced_not_intrinsic")
+    """A preparation that can introduce a species blocks an intrinsic claim for it.
+
+    An intrinsic claim needs an explicit may_introduce list. A missing list is
+    undeclared, not evidence that the preparation introduces nothing.
+    """
+    if type(intervention) is not dict or type(claim) is not dict:
+        return _refuse("intervention_not_an_object")
+    if claim.get("scope") == "intrinsic":
+        introduced = intervention.get("may_introduce")
+        if "may_introduce" not in intervention or type(introduced) is not list:
+            return _refuse("preparation_undeclared")
+        if claim.get("species") in introduced:
+            return _refuse("preparation_induced_not_intrinsic")
     return {"outcome": "accepted"}
 
 
@@ -165,34 +279,68 @@ def _row_image(row, alternative):
         return None
     total = Fraction(0)
     for term, coefficient in zip(row, alternative):
-        total += _fraction(term) * _fraction(coefficient)
+        term_number = _number(term)
+        coefficient_number = _number(coefficient)
+        if term_number is None or coefficient_number is None:
+            return None
+        total += term_number * coefficient_number
     return total
 
 
+def _observation_supports(observation):
+    if type(observation) is not dict:
+        return False
+    if observation.get("unit") not in S01_UNITS:
+        return False
+    if not _digest(observation.get("raw_sha256")):
+        return False
+    if observation.get("censoring") is not None or observation.get("value") is None:
+        return False
+    if _value_reason(observation.get("value")) is not None:
+        return False
+    calibration = observation.get("calibration")
+    return type(calibration) is dict and bool(calibration.get("id"))
+
+
 def interpret(observations=None, claim=None, operator_rows=None, observed=None, alternatives=None):
-    """No empty set is healthy. Declared rows either identify one alternative or refuse."""
+    """No empty set is healthy. Support needs a validated observation and a claim."""
     if operator_rows is not None or alternatives is not None:
-        target = [_fraction(value) for value in (observed or [])]
+        rows = list(operator_rows or [])
+        choices = list(alternatives or [])
+        if not rows or not choices:
+            return _unable("not_identified")
+        width = len(rows[0])
+        if width == 0 or any(type(row) is not list or len(row) != width for row in rows):
+            return _unable("alternative_dimension_mismatch", alternatives=choices)
+        if any(type(alternative) is not list or len(alternative) != width for alternative in choices):
+            return _unable("alternative_dimension_mismatch", alternatives=choices)
+        if type(observed) is not list or len(observed) != len(rows):
+            return _unable("not_identified", alternatives=choices)
+        target = []
+        for value in observed:
+            number = _number(value)
+            if number is None:
+                return _unable("non_numeric_value", alternatives=choices)
+            target.append(number)
         matched = []
-        for alternative in alternatives or []:
-            image = [_row_image(row, alternative) for row in (operator_rows or [])]
+        for alternative in choices:
+            image = [_row_image(row, alternative) for row in rows]
             if None in image:
-                continue
+                return _unable("non_numeric_value", alternatives=choices)
             if image == target:
                 matched.append(list(alternative))
         if len(matched) == 1:
             return {"identified": matched, "outcome": "accepted"}
         return {
-            "alternatives": [list(alternative) for alternative in (alternatives or [])],
+            "alternatives": [list(alternative) for alternative in choices],
             "finding": "inconclusive",
             "outcome": "refused",
             "reason": "not_identified",
         }
     if not observations:
-        return {
-            "diagnostic": "unable_to_determine",
-            "finding": "inconclusive",
-            "outcome": "refused",
-            "reason": "absent_measurement_cannot_be_healthy",
-        }
+        return _unable("absent_measurement_cannot_be_healthy")
+    if type(observations) is not list or type(claim) is not dict or not claim:
+        return _unable("invalid_observation_cannot_support")
+    if not all(_observation_supports(observation) for observation in observations):
+        return _unable("invalid_observation_cannot_support")
     return {"finding": "supported_within_scope", "outcome": "accepted"}

@@ -4,7 +4,7 @@
   "description": "Closed specimen identity. Absent finish is omitted, not a default finish. An unknown route is explicit. No strength or transfer is implied.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "id", "material_lot", "process_route", "heat_treatment", "geometry_sha256", "surface_process", "parent_stock", "chain_of_custody", "alloy"],
+  "required": ["id", "material_lot", "process_route", "heat_treatment", "geometry_sha256", "surface_process", "parent_stock", "chain_of_custody", "alloy"],
   "properties": {
     "schema": {"const": "specimen.v1"},
     "id": {"type": "string", "minLength": 1},
