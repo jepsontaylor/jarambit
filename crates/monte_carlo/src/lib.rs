@@ -2,6 +2,7 @@
 //! Parallel via std::thread. Sample `i` is seeded from `(seed, i)`, so the
 //! multiset of samples does not depend on the thread count.
 use jarambit_genotype::{Genotype, Rng};
+use std::cell::Cell;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{mpsc, Arc, Mutex, OnceLock};
 
@@ -136,7 +137,35 @@ pub fn max_threads() -> usize {
 /// Process-lifetime workers. Spawning a fresh set per candidate flattened
 /// wall time above 32 threads (sys time in clone/spawn). Do not call
 /// `run_cols` from inside a sample: that worker would wait on itself.
+/// Checked [`try_run_cols`] refuses that nesting with [`CheckedError::ReentrantPool`].
 struct Pool { tx: Mutex<Vec<mpsc::Sender<Box<dyn FnOnce() + Send>>>> }
+
+thread_local! {
+    static IN_MC_WORKER: Cell<bool> = Cell::new(false);
+    static SAMPLE_INDEX: Cell<Option<usize>> = Cell::new(None);
+}
+
+struct ClearWorkerFlag;
+impl Drop for ClearWorkerFlag {
+    fn drop(&mut self) {
+        IN_MC_WORKER.with(|flag| flag.set(false));
+        SAMPLE_INDEX.with(|slot| slot.set(None));
+    }
+}
+
+fn worker_loop(recv: mpsc::Receiver<Box<dyn FnOnce() + Send>>) {
+    while let Ok(job) = recv.recv() {
+        job();
+    }
+}
+
+#[cfg(test)]
+static FAIL_NEXT_WORKER_SETUP: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[cfg(test)]
+fn arm_worker_setup_fault() {
+    FAIL_NEXT_WORKER_SETUP.store(true, std::sync::atomic::Ordering::SeqCst);
+}
 
 fn pool() -> &'static Pool {
     static POOL: OnceLock<Pool> = OnceLock::new();
@@ -148,11 +177,31 @@ impl Pool {
         let mut tx = self.tx.lock().unwrap();
         while tx.len() < n {
             let (send, recv) = mpsc::channel::<Box<dyn FnOnce() + Send>>();
-            std::thread::Builder::new().name("jarambit-mc".into()).spawn(move || {
-                while let Ok(job) = recv.recv() { job(); }
-            }).expect("mc worker");
+            std::thread::Builder::new().name("jarambit-mc".into()).spawn(move || worker_loop(recv)).expect("mc worker");
             tx.push(send);
         }
+    }
+
+    /// Fallible setup for [`try_run_cols`]. A spawn error or a poisoned pool mutex
+    /// returns [`CheckedError::WorkerSetup`] and drops the guard without panicking.
+    /// Workers created on an earlier call stay in the pool. There is no retry.
+    fn try_ensure(&self, n: usize) -> Result<(), CheckedError> {
+        #[cfg(test)]
+        if FAIL_NEXT_WORKER_SETUP.swap(false, std::sync::atomic::Ordering::SeqCst) {
+            return Err(CheckedError::WorkerSetup);
+        }
+        let mut tx = match self.tx.lock() {
+            Ok(guard) => guard,
+            Err(_) => return Err(CheckedError::WorkerSetup),
+        };
+        while tx.len() < n {
+            let (send, recv) = mpsc::channel::<Box<dyn FnOnce() + Send>>();
+            match std::thread::Builder::new().name("jarambit-mc".into()).spawn(move || worker_loop(recv)) {
+                Ok(_) => tx.push(send),
+                Err(_) => return Err(CheckedError::WorkerSetup),
+            }
+        }
+        Ok(())
     }
 }
 
@@ -230,14 +279,19 @@ pub struct CheckedCols<const K: usize> {
     pub numerically_failed: u64,
 }
 
-/// Checked column runner. `n == 0` is [`CheckedError::EmptySample`] and does not coerce to 1.
+/// Checked column runner. A call from inside a checked worker is
+/// [`CheckedError::ReentrantPool`] before the pool lock and before the empty-sample
+/// check. `n == 0` is [`CheckedError::EmptySample`] and does not coerce to 1.
 /// `K == 0` is [`CheckedError::InvalidConfig`] and does not start the pool.
 /// Each requested row is counted once: any nonfinite column invalidates that row.
 /// Finite -1000 stays a sample, not a model failure.
 /// [`ThreadRequest::Exact`] does not clamp. A worker panic or a lost worker publishes no tails.
-/// The legacy [`run`] / [`run_cols`] path is unchanged.
+/// Setup failure is [`CheckedError::WorkerSetup`]. The legacy [`run`] / [`run_cols`] path is unchanged.
 pub fn try_run_cols<const K: usize, F>(g: &Genotype, n: usize, request: ThreadRequest, admitted: usize, seed: u64, f: F) -> Result<CheckedCols<K>, CheckedError>
 where F: Fn(&Genotype, &mut Rng) -> [f64; K] + Sync + Send + 'static {
+    if IN_MC_WORKER.with(|flag| flag.get()) {
+        return Err(CheckedError::ReentrantPool);
+    }
     if n == 0 { return Err(CheckedError::EmptySample); }
     if K == 0 { return Err(CheckedError::InvalidConfig); }
     let plan = admit_threads(request, admitted, n)?;
@@ -246,7 +300,7 @@ where F: Fn(&Genotype, &mut Rng) -> [f64; K] + Sync + Send + 'static {
     let ranges = plan_ranges(n, threads);
     let workers = ranges.len();
     let pool = pool();
-    pool.ensure(workers);
+    pool.try_ensure(workers)?;
     let (done_tx, done_rx) = mpsc::channel();
     let f = Arc::new(f);
     for (t, (i0, i1)) in ranges.iter().copied().enumerate() {
@@ -258,6 +312,9 @@ where F: Fn(&Genotype, &mut Rng) -> [f64; K] + Sync + Send + 'static {
                 (i0..i1).map(|i| {
                     let mut r = Rng(mix_seed(seed, i as u64));
                     let h = perturb(&g, &mut r);
+                    IN_MC_WORKER.with(|flag| flag.set(true));
+                    SAMPLE_INDEX.with(|slot| slot.set(Some(i)));
+                    let _clear = ClearWorkerFlag;
                     f(&h, &mut r)
                 }).collect::<Vec<_>>()
             }));
@@ -444,5 +501,70 @@ mod tests {
         assert_eq!(calls.load(Ordering::SeqCst), 8);
         let distinct: HashSet<_> = ids.lock().unwrap().iter().copied().collect();
         assert_eq!(distinct.len(), 4);
+    }
+    #[test]
+    fn checked_setup_fault_returns_before_the_callback() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        let g = Genotype::random(&mut Rng(5));
+        arm_worker_setup_fault();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let seen = calls.clone();
+        let err = try_run_cols::<1, _>(&g, 2, ThreadRequest::Exact(1), 1, 13, move |_, _| {
+            seen.fetch_add(1, Ordering::SeqCst);
+            [1.0]
+        });
+        assert_eq!(err, Err(CheckedError::WorkerSetup));
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        let ok = try_run_cols::<1, _>(&g, 2, ThreadRequest::Exact(1), 1, 13, |_, _| [1.0]).unwrap();
+        assert!(ok.statistical_credit);
+        assert_eq!(ok.cols.unwrap()[0].mean, 1.0);
+    }
+    #[test]
+    fn nested_checked_call_is_refused_before_the_pool() {
+        let g = Genotype::random(&mut Rng(6));
+        let got = try_run_cols::<1, _>(&g, 1, ThreadRequest::Exact(1), 1, 11, |h, _r| {
+            let nested = try_run_cols::<1, _>(h, 0, ThreadRequest::Exact(1), 1, 12, |_, _| [0.0]);
+            assert_eq!(nested, Err(CheckedError::ReentrantPool));
+            [1.0]
+        }).unwrap();
+        assert!(got.statistical_credit);
+        assert_eq!(got.cols.unwrap()[0].mean, 1.0);
+    }
+    #[test]
+    fn indexed_replay_binds_the_post_perturb_draw() {
+        use std::collections::HashSet;
+        use std::sync::{Arc, Mutex};
+        let g = Genotype::random(&mut Rng(4));
+        let n = 8usize;
+        let seed = 99u64;
+        for threads in [1usize, 2, 4] {
+            let bits = Arc::new(Mutex::new(vec![None; n]));
+            let ids = Arc::new(Mutex::new(Vec::new()));
+            let bits_cb = bits.clone();
+            let ids_cb = ids.clone();
+            let got = try_run_cols::<1, _>(&g, n, ThreadRequest::Exact(threads), 4, seed, move |_h, r| {
+                let i = SAMPLE_INDEX.with(|slot| slot.get()).expect("sample index");
+                ids_cb.lock().unwrap().push(std::thread::current().id());
+                bits_cb.lock().unwrap()[i] = Some(r.f64().to_bits());
+                [0.0]
+            }).unwrap();
+            assert!(got.statistical_credit);
+            let distinct: HashSet<_> = ids.lock().unwrap().iter().copied().collect();
+            assert_eq!(distinct.len(), threads);
+            let recorded = bits.lock().unwrap().clone();
+            let mut stage_differs = false;
+            for i in 0..n {
+                let mut oracle = Rng(mix_seed(seed, i as u64));
+                let _sample = perturb(&g, &mut oracle);
+                let after = oracle.f64().to_bits();
+                assert_eq!(recorded[i], Some(after), "index {i} threads {threads}");
+                let mut fresh = Rng(mix_seed(seed, i as u64));
+                if fresh.f64().to_bits() != after {
+                    stage_differs = true;
+                }
+            }
+            assert!(stage_differs);
+        }
     }
 }

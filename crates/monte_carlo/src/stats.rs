@@ -19,6 +19,10 @@ pub enum CheckedError {
     RetiredLookup,
     /// A joint input was NaN or infinite. No rate is published.
     NonFiniteInput,
+    /// Checked worker setup failed before any job was sent. Existing workers stay.
+    WorkerSetup,
+    /// Checked entry from inside a checked worker. The pool is not reentrant.
+    ReentrantPool,
 }
 
 impl CheckedError {
@@ -38,6 +42,8 @@ impl CheckedError {
             Self::UnsourcedCorrelation => "UnsourcedCorrelation",
             Self::RetiredLookup => "RetiredLookup",
             Self::NonFiniteInput => "NonFiniteInput",
+            Self::WorkerSetup => "WorkerSetup",
+            Self::ReentrantPool => "ReentrantPool",
         }
     }
 }
