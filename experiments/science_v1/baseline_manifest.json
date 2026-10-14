@@ -1,9 +1,9 @@
 {
   "schema": "jarambit.science.baseline.v1",
-  "frozen_utc": "2026-10-14T02:41:17.048652+00:00",
+  "frozen_utc": "2026-10-14T03:29:17.449492+00:00",
   "source_commit": "b81aa99d43cc56b9338969f76e3214785fa7559a",
   "source_tree": "0f89fb644ed8fad741b00baaa2431eb443e1f67b",
-  "baseline_id": "science-v1.de2b3683ea873e99bc0520cec6d16047f136774cea02621cf57765b6539617e6",
+  "baseline_id": "science-v1.77e48d970fd576a96453f8f0b027e78c04939b50f347472a2be9814816125c22",
   "identity_hash_contract": "sorted-compact-ascii-json.v1",
   "planning": {
     "commit": "75bc76b01d403ebaf44e6980f38adc050ddd5233",
@@ -255,7 +255,9 @@
       "JARAMBIT_P1_SFMAP": null,
       "JARAMBIT_SOLVER": null,
       "JARAMBIT_TIPTWIST_GATE": null,
-      "JARAMBIT_T_MAX": null
+      "JARAMBIT_T_MAX": null,
+      "JARAMBIT_SEARCH_BIAS_LAT": null,
+      "JARAMBIT_SEARCH_BIAS_RING": null
     },
     "env_null_means": "unset: use source-pinned default; no default guessed from a missing variable",
     "plate_search_area_mm2": 2,
@@ -275,7 +277,7 @@
     },
     "scenarios": "Actual code/RS definitions pinned above; legacy CutMedia still present and not qualified utility replacement"
   },
-  "configuration_sha256": "b6ddcf8aa3c0d91d275d31b258024b9a852ac303dd7ecf19e0a6d3995994e69f",
+  "configuration_sha256": "5964b5f8e160d71f6dc08b5b91e1cf6674a17c50c832a39bdb834692d19070e3",
   "review_dependency_sources": [
     {
       "path": "ops/render/pro/fem_cases.json",
@@ -354,5 +356,14 @@
     "S00_core": "frozen pending source/identity receipt checks",
     "T00": "not_implemented; not a predecessor cycle for S00",
     "physical_release": "INCOMPLETE; no amendment inferred"
+  },
+  "configuration_revision": {
+    "prior_baseline_id": "science-v1.de2b3683ea873e99bc0520cec6d16047f136774cea02621cf57765b6539617e6",
+    "prior_configuration_sha256": "b6ddcf8aa3c0d91d275d31b258024b9a852ac303dd7ecf19e0a6d3995994e69f",
+    "prior_frozen_utc": "2026-10-14T02:41:17.048652+00:00",
+    "reason": "Reissued reference profile captures the two search-bias override names omitted from the first freeze",
+    "capture_scope": "Controller process environment at this reissue; not a reconstruction of an older scientific run",
+    "historical_environment_reconstructed": false,
+    "existing_runtime_evidence_requalified": false
   }
 }

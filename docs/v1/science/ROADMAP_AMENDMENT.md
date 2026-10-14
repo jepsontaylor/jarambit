@@ -88,10 +88,15 @@ adverse observation can FAIL; an invalid calculation is INCOMPLETE.
 
 The new canonical wire is `jarambit.science.canonical.v1`, distinct from raw SHA-256
 and legacy manifest JSON. Encode parsed JSON as concatenated UTF-8 tokens: null `n`,
-boolean `t`/`f`, string `s<byte-length>:<bytes>`, nonnegative integer `u<decimal>;`,
-negative integer `i<decimal>;`, finite binary64 `d<16 lowercase hex bits>;`, array
+boolean `t`/`f`, string `s<byte-length>:<bytes>`, nonnegative integer `u<digits>;`,
+negative integer `i-<magnitude>;`, finite binary64 `d<16 lowercase hex bits>;`, array
 `a<count>:` followed by values, object `o<count>:` followed by encoded key/value
 pairs in UTF-8 key order. Integer domain is signed i64 through unsigned u64.
+Integer digits are minimal base-10 ASCII without a leading plus or redundant
+zero: `0` encodes as `u0;`, `10` as `u10;`, and `-1` as `i-1;`. A negative
+magnitude is strictly positive. `u+10;`, `u010;`, `i1;`, and `i-0;` are invalid.
+The endpoints encode as `i-9223372036854775808;` and `u18446744073709551615;`.
+Negative zero is binary64 (`d8000000000000000;`), never an integer token.
 Float exponent spellings share IEEE bits; signed zero remains distinct. Unicode
 is preserved, with normalization collisions rejected at identity ingress. Do not
 coerce booleans, numeric strings, unknown enums or oversized/deep payloads.
@@ -116,3 +121,15 @@ The next owned phase is S01/T00 identity, strict observations, dependency/review
 revocation, expected coverage, historical adapters and positive/adverse/control
 tests. S02/S03/S08 numerical/binding gaps and actual lab proof remain visible.
 See [active todos](ACTIVE_TODOS.md). No version change occurs in this cut.
+
+
+## S00 review follow-up
+
+The reference configuration was reissued after independent review found that the
+initial environment inventory omitted `JARAMBIT_SEARCH_BIAS_LAT` and
+`JARAMBIT_SEARCH_BIAS_RING`. Both names now participate in the configuration hash
+and baseline ID. The reissue captures an unset reference profile; it does not
+reconstruct or requalify an older run. Source-pinned search defaults are 1.11 and
+1.08; certification is unbiased and is not changed by these search-only settings.
+The manifest retains the prior ID/hash/time as revision metadata. Old commits,
+test receipts, numerical limitations and every final-release obligation remain.
