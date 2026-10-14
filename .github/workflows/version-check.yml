@@ -30,6 +30,43 @@ jobs:
       - run: python3 -c "import sys; sys.path.insert(0,'metrics'); import global_metric as g; v,_=g.global_G(dict(solid_tip_sf_nodal_max=1.5,spg=4.0,aes_score=0.6,mass_g=80,seq_ratio=0.9)); assert abs(v-0.9675)<1e-9, v; print('G smoke ok', v)"
       - name: G1 completeness contract tests (PR-0.28.1)
         run: python3 -m unittest discover -s metrics/tests -t . -v
+      - name: Build generic claim bridge for operator-admission controls
+        run: |
+          unset CARGO_TARGET_DIR
+          export CARGO_INCREMENTAL=0 PYTHONDONTWRITEBYTECODE=1
+          export RAYON_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=
+          export TMPDIR="$PWD/target/ci-claim-tmp"
+          mkdir -p "$TMPDIR"
+          attempt=".agent/ci-claimbridge/${GITHUB_RUN_ID}/${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$(dirname "$attempt")"
+          mkdir "$attempt"
+          export JARAMBIT_CLAIM_UNIT_ATTEMPT="$attempt"
+          /home/ubuntu/.rustup/toolchains/1.85.1-x86_64-unknown-linux-gnu/bin/cargo \
+            build --release --offline --locked --jobs 1 -p jarambit-evidence \
+            --example claim_report --message-format=json > "$attempt/build.jsonl"
+          python3 -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          attempt = Path(os.environ['JARAMBIT_CLAIM_UNIT_ATTEMPT']).resolve()
+          records = [json.loads(line) for line in (attempt/'build.jsonl').read_text().splitlines()]
+          binaries = {record['executable'] for record in records
+                      if record.get('reason') == 'compiler-artifact'
+                      and record['target']['name'] == 'claim_report'
+                      and 'example' in record['target']['kind'] and record.get('executable')}
+          assert len(binaries) == 1, 'Exact generic Rust bridge artifact required'
+          binary = Path(next(iter(binaries))).resolve()
+          assert binary.is_file(), 'Generic Rust bridge missing'
+          # These variables configure synthetic unit controls only. They do not
+          # install a production caller or select authority for check_claims.
+          values = {'JARAMBIT_SCIENCE_CLAIM_UNIT_BIN': str(binary),
+                    'JARAMBIT_SCIENCE_CLAIM_UNIT_BINARY_SHA256': hashlib.sha256(binary.read_bytes()).hexdigest(),
+                    'JARAMBIT_SCIENCE_CLAIM_UNIT_OUTPUT': str(attempt/'unit-controls')}
+          (attempt/'unit-artifact.json').write_text(json.dumps(values, sort_keys=True)+'\n')
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              for name, value in values.items():
+                  assert '\n' not in value and '\r' not in value
+                  output.write(name+'='+value+'\n')
+          PY
       - name: Claim checker — scoped PASS, RS verdict blocks, default evaluator (PR-0.28.2)
         run: python3 ops/ci/check_claims.py
       - name: STATUS.md is generated and current (PR-0.28.5)

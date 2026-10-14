@@ -43,7 +43,7 @@ struct Bootstrap { schema: u32, provider: String, entries: BTreeMap<String, Boot
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct BootstrapEntry {
-    schema: u32, id: String, scope: ReviewScope, approved_inventory: ApprovedRaw,
+    schema: u32, id: String, scope: String, approved_inventory: ApprovedRaw,
     approved_requirements: Vec<ApprovedRaw>, approved_reviews: Vec<ApprovedReview>,
 }
 #[derive(Deserialize)]
@@ -130,7 +130,12 @@ fn run(request_path: &Path, authority_path: &Path) -> Result<Value, String> {
     require(bootstrap.schema == 1 && bootstrap.provider == "local_synthetic_only", "compiled_bootstrap_schema")?;
     let entry = bootstrap.entries.get(&authority.bootstrap_id).ok_or("untrusted_authority_root")?;
     require(entry.schema == 1 && entry.id == authority.bootstrap_id, "compiled_entry_schema")?;
-    require(entry.scope.group == "software_fixture" && entry.scope.requirement_set == "RS-T02-fixture", "synthetic_authority_scope")?;
+    require(entry.scope == "controller-reviewable local synthetic fixture only", "synthetic_authority_scope")?;
+    let approved_inventory: ExpectedInventory = strict_decode(entry.approved_inventory.raw_utf8.as_bytes())?;
+    require(approved_inventory.group == "software_fixture"
+        && approved_inventory.requirement_set == "RS-T02-fixture"
+        && entry.approved_reviews.iter().all(|review| review.approved_scope.group == "software_fixture"
+            && review.approved_scope.requirement_set == "RS-T02-fixture"), "synthetic_authority_scope")?;
     require(authority.approved_inventory == entry.approved_inventory
         && authority.approved_requirements == entry.approved_requirements
         && authority.approved_reviews == entry.approved_reviews, "untrusted_authority_root")?;
