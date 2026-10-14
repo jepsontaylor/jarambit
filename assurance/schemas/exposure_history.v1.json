@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "exposure_history.v1",
+  "description": "Segmented UTC exposure history. continuous elapsed time is not a field.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "specimen", "segments", "events"],
+  "properties": {
+    "schema": {"const": "exposure_history.v1"},
+    "id": {"type": "string", "minLength": 1},
+    "specimen": {"type": "string", "minLength": 1},
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "clock", "origin_utc", "uncertainty_s"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "clock": {"const": "monotonic"},
+          "origin_utc": {"type": "string", "minLength": 1},
+          "uncertainty_s": {"type": "number"}
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "start_utc", "end_utc", "segment", "trace_sha256"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "kind": {"type": "string", "minLength": 1},
+          "start_utc": {"type": "string", "minLength": 1},
+          "end_utc": {"type": "string", "minLength": 1},
+          "segment": {"type": "string", "minLength": 1},
+          "trace_sha256": {"type": "string", "minLength": 64, "maxLength": 64},
+          "interruptions": {"type": "array"},
+          "missing_intervals": {"type": "array"}
+        }
+      }
+    }
+  }
+}
