@@ -4,7 +4,7 @@
   "description": "Generic dataset roles for a record plan. Fit and validation ids are distinct. This schema commissions nothing and grants no laboratory pass.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "specimen_units", "datasets"],
+  "required": ["schema", "id", "specimen_units", "datasets"],
   "properties": {
     "schema": {"const": "test_plan.v1"},
     "id": {"type": "string", "minLength": 1},

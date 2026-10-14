@@ -8,7 +8,7 @@ import math
 from fractions import Fraction
 
 from assurance.laboratory.history import history_prefix, parse_utc
-from assurance.laboratory.records import _digest
+from assurance.laboratory.records import _digest, schema_refusal
 
 S01_UNITS = (
     "dimensionless",
@@ -55,7 +55,11 @@ def _value_reason(value):
 
 
 def bind_observation(measurement, history, raw_bytes_sha256=None):
-    """Bind one observation to the history prefix, raw bytes, calibration, and unit."""
+    """Bind one observation to the history prefix, caller raw bytes, calibration, and unit.
+
+    The digest stored on the measurement is not the caller's presented raw
+    identity. A missing caller argument stays unavailable.
+    """
     if type(measurement) is not dict:
         return _refuse("measurement_not_an_object")
     unit = measurement.get("unit")
@@ -91,8 +95,22 @@ def bind_observation(measurement, history, raw_bytes_sha256=None):
     censoring = measurement.get("censoring")
     if censoring is not None and value is not None:
         return _refuse("censored_value_not_null")
+    screened = None
     if "components" in measurement:
-        return _bind_components(measurement)
+        screened = _bind_components(measurement)
+        if screened.get("outcome") != "accepted":
+            return screened
+    if raw_bytes_sha256 is None:
+        return _refuse("raw_identity_unavailable")
+    for record, filename in (
+        (measurement, "measurement_intervention.v1.json"),
+        (history, "exposure_history.v1.json"),
+    ):
+        reason = schema_refusal(record, filename)
+        if reason is not None:
+            return _refuse(reason)
+    if screened is not None:
+        return screened
     if censoring is not None:
         return {
             "censoring": censoring.get("type"),
@@ -102,9 +120,7 @@ def bind_observation(measurement, history, raw_bytes_sha256=None):
         }
     if value == 0 or value == 0.0:
         return {"censoring": None, "outcome": "accepted", "value": 0.0}
-    if raw_bytes_sha256 is not None:
-        return {"available": True, "outcome": "accepted"}
-    return {"history_prefix_events": prefix["event_ids"], "outcome": "accepted"}
+    return {"available": True, "outcome": "accepted"}
 
 
 def _bind_components(measurement):
@@ -141,6 +157,13 @@ def _bind_components(measurement):
         len(labeled) != len(numeric) or not _digest(measurement.get("raw_sha256"))
     ):
         return _refuse("inferred_component_labeled_measured")
+    mapping = measurement.get("component_raw")
+    if mapping is not None:
+        if type(mapping) is not dict:
+            return _refuse("components_malformed")
+        for name in labeled:
+            if not _digest(mapping.get(name)):
+                return _refuse("inferred_component_labeled_measured")
     return {"components_unknown": unknown, "outcome": "accepted"}
 
 
@@ -251,9 +274,14 @@ def validate_observation_support(observation, claim):
     scope = claim.get("scope")
     kind = observed_support.get("kind") if type(observed_support) is dict else None
     if scope == "local_organization" and kind in (None, "", "unknown", "bulk"):
+        if kind in (None, "", "unknown"):
+            return _unable("scope_exceeds_support")
         return _refuse("scope_exceeds_support")
     if scope == "bulk_composition" and kind != "bulk":
         return _refuse("scope_exceeds_support")
+    reason = schema_refusal(observation, "measurement_intervention.v1.json")
+    if reason is not None:
+        return _refuse(reason)
     return {"outcome": "accepted"}
 
 
@@ -268,9 +296,12 @@ def validate_intervention(intervention, claim):
     if claim.get("scope") == "intrinsic":
         introduced = intervention.get("may_introduce")
         if "may_introduce" not in intervention or type(introduced) is not list:
-            return _refuse("preparation_undeclared")
+            return _unable("preparation_undeclared")
         if claim.get("species") in introduced:
             return _refuse("preparation_induced_not_intrinsic")
+    reason = schema_refusal(intervention, "measurement_intervention.v1.json")
+    if reason is not None:
+        return _refuse(reason)
     return {"outcome": "accepted"}
 
 
@@ -287,23 +318,21 @@ def _row_image(row, alternative):
     return total
 
 
-def _observation_supports(observation):
-    if type(observation) is not dict:
-        return False
-    if observation.get("unit") not in S01_UNITS:
-        return False
-    if not _digest(observation.get("raw_sha256")):
-        return False
-    if observation.get("censoring") is not None or observation.get("value") is None:
-        return False
-    if _value_reason(observation.get("value")) is not None:
-        return False
-    calibration = observation.get("calibration")
-    return type(calibration) is dict and bool(calibration.get("id"))
+def interpret(
+    observations=None,
+    claim=None,
+    operator_rows=None,
+    observed=None,
+    alternatives=None,
+    history=None,
+    raw_bytes_by_id=None,
+):
+    """No empty set is healthy. Support needs observations that actually bind.
 
-
-def interpret(observations=None, claim=None, operator_rows=None, observed=None, alternatives=None):
-    """No empty set is healthy. Support needs a validated observation and a claim."""
+    History and presented raw identities come from the explicit arguments, or
+    from claim["history"] and claim["raw_bytes_by_id"] when the caller put
+    them on the claim. A calibration id or a stored digest is not that context.
+    """
     if operator_rows is not None or alternatives is not None:
         rows = list(operator_rows or [])
         choices = list(alternatives or [])
@@ -341,6 +370,15 @@ def interpret(observations=None, claim=None, operator_rows=None, observed=None, 
         return _unable("absent_measurement_cannot_be_healthy")
     if type(observations) is not list or type(claim) is not dict or not claim:
         return _unable("invalid_observation_cannot_support")
-    if not all(_observation_supports(observation) for observation in observations):
-        return _unable("invalid_observation_cannot_support")
+    bound_history = history if history is not None else claim.get("history")
+    bound_raw = raw_bytes_by_id if raw_bytes_by_id is not None else claim.get("raw_bytes_by_id")
+    if type(bound_raw) is not dict:
+        bound_raw = None
+    for observation in observations:
+        presented = None
+        if type(observation) is dict and bound_raw is not None:
+            presented = bound_raw.get(observation.get("id"))
+        bound = bind_observation(observation, bound_history, presented)
+        if bound.get("outcome") != "accepted":
+            return _unable(bound.get("reason", "invalid_observation_cannot_support"))
     return {"finding": "supported_within_scope", "outcome": "accepted"}

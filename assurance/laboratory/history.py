@@ -60,10 +60,11 @@ def _nonnegative_finite(value):
 
 
 def history_prefix(history, at_utc):
-    """Completed events end strictly before at_utc.
+    """Completed events end at or before at_utc.
 
-    An event that contains at_utc stays active. Callers must not treat the
-    completed prefix as the whole history while one of those events is open.
+    An event that still contains at_utc stays active. The acquisition instant
+    belongs to the completed prefix. Callers must not drop that boundary event
+    or treat the completed prefix as the whole history while an event is open.
     """
     if type(history) is not dict:
         return _refuse("history_not_an_object")
@@ -86,7 +87,7 @@ def history_prefix(history, at_utc):
             return _refuse(end_reason)
         if start <= at < end:
             active_ids.append(event.get("id"))
-        elif end < at:
+        elif end <= at:
             event_ids.append(event.get("id"))
     return {
         "active_event_ids": active_ids,

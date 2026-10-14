@@ -4,7 +4,7 @@
   "description": "One measurement or intervention frame. A schema match is not a physical result. Derived components stay explicit.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "specimen", "time_utc", "role"],
+  "required": ["schema", "id", "specimen", "time_utc", "role"],
   "properties": {
     "schema": {"const": "measurement_intervention.v1"},
     "id": {"type": "string", "minLength": 1},
@@ -20,6 +20,7 @@
     "value": {},
     "components": {"type": "object"},
     "component_roles": {"type": "object"},
+    "component_raw": {"type": "object"},
     "censoring": {},
     "uncertainty": {"type": "array"},
     "covariance_ref": {"type": "object"},

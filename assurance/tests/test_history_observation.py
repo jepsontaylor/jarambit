@@ -28,7 +28,8 @@ FIXTURES = json.loads(r"""
         "material_lot": "LOT-A",
         "parent_stock": "BAR-7",
         "process_route": "wrought_bar",
-        "surface_process": "machined"
+        "surface_process": "machined",
+        "schema": "specimen.v1"
       },
       "registry": []
     },
@@ -36,7 +37,7 @@ FIXTURES = json.loads(r"""
       "material_state": "identified",
       "outcome": "accepted"
     },
-    "input_sha256": "4b59cfde0cb7264dea96b872b61c556add186ef1623260781edec90ebc1182a3",
+    "input_sha256": "6515da5dff3e7d4b021a1237cb7c0a4d5150b94c40949a6423e8a976c968c057",
     "oracle_sha256": "968a96e85cb874e8709c6d26cc4dc342cff67c7531eee5e014d2f6be68479cf1"
   },
   {
@@ -132,17 +133,24 @@ FIXTURES = json.loads(r"""
         "material_lot": "LOT-A",
         "parent_stock": "BAR-7",
         "process_route": "wrought_bar",
-        "surface_process": "machined"
+        "surface_process": "machined",
+        "schema": "specimen.v1"
       },
       "qualification": {
-        "passport_sha256": "ad916e7c3af764ff356323168ede1e90431c101052e689b8d41e9ddf819ecd90",
-        "scope": "machined Ti-6Al-4V wrought_bar"
+        "passport_sha256": "71bda73d711bd0ed90df3ae4bf2fa65548913768b7e636eabdcf8e8c22a569a4",
+        "scope": "machined Ti-6Al-4V wrought_bar",
+        "covered_routes": [
+          "wrought_bar"
+        ],
+        "covered_surfaces": [
+          "machined"
+        ]
       }
     },
     "oracle": {
       "outcome": "accepted"
     },
-    "input_sha256": "e02631a78664e09c9544817febb294a09d08fa8c3ce0c4513d6c4d594ad9d31c",
+    "input_sha256": "1ee39b6e06cc87c7cc0f99590d68953ea3e9bb5f0b7efc8a18cdb9889d9fe7e6",
     "oracle_sha256": "e2bbffc39c435ef1866ec771fc8f49e936dacd7ae30c19d98b5fa3c4751b7155"
   },
   {
@@ -233,7 +241,8 @@ FIXTURES = json.loads(r"""
             "uncertainty_s": 0.5
           }
         ],
-        "specimen": "SP-1"
+        "specimen": "SP-1",
+        "schema": "exposure_history.v1"
       },
       "measurement": {
         "calibration": {
@@ -282,17 +291,17 @@ FIXTURES = json.loads(r"""
           }
         ],
         "unit": "megapascal",
-        "value": 100.0
-      }
+        "value": 100.0,
+        "schema": "measurement_intervention.v1"
+      },
+      "raw_bytes_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
     },
     "oracle": {
-      "history_prefix_events": [
-        "E1"
-      ],
+      "available": true,
       "outcome": "accepted"
     },
-    "input_sha256": "e9716d9aa1f901a5e4200230712d1a1d5b5341e28ce96924bbf6963af59a8e1a",
-    "oracle_sha256": "59f81bd7b386b6c60531afb5518c2f8e79fe974345a1d8c66b19d8378555d5cc"
+    "input_sha256": "0b3d470a80d1c39045a5298fc263bbbc3453353322ab9fb2983aca12470cbd93",
+    "oracle_sha256": "ce3c299ad995bade685910bb6a92573d77d7cdc9e14bf497e3aada7a3fcc200a"
   },
   {
     "id": "FX-03-a",
@@ -418,7 +427,8 @@ FIXTURES = json.loads(r"""
           "uncertainty_s": 1.0
         }
       ],
-      "specimen": "SP-1"
+      "specimen": "SP-1",
+      "schema": "exposure_history.v1"
     },
     "oracle": {
       "continuous_elapsed": null,
@@ -428,7 +438,7 @@ FIXTURES = json.loads(r"""
         "S2"
       ]
     },
-    "input_sha256": "43866fb99ff68aa7e84d09022128e26c51e34df0b5663f36b4305fa2559d8edb",
+    "input_sha256": "ed441012aa521603061efe1f8eab844b904b1c9f70627ba58d0a42e688832254",
     "oracle_sha256": "9f83ac5acbba27f7d79c98176e7e5d7b43e738ee3adf9a1ef17970f1b50b0e23"
   },
   {
@@ -480,7 +490,8 @@ FIXTURES = json.loads(r"""
           "uncertainty_s": 1.0
         }
       ],
-      "specimen": "SP-1"
+      "specimen": "SP-1",
+      "schema": "exposure_history.v1"
     },
     "oracle": {
       "continuous_elapsed": null,
@@ -492,7 +503,7 @@ FIXTURES = json.loads(r"""
         "S2"
       ]
     },
-    "input_sha256": "cb8c41fd665ebe0753e15ea8ac5daacd54ebb342ebacf09d0205fdd9ee8ca28a",
+    "input_sha256": "897706c8aa81c465bcd11c93190553b216812eecd22853ac0ca32aea4c1c279a",
     "oracle_sha256": "d0dee8ba6e9961268b517b0a976e9346a670c2ee5d7bbad764c7d71b0f1b2b58"
   },
   {
@@ -623,7 +634,8 @@ FIXTURES = json.loads(r"""
             "uncertainty_s": 0.5
           }
         ],
-        "specimen": "SP-1"
+        "specimen": "SP-1",
+        "schema": "exposure_history.v1"
       },
       "measurement": {
         "calibration": {
@@ -672,7 +684,8 @@ FIXTURES = json.loads(r"""
           }
         ],
         "unit": "megapascal",
-        "value": 100.0
+        "value": 100.0,
+        "schema": "measurement_intervention.v1"
       },
       "raw_bytes_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
     },
@@ -680,7 +693,7 @@ FIXTURES = json.loads(r"""
       "available": true,
       "outcome": "accepted"
     },
-    "input_sha256": "2ea9766a3e4d16aac519958302f258875efcbb5a515c1578b37731293a8ddbdc",
+    "input_sha256": "0b3d470a80d1c39045a5298fc263bbbc3453353322ab9fb2983aca12470cbd93",
     "oracle_sha256": "ce3c299ad995bade685910bb6a92573d77d7cdc9e14bf497e3aada7a3fcc200a"
   },
   {
@@ -1381,13 +1394,14 @@ FIXTURES = json.loads(r"""
           }
         ],
         "unit": "megapascal",
-        "value": 100.0
+        "value": 100.0,
+        "schema": "measurement_intervention.v1"
       }
     },
     "oracle": {
       "outcome": "accepted"
     },
-    "input_sha256": "e6c2657cdd7b75409480f22446a75bc14804e5ea093bfaf7ee743792253ebd04",
+    "input_sha256": "94dc7cd2a7e0bc4eb072435d8583b4368c916978779195d6568197d947ab61f3",
     "oracle_sha256": "e2bbffc39c435ef1866ec771fc8f49e936dacd7ae30c19d98b5fa3c4751b7155"
   },
   {
@@ -1540,13 +1554,14 @@ FIXTURES = json.loads(r"""
           }
         ],
         "unit": "megapascal",
-        "value": 100.0
+        "value": 100.0,
+        "schema": "measurement_intervention.v1"
       }
     },
     "oracle": {
       "outcome": "accepted"
     },
-    "input_sha256": "e6c2657cdd7b75409480f22446a75bc14804e5ea093bfaf7ee743792253ebd04",
+    "input_sha256": "94dc7cd2a7e0bc4eb072435d8583b4368c916978779195d6568197d947ab61f3",
     "oracle_sha256": "e2bbffc39c435ef1866ec771fc8f49e936dacd7ae30c19d98b5fa3c4751b7155"
   },
   {
@@ -1655,7 +1670,8 @@ FIXTURES = json.loads(r"""
             "uncertainty_s": 0.5
           }
         ],
-        "specimen": "SP-1"
+        "specimen": "SP-1",
+        "schema": "exposure_history.v1"
       },
       "measurement": {
         "calibration": {
@@ -1708,8 +1724,10 @@ FIXTURES = json.loads(r"""
           }
         ],
         "unit": "megapascal",
-        "value": null
-      }
+        "value": null,
+        "schema": "measurement_intervention.v1"
+      },
+      "raw_bytes_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
     },
     "oracle": {
       "censoring": "left",
@@ -1717,7 +1735,7 @@ FIXTURES = json.loads(r"""
       "outcome": "accepted",
       "value": null
     },
-    "input_sha256": "1783d534792f69a811b4617826eae8ebf46d5ad897d157eebe2b17f81a12e641",
+    "input_sha256": "5aaf4d63a8825a775b0aa53ddf1ddda9a5bb5db5dfd14a6df9ded840a28167d1",
     "oracle_sha256": "fc8cc4b2ab53689124f780feb95c98ccc773f424e749dc7e3a302a36dee11ac3"
   },
   {
@@ -1746,7 +1764,8 @@ FIXTURES = json.loads(r"""
             "uncertainty_s": 0.5
           }
         ],
-        "specimen": "SP-1"
+        "specimen": "SP-1",
+        "schema": "exposure_history.v1"
       },
       "measurement": {
         "calibration": {
@@ -1795,15 +1814,17 @@ FIXTURES = json.loads(r"""
           }
         ],
         "unit": "megapascal",
-        "value": 0.0
-      }
+        "value": 0.0,
+        "schema": "measurement_intervention.v1"
+      },
+      "raw_bytes_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
     },
     "oracle": {
       "censoring": null,
       "outcome": "accepted",
       "value": 0.0
     },
-    "input_sha256": "7d19ee4cac4829774460b8b2589e1e7fb96ddd79e0991544f307e1c5eef1f25e",
+    "input_sha256": "989c70b28ae81836d8d69974a0bf0971c4c9c19c3e0ff36701500403da341a10",
     "oracle_sha256": "ed5c9c1d5532e6dc2abbb70074e705f7016896f0d69fa01fbac806fbf576ced8"
   },
   {
@@ -1921,7 +1942,8 @@ FIXTURES = json.loads(r"""
             "uncertainty_s": 0.5
           }
         ],
-        "specimen": "SP-1"
+        "specimen": "SP-1",
+        "schema": "exposure_history.v1"
       },
       "measurement": {
         "calibration": {
@@ -1977,8 +1999,10 @@ FIXTURES = json.loads(r"""
           }
         ],
         "unit": "megapascal",
-        "value": null
-      }
+        "value": null,
+        "schema": "measurement_intervention.v1"
+      },
+      "raw_bytes_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
     },
     "oracle": {
       "components_unknown": [
@@ -1986,7 +2010,7 @@ FIXTURES = json.loads(r"""
       ],
       "outcome": "accepted"
     },
-    "input_sha256": "752ae7338ba7108380c332467457ce3bf7865a96bf989b8a7d51c5ba73a0adf4",
+    "input_sha256": "609ffc65f70ae4d363b7845660d63547709d7d1997e4bb131b601f373770b70a",
     "oracle_sha256": "479d08000234f969dde465b755456300f1b13b1f98a66eb745e53366e05014f9"
   },
   {
@@ -2138,13 +2162,14 @@ FIXTURES = json.loads(r"""
           }
         ],
         "unit": "megapascal",
-        "value": 100.0
+        "value": 100.0,
+        "schema": "measurement_intervention.v1"
       }
     },
     "oracle": {
       "outcome": "accepted"
     },
-    "input_sha256": "577b7a008ffc5f5c0d1f95f755f82155d7f4c927d590a3ee1732525da27db12e",
+    "input_sha256": "0545eab3105c5c70e4072ee86b2f049cd0ba6e62f8c90f9e2e845d8a4dc94e2b",
     "oracle_sha256": "e2bbffc39c435ef1866ec771fc8f49e936dacd7ae30c19d98b5fa3c4751b7155"
   },
   {
@@ -2295,7 +2320,8 @@ FIXTURES = json.loads(r"""
             }
           ],
           "unit": "megapascal",
-          "value": 100.0
+          "value": 100.0,
+          "schema": "measurement_intervention.v1"
         },
         {
           "calibration": {
@@ -2344,7 +2370,8 @@ FIXTURES = json.loads(r"""
             }
           ],
           "unit": "megapascal",
-          "value": 100.0
+          "value": 100.0,
+          "schema": "measurement_intervention.v1"
         }
       ]
     },
@@ -2352,7 +2379,7 @@ FIXTURES = json.loads(r"""
       "independent_units": 2,
       "outcome": "accepted"
     },
-    "input_sha256": "6c7e3527097db76e67b77c7661c1cf660a1d588f338fe4e8a4ff499aa9f2d48d",
+    "input_sha256": "39435549acf876a29fefedd6da4e1d5e28959fa7e8d411a2218bbf1d11f3ef91",
     "oracle_sha256": "67ca833df0432498e05f56eb64e15ec962480aeb1decc96b77cfda10bf40dab8"
   },
   {
@@ -2768,7 +2795,8 @@ FIXTURES = json.loads(r"""
             }
           ],
           "unit": "megapascal",
-          "value": 100.0
+          "value": 100.0,
+          "schema": "measurement_intervention.v1"
         },
         {
           "calibration": {
@@ -2820,7 +2848,8 @@ FIXTURES = json.loads(r"""
             }
           ],
           "unit": "megapascal",
-          "value": 100.0
+          "value": 100.0,
+          "schema": "measurement_intervention.v1"
         }
       ]
     },
@@ -2831,7 +2860,7 @@ FIXTURES = json.loads(r"""
         "M-1"
       ]
     },
-    "input_sha256": "b4070f84b34584337b64022e1e2bbd8d569fce5babc26f552c885f5704d0a543",
+    "input_sha256": "494e9355121ae32201d73adb322b02d07ea1bcfa405ae739795a76ff2ce1af66",
     "oracle_sha256": "6505dac5c27037454ec510a8583048b925a27ebfd1dfccddbbcaf3dffdfd5022"
   },
   {
@@ -2961,7 +2990,33 @@ FIXTURES = json.loads(r"""
     "consumer": "observation.interpret",
     "input": {
       "claim": {
-        "diagnostic": "change_vs_baseline"
+        "diagnostic": "change_vs_baseline",
+        "history": {
+          "schema": "exposure_history.v1",
+          "id": "HX-1",
+          "specimen": "SP-1",
+          "segments": [
+            {
+              "clock": "monotonic",
+              "id": "S1",
+              "origin_utc": "2026-01-01T00:00:00Z",
+              "uncertainty_s": 0.5
+            }
+          ],
+          "events": [
+            {
+              "end_utc": "2026-01-01T01:00:00Z",
+              "id": "E1",
+              "kind": "load_block",
+              "segment": "S1",
+              "start_utc": "2026-01-01T00:00:00Z",
+              "trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          ]
+        },
+        "raw_bytes_by_id": {
+          "M-1": "3333333333333333333333333333333333333333333333333333333333333333"
+        }
       },
       "observations": [
         {
@@ -3011,7 +3066,8 @@ FIXTURES = json.loads(r"""
             }
           ],
           "unit": "megapascal",
-          "value": 100.0
+          "value": 100.0,
+          "schema": "measurement_intervention.v1"
         }
       ]
     },
@@ -3019,7 +3075,7 @@ FIXTURES = json.loads(r"""
       "finding": "supported_within_scope",
       "outcome": "accepted"
     },
-    "input_sha256": "33625d6cc1e3b3ecdcd6aa36584bab4eb2ee655112f86ea3988215a97aa45aa0",
+    "input_sha256": "b0bbd9027ad9b4513658e4df52534741265d9526616729623ab1c219e96270f3",
     "oracle_sha256": "12870b8eb14cb79a599bf329d6fc07c121320d6a5fdfa70e09e901ec48ddbe50"
   },
   {
@@ -3326,6 +3382,7 @@ class FrozenT07Controls(unittest.TestCase):
 
     def test_plus_00_00_is_the_other_utc_form(self):
         history_record = {
+            "schema": "exposure_history.v1",
             "id": "HX-UTC",
             "specimen": "SP-1",
             "segments": [{
@@ -3417,6 +3474,9 @@ class SameConsumerContractControls(unittest.TestCase):
         accepted = observation.bind_observation(
             healthy["measurement"], healthy["history"], healthy["raw_bytes_sha256"])
         self.assertEqual(accepted, {"available": True, "outcome": "accepted"})
+        omitted = observation.bind_observation(
+            healthy["measurement"], healthy["history"], None)
+        self.assertEqual(omitted["reason"], "raw_identity_unavailable")
         mismatch = _fixture("FX-05-p")
         refused = observation.bind_observation(
             mismatch["measurement"], mismatch["history"], "ab" * 32)
@@ -3457,6 +3517,7 @@ class SameConsumerContractControls(unittest.TestCase):
         refused = observation.validate_observation_support(
             missing, {"scope": "local_organization"})
         self.assertEqual(refused["reason"], "scope_exceeds_support")
+        self.assertEqual(refused["diagnostic"], "unable_to_determine")
         permuted = _fixture("FX-08-p")
         permuted["observation"]["frame"]["axes"] = ["z", "x", "y"]
         axes = observation.validate_observation_support(
@@ -3554,11 +3615,21 @@ class SameConsumerContractControls(unittest.TestCase):
 
     def test_intervention_pair_uses_one_function(self):
         accepted = observation.validate_intervention(
-            {"may_introduce": []}, {"scope": "intrinsic", "species": "H"})
+            {
+                "schema": "measurement_intervention.v1",
+                "id": "IV-1",
+                "specimen": "SP-1",
+                "time_utc": "2026-01-01T02:00:00Z",
+                "role": "intervention",
+                "may_introduce": [],
+            },
+            {"scope": "intrinsic", "species": "H"},
+        )
         self.assertEqual(accepted, {"outcome": "accepted"})
         refused = observation.validate_intervention(
             {}, {"scope": "intrinsic", "species": "H"})
         self.assertEqual(refused["reason"], "preparation_undeclared")
+        self.assertEqual(refused["diagnostic"], "unable_to_determine")
         induced = observation.validate_intervention(
             {"may_introduce": ["H"]}, {"scope": "intrinsic", "species": "H"})
         self.assertEqual(induced["reason"], "preparation_induced_not_intrinsic")
@@ -3569,6 +3640,147 @@ class SameConsumerContractControls(unittest.TestCase):
         refused = records.validate_specimen(passport, [])
         self.assertEqual(refused["reason"], "schema_rejected")
         self.assertEqual(refused["material_state"], "unknown")
+
+    def test_schema_version_is_required_on_a_canonical_passport(self):
+        passport = _fixture("FX-01-p")["passport"]
+        del passport["schema"]
+        refused = records.validate_specimen(passport, [])
+        self.assertEqual(refused["reason"], "schema_rejected")
+        self.assertEqual(refused["material_state"], "unknown")
+
+    def test_unknown_measurement_field_cannot_bind(self):
+        bound = _fixture("FX-05-p")
+        bound["measurement"]["qualified"] = True
+        refused = observation.bind_observation(
+            bound["measurement"], bound["history"], bound["raw_bytes_sha256"])
+        self.assertEqual(refused["reason"], "schema_rejected")
+
+    def test_interpret_uses_the_binding_not_the_record_label(self):
+        healthy = _fixture("FX-12-p")
+        accepted = observation.interpret(
+            observations=healthy["observations"], claim=healthy["claim"])
+        self.assertEqual(accepted["outcome"], "accepted")
+        invalid = _fixture("FX-12-p")
+        invalid["observations"][0]["calibration"]["valid_from_utc"] = "2026-01-01T03:00:00Z"
+        refused = observation.interpret(
+            observations=invalid["observations"], claim=invalid["claim"])
+        self.assertEqual(refused["diagnostic"], "unable_to_determine")
+        self.assertEqual(refused["reason"], "calibration_not_valid_at_acquisition")
+        flagged = _fixture("FX-12-p")
+        flagged["observations"][0]["validated"] = True
+        flagged["observations"][0]["accepted"] = True
+        unknown = observation.interpret(
+            observations=flagged["observations"], claim=flagged["claim"])
+        self.assertEqual(unknown["reason"], "schema_rejected")
+        bare = observation.interpret(
+            observations=healthy["observations"],
+            claim={"diagnostic": "change_vs_baseline"},
+        )
+        self.assertEqual(bare["diagnostic"], "unable_to_determine")
+        self.assertNotEqual(bare.get("finding"), "supported_within_scope")
+
+    def test_legacy_scope_tokens_are_not_route_or_surface_coverage(self):
+        healthy = _fixture("FX-02-p")
+        self.assertEqual(
+            records.check_transfer(healthy["qualification"], healthy["passport"]),
+            {"outcome": "accepted"},
+        )
+        surface_as_route = _fixture("FX-02-p")
+        surface_as_route["passport"]["process_route"] = "machined"
+        surface_as_route["qualification"]["passport_sha256"] = scientific_hash(
+            surface_as_route["passport"])
+        refused_route = records.check_transfer(
+            surface_as_route["qualification"], surface_as_route["passport"])
+        self.assertEqual(refused_route["reason"], "unapproved_route_transfer")
+        shot = _fixture("FX-02-p")
+        shot["passport"]["surface_process"] = "shot_peened"
+        shot["qualification"]["passport_sha256"] = scientific_hash(shot["passport"])
+        refused_surface = records.check_transfer(
+            shot["qualification"], shot["passport"])
+        self.assertEqual(refused_surface["reason"], "unapproved_route_transfer")
+        missing = _fixture("FX-02-p")
+        del missing["qualification"]["covered_surfaces"]
+        refused_missing = records.check_transfer(
+            missing["qualification"], missing["passport"])
+        self.assertEqual(refused_missing["reason"], "unapproved_route_transfer")
+
+    def test_duplicate_ids_and_missing_lots_stay_incomplete(self):
+        duplicate = _fixture("FX-11-p")
+        duplicate["observations"][1]["id"] = duplicate["observations"][0]["id"]
+        refused_id = records.validate_validation_lineage(
+            duplicate["claim"], observations=duplicate["observations"])
+        self.assertEqual(refused_id["reason"], "duplicate_observation_id")
+        missing_lot = _fixture("FX-11-p")
+        for observation_record in missing_lot["observations"]:
+            del observation_record["experimental_unit"]["lot"]
+        refused_lot = records.validate_validation_lineage(
+            missing_lot["claim"], observations=missing_lot["observations"])
+        self.assertEqual(refused_lot["reason"], "experimental_unit_incomplete")
+        self.assertNotEqual(refused_lot["outcome"], "accepted")
+
+    def test_acquisition_boundary_stays_in_the_completed_prefix(self):
+        def event(end_utc, start_utc):
+            return {
+                "end_utc": end_utc,
+                "id": "E2",
+                "kind": "load_block",
+                "segment": "S1",
+                "start_utc": start_utc,
+                "trace_sha256": "5" * 64,
+            }
+
+        def bind(payload):
+            return observation.bind_observation(
+                payload["measurement"], payload["history"], payload["raw_bytes_sha256"])
+
+        before = _fixture("FX-03-p")
+        before["history"]["events"].append(
+            event("2026-01-01T01:30:00Z", "2026-01-01T01:00:00Z"))
+        self.assertEqual(bind(before)["reason"], "history_prefix_mismatch")
+        before["measurement"]["history_prefix_events"] = ["E1", "E2"]
+        self.assertEqual(bind(before)["outcome"], "accepted")
+        at_boundary = _fixture("FX-03-p")
+        at_boundary["history"]["events"].append(
+            event("2026-01-01T02:00:00Z", "2026-01-01T01:30:00Z"))
+        self.assertEqual(bind(at_boundary)["reason"], "history_prefix_mismatch")
+        at_boundary["measurement"]["history_prefix_events"] = ["E1", "E2"]
+        self.assertEqual(bind(at_boundary)["outcome"], "accepted")
+        after = _fixture("FX-03-p")
+        after["history"]["events"].append(
+            event("2026-01-01T03:00:00Z", "2026-01-01T01:30:00Z"))
+        self.assertEqual(bind(after)["reason"], "measurement_during_active_exposure")
+
+    def test_supplied_component_raw_is_not_filled_in(self):
+        raw = "3" * 64
+        measured = _fixture("FX-09-p-A03-03_components")
+        measured["measurement"]["components"] = {
+            "xx": 0.0,
+            "xy": {"unknown": "not measured"},
+            "yy": 20.0,
+        }
+        measured["measurement"]["component_roles"] = {"xx": "measured", "yy": "measured"}
+        accepted = observation.bind_observation(
+            measured["measurement"], measured["history"], raw)
+        self.assertEqual(accepted["outcome"], "accepted")
+        self.assertEqual(accepted["components_unknown"], ["xy"])
+        invented = _fixture("FX-09-a-A03-03_components")
+        invented["measurement"]["components"]["xy"] = 7.5
+        invented["measurement"]["component_roles"] = {
+            "xx": "measured",
+            "xy": "measured",
+            "yy": "measured",
+        }
+        invented["measurement"]["component_raw"] = {"xx": raw, "yy": raw}
+        refused = observation.bind_observation(
+            invented["measurement"], invented["history"], raw)
+        self.assertEqual(refused["reason"], "inferred_component_labeled_measured")
+        complete = _fixture("FX-09-p-A03-03_components")
+        complete["measurement"]["components"] = {"xx": 0.0, "yy": 20.0}
+        complete["measurement"]["component_roles"] = {"xx": "measured", "yy": "measured"}
+        complete["measurement"]["component_raw"] = {"xx": raw, "yy": raw}
+        mapped = observation.bind_observation(
+            complete["measurement"], complete["history"], raw)
+        self.assertEqual(mapped["outcome"], "accepted")
 
 
 if __name__ == "__main__":

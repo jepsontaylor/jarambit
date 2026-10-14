@@ -36,6 +36,8 @@ class GenericLaboratoryRecords(unittest.TestCase):
         for name in names:
             document = _load(name)
             self.assertFalse(document["additionalProperties"], name)
+            self.assertIn("schema", document["required"], name)
+            self.assertIn("schema", document["properties"], name)
             encoded = json.dumps(document)
             for banned in FORBIDDEN:
                 self.assertNotIn(f'"{banned}"', encoded, name)
@@ -118,6 +120,7 @@ class GenericLaboratoryRecords(unittest.TestCase):
 
     def test_opaque_route_coverage_is_membership_in_both_directions(self):
         passport = {
+            "schema": "specimen.v1",
             "alloy": "OPAQUE-1",
             "chain_of_custody": ["receipt:CC-Q"],
             "geometry_sha256": "1" * 64,
@@ -130,10 +133,19 @@ class GenericLaboratoryRecords(unittest.TestCase):
         }
         covered = {
             "covered_routes": ["route-alpha"],
+            "covered_surfaces": ["surface-alpha"],
             "passport_sha256": scientific_hash(passport),
         }
         self.assertEqual(
             records.check_transfer(covered, passport), {"outcome": "accepted"})
+        routes_only = {
+            "covered_routes": ["route-alpha"],
+            "passport_sha256": scientific_hash(passport),
+        }
+        self.assertEqual(
+            records.check_transfer(routes_only, passport)["reason"],
+            "unapproved_route_transfer",
+        )
         reversed_route = {
             "covered_routes": ["route-beta"],
             "passport_sha256": scientific_hash(passport),

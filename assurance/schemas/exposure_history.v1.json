@@ -4,7 +4,7 @@
   "description": "Segmented UTC exposure history. continuous elapsed time is not a field.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "specimen", "segments", "events"],
+  "required": ["schema", "id", "specimen", "segments", "events"],
   "properties": {
     "schema": {"const": "exposure_history.v1"},
     "id": {"type": "string", "minLength": 1},

@@ -103,8 +103,9 @@ def _matches_schema(value, spec):
 def schema_refusal(record, filename):
     """Return a reason when record disagrees with the closed schema, else None.
 
-    The envelope field `schema` is optional. Frozen records omit it. When it
-    is present it must equal the schema const.
+    The envelope field `schema` is required. A canonical record without its
+    schema version is rejected. load_historical is the display adapter for
+    pre-schema rows and does not use this check.
     """
     if type(record) is not dict:
         return "record_not_an_object"
@@ -136,25 +137,26 @@ def validate_specimen(passport, registry, claim=None):
     return {"material_state": "identified", "outcome": "accepted"}
 
 
+def _declared_set(value):
+    """A non-empty list of exact names. Empty and non-lists are incomplete."""
+    if type(value) is not list or not value:
+        return None
+    if any(type(item) is not str or not item for item in value):
+        return None
+    return value
+
+
 def _covered_routes(qualification):
-    """Explicit route set. A legacy scope string contributes exact tokens only."""
-    declared = qualification.get("covered_routes")
-    if declared is not None:
-        if type(declared) is not list or any(type(item) is not str or not item for item in declared):
-            return None
-        return declared
-    scope = qualification.get("scope")
-    if type(scope) is not str:
-        return []
-    return scope.split()
+    """Exact declared routes. A legacy scope string is not a route list."""
+    return _declared_set(qualification.get("covered_routes"))
 
 
 def check_transfer(qualification, passport):
-    """Bind the qualification digest, then an explicit route and surface set.
+    """Bind the qualification digest, then exact route and surface sets.
 
-    The alloy string is not read. Coverage is membership of the passport route
-    in covered_routes, or in the exact whitespace tokens of a legacy scope.
-    Empty, absent, and reversed coverage all refuse.
+    The alloy string is not read. Whitespace, alloy names, and surface tokens
+    in a legacy scope do not cover a route. Missing route or surface coverage
+    stays incomplete.
     """
     if type(qualification) is not dict or type(passport) is not dict:
         return _refuse("qualification_not_an_object")
@@ -163,15 +165,18 @@ def check_transfer(qualification, passport):
         return _refuse("qualification_dependency_invalidated")
     route = passport.get("process_route")
     routes = _covered_routes(qualification)
-    if routes is None or type(route) is not str or route not in routes:
+    surfaces = _declared_set(qualification.get("covered_surfaces"))
+    if (
+        routes is None
+        or surfaces is None
+        or type(route) is not str
+        or route not in routes
+        or passport.get("surface_process") not in surfaces
+    ):
         return _refuse("unapproved_route_transfer")
-    surfaces = qualification.get("covered_surfaces")
-    if surfaces is not None:
-        if (
-            type(surfaces) is not list
-            or passport.get("surface_process") not in surfaces
-        ):
-            return _refuse("unapproved_route_transfer")
+    reason = schema_refusal(passport, "specimen.v1.json")
+    if reason is not None:
+        return _refuse(reason)
     return {"outcome": "accepted"}
 
 
@@ -229,6 +234,31 @@ def _observation_units(observations):
     return derived
 
 
+def _explicit_grouping(observations):
+    """Specimen-level units need a lot and the specimen named on the unit.
+
+    Sessions are repeated observations. A missing lot or specimen stays
+    incomplete. This does not invent a study unit from the session id.
+    """
+    for observation in observations:
+        unit = observation.get("experimental_unit")
+        if type(unit) is not dict:
+            return _refuse("experimental_unit_incomplete")
+        lot = unit.get("lot")
+        specimen = unit.get("specimen")
+        if type(lot) is not str or not lot or type(specimen) is not str or not specimen:
+            return _refuse("experimental_unit_incomplete")
+    return None
+
+
+def _observation_schemas(observations):
+    for observation in observations:
+        reason = schema_refusal(observation, "measurement_intervention.v1.json")
+        if reason is not None:
+            return _refuse(reason)
+    return None
+
+
 def _lineage_cycle(observations):
     by_id = {}
     for observation in observations:
@@ -268,10 +298,19 @@ def validate_validation_lineage(claim, lineage=None, observations=None):
     if observations is not None:
         if type(observations) is not list or any(type(item) is not dict for item in observations):
             return _refuse("observations_malformed")
+        seen_ids = []
+        for observation in observations:
+            identity = observation.get("id")
+            if type(identity) is not str or not identity or identity in seen_ids:
+                return _refuse("duplicate_observation_id")
+            seen_ids.append(identity)
         claimed = claim.get("independent_observations")
         screened = _observation_units(observations)
         if type(screened) is dict:
             return screened
+        grouping = _explicit_grouping(observations)
+        if grouping is not None:
+            return grouping
         derived = screened
         identities = {
             observation.get("id")
@@ -293,6 +332,9 @@ def validate_validation_lineage(claim, lineage=None, observations=None):
                         return _refuse("orphan_parent")
                     if parent not in links:
                         links.append(parent)
+            schema = _observation_schemas(observations)
+            if schema is not None:
+                return schema
             return {
                 "independent_units": 1,
                 "outcome": "accepted",
@@ -311,6 +353,9 @@ def validate_validation_lineage(claim, lineage=None, observations=None):
                 specimens.append(specimen)
         if claimed is not None and claimed != len(specimens):
             return _refuse("duplicate_acquisition_counted_independent")
+        schema = _observation_schemas(observations)
+        if schema is not None:
+            return schema
         return {"independent_units": len(specimens), "outcome": "accepted"}
     if lineage is None:
         return _refuse("lineage_absent")
