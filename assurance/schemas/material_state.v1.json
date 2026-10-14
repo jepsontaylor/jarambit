@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "material_state.v1",
+  "description": "Opaque material-route identity. Properties stay unknown until measured. No strength, process recommendation, or finish transfer is stored here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "passport_id", "route_id", "state", "properties"],
+  "properties": {
+    "schema": {"const": "material_state.v1"},
+    "id": {"type": "string", "minLength": 1},
+    "passport_id": {"type": "string", "minLength": 1},
+    "route_id": {"type": "string", "minLength": 1},
+    "state": {"enum": ["identified", "unknown"]},
+    "properties": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unknown": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

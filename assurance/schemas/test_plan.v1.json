@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "test_plan.v1",
+  "description": "Generic dataset roles for a record plan. Fit and validation ids are distinct. This schema commissions nothing and grants no laboratory pass.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "specimen_units", "datasets"],
+  "properties": {
+    "schema": {"const": "test_plan.v1"},
+    "id": {"type": "string", "minLength": 1},
+    "specimen_units": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "datasets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "role"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "role": {"enum": ["fit", "validation", "exploratory"]}
+        }
+      }
+    }
+  }
+}
