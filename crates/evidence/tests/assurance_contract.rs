@@ -24,7 +24,6 @@ fn fixture() -> (ClaimRecord, ExpectedInventory, Registry) {
             frame: "fixture_frame".into(), region: "fixture_roi".into(), recovery: "unrounded_scalar".into() },
     };
     let source = add("solver_output", ArtifactKind::SolverOutput);
-    add("review_receipt", ArtifactKind::Source);
     let obs = Observation { schema: 2, id: "root".into(), producer: "fixture_solver".into(), identity: identity.clone(),
         value: Some(Finite::new(1.575).unwrap()), not_applicable_reason: None, source, origin: Origin::Simulation,
         evidence_class: EvidenceClass::NumericalVerification,
@@ -48,7 +47,14 @@ fn authorized_policy(c: &mut ClaimRecord, ex: &ExpectedInventory, r: &mut Regist
     c.inventory = reference;
 }
 fn approve(reg: &mut Registry, id: &str, sequence: u64) {
-    let bytes = b"synthetic control review_receipt";
+    let hash = rebind_source(reg, id);
+    let receipt = reg.observations[0].source.clone();
+    submit_review(reg, ReviewEvent { sequence, observation: id.into(), observation_sha256: hash,
+        action: ReviewAction::Approved, reviewer: "independent_fixture_reviewer".into(),
+        scope: ReviewScope { requirement_set: "RS-fixture".into(), group: "numerical_fixture".into() },
+        receipt }, true);
+}
+fn rebind_source(reg: &mut Registry, id: &str) -> String {
     let (reference, raw, kind, hash) = {
         let obs = reg.observations.iter_mut().find(|o| o.id == id).unwrap();
         let raw = serde_json::to_vec(&obs.source_record().unwrap()).unwrap();
@@ -59,9 +65,17 @@ fn approve(reg: &mut Registry, id: &str, sequence: u64) {
     };
     reg.artifacts.retain(|a| a.reference().id != reference.id);
     reg.artifacts.push(Artifact::new(reference, raw, kind).unwrap());
-    reg.reviews.push(ReviewEvent { sequence, observation: id.into(), observation_sha256: hash,
-        action: ReviewAction::Approved, reviewer: "independent_fixture_reviewer".into(),
-        receipt: ContentRef::from_bytes("review_receipt", "fixture-v1", bytes) });
+    hash
+}
+fn submit_review(reg: &mut Registry, mut event: ReviewEvent, caller_admitted: bool) {
+    let bytes = serde_json::to_vec(&event.receipt_record()).unwrap();
+    event.receipt = ContentRef::from_bytes(&format!("review-{}-{}", event.observation, event.sequence), "fixture-v1", &bytes);
+    if caller_admitted {
+        // Fixture-only trusted caller; submitted evidence never installs its own authority.
+        reg.install_approved_review(TrustedReview::from_approved_bytes(event.receipt.clone(), &event.reviewer, &event.scope, &bytes).unwrap());
+    }
+    reg.artifacts.push(Artifact::new(event.receipt.clone(), bytes, ArtifactKind::Source).unwrap());
+    reg.reviews.push(event);
 }
 fn incomplete(c: &ClaimRecord, e: &ExpectedInventory, r: &Registry, reason: &str) {
     let out = resolve_claim(c, e, r);
@@ -123,7 +137,7 @@ fn w84_reopening_withdraws_transitive_support_without_discarding_value() {
     r.observations.push(parent); approve(&mut r, "aggregate", 2); e.criteria[0].observation = "aggregate".into();
     authorized_policy(&mut c, &e, &mut r);
     assert!(resolve_claim(&c, &e, &r).publication_eligible);
-    let mut reopened = r.reviews[0].clone(); reopened.sequence = 3; reopened.action = ReviewAction::Reopened; r.reviews.push(reopened);
+    let mut reopened = r.reviews[0].clone(); reopened.sequence = 3; reopened.action = ReviewAction::Reopened; submit_review(&mut r, reopened, true);
     incomplete(&c, &e, &r, "review_revoked_or_stale");
     assert_eq!(r.observations[0].value.unwrap().get(), 1.575);
 }
@@ -187,6 +201,82 @@ fn strict_ingest_nonfinite_boolean_unknown_and_bounds_controls() {
     let (_, _, r) = fixture(); let mut value = serde_json::to_value(&r.observations[0]).unwrap();
     value["state"]["numerical"] = json!("healthy"); assert!(ingest_observation(&serde_json::to_vec(&value).unwrap()).is_err());
     value["state"]["numerical"] = json!("verified"); value["unexpected"] = json!(1); assert!(ingest_observation(&serde_json::to_vec(&value).unwrap()).is_err());
+}
+
+#[test]
+fn authenticated_review_cannot_rebind_old_receipt_to_fresh_observation() {
+    let (c, e, mut r) = fixture();
+    assert!(resolve_claim(&c, &e, &r).publication_eligible);
+    let mut forged = r.reviews[0].clone();
+    r.observations[0].value = Some(Finite::new(2.0).unwrap());
+    let hash = rebind_source(&mut r, "root");
+    incomplete(&c, &e, &r, "review_revoked_or_stale");
+    forged.sequence = 2; forged.observation_sha256 = hash;
+    let original_receipt = forged.receipt.clone(); r.reviews.push(forged);
+    incomplete(&c, &e, &r, "review_receipt_event_mismatch");
+    approve(&mut r, "root", 3);
+    assert_ne!(r.reviews.last().unwrap().receipt, original_receipt);
+    assert!(resolve_claim(&c, &e, &r).publication_eligible);
+    assert!(!resolve_claim(&c, &e, &r).release_authorized);
+}
+
+#[test]
+fn review_envelope_requires_caller_authority_and_exact_event_fields() {
+    let (c, e, mut r) = fixture();
+    let mut untrusted = r.reviews[0].clone(); untrusted.sequence = 2;
+    submit_review(&mut r, untrusted, false);
+    incomplete(&c, &e, &r, "review_authority_missing_or_mismatch");
+    let (c, e, mut r) = fixture();
+    let reference = ContentRef::from_bytes("fake-review", "1", b"synthetic unrelated input");
+    r.artifacts.push(Artifact::new(reference.clone(), b"synthetic unrelated input".to_vec(), ArtifactKind::Synthetic).unwrap());
+    r.reviews[0].receipt = reference;
+    incomplete(&c, &e, &r, "review_receipt_invalid");
+    for field in ["sequence", "reviewer", "action", "observation", "scope"] {
+        let (c, e, mut r) = fixture();
+        match field {
+            "sequence" => r.reviews[0].sequence = 2,
+            "reviewer" => r.reviews[0].reviewer = "other-independent-reviewer".into(),
+            "action" => {
+                let mut revoked = r.reviews[0].clone(); revoked.sequence = 2; revoked.action = ReviewAction::Revoked;
+                submit_review(&mut r, revoked, true); r.reviews.last_mut().unwrap().action = ReviewAction::Approved;
+            },
+            "observation" => r.reviews[0].observation = "other".into(),
+            "scope" => r.reviews[0].scope.group = "other-group".into(),
+            _ => unreachable!(),
+        }
+        incomplete(&c, &e, &r, if field == "observation" || field == "scope" { "review_scope_missing" } else { "review_receipt_event_mismatch" });
+    }
+    let (_, _, r) = fixture(); let event = &r.reviews[0];
+    let bytes = serde_json::to_vec(&event.receipt_record()).unwrap();
+    assert!(TrustedReview::from_approved_bytes(event.receipt.clone(), "wrong-reviewer", &event.scope, &bytes).is_err());
+    let scope = ReviewScope { requirement_set: event.scope.requirement_set.clone(), group: "wrong-scope".into() };
+    assert!(TrustedReview::from_approved_bytes(event.receipt.clone(), &event.reviewer, &scope, &bytes).is_err());
+    assert!(TrustedReview::from_approved_bytes(event.receipt.clone(), &event.reviewer, &event.scope, b"unrelated").is_err());
+    let mut record = serde_json::to_value(event.receipt_record()).unwrap(); record["unexpected"] = json!(true);
+    assert!(strict_decode::<ReviewReceipt>(&serde_json::to_vec(&record).unwrap()).is_err());
+    record.as_object_mut().unwrap().remove("unexpected"); record["schema"] = json!(99);
+    let raw = serde_json::to_vec(&record).unwrap(); let reference = ContentRef::from_bytes("review", "1", &raw);
+    assert!(TrustedReview::from_approved_bytes(reference, &event.reviewer, &event.scope, &raw).is_err());
+}
+
+#[test]
+fn authorized_fresh_review_restores_only_its_exact_scope() {
+    let (mut c, e, mut r) = fixture();
+    r.observations[0].value = Some(Finite::new(2.0).unwrap());
+    let hash = rebind_source(&mut r, "root");
+    let mut event = r.reviews[0].clone(); event.sequence = 2;
+    event.observation_sha256 = hash; event.scope.group = "other-group".into(); submit_review(&mut r, event, true);
+    incomplete(&c, &e, &r, "review_revoked_or_stale");
+    let mut other_claim = c.clone(); let mut other_policy = e.clone();
+    other_claim.group = "other-group".into(); other_policy.group = other_claim.group.clone();
+    authorized_policy(&mut other_claim, &other_policy, &mut r);
+    assert!(resolve_claim(&other_claim, &other_policy, &r).publication_eligible);
+    authorized_policy(&mut c, &e, &mut r);
+    incomplete(&c, &e, &r, "review_revoked_or_stale");
+    approve(&mut r, "root", 3);
+    assert!(resolve_claim(&c, &e, &r).publication_eligible);
+    let mut revoked = r.reviews.last().unwrap().clone(); revoked.sequence = 4; revoked.action = ReviewAction::Revoked;
+    submit_review(&mut r, revoked, true); incomplete(&c, &e, &r, "review_revoked_or_stale");
 }
 
 #[test]

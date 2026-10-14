@@ -25,5 +25,6 @@
   "software_receipts": "offline support only; no alternate scientific truth engine",
   "inventory_authority": "Opaque TrustedInventory admitted from approved out-of-band content reference + requirement roots; incoming labels/rehashes do not authorize criterion changes",
   "physical_qualification_provider": "unavailable until S13 authenticated lab/passport reduction; declared acquisition metadata cannot qualify",
-  "unicode": "raw UTF-8 preserved; NFC-equivalent domain IDs and object keys cannot collide; general JSON keys are not domain IDs"
+  "unicode": "raw UTF-8 preserved; NFC-equivalent domain IDs and object keys cannot collide; general JSON keys are not domain IDs",
+  "review_authority": "Opaque TrustedReview admitted from authenticated out-of-band reference/reviewer/scope; closed review receipt binds exact observation hash/action/sequence/reviewer/scope. Incoming labels/bytes cannot establish authority; no signature verification is claimed. Without a trusted review provider support remains incomplete."
 }

@@ -133,11 +133,53 @@ pub fn ingest_observation(bytes: &[u8]) -> Result<Observation, String> {
     o.check()?; Ok(o)
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReviewScope { pub requirement_set: String, pub group: String }
+impl ReviewScope {
+    fn check(&self) -> Result<(), String> { check_id(&self.requirement_set)?; check_id(&self.group) }
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReviewReceipt {
+    pub schema: u32, pub sequence: u64, pub observation: String, pub observation_sha256: String,
+    pub action: ReviewAction, pub reviewer: String, pub scope: ReviewScope,
+}
+impl ReviewReceipt {
+    fn check(&self) -> Result<(), String> {
+        if self.schema != 1 || self.sequence == 0 || !crate::identity::is_hash(&self.observation_sha256) {
+            return Err("invalid_review_receipt".into());
+        }
+        check_id(&self.observation)?; check_id(&self.reviewer)?; self.scope.check()
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReviewEvent {
     pub sequence: u64, pub observation: String, pub observation_sha256: String,
-    pub action: ReviewAction, pub reviewer: String, pub receipt: ContentRef,
+    pub action: ReviewAction, pub reviewer: String, pub scope: ReviewScope, pub receipt: ContentRef,
+}
+impl ReviewEvent {
+    pub fn receipt_record(&self) -> ReviewReceipt {
+        ReviewReceipt { schema: 1, sequence: self.sequence, observation: self.observation.clone(),
+            observation_sha256: self.observation_sha256.clone(), action: self.action.clone(),
+            reviewer: self.reviewer.clone(), scope: self.scope.clone() }
+    }
+}
+/// Opaque caller-admitted review authority, separate from submitted artifacts/events.
+/// The reference, reviewer and scope MUST come from an authenticated application/provider,
+/// not be inferred from incoming evidence. This boundary supplies no signature verification.
+/// Without a trusted provider, callers must not install this authority.
+pub struct TrustedReview { reference: ContentRef }
+impl TrustedReview {
+    pub fn from_approved_bytes(reference: ContentRef, approved_reviewer: &str, approved_scope: &ReviewScope, bytes: &[u8]) -> Result<Self, String> {
+        reference.check()?; check_id(approved_reviewer)?; approved_scope.check()?;
+        if ContentRef::from_bytes(&reference.id, &reference.revision, bytes) != reference { return Err("approved_review_bytes_mismatch".into()); }
+        let record: ReviewReceipt = crate::identity::strict_decode(bytes)?;
+        record.check()?;
+        if record.reviewer != approved_reviewer || &record.scope != approved_scope { return Err("approved_review_scope_mismatch".into()); }
+        Ok(Self { reference })
+    }
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -185,10 +227,12 @@ impl Artifact {
     }
 }
 #[derive(Default)]
-pub struct Registry { pub artifacts: Vec<Artifact>, pub observations: Vec<Observation>, pub reviews: Vec<ReviewEvent>, inventory_authority: Option<TrustedInventory> }
+pub struct Registry { pub artifacts: Vec<Artifact>, pub observations: Vec<Observation>, pub reviews: Vec<ReviewEvent>, inventory_authority: Option<TrustedInventory>, review_authorities: Vec<TrustedReview> }
 impl Registry {
     /// The caller installs an authenticated policy root separately from submitted evidence.
     pub fn install_approved_inventory(&mut self, authority: TrustedInventory) { self.inventory_authority = Some(authority); }
+    /// Trusted caller admission only; parsing submitted review labels never calls this method.
+    pub fn install_approved_review(&mut self, authority: TrustedReview) { self.review_authorities.push(authority); }
 }
 #[derive(Debug)]
 pub struct Resolution { pub verdict: Verdict, pub publication_eligible: bool, pub release_authorized: bool }
@@ -219,11 +263,11 @@ pub fn resolve_claim(claim: &ClaimRecord, expected: &ExpectedInventory, registry
         let mut reviews = BTreeMap::new(); let mut last_sequence = None;
         for e in &reg.reviews {
             if last_sequence.map_or(false, |last| e.sequence <= last) { return Err("review_sequence_not_append_only".into()); }
-            last_sequence = Some(e.sequence); check_id(&e.reviewer)?; e.receipt.check()?;
-            if !crate::identity::is_hash(&e.observation_sha256) { return Err("invalid_review_target".into()); }
-            reviews.insert(e.observation.clone(), e);
+            last_sequence = Some(e.sequence); e.receipt_record().check()?; e.receipt.check()?;
+            reviews.insert((e.observation.clone(), e.scope.clone()), e);
         }
-        struct Walk<'a> { obs: &'a BTreeMap<String, &'a Observation>, reviews: &'a BTreeMap<String, &'a ReviewEvent>,
+        struct Walk<'a> { obs: &'a BTreeMap<String, &'a Observation>, reviews: &'a BTreeMap<(String, ReviewScope), &'a ReviewEvent>,
+            scope: ReviewScope, authorities: &'a [TrustedReview],
             artifacts: &'a BTreeMap<String, &'a Artifact>, visiting: BTreeSet<String>, checked: BTreeSet<String> }
         impl Walk<'_> {
             fn visit(&mut self, id: &str) -> Result<(), String> {
@@ -246,11 +290,15 @@ pub fn resolve_claim(claim: &ClaimRecord, expected: &ExpectedInventory, registry
                 if (o.origin == Origin::Measurement && a.kind != ArtifactKind::Acquisition)
                     || (o.origin == Origin::Simulation && a.kind != ArtifactKind::SolverOutput)
                     || (o.origin == Origin::Synthetic && a.kind != ArtifactKind::Synthetic) { return Err("source_origin_mismatch".into()); }
-                let review = self.reviews.get(id).ok_or("review_missing")?;
+                let review = self.reviews.get(&(id.into(), self.scope.clone())).ok_or("review_scope_missing")?;
                 let receipt = self.artifacts.get(&review.receipt.id).ok_or("review_artifact_missing")?;
                 if receipt.reference != review.receipt { return Err("review_artifact_identity_mismatch".into()); }
                 if review.action != ReviewAction::Approved || review.observation_sha256 != o.sha256()? { return Err("review_revoked_or_stale".into()); }
                 if crate::identity::same_id(&review.reviewer, &o.producer) { return Err("review_not_independent".into()); }
+                let record: ReviewReceipt = crate::identity::strict_decode(&receipt.bytes).map_err(|_| "review_receipt_invalid")?;
+                record.check()?;
+                if record != review.receipt_record() { return Err("review_receipt_event_mismatch".into()); }
+                if !self.authorities.iter().any(|a| a.reference == review.receipt) { return Err("review_authority_missing_or_mismatch".into()); }
                 self.visiting.remove(id); self.checked.insert(id.into()); Ok(())
             }
         }
@@ -261,7 +309,9 @@ pub fn resolve_claim(claim: &ClaimRecord, expected: &ExpectedInventory, registry
             if c.identity.scientific.requirements != ex.requirements { return Err("criterion_requirement_mismatch".into()); }
             if c.role != Role::Required { continue; }
             required += 1;
-            let mut walk = Walk { obs: &observations, reviews: &reviews, artifacts: &artifacts, visiting: BTreeSet::new(), checked: BTreeSet::new() };
+            let mut walk = Walk { obs: &observations, reviews: &reviews,
+                scope: ReviewScope { requirement_set: claim.requirement_set.clone(), group: claim.group.clone() }, authorities: &reg.review_authorities,
+                artifacts: &artifacts, visiting: BTreeSet::new(), checked: BTreeSet::new() };
             if let Err(e) = walk.visit(&c.observation) { missing.push(format!("{}:{e}", c.id)); continue; }
             let o = observations[&c.observation];
             if o.identity != c.identity || o.evidence_class != c.required_class { missing.push(format!("{}:scope_or_class_mismatch", c.id)); continue; }

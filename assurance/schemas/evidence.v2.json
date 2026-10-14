@@ -365,6 +365,117 @@
           "pattern": "^[0-9a-f]{64}$"
         }
       }
+    },
+    "review_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_set",
+        "group"
+      ],
+      "properties": {
+        "requirement_set": {
+          "type": "string",
+          "minLength": 1
+        },
+        "group": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "review_receipt": {
+      "description": "Closed content-bound receipt; qualifying approval additionally requires opaque trusted caller admission, never incoming labels or a self-rehash. No signature guarantee is provided.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "sequence",
+        "observation",
+        "observation_sha256",
+        "action",
+        "reviewer",
+        "scope"
+      ],
+      "properties": {
+        "schema": {
+          "const": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615
+        },
+        "observation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "action": {
+          "enum": [
+            "approved",
+            "reopened",
+            "revoked",
+            "superseded"
+          ]
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/$defs/review_scope"
+        }
+      }
+    },
+    "review_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "observation",
+        "observation_sha256",
+        "action",
+        "reviewer",
+        "scope",
+        "receipt"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615
+        },
+        "observation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "action": {
+          "enum": [
+            "approved",
+            "reopened",
+            "revoked",
+            "superseded"
+          ]
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/$defs/review_scope"
+        },
+        "receipt": {
+          "$ref": "#/$defs/content_ref"
+        }
+      }
     }
   },
   "type": "object",
