@@ -1,0 +1,149 @@
+{
+  "schema": "jarambit.science.study.v1",
+  "source_commit": "97af59cf14299af583b344aeaefb4594d089465a",
+  "status": "completed",
+  "purpose": "Planning baseline; no physical validation or full solid solver rerun",
+  "runs": [
+    {
+      "name": "solid_fast",
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "fem_solid/tests",
+        "-v"
+      ],
+      "returncode": 0,
+      "elapsed_s": 0.265,
+      "log": "solid_fast.log"
+    },
+    {
+      "name": "metric_contract",
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "metrics/tests",
+        "-t",
+        ".",
+        "-v"
+      ],
+      "returncode": 0,
+      "elapsed_s": 0.165,
+      "log": "metric_contract.log"
+    },
+    {
+      "name": "claims_baseline",
+      "command": [
+        "/usr/bin/python3",
+        "ops/ci/check_claims.py"
+      ],
+      "returncode": 0,
+      "elapsed_s": 0.114,
+      "log": "claims_baseline.log"
+    },
+    {
+      "name": "rust_workspace",
+      "command": [
+        "/home/ubuntu/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--workspace"
+      ],
+      "returncode": 0,
+      "elapsed_s": 499.013,
+      "log": "rust_workspace.log"
+    },
+    {
+      "name": "cli_build",
+      "command": [
+        "/home/ubuntu/.cargo/bin/cargo",
+        "build",
+        "--release",
+        "-p",
+        "jarambit"
+      ],
+      "returncode": 0,
+      "elapsed_s": 106.428,
+      "log": "cli_build.log"
+    },
+    {
+      "name": "d1_recompute",
+      "command": [
+        "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-plan/target/science-audit/release/jarambit",
+        "crescent-d1",
+        "--genomes",
+        "w14c03=docs/d1/wave15_16_collect/wave14_c03_genome.csv",
+        "--threads",
+        "2",
+        "--out",
+        "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-plan/.agent/science-v1-study/d1"
+      ],
+      "returncode": 0,
+      "elapsed_s": 122.533,
+      "log": "d1_recompute.log"
+    },
+    {
+      "name": "d1_known_negative",
+      "command": [
+        "/usr/bin/python3",
+        "ops/ci/d1_smoke.py",
+        "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-plan/.agent/science-v1-study/d1"
+      ],
+      "returncode": 0,
+      "elapsed_s": 0.196,
+      "log": "d1_known_negative.log"
+    },
+    {
+      "name": "d1_strict_json",
+      "command": [
+        "/usr/bin/python3",
+        "ops/ci/check_json_strict.py",
+        "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-plan/.agent/science-v1-study/d1"
+      ],
+      "returncode": 0,
+      "elapsed_s": 0.271,
+      "log": "d1_strict_json.log"
+    }
+  ],
+  "probes": "probes.json",
+  "environment": "environment.json",
+  "study_screen": "jr_v1_science_audit",
+  "study_worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-plan",
+  "implementation_status": "not started; planning/audit only",
+  "inputs_read_in_full": 12,
+  "test_summaries": {
+    "rust_workspace": {
+      "passed": 111,
+      "failed": 0,
+      "ignored": 1
+    },
+    "solid_fast": {
+      "total": 12,
+      "skipped": 1,
+      "returncode": 0
+    },
+    "metric_contract": {
+      "total": 12,
+      "skipped": 0,
+      "returncode": 0
+    }
+  },
+  "artifact_hashes": {
+    "d1_strict_json.log": "24a4dd81650de5830eadca6d6ae666e504022af6b38a9d66c0a10cfcac0dfd85",
+    "claims_baseline.log": "d8d0af14d0a5604a8a27c0df23c3de3acbaf9c95ac1168cb3629a95d0a12d938",
+    "solid_fast.log": "0ab537d689883a0482b706cec627b4322928d1b147376a98f24037dc2ebbea9e",
+    "probes.json": "8cf2c0e375dfe11ccd564813d5232088a508f2608d9328018697b35366289946",
+    "d1_known_negative.log": "2e726adc02d8f325bd126f4caec42912ea3d7dd47df6640b9df28c4cf42ff272",
+    "metric_contract.log": "40b1c8386cbd573077277867bc86fab5b884e502f6cb3974c01ed878fb904115",
+    "rust_workspace.log": "a09fd9b9be82517c8dde8697ab794d61f33d1f89b6414d91a4832a8973ac1065",
+    "environment.json": "4fd535a4d7fffa8ac89c2a90bcd84c8baf02b52d02de3c3ad83f9df8f131cf4b",
+    "cli_build.log": "f0343123c60f031021e2783b23b3ff008dc9dfacc7eba33188d29639971b640e",
+    "receipt.json": "22e4f3af3e7b4867f86ac30d1fcfe0a75078cfa78eea43dd2730ad22c7344e22",
+    "d1_recompute.log": "23ba013eb4220ac63649c19419c8402e367ff2f3be87796b3c607e0788ea2530"
+  }
+}

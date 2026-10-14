@@ -1,0 +1,208 @@
+{
+  "pin_commit": "e150bb906e8b8a265077de60ee148f6ba773a83a",
+  "subjects": [
+    {
+      "archived": false,
+      "candidate_status": "INCOMPLETE",
+      "fitness_status": "REPORTED_NOT_QUALIFIED",
+      "genome_binding": "INCOMPLETE",
+      "geometry_flags": [],
+      "geometry_status": "PASS",
+      "identity_ok": true,
+      "mass": {
+        "density_g_per_cc": 4.43,
+        "readme_g": 64.841,
+        "step_g": 64.84116307039213,
+        "step_vs_readme": {
+          "rel": 2.5149271623446703e-06,
+          "status": "PASS",
+          "tolerance": 0.001
+        },
+        "stl_g": 64.8483944338768,
+        "stl_vs_readme": {
+          "rel": 0.00011403947929260022,
+          "status": "PASS",
+          "tolerance": 0.01
+        }
+      },
+      "physical_qualification": false,
+      "pin_commit": "e150bb906e8b8a265077de60ee148f6ba773a83a",
+      "pipeline_eligible": false,
+      "product_claim": false,
+      "provenance": [],
+      "reported_fitness": 2.673,
+      "role": "comparison_baseline",
+      "s08_gap": "S08 native CAD adapter is not established. This diagnostic does not bind a genome, mesh, load, material, or observable, and it does not run fresh FEM. Integration owns assurance/adapters and the certified evaluator. No physical qualification is claimed.",
+      "step": {
+        "extents": [
+          214.27605525754737,
+          76.36138364545737,
+          10.000292450362002
+        ],
+        "path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+        "read_status": 1,
+        "sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+        "solids": 1,
+        "units": "mm",
+        "valid": true,
+        "volume_mm3": 14636.83139286504
+      },
+      "stl": {
+        "degenerate_faces_merged": 0,
+        "edges_merged": {
+          "boundary_edges": 0,
+          "manifold_edges": 140412,
+          "nonmanifold_edges": 0
+        },
+        "edges_raw": {
+          "boundary_edges": 280824,
+          "manifold_edges": 0,
+          "nonmanifold_edges": 0
+        },
+        "extents_mm": [
+          209.49093627929688,
+          72.99964141845703,
+          10.0
+        ],
+        "faces": 93608,
+        "finite": true,
+        "hole_fill": false,
+        "path": "designs/switchback/C10a/cad/switchback_revC10a_ground.stl",
+        "sha256": "0bcadad61bff550d9c527266e183440e8242c3a0222b9a89755cdc682b214411",
+        "vertices_merged": 46798,
+        "vertices_raw": 280824,
+        "volume_signed_mm3": 14638.463754825463,
+        "watertight_merged": true,
+        "winding_consistent_merged": true
+      },
+      "subject": "C10a"
+    },
+    {
+      "archived": true,
+      "candidate_status": "FAIL",
+      "fitness_status": "REPORTED_NOT_QUALIFIED",
+      "genome_binding": "INCOMPLETE",
+      "geometry_flags": [
+        "stl"
+      ],
+      "geometry_status": "FAIL",
+      "identity_ok": true,
+      "mass": {
+        "density_g_per_cc": 4.43,
+        "readme_g": 67.089,
+        "step_g": 67.089034015996,
+        "step_vs_readme": {
+          "rel": 5.070279182503399e-07,
+          "status": "PASS",
+          "tolerance": 0.001
+        },
+        "stl_g": 67.08670133033137,
+        "stl_vs_readme": {
+          "rel": 3.426298899421849e-05,
+          "status": "PASS",
+          "tolerance": 0.01
+        }
+      },
+      "physical_qualification": false,
+      "pin_commit": "e150bb906e8b8a265077de60ee148f6ba773a83a",
+      "pipeline_eligible": false,
+      "product_claim": false,
+      "provenance": [
+        {
+          "case": "GateS",
+          "class": "direct_native",
+          "native_measurement": true,
+          "source": "B-rep ray probe"
+        },
+        {
+          "case": "V1",
+          "class": "carried_or_ratio",
+          "native_measurement": false,
+          "source": "w80d g2 carry"
+        },
+        {
+          "case": "V2",
+          "class": "carried_or_ratio",
+          "native_measurement": false,
+          "source": "record (C.10a 0.738)"
+        },
+        {
+          "case": "V3",
+          "class": "direct_native",
+          "native_measurement": true,
+          "source": "direct r0p2"
+        },
+        {
+          "case": "V4",
+          "class": "carried_or_ratio",
+          "native_measurement": false,
+          "source": "ring-refined \u00d7 g2 ratio"
+        },
+        {
+          "case": "V5",
+          "class": "carried_or_ratio",
+          "native_measurement": false,
+          "source": "g2"
+        },
+        {
+          "case": "V6",
+          "class": "carried_or_ratio",
+          "native_measurement": false,
+          "source": "w80d submodel \u00d7 g2 ratio"
+        },
+        {
+          "case": "V7",
+          "class": "carried_or_ratio",
+          "native_measurement": false,
+          "source": "w80d nose submodel"
+        }
+      ],
+      "reported_fitness": 2.786,
+      "role": "archived_diagnostic",
+      "s08_gap": "S08 native CAD adapter is not established. This diagnostic does not bind a genome, mesh, load, material, or observable, and it does not run fresh FEM. Integration owns assurance/adapters and the certified evaluator. No physical qualification is claimed.",
+      "step": {
+        "extents": [
+          214.04040341472054,
+          78.45649922044055,
+          10.189632170925167
+        ],
+        "path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
+        "read_status": 1,
+        "sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
+        "solids": 1,
+        "units": "mm",
+        "valid": true,
+        "volume_mm3": 15144.251470879459
+      },
+      "stl": {
+        "degenerate_faces_merged": 0,
+        "edges_merged": {
+          "boundary_edges": 40,
+          "manifold_edges": 248290,
+          "nonmanifold_edges": 0
+        },
+        "edges_raw": {
+          "boundary_edges": 496620,
+          "manifold_edges": 0,
+          "nonmanifold_edges": 0
+        },
+        "extents_mm": [
+          210.95025634765625,
+          72.99964141845703,
+          10.0
+        ],
+        "faces": 165540,
+        "finite": true,
+        "hole_fill": false,
+        "path": "designs/switchback/C10c/cad/switchback_revC10c_ground.stl",
+        "sha256": "ac64a65dd653194d563a2026ffa42213846a9bda7cce7c52f80327da4c6e4700",
+        "vertices_merged": 82779,
+        "vertices_raw": 496620,
+        "volume_signed_mm3": 15143.724905266672,
+        "watertight_merged": false,
+        "winding_consistent_merged": true
+      },
+      "subject": "C10c"
+    }
+  ]
+}

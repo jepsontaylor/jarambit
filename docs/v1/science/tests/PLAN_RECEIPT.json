@@ -1,0 +1,75 @@
+{
+  "schema": "jarambit.test_plan.receipt.v1",
+  "created_utc": "2026-10-14T01:03:00.749066+00:00",
+  "status": "planning complete; structural validation passed",
+  "scope": "documentation-only follow-up study and worker-ready test plan",
+  "inputs_read_in_full": 22,
+  "new_inputs": 10,
+  "prior_inputs_revisited_and_hash_verified": 12,
+  "planned_work_units": 20,
+  "planned_challenge_groups": 178,
+  "required_software_groups": 108,
+  "original_regressions_preserved": 19,
+  "literature_unique_proposal_urls_extracted": 111,
+  "primary_anchors_checked_with_limited_scope": 12,
+  "historically_executed_baseline": "../STUDY_RECEIPT.json",
+  "checked_out_main": "bae2a3dac3e3962a37f3058439220bb933ad6f67",
+  "origin_main": "7042f199ad1a9c9e924b7aa68d514e8ea5123567",
+  "selected_sources_unchanged_at_origin": 47,
+  "selected_sources_compared": 48,
+  "main_status_before": "M COORD.md",
+  "live_COORD_sha256_before": "ce761f44d20dfbb92be059d11823781a1efd7710212ea47d621f62f15a4db0ca",
+  "prior_planning_commit": "b967ece0d53e3a6fc70a8ce4ad80697bf690b35c",
+  "implementation_dispatched": false,
+  "runtime_changed": false,
+  "new_science_tests_executed": false,
+  "physical_tests_executed": false,
+  "raw_datasets_downloaded": false,
+  "new_heavy_jobs_started": false,
+  "external_contact": false,
+  "PR_push_merge_tag": false,
+  "source_archive_remote": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-plan/.agent/science-v1-study/test-upgrade/inputs",
+  "planning_validation": "PLAN_VALIDATION.json",
+  "latest_ref_note": "Main checkout remains bae2a3d while origin/main is 7042f19; reconcile at S00",
+  "validation_commands": [
+    {
+      "argv": [
+        "python3",
+        "docs/v1/science/tests/validate_test_plan.py",
+        "--input-root",
+        ".study/test-upgrade",
+        "--output",
+        "docs/v1/science/tests/PLAN_VALIDATION.json"
+      ],
+      "exit_code": 0,
+      "scope": "plan structure/input hashes; no science execution"
+    }
+  ],
+  "plan_artifact_hashes": {
+    "CI_GATE_POLICY.json": "9b3f73151d5ebc1ac4293f8c466b7d3a31b97ea6de8924457e3f0bff20986a68",
+    "HANDOFF.md": "e73602d178c2083efdabc956de2e538a07bdc43371bb9f7f6ada7cd3582981fa",
+    "INPUT_COVERAGE.md": "74c548ca18f747ca24897119825bf791ef5cb0273f4952001f20b9e1d652dac1",
+    "LITERATURE_LEDGER.json": "ec92cdfca69faa2a35f0696cc5e33cd17df0e57ddc25c78fb221d348bee09c56",
+    "README.md": "d25aa969f857c7b5b0bdd8223475d3ebc435b29612e8f0a42eb045ded8db10de",
+    "SOURCE_MANIFEST.json": "b348ce180cb1beee08c0004270d53b23e606a338ce2fa090d9a75ffd9b932e9b",
+    "TEST_CASE_CATALOG.json": "63d31d9d75de872369c4373f5c0be7fc537d921df0f5df13970fd9964e77d89d",
+    "TEST_UPGRADE_PLAN.md": "95eb4c6f652cac1479f69076f54ee9dfdf5ad4c2cd91091add211eb5e9682159",
+    "TEST_WORK_PACKETS.json": "a114894dea0c81063c3abfae279df13e0792e94bd197b7291e2ad8a2c7560268",
+    "study/remote_check_receipt.json": "08bd1bbbf7ffd3de5413dba2d35ba7a97214eb8ed5192e4e717b2cb4eb0bf7de",
+    "study/remote_plan_validation.json": "00e1b073bb4e88f31b90e27734ba76ae45c9543e63808fd864fa79f397043627",
+    "validate_test_plan.py": "4f23efc30590c0e4b1d973332241db16e1d872ac1e0850342c1b5978ae6e47c7"
+  },
+  "remote_planning_checks": {
+    "status": "passed",
+    "owned_screen": "jr_v1_test_plancheck",
+    "elapsed_s": 0.3703,
+    "affinity": [
+      0
+    ],
+    "memory_max_bytes": 8589934592,
+    "swap_max_bytes": 0,
+    "receipt": "study/remote_check_receipt.json",
+    "structure_result": "study/remote_plan_validation.json",
+    "executed_science_tests": false
+  }
+}

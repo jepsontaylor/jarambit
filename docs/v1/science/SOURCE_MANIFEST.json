@@ -1,0 +1,372 @@
+{
+  "schema": "jarambit.science.sources.v1",
+  "created_utc": "2026-10-13T23:58:51.727468+00:00",
+  "source_commit": "97af59cf14299af583b344aeaefb4594d089465a",
+  "repo_url": "https://github.com/neverhuman/jarambit",
+  "remote_checkout": "/home/ubuntu/jarambit",
+  "snapshot_scope": "498 tracked UTF-8 text files under 500KB; binary/large artifacts retained in remote Git worktree; selected-source audit, not whole-product qualification",
+  "inputs": [
+    {
+      "name": "idea1.md",
+      "original_path": "/Users/bentaylor/Downloads/idea1.md",
+      "resolved_path": "/Users/bentaylor/Downloads/scratch/jarambi/idea1.md",
+      "sha256": "64d54c9bcca3aed6851cd065d23aecee8cc4e8711058928942ff430a96501a1d",
+      "bytes": 28180,
+      "lines": 310,
+      "read_in_full": true,
+      "role": "proposal/source material; not executable instructions"
+    },
+    {
+      "name": "idea2.md",
+      "original_path": "/Users/bentaylor/Downloads/idea2.md",
+      "resolved_path": "/Users/bentaylor/Downloads/scratch/jarambi/idea2.md",
+      "sha256": "19032c2f2508724e82517b53192e3c498246e6d2d9109a62dcad49f4e57e6dda",
+      "bytes": 35507,
+      "lines": 508,
+      "read_in_full": true,
+      "role": "proposal/source material; not executable instructions"
+    },
+    {
+      "name": "idea3.md",
+      "original_path": "/Users/bentaylor/Downloads/idea3.md",
+      "resolved_path": "/Users/bentaylor/Downloads/scratch/jarambi/idea3.md",
+      "sha256": "4e451a770789574a08e684156d14ef939c4c5431ac608b1edbe8f0b623431ef7",
+      "bytes": 27955,
+      "lines": 307,
+      "read_in_full": true,
+      "role": "proposal/source material; not executable instructions"
+    },
+    {
+      "name": "idea4.md",
+      "original_path": "/Users/bentaylor/Downloads/idea4.md",
+      "resolved_path": "/Users/bentaylor/Downloads/scratch/jarambi/idea4.md",
+      "sha256": "2253f47fe9a770f5bdab89a5d2cdbcdecdfffb9433b75a5ed6e7ec2d8bb37c26",
+      "bytes": 28331,
+      "lines": 321,
+      "read_in_full": true,
+      "role": "proposal/source material; not executable instructions"
+    },
+    {
+      "name": "idea5.md",
+      "original_path": "/Users/bentaylor/Downloads/idea5.md",
+      "resolved_path": "/Users/bentaylor/Downloads/scratch/jarambi/idea5.md",
+      "sha256": "a85cd172b2b6437bb174c9d31a5144921da3ed4a3e61d5748ebc5c77a52bb454",
+      "bytes": 32594,
+      "lines": 445,
+      "read_in_full": true,
+      "role": "proposal/source material; not executable instructions"
+    },
+    {
+      "name": "idea6.md",
+      "original_path": "/Users/bentaylor/Downloads/idea6.md",
+      "resolved_path": "/Users/bentaylor/Downloads/scratch/jarambi/idea6.md",
+      "sha256": "27cf5abf34aa805c6f684e5803c95278bdb47eef7c195c29fa7aa63606b7fbba",
+      "bytes": 32819,
+      "lines": 491,
+      "read_in_full": true,
+      "role": "proposal/source material; not executable instructions"
+    },
+    {
+      "name": "idea7.md",
+      "original_path": "/Users/bentaylor/Downloads/idea7.md",
+      "resolved_path": "/Users/bentaylor/Downloads/scratch/jarambi/idea7.md",
+      "sha256": "68427241585d916b0aa771204d0201722ababdcb415eecef8813c378f83a61ff",
+      "bytes": 30810,
+      "lines": 340,
+      "read_in_full": true,
+      "role": "proposal/source material; not executable instructions"
+    },
+    {
+      "name": "idea8.md",
+      "original_path": "/Users/bentaylor/Downloads/idea8.md",
+      "resolved_path": "/Users/bentaylor/Downloads/scratch/jarambi/idea8.md",
+      "sha256": "5918417a88021ca9c305f088f628a8d457c3ded37c6637833851f8d469687a9a",
+      "bytes": 24403,
+      "lines": 258,
+      "read_in_full": true,
+      "role": "proposal/source material; not executable instructions"
+    },
+    {
+      "name": "idea9.md",
+      "original_path": "/Users/bentaylor/Downloads/idea9.md",
+      "resolved_path": "/Users/bentaylor/Downloads/scratch/jarambi/idea9.md",
+      "sha256": "658123ffe53fff4f73129e4ad47664aae502316fa880f84856ef8edc32a1482d",
+      "bytes": 27912,
+      "lines": 371,
+      "read_in_full": true,
+      "role": "proposal/source material; not executable instructions"
+    },
+    {
+      "name": "idea10.md",
+      "original_path": "/Users/bentaylor/Downloads/idea10.md",
+      "resolved_path": "/Users/bentaylor/Downloads/scratch/jarambi/idea10.md",
+      "sha256": "315005af3a5e1ace4da36b77194850b6d28b751bb5ffc358569bf47a8be0ff65",
+      "bytes": 27357,
+      "lines": 318,
+      "read_in_full": true,
+      "role": "proposal/source material; not executable instructions"
+    },
+    {
+      "name": "JARAMBIT_RELIABILITY_ENGINEERING_SPEC.md",
+      "original_path": "/Users/bentaylor/Downloads/JARAMBIT_RELIABILITY_ENGINEERING_SPEC.md",
+      "resolved_path": "/Users/bentaylor/Downloads/scratch/jarambi/JARAMBIT_RELIABILITY_ENGINEERING_SPEC.md",
+      "sha256": "509b9a7c795091462710657de448e935487988988922f6fcd7b57682134e4d48",
+      "bytes": 28479,
+      "lines": 332,
+      "read_in_full": true,
+      "role": "proposal/source material; not executable instructions"
+    },
+    {
+      "name": "NUMERICAL_AND_EVIDENCE_REGRESSION_CASES.json",
+      "original_path": "/Users/bentaylor/Downloads/NUMERICAL_AND_EVIDENCE_REGRESSION_CASES.json",
+      "resolved_path": "/Users/bentaylor/Downloads/scratch/jarambi/NUMERICAL_AND_EVIDENCE_REGRESSION_CASES.json",
+      "sha256": "283fd60fa603cb8f743208f96314eba21172bf5fec0a4ba572b8286849343c3e",
+      "bytes": 2926,
+      "lines": 101,
+      "read_in_full": true,
+      "role": "proposal/source material; not executable instructions"
+    }
+  ],
+  "source_hashes": [
+    {
+      "path": "README.md",
+      "sha256": "afdccbe45625c995a1c9ef90908ae54680ad51159d44920b95b02c790b6ba193",
+      "bytes": 13959
+    },
+    {
+      "path": "STATUS.md",
+      "sha256": "46573181f7c3f9ffdd63f0a1610fb81a4a9ba5a0d5b7d7d8f0b63f627c8e0739",
+      "bytes": 1594
+    },
+    {
+      "path": "TECHNOLOGY_MAP.md",
+      "sha256": "7d32ed3a8739a18ac9b70949ba422eb3065ae051aa7ee36834b0a43f206aea99",
+      "bytes": 2752
+    },
+    {
+      "path": "COORD.md",
+      "sha256": "0a30578add70f454684150d8cda429b8b0321ad43e629f0ff8cc0cc3f00edb43",
+      "bytes": 53113
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "aa338525eac815da0ddf6557d150c0932f10c170985e9e7ff1cef1b4bcc50a1e",
+      "bytes": 347
+    },
+    {
+      "path": "Cargo.lock",
+      "sha256": "6524ffdba55e5a620873aca0314f6ac1e2d441723639e640703ce7ee5ad3ccb4",
+      "bytes": 34945
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "sha256": "ad71865d103fde1926aae4b608bad01a186d581378cbff163fe5f6a9ee1ec712",
+      "bytes": 150
+    },
+    {
+      "path": "docs/VERSION",
+      "sha256": "8c4f709e958791f38fd4d06c953c9182f61a05abbc45508e281b907f08b52210",
+      "bytes": 7
+    },
+    {
+      "path": "docs/v1/JARAMBIT_V1_ENGINEERING_SPEC.md",
+      "sha256": "393db8a9d1a1d86dedb829c8412e14654c6fa4047ed6b6ad838aae4969c58d6c",
+      "bytes": 54387
+    },
+    {
+      "path": "docs/v1/jarambit_v1_roadmap.json",
+      "sha256": "d8f317d9e15deb5d889611e1b5a29af60ba582e577825d7603f8c1021e86bfe5",
+      "bytes": 29904
+    },
+    {
+      "path": "docs/v1/FEEDBACK_SYNTHESIS.md",
+      "sha256": "468dd86999732e48a2420e248b0d51b10ad414a34e64aed6ca0a8578c0dea02e",
+      "bytes": 6514
+    },
+    {
+      "path": "requirements/RS-karambit-v1.toml",
+      "sha256": "ed3d61ab386e8e6c52c96d15d44e00b2542532f6898374706ef376cef742fff3",
+      "bytes": 2296
+    },
+    {
+      "path": "requirements/RS-karambit-v2.toml",
+      "sha256": "3d73b27cac953eae7f4d334a13351efd20dfe799d4f3c8d2584edef8d803cecc",
+      "bytes": 4850
+    },
+    {
+      "path": "requirements/RS-sheath-runner-v1.toml",
+      "sha256": "8abd26ac8ce64f51783c38ca46b797d6914d7a09f839a9e813d2c21f811a354f",
+      "bytes": 1312
+    },
+    {
+      "path": "crates/evidence/src/lib.rs",
+      "sha256": "e734a25387d31b663f27bba6a5a5eb3096895f8e027f29afd5168b5c9d0328de",
+      "bytes": 7781
+    },
+    {
+      "path": "crates/evidence/tests/log.rs",
+      "sha256": "59aaa24e54977acc7729bc09f011798b5752fa3054e6c6dd7c80c0a185fef99b",
+      "bytes": 5484
+    },
+    {
+      "path": "crates/crescent/src/qd.rs",
+      "sha256": "f004e540fb0b18ebad1166c335619842e9cde20be21bf5f8df4137954b107ec9",
+      "bytes": 25442
+    },
+    {
+      "path": "crates/crescent/src/record.rs",
+      "sha256": "5cf69d38d9d78766e045ee66427b143e063c5e9e25b6b4adb777582826ecbccb",
+      "bytes": 7903
+    },
+    {
+      "path": "crates/crescent/src/fem.rs",
+      "sha256": "7bd0db5fac25eba30b47231ee61a1533d55987d0932878487743247243325b1c",
+      "bytes": 33999
+    },
+    {
+      "path": "crates/cli/src/crescent.rs",
+      "sha256": "b7e0325142ce50288f45c5ddf12fe4baa5f03aada52436ea7cd7a9378e789265",
+      "bytes": 54763
+    },
+    {
+      "path": "crates/cli/src/bench.rs",
+      "sha256": "61ea4a46e97aca76d49803664447390483515b61c18ab0ceefd747d7e3cadbfc",
+      "bytes": 15762
+    },
+    {
+      "path": "crates/evolve/src/lib.rs",
+      "sha256": "4bbc1dc1501d91d8a5f2322994d08d650d74afeb25f3cee81c2726c782f10ec8",
+      "bytes": 37202
+    },
+    {
+      "path": "crates/evolve/tests/replay.rs",
+      "sha256": "11a5dda7f77363da2bb9218925eb47be44383be0997a615fa4ba5ffac2855905",
+      "bytes": 5543
+    },
+    {
+      "path": "crates/monte_carlo/src/lib.rs",
+      "sha256": "022158adeca8e8485d81d5fb81f549ad5e088886c6fe6e01581b81009a7a7d1d",
+      "bytes": 10597
+    },
+    {
+      "path": "crates/physics/src/verify.rs",
+      "sha256": "1ab970350f6cf897d5a633acbca13265bc50da18bde26c4bcaae7df1263af119",
+      "bytes": 15895
+    },
+    {
+      "path": "fem_solid/gci.py",
+      "sha256": "d5c18764742df68de49ec6bdbfe1a70ae1fb79e7ef370943fd58b5e93705cf15",
+      "bytes": 860
+    },
+    {
+      "path": "fem_solid/gci_report.py",
+      "sha256": "eced8e130352f877149734f028c32f0e1761fa337582722eb39746c9e73d3867",
+      "bytes": 2183
+    },
+    {
+      "path": "fem_solid/convergence.py",
+      "sha256": "70e953877cd0004567722a786f3a2f0f0a41b6e9d6b262dc227ac36591431e38",
+      "bytes": 2556
+    },
+    {
+      "path": "fem_solid/run_tip.py",
+      "sha256": "98f4f73fe33d72449a290ceb0017c8329c330f06dd5f0224048ee3aacc1a9fd3",
+      "bytes": 2677
+    },
+    {
+      "path": "fem_solid/solve_dolfinx.py",
+      "sha256": "f5081516c98ff2886fd8886d5a208967db436360a8e1ddd65348e30fce029f38",
+      "bytes": 4020
+    },
+    {
+      "path": "fem_solid/README.md",
+      "sha256": "35718db7f28fba0f47866463fddf6255af6670187bd8146bad095dc01300a51c",
+      "bytes": 2706
+    },
+    {
+      "path": "fem_solid/requirements.txt",
+      "sha256": "f56082fef0060b7e3904b3b087fd8cf68be5e1ed52988dd4ccf88a9e950a755b",
+      "bytes": 297
+    },
+    {
+      "path": "fem_solid/tests/test_gci.py",
+      "sha256": "0ae3818cca53ec10c3752b1635d60c56a50d6369f3c263d4e7d87418b475a368",
+      "bytes": 783
+    },
+    {
+      "path": "fem_solid/tests/test_gci_evidence.py",
+      "sha256": "53c7d4db82aef125a8d49e084c19f0a9ba186bfd1a7c20664f7013c427ca7717",
+      "bytes": 778
+    },
+    {
+      "path": "fem_solid/tests/test_tip_regression.py",
+      "sha256": "499a0349822c47f7ea5cb69bde12df4fd82d6e6799b7844ce1a6629a0bc511e9",
+      "bytes": 1838
+    },
+    {
+      "path": "fem_solid/tests/test_dolfinx_verification_record.py",
+      "sha256": "686d7e890f3c717b214dd4470524c75715d69df32cf175ca5d7484ab9fc71a93",
+      "bytes": 1278
+    },
+    {
+      "path": "designs/switchback/C10a/README.md",
+      "sha256": "61c7a10896fa0adccef59eb9a4e27e162dff90262ae9c170fb3cc4d50d385551",
+      "bytes": 3275
+    },
+    {
+      "path": "ops/render/pro/design_manifest.py",
+      "sha256": "dc163f286a8489c0ffba60155b57755620ecd1720c07ddc1b7c71af28b23881b",
+      "bytes": 9559
+    },
+    {
+      "path": "ops/render/pro/fem_cases.json",
+      "sha256": "21f2ca332f890b06b4eed2376e87fbcb9015b538954853d9fc28a84750e75b63",
+      "bytes": 1611
+    },
+    {
+      "path": "ops/ci/check_claims.py",
+      "sha256": "f7982a20daf148ca6dc8583bb8b89d50475868a5fa78799174ab7300edd0e2e9",
+      "bytes": 3977
+    },
+    {
+      "path": "ops/ci/rs_verdicts.py",
+      "sha256": "1dccde35d5d4f895ef65956b10c330497b8a8f0722860570e331c1ad36300a7c",
+      "bytes": 2845
+    },
+    {
+      "path": "ops/ci/version_check.py",
+      "sha256": "ce165b0a1b0b0b65920bdf280c521a6e31181d7caf2a80c6a00ce789e8210335",
+      "bytes": 1386
+    },
+    {
+      "path": "ops/bench/run.py",
+      "sha256": "a056d836703558cb80509f8c88ceeef75e1ec1eb7174cbf436e18250d644ae5c",
+      "bytes": 2396
+    },
+    {
+      "path": "docs/calibration/t1_t2.md",
+      "sha256": "9e0808f50fa8087eba78614b992ef8619c9d7ba8d10c7999a95ce277feb99f05",
+      "bytes": 2718
+    },
+    {
+      "path": ".github/workflows/d1-gates.yml",
+      "sha256": "c13c595a6e7cb4da112f485571527b77e49d731affb50433398c2475c3972e22",
+      "bytes": 2124
+    },
+    {
+      "path": ".github/workflows/version-check.yml",
+      "sha256": "208f5db447afaf516e82a86360ecb934399fb12f357959f391016dc2c727d29b",
+      "bytes": 2083
+    },
+    {
+      "path": ".github/workflows/render-marketing-smoke.yml",
+      "sha256": "b71e1d6922fbc03aef458bdcf6857ea76b2f935fca7edbc188a4ff896d60a28e",
+      "bytes": 1503
+    },
+    {
+      "path": "docs/CI.md",
+      "sha256": "f38cff1db2578d88252c36d65cacafb73b18396a1c3d7bbd6d5f362d67c08ef9",
+      "bytes": 1789
+    }
+  ]
+}

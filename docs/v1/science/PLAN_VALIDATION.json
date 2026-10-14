@@ -1,0 +1,50 @@
+{
+  "schema": "jarambit.science.plan_validation.v1",
+  "created_utc": "2026-10-14T00:03:48.278652+00:00",
+  "status": "pass",
+  "input_hashes_checked": 12,
+  "source_hashes_checked": 48,
+  "packets": 17,
+  "regression_mappings": 19,
+  "parallel_scope_conflicts": 0,
+  "topological_waves": [
+    [
+      "S00"
+    ],
+    [
+      "S01"
+    ],
+    [
+      "S02",
+      "S04",
+      "S05",
+      "S13"
+    ],
+    [
+      "S03",
+      "S06",
+      "S07",
+      "S14"
+    ],
+    [
+      "S08"
+    ],
+    [
+      "S09",
+      "S10",
+      "S15"
+    ],
+    [
+      "S11"
+    ],
+    [
+      "S12"
+    ],
+    [
+      "S16"
+    ]
+  ],
+  "errors": [],
+  "historical_validation_notice": "Original counts describe original 12-input package validation; follow-up checks validate augmented 22-input package",
+  "test_upgrade_validation": "tests/PLAN_VALIDATION.json"
+}

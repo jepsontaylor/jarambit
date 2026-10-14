@@ -1,0 +1,101 @@
+{
+  "schema": "jarambit.assurance.regression_cases.v1",
+  "status": "Proposed fixtures, not implemented tests",
+  "review_commit": "97af59cf14299af583b344aeaefb4594d089465a",
+  "scope": "Numerical validity and evidence reporting only",
+  "gci_cases": [
+    {
+      "id": "divergent_monotone",
+      "input": {
+        "f1": 10,
+        "f2": 12,
+        "f3": 13,
+        "r": 2
+      },
+      "observed_current": {
+        "p": -1,
+        "gci_fine": -0.5,
+        "threshold_comparison_passes": true
+      },
+      "required_outcome": "Unresolved or invalid convergence evidence; never PASS"
+    },
+    {
+      "id": "zero_observed_order",
+      "input": {
+        "f1": 10,
+        "f2": 11,
+        "f3": 12,
+        "r": 2
+      },
+      "observed_current": "ZeroDivisionError",
+      "required_outcome": "Structured unresolved result; no unhandled arithmetic error"
+    },
+    {
+      "id": "fine_pair_plateau",
+      "input": {
+        "f1": 10,
+        "f2": 10,
+        "f3": 100,
+        "r": 2
+      },
+      "observed_current": "Zero GCI and infinite observed order",
+      "required_outcome": "Additional evidence required; pair equality alone cannot establish convergence"
+    },
+    {
+      "id": "invalid_refinement_ratio",
+      "input_variants": [
+        {
+          "r": 0
+        },
+        {
+          "r": 1
+        },
+        {
+          "r": -2
+        }
+      ],
+      "required_outcome": "Reject invalid input"
+    },
+    {
+      "id": "nonfinite_input",
+      "input_variants": [
+        "NaN",
+        "+Infinity",
+        "-Infinity"
+      ],
+      "required_outcome": "Reject before calculation/serialization; these are symbolic fixtures, not JSON numeric values"
+    },
+    {
+      "id": "zero_reference_quantity",
+      "input": {
+        "f1": 0,
+        "f2": 1,
+        "f3": 2,
+        "r": 2
+      },
+      "required_outcome": "Relative metric undefined; explicit absolute-error method or unresolved"
+    },
+    {
+      "id": "empty_expected_inventory",
+      "input": {
+        "expected_record_count": 1,
+        "actual_record_count": 0
+      },
+      "required_outcome": "UNVERIFIED; not an all-pass statement"
+    }
+  ],
+  "additional_required_regressions": [
+    "nonfinite_monte_carlo_sample_is_not_sorted_as_equal",
+    "zero_samples_is_rejected_explicitly",
+    "invalid_sample_counts_are_preserved",
+    "joint_requirement_outcomes_preserve_sample_identity",
+    "requirement_hash_mismatch_rejects_claim",
+    "superseded_candidate_cannot_become_current_from_stale_heading",
+    "material_process_or_surface_change_invalidates_unapproved_transfer",
+    "missing_physical_evidence_cannot_produce_physically_validated_label",
+    "render_finish_metadata_cannot_populate_structural_properties",
+    "negative_uncertainty_cannot_pass_upper_threshold",
+    "interpolated_field_is_not_labeled_as_l2_projection",
+    "out_of_scope_coating_test_cannot_claim_standard_compliance"
+  ]
+}
