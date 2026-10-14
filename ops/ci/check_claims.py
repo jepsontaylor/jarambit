@@ -19,6 +19,8 @@ from assurance.reporting import blocks, claims
 from assurance.testing.contracts import ContractError
 
 RS = re.compile(r'\bRS-[A-Za-z0-9_-]+\b')
+ASSERTION = re.compile(r'(?P<rs>\bRS-[A-Za-z0-9_-]+\b):\s*(?P<fields>[^;\n|]+?)\s+(?P<outcome>PASS|FAIL|INCOMPLETE)\b\.?\s*(?=;|$|\|)')
+CURRENT_HEADING = re.compile(r'^\s*#{1,6}\s+(?P<candidate>[^\s;]+)\s+(?:CURRENT(?:\s+RELEASE\s+CANDIDATE)?|RELEASE\s+CANDIDATE)(?=\s|;|$)', re.I)
 
 
 @dataclass
@@ -39,7 +41,36 @@ def strip_noise(line):
     return next((s for _, s in blocks.editorial_lines(line)), '')
 
 
-def scan_pass(rel, text, report, registry, parsed=(), stop=None):
+def assertion_errors(assertion, report, registration):
+    """Supported syntax: RS-id: group [candidate=id] [class=id] outcome.
+
+    group=id is also accepted. Every explicitly asserted field is compared to
+    the actual provider or independently admitted caller, never to prose aliases.
+    """
+    tokens = assertion['fields'].split()
+    fields = {}
+    if tokens and '=' not in tokens[0]:
+        fields['group'] = tokens.pop(0)
+    for token in tokens:
+        key, separator, value = token.partition('=')
+        if separator != '=' or key not in {'group', 'candidate', 'class'} or not value or key in fields:
+            return ['unsupported or duplicate RS assertion field']
+        fields[key] = value
+    errors = []
+    if assertion['rs'] != report['verdict']['requirement_set']:
+        errors.append('asserted requirement scope differs from admitted provider')
+    if fields.get('group') != report['verdict']['group']:
+        errors.append('asserted group differs from admitted provider')
+    if 'candidate' in fields and fields['candidate'] != registration['candidate_id']:
+        errors.append('asserted candidate differs from trusted registration')
+    if 'class' in fields and fields['class'] != registration['requested_class']:
+        errors.append('asserted class differs from trusted registration')
+    if assertion['outcome'].lower() != report['verdict']['outcome']:
+        errors.append(f"scoped {assertion['outcome']} contradicts actual {report['verdict']['group']} provider verdict")
+    return errors
+
+
+def scan_pass(rel, text, report, registry, parsed=(), stop=None, *, registration):
     if stop and stop in text:
         text = text[:text.index(stop)]
     errors, table_scope = [], False
@@ -53,18 +84,27 @@ def scan_pass(rel, text, report, registry, parsed=(), stop=None):
         if not in_table:
             table_scope = False
         prev_table = in_table
-        if re.search(r'\bPASS\b', line):
-            scoped = rs_id in RS.findall(line) or (in_table and table_scope)
-            if not scoped:
-                errors.append(f'{rel}:{number}: unscoped PASS')
-            elif report['verdict']['outcome'] != 'pass':
-                errors.append(f'{rel}:{number}: scoped PASS contradicts actual {group} provider verdict')
-        if stripped.startswith('#') and re.search(r'\b(?:CURRENT|RELEASE CANDIDATE)\b', stripped, re.I):
-            for candidate, state in registry['candidates'].items():
-                if re.search(r'(?<![\w.])' + re.escape(candidate) + r'(?![\w.])', stripped):
-                    current = registry['current_by_scope'].get(group)
-                    if state in {'archived', 'superseded'} or candidate != current:
-                        errors.append(f'{rel}:{number}: stale or unregistered current candidate {candidate}')
+        assertions = list(ASSERTION.finditer(line))
+        table_assertion = False
+        if not assertions and in_table and table_scope and re.search(r'\b(?:PASS|FAIL|INCOMPLETE)\b', line):
+            # In a table scoped by its RS header, cells use the same explicit
+            # group/qualifier/outcome grammar; a header cannot bless any group.
+            cells = ' '.join(cell.strip() for cell in stripped.strip('|').split('|'))
+            assertions = list(ASSERTION.finditer(f'{rs_id}: {cells}'))
+            table_assertion = bool(assertions)
+        for assertion in assertions:
+            errors.extend(f'{rel}:{number}: {reason}' for reason in assertion_errors(assertion, report, registration))
+        heading = CURRENT_HEADING.match(line)
+        covered = assertions + ([heading] if heading else [])
+        if not table_assertion and any(not any(s.start() <= token.start() and token.end() <= s.end() for s in covered)
+                                       for token in re.finditer(r'\bPASS\b', line)):
+            errors.append(f'{rel}:{number}: unscoped or unsupported PASS assertion')
+        if heading:
+            candidate = heading['candidate']
+            current = registry['current_by_scope'].get(group)
+            if (candidate != registration['candidate_id'] or candidate != current
+                    or registry['candidates'].get(candidate) in {None, 'archived', 'superseded'}):
+                errors.append(f'{rel}:{number}: stale or unregistered current candidate {candidate}')
     return errors
 
 
@@ -74,6 +114,8 @@ def check_document(document, context=None, *, rel='document.md', stop=None):
         claim_id = context.caller.data['pin']['registration']['claim_id']
         expected = context.report_for(claim_id)
         provider = context.last_resolution
+        registration = context.caller.verify_current()['pin']['registration']
+        registry = context.registry()
     except rs_verdicts.RequestedScopeError as error:
         return CheckResult(1, list(error.reasons), context.last_resolution)
     except (claims.Refusal, ContractError, OSError, UnicodeError, TypeError, KeyError, ValueError) as error:
@@ -84,7 +126,7 @@ def check_document(document, context=None, *, rel='document.md', stop=None):
         if len(parsed) != 1:
             raise blocks.BlockError('exactly one registered report block required')
         blocks.check_exact_block(parsed[0], claim_id, expected)
-        errors = scan_pass(rel, text, expected, context.registry(), parsed, stop)
+        errors = scan_pass(rel, text, expected, registry, parsed, stop, registration=registration)
         return CheckResult(1 if errors else 0, errors, provider)
     except (blocks.BlockError, UnicodeError, TypeError, ValueError) as error:
         return CheckResult(1, [str(error)], provider)
