@@ -6,7 +6,7 @@ C.10c starts from w80d (W80: spine-side tip drop plus core ramp, which more than
 
 | gate | SF | source |
 |---|---|---|
-| Gate S | PASS: apex 0.161 mm, S3 23.5°/side, tip t(1) 0.537 mm | B-rep ray probe |
+| Gate S | PASS: S1 apex/t(0.05) max: spine 0.1611/0.2018 mm; inside 0.1713/0.2074 mm; S3 23.5°/side; tip t(1) 0.537 mm | B-rep ray probe |
 | V1 twist 16.2 N·m | 1.739 | w80d g2 carry |
 | V2 tip 1 kN (soft) | 1.245 | record (C.10a 0.738) |
 | V3 spine 3427 N | **1.603** (governor, +6.9 %) | direct r0p2 |
@@ -17,4 +17,5 @@ C.10c starts from w80d (W80: spine-side tip drop plus core ramp, which more than
 
 Fitness = min(V1, V3–V7)/(mass/100) × (1 + 0.20·min(V2, 1.5)/1.5): C.10c **2.786**, C.10a 2.673.
 Files: `cad/` (STEP, STL), `drawings/` 00–09 generated from the STEP by `draw_c10c.py`, and `data/` (gate board, sharpness check).
+Comparison plate 05 ([PNG](drawings/05_revC9_3_vs_revC10c.png), [SVG](drawings/05_revC9_3_vs_revC10c.svg)) overlays Rev C.9.3 (66.773 g, blue) and Rev C.10c rc5 (67.089 g, red), showing their tip and scallop profile differences.
 Source of record: hiking-karambit 640f041, tag `switchback-revC.10c-rc5` (local).

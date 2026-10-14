@@ -12,7 +12,7 @@
  },
  "sources": {
   "V3": "DIRECT r0p2 b1 1.603 @ (139.6,6.1)",
-  "GateS": "PASS (S1 0.161/0.202, S3 23.5)",
+  "GateS": "PASS (S1 apex/t(0.05) max, mm: spine 0.1611/0.2018; inside 0.1713/0.2074; S3 23.5 deg/side)",
   "V1": "w80d g2 carry (tip strip g2 identical 1.835)",
   "V4": "w80d v4r 1.662 x sr9/w80d g2 0.995",
   "V5": "g2",

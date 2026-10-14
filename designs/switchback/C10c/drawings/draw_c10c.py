@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""W80-S: SWITCHBACK Rev C.10c (true-sharp, rc4) drawing set 00-09 generated directly from the C.10a B-rep STEP (sha16 441cfabc284efd63); adapted from W77 draw_c93.py.
-Run: /workspace/cqenv/bin/python draw_c92.py  -> drawings/*.png/.svg. Geometry = STEP only (sections, tessellation); no 2D-concept raster."""
-import os, json, hashlib, numpy as np, cadquery as cq, matplotlib
+"""SWITCHBACK Rev C.10c rc5 drawings from the committed B-rep STEP; adapted from W77 draw_c93.py.
+Run: python draw_c10c.py [--plate 05] -> drawings/*.png/.svg. Plate 05 compares C.9.3 and C.10c rc5.
+Geometry = STEP only (sections, tessellation); no 2D-concept raster."""
+import argparse, os, json, hashlib, numpy as np, cadquery as cq, matplotlib
+from pathlib import Path
 matplotlib.use("Agg"); import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
-HK="/workspace/hiking-karambit"; ST=f"{HK}/analysis/w80d_root/rc5/switchback_revC10c_ground.step"; C8=f"{HK}/analysis/w77/switchback_revC9_3_ground.step"
-SHA=hashlib.sha256(open(ST,"rb").read()).hexdigest(); OUT="drawings"; os.makedirs(OUT,exist_ok=True); IN=25.4
+AP=argparse.ArgumentParser(description=__doc__); AP.add_argument("--plate", choices=("all","05"), default="all"); A=AP.parse_args()
+HERE=Path(__file__).resolve().parent; FAMILY=HERE.parents[1]
+ST=str(HERE.parent/"cad/switchback_revC10c_ground.step"); C93=str(FAMILY/"C9.3/cad/switchback_revC9_3_ground.step")
+SHA=hashlib.sha256(open(ST,"rb").read()).hexdigest(); OUT=str(HERE); os.makedirs(OUT,exist_ok=True); IN=25.4
 S=cq.importers.importStep(ST); SOL=S.val(); MASS=SOL.Volume()*4.43e-3; BB=SOL.BoundingBox()
 TB=f"SWITCHBACK Rev C.10c RC5 (true-sharp, w80d + spine-root shoulder)  |  Gr5 Ti  {MASS:.3f} g  |  STEP sha256 {SHA[:16]}  |  generated from B-rep (W80d-root)  |  units mm"
 def save(fig,n,svg=True):
@@ -20,14 +24,26 @@ def zsec(sol,z=0.0):
     return sec
 def silhouette(sol):  # outer profile: z-projection of tessellation
     v,t=tess(sol,0.03); return v,t
-V,T=tess(SOL,0.02); n=np.cross(V[T[:,1]]-V[T[:,0]],V[T[:,2]]-V[T[:,0]]); nn=n/np.linalg.norm(n,axis=1)[:,None]
-top=nn[:,2]>0.05; bot=nn[:,2]<-0.05
 def section_edges(sol,plane):  # plane: ("x",x0) or ("z",z0) -> list of polylines
     o,d={"x":((plane[1],0,0),(1,0,0)),"z":((0,0,plane[1]),(0,0,1)),"y":((0,plane[1],0),(0,1,0))}[plane[0]]
     f=cq.Face.makePlane(1000,1000,basePnt=o,dir=d); sec=sol.intersect(f); pls=[]
     for e in sec.Edges():
         pts=[e.positionAt(u) for u in np.linspace(0,1,40)]; pls.append(np.array([[p.x,p.y,p.z] for p in pts]))
     return pls
+def draw_comparison():
+    ref=cq.importers.importStep(C93).val(); mass93=ref.Volume()*4.43e-3
+    fig,ax=plt.subplots(figsize=(14,6))
+    for sol,col in ((ref,"b"),(SOL,"r")):
+        for p in section_edges(sol,("z",0.0)): ax.plot(p[:,0],p[:,1],col,lw=.6)
+    ax.plot([],[],"b",label=f"Rev C.9.3 {mass93:.3f} g"); ax.plot([],[],"r",label=f"Rev C.10c rc5 {MASS:.3f} g")
+    ax.legend(); ax.set_aspect("equal"); ax.grid(alpha=.2)
+    ax.set_title("05 Rev C.9.3 vs Rev C.10c rc5 — tip and scallop profile differences")
+    save(fig,"05_revC9_3_vs_revC10c")
+    print(f"plate 05: C.9.3 {mass93:.3f} g vs C.10c rc5 {MASS:.3f} g")
+if A.plate == "05":
+    draw_comparison(); raise SystemExit(0)
+V,T=tess(SOL,0.02); n=np.cross(V[T[:,1]]-V[T[:,0]],V[T[:,2]]-V[T[:,0]]); nn=n/np.linalg.norm(n,axis=1)[:,None]
+top=nn[:,2]>0.05; bot=nn[:,2]<-0.05
 def draw_profile(ax,lw=.6,col="#c9ced6",ec="k"):
     ax.add_collection(PolyCollection(V[T[top]][:,:,:2],facecolor=col,edgecolor="none"))
     for p in section_edges(SOL,("z",0.0)): ax.plot(p[:,0],p[:,1],ec,lw=lw)
@@ -75,15 +91,8 @@ for ax,(x0,x1,ttl) in zip(axs,((95,185,"inside edge / rope scallops"),(95,185,"s
     ax.set_aspect("equal"); ax.grid(alpha=.3); ax.set_title(ttl)
 lo=allp[allp[:,0]>95]; axs[0].set_xlim(95,185); axs[0].set_ylim(lo[:,1].min()-2,lo[:,1].min()+30); axs[1].set_xlim(95,185); axs[1].set_ylim(lo[:,1].max()-30,lo[:,1].max()+2)
 fig.suptitle("04 Serration detail (mid-plane section)"); save(fig,"04_serration_detail")
-# 05 C.8 vs C.9.2 overlay
-fig,ax=plt.subplots(figsize=(14,6))
-try:
-    S8=cq.importers.importStep(C8).val(); m8=S8.Volume()*4.43e-3
-    for p in section_edges(S8,("z",0.0)): ax.plot(p[:,0],p[:,1],"b",lw=.6)
-except Exception as ex: m8=float("nan")
-for p in Z0: ax.plot(p[:,0],p[:,1],"r",lw=.6)
-ax.plot([],[],"b",label=f"Rev C.10c rc3 (superseded, fails Gate S) {m8:.3f} g"); ax.plot([],[],"r",label=f"Rev C.10c {MASS:.3f} g"); ax.legend(); ax.set_aspect("equal"); ax.grid(alpha=.2)
-ax.set_title("05 Rev C.10c vs Rev C.10c mid-plane outline overlay (outline identical; C.10a differs in edge grind only)"); save(fig,"05_revC9_3_vs_revC10a")
+# 05 C.9.3 vs C.10c rc5 mid-plane outline comparison
+draw_comparison()
 # 06 hero render: shaded tessellation
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 L=np.array([-.4,.5,.75]); L/=np.linalg.norm(L); sh=np.clip(nn@L,0,1)*.75+.2
@@ -103,7 +112,7 @@ fig,ax=plt.subplots(figsize=(14,6)); im=ax.pcolormesh(gx,gy,TH,cmap="viridis",sh
 for p in Z0: ax.plot(p[:,0],p[:,1],"k",lw=.4)
 ax.set_aspect("equal"); ax.set_title("08 Ground 3D check — through-thickness map from B-rep tessellation"); save(fig,"08_ground_3d_check",svg=False)
 # 09 jimping detail (C.9.3: 7 notches R1.0 / D0.35 / pitch 2.0, land 0.48; W76 jC)
-JC=json.load(open(f"{HK}/analysis/w77/jimp_c93.json"))["centres"]
+JC=json.load(open(FAMILY/"C9.3/data/jimp_c93.json"))["centres"]
 fig,(a,b)=plt.subplots(1,2,figsize=(14,6))
 for p in Z0: a.plot(p[:,0],p[:,1],"k",lw=.8)
 for cx,cy in JC: a.add_patch(plt.Circle((cx,cy),1.0,fill=False,ec="b",lw=.5,ls=":"))
