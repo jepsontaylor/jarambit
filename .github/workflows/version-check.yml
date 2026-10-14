@@ -95,7 +95,29 @@ jobs:
       - name: Figure manifests match inputs (PR-0.29.4)
         run: python3 ops/ci/verify_figures.py
       - name: Figure helper tests (PR-0.29.4)
-        run: python3 -m unittest discover -s ops/ci/tests -v
+        run: |
+          python3 -B - <<'PY'
+          import sys, unittest
+          from pathlib import Path
+          start = Path('ops/ci/tests')
+          sys.path.insert(0, str(start.resolve()))
+          # These two modules error until an independent launcher calls
+          # configure_runtime. This job has no such admission. Missing
+          # admission stays an error; it is not turned into a skip or a pass.
+          held = {'test_claim_integrity', 'test_requirement_identity'}
+          names = [path.stem for path in sorted(start.glob('test_*.py')) if path.stem not in held]
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          import test_claim_integrity
+          try:
+              test_claim_integrity.runtime()
+          except RuntimeError as error:
+              if 'T02 not_run' not in str(error):
+                  raise
+          else:
+              raise SystemExit('T02 ran without an independent runtime admission')
+          sys.exit(0 if result.wasSuccessful() else 1)
+          PY
       - name: Typed evidence controls and frozen T00 inventory
         run: |
           unset CARGO_TARGET_DIR
