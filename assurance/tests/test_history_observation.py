@@ -3498,6 +3498,7 @@ class SameConsumerContractControls(unittest.TestCase):
         })
         omitted = observation.bind_observation(
             healthy["measurement"], healthy["history"], None)
+        self.assertEqual(omitted["outcome"], "refused")
         self.assertEqual(omitted["reason"], "raw_identity_unavailable")
         mismatch = _fixture("FX-05-p")
         refused = observation.bind_observation(
@@ -3664,9 +3665,17 @@ class SameConsumerContractControls(unittest.TestCase):
         self.assertEqual(refused["material_state"], "unknown")
 
     def test_schema_version_is_required_on_a_canonical_passport(self):
+        healthy = _fixture("FX-01-p")
+        accepted = records.validate_specimen(
+            healthy["passport"], healthy["registry"], healthy.get("claim"))
+        self.assertEqual(accepted, {
+            "material_state": "identified",
+            "outcome": "accepted",
+        })
         passport = _fixture("FX-01-p")["passport"]
         del passport["schema"]
         refused = records.validate_specimen(passport, [])
+        self.assertEqual(refused["outcome"], "refused")
         self.assertEqual(refused["reason"], "schema_rejected")
         self.assertEqual(refused["material_state"], "unknown")
 
@@ -3694,6 +3703,7 @@ class SameConsumerContractControls(unittest.TestCase):
             history=invalid["history"],
             raw_bytes_by_id=invalid["raw_bytes_by_id"],
         )
+        self.assertEqual(refused["outcome"], "refused")
         self.assertEqual(refused["diagnostic"], "unable_to_determine")
         self.assertEqual(refused["reason"], "calibration_not_valid_at_acquisition")
         flagged = _fixture("FX-12-p")
@@ -3759,6 +3769,7 @@ class SameConsumerContractControls(unittest.TestCase):
             surface_as_route["passport"])
         refused_route = records.check_transfer(
             surface_as_route["qualification"], surface_as_route["passport"])
+        self.assertEqual(refused_route["outcome"], "refused")
         self.assertEqual(refused_route["reason"], "unapproved_route_transfer")
         shot = _fixture("FX-02-p")
         shot["passport"]["surface_process"] = "shot_peened"
@@ -3777,12 +3788,14 @@ class SameConsumerContractControls(unittest.TestCase):
         duplicate["observations"][1]["id"] = duplicate["observations"][0]["id"]
         refused_id = records.validate_validation_lineage(
             duplicate["claim"], observations=duplicate["observations"])
+        self.assertEqual(refused_id["outcome"], "refused")
         self.assertEqual(refused_id["reason"], "duplicate_observation_id")
         missing_lot = _fixture("FX-11-p")
         for observation_record in missing_lot["observations"]:
             del observation_record["experimental_unit"]["lot"]
         refused_lot = records.validate_validation_lineage(
             missing_lot["claim"], observations=missing_lot["observations"])
+        self.assertEqual(refused_lot["outcome"], "refused")
         self.assertEqual(refused_lot["reason"], "experimental_unit_incomplete")
         self.assertNotEqual(refused_lot["outcome"], "accepted")
 
@@ -3811,7 +3824,9 @@ class SameConsumerContractControls(unittest.TestCase):
         at_boundary = _fixture("FX-03-p")
         at_boundary["history"]["events"].append(
             event("2026-01-01T02:00:00Z", "2026-01-01T01:30:00Z"))
-        self.assertEqual(bind(at_boundary)["reason"], "history_prefix_mismatch")
+        result = bind(at_boundary)
+        self.assertEqual(result["outcome"], "refused")
+        self.assertEqual(result["reason"], "history_prefix_mismatch")
         at_boundary["measurement"]["history_prefix_events"] = ["E1", "E2"]
         self.assertEqual(bind(at_boundary)["outcome"], "accepted")
         self.assertEqual(bind(at_boundary)["history_prefix_events"], ["E1", "E2"])
