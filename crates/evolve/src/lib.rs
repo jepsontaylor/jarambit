@@ -1161,15 +1161,16 @@ mod tests {
             inplane_n: 0.0, strength_per_gram: 7.5, hiker_ok: true, hunter_ok: true, ring_ok: true,
             safety_factor: 1.0, sharpness: 0.5, serration_score: 0.0, ergonomics: 0.0,
         };
-        assert!(planted.mass_g.is_finite() && planted.strength_n.is_finite());
-        let zero = fine_infeasible_fitness(260.0, 1500.0, 260.0, 1500.0, 0.0).unwrap();
-        let full = fine_infeasible_fitness(260.0, 1500.0, 260.0, 1500.0, -1000.0).unwrap();
+        assert!(planted.strength_n >= floors::HIKER_LATERAL_N && planted.strength_n >= floors::HUNTER_LATERAL_N);
+        assert!(planted.blade_lat_n >= floors::HUNTER_LATERAL_N && planted.ring_pull_n >= floors::RING_PULL_N);
+        let zero = fine_infeasible_fitness(planted.blade_lat_n, planted.ring_pull_n, planted.strength_n, planted.ring_pull_n, 0.0).unwrap();
+        let full = fine_infeasible_fitness(planted.blade_lat_n, planted.ring_pull_n, planted.strength_n, planted.ring_pull_n, -1000.0).unwrap();
         assert_eq!(zero, -1.0);
         assert_eq!(full, -11.0);
-        assert_eq!(fine_infeasible_fitness(260.0, 1500.0, 260.0, 1500.0, f64::NAN).unwrap_err(), "nonfinite_credited_statistics");
-        assert!(fine_infeasible_fitness(260.0, 1500.0, 260.0, 1500.0, f64::INFINITY).is_err());
-        assert!(fine_infeasible_fitness(260.0, 1500.0, 260.0, 1500.0, f64::NEG_INFINITY).is_err());
-        println!("S04_CASE id=T03-04-rej mean0={zero} mean_neg1000={full} planted_mass_g={} label=software_fixture", planted.mass_g);
+        assert_eq!(fine_infeasible_fitness(planted.blade_lat_n, planted.ring_pull_n, planted.strength_n, planted.ring_pull_n, f64::NAN).unwrap_err(), "nonfinite_credited_statistics");
+        assert!(fine_infeasible_fitness(planted.blade_lat_n, planted.ring_pull_n, planted.strength_n, planted.ring_pull_n, f64::INFINITY).is_err());
+        assert!(fine_infeasible_fitness(planted.blade_lat_n, planted.ring_pull_n, planted.strength_n, planted.ring_pull_n, f64::NEG_INFINITY).is_err());
+        println!("S04_CASE id=T03-04-rej mean0={zero} mean_neg1000={full} lat={} ring={} planted_mass_g={} label=software_fixture", planted.strength_n, planted.ring_pull_n, planted.mass_g);
     }
 
     #[test] fn v2_historical_bits_reencode_and_headers_are_token_equal() {

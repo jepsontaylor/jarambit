@@ -279,15 +279,24 @@ mod science_s04_tests {
     #[test]
     fn science_s04_current_header_appends_without_duplication() {
         let path = fixture("current");
+        let _ = std::fs::remove_file(&path);
+        assert!(!path.exists());
         let header = fresh_header();
-        std::fs::write(&path, &header).unwrap();
-        let before = std::fs::read(&path).unwrap();
-        let file = prepare_history_log(path.to_str().unwrap(), true, &columns(), &header).unwrap();
-        drop(file);
+        let mut created = prepare_history_log(path.to_str().unwrap(), false, &columns(), &header).unwrap();
+        std::io::Write::write_all(&mut created, b"row-a\n").unwrap();
+        std::io::Write::flush(&mut created).unwrap();
+        drop(created);
+        let mut resumed = prepare_history_log(path.to_str().unwrap(), true, &columns(), &header).unwrap();
+        std::io::Write::write_all(&mut resumed, b"row-b\n").unwrap();
+        std::io::Write::flush(&mut resumed).unwrap();
+        drop(resumed);
         let after = std::fs::read(&path).unwrap();
-        assert_eq!(after, before);
-        assert_eq!(after.iter().filter(|b| **b == b'\n').count(), 1);
-        println!("S04_CASE id=T03-10-cli header=current bytes={} duplicated=0", after.len());
+        let expected = format!("{header}row-a\nrow-b\n").into_bytes();
+        assert_eq!(after, expected);
+        let header_line = header.trim_end_matches('\n');
+        let text = std::str::from_utf8(&after).unwrap();
+        assert_eq!(text.lines().filter(|line| *line == header_line).count(), 1);
+        println!("S04_CASE id=T03-10-cli header=current bytes={} header_count=1 rows=2", after.len());
     }
 
     #[test]

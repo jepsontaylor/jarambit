@@ -143,6 +143,7 @@ fn serial_double_counts_panic_and_keeps_the_positive() {
     assert!(forward_ok.statistical_credit && forward_s.statistical_credit);
     assert_eq!(forward_s.mean, Some(3.0));
     assert_eq!(forward_s.mean_ratio.unwrap().text(), "3/1");
+    assert_eq!((forward_s.p05, forward_s.p95), (Some(1.0), Some(5.0)));
     assert_eq!((forward_s.p05_index, forward_s.p95_index), (Some(0), Some(4)));
     let reversed_ok = run_serial_double(&[1.0, 2.0, 3.0, 4.0, 5.0], 2, SerialInject { reverse_chunks: true, ..SerialInject::default() });
     let reverse_s = reversed_ok.summary.unwrap();
@@ -150,6 +151,7 @@ fn serial_double_counts_panic_and_keeps_the_positive() {
     assert!(reversed_ok.statistical_credit && reverse_s.statistical_credit);
     assert_eq!(reverse_s.mean, Some(3.0));
     assert_eq!(reverse_s.mean_ratio.unwrap().text(), "3/1");
+    assert_eq!((reverse_s.p05, reverse_s.p95), (Some(1.0), Some(5.0)));
     assert_eq!((reverse_s.p05_index, reverse_s.p95_index), (Some(0), Some(4)));
     let reversed = run_serial_double(&[1.0, 2.0, 3.0, 4.0, 5.0], 2, SerialInject { panic_at: Some(3), reverse_chunks: true, panic_before_first_chunk: false, ..SerialInject::default() });
     assert_eq!((reversed.completed, reversed.missing, reversed.error, reversed.respawns, reversed.foreign_kills), (0, 5, Some(CheckedError::WorkerPanic), 0, 0));
@@ -157,7 +159,7 @@ fn serial_double_counts_panic_and_keeps_the_positive() {
     assert_ne!((reversed.completed, reversed.missing), (late.completed, late.missing));
     println!("S04_CASE id=T03-05-index p05_index={} p95_index={}", s.p05_index.unwrap(), s.p95_index.unwrap());
     println!("S04_CASE id=T03-05-reverse completed={} missing={} forward_completed={} forward_missing={} credit=0 respawns=0 foreign_kills=0", reversed.completed, reversed.missing, late.completed, late.missing);
-    println!("S04_CASE id=T03-05-schedule-positive forward_completed={} forward_missing={} forward_mean={} forward_p05_index={} forward_p95_index={} reverse_completed={} reverse_missing={} reverse_mean={} reverse_p05_index={} reverse_p95_index={}", forward_ok.completed, forward_ok.missing, forward_s.mean.unwrap(), forward_s.p05_index.unwrap(), forward_s.p95_index.unwrap(), reversed_ok.completed, reversed_ok.missing, reverse_s.mean.unwrap(), reverse_s.p05_index.unwrap(), reverse_s.p95_index.unwrap());
+    println!("S04_CASE id=T03-05-schedule-positive forward_completed={} forward_missing={} forward_mean={} forward_ratio={} forward_p05={} forward_p95={} forward_p05_index={} forward_p95_index={} reverse_completed={} reverse_missing={} reverse_mean={} reverse_ratio={} reverse_p05={} reverse_p95={} reverse_p05_index={} reverse_p95_index={} credit=1 error=none", forward_ok.completed, forward_ok.missing, forward_s.mean.unwrap(), forward_s.mean_ratio.unwrap().text(), forward_s.p05.unwrap(), forward_s.p95.unwrap(), forward_s.p05_index.unwrap(), forward_s.p95_index.unwrap(), reversed_ok.completed, reversed_ok.missing, reverse_s.mean.unwrap(), reverse_s.mean_ratio.unwrap().text(), reverse_s.p05.unwrap(), reverse_s.p95.unwrap(), reverse_s.p05_index.unwrap(), reverse_s.p95_index.unwrap());
     println!("S04_CASE id=T03-05-early-abort completed={} missing={} injection=panic_before_first_chunk not_reverse_schedule=1", early.completed, early.missing);
 }
 
