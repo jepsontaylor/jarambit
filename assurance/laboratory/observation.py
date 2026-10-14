@@ -58,7 +58,8 @@ def bind_observation(measurement, history, raw_bytes_sha256=None):
     """Bind one observation to the history prefix, caller raw bytes, calibration, and unit.
 
     The digest stored on the measurement is not the caller's presented raw
-    identity. A missing caller argument stays unavailable.
+    identity. A missing caller argument stays unavailable. An accepted scalar
+    binding reports the completed prefix event ids.
     """
     if type(measurement) is not dict:
         return _refuse("measurement_not_an_object")
@@ -120,7 +121,11 @@ def bind_observation(measurement, history, raw_bytes_sha256=None):
         }
     if value == 0 or value == 0.0:
         return {"censoring": None, "outcome": "accepted", "value": 0.0}
-    return {"available": True, "outcome": "accepted"}
+    return {
+        "available": True,
+        "history_prefix_events": list(prefix["event_ids"]),
+        "outcome": "accepted",
+    }
 
 
 def _bind_components(measurement):
@@ -322,9 +327,9 @@ def interpret(
 ):
     """No empty set is healthy. Support needs observations that actually bind.
 
-    History and presented raw identities come from the explicit arguments, or
-    from claim["history"] and claim["raw_bytes_by_id"] when the caller put
-    them on the claim. A calibration id or a stored digest is not that context.
+    History and presented raw identities come only from the explicit arguments.
+    Fields on the claim are subject assertions, not caller evidence. A
+    calibration id or a stored digest is not that context.
     """
     if operator_rows is not None or alternatives is not None:
         rows = list(operator_rows or [])
@@ -363,10 +368,8 @@ def interpret(
         return _unable("absent_measurement_cannot_be_healthy")
     if type(observations) is not list or type(claim) is not dict or not claim:
         return _unable("invalid_observation_cannot_support")
-    bound_history = history if history is not None else claim.get("history")
-    bound_raw = raw_bytes_by_id if raw_bytes_by_id is not None else claim.get("raw_bytes_by_id")
-    if type(bound_raw) is not dict:
-        bound_raw = None
+    bound_history = history
+    bound_raw = raw_bytes_by_id if type(raw_bytes_by_id) is dict else None
     for observation in observations:
         presented = None
         if type(observation) is dict and bound_raw is not None:

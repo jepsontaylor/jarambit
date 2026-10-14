@@ -205,14 +205,20 @@ FIXTURES = json.loads(r"""
       },
       "qualification": {
         "passport_sha256": "d48bf6e1180a66bdfb9fa40239650bf3ed6aa6ab8fd2a3534a3a3ae2e1e4ae50",
-        "scope": "wrought_bar"
+        "scope": "wrought_bar",
+        "covered_routes": [
+          "wrought_bar"
+        ],
+        "covered_surfaces": [
+          "machined"
+        ]
       }
     },
     "oracle": {
       "outcome": "refused",
       "reason": "unapproved_route_transfer"
     },
-    "input_sha256": "172ce305ec1ca769bca6a134a1771c145d44a6313f4acae079d47595aef8b2ce",
+    "input_sha256": "4f76f5747638abaa61970d8fb179a5703a07ad7dde054bb0c8e8b8d60f8df728",
     "oracle_sha256": "b9bd6a8b2fba40e57f9776711ec4350de2b3181a5d2f83b7b1f599d483e6e1de"
   },
   {
@@ -298,10 +304,13 @@ FIXTURES = json.loads(r"""
     },
     "oracle": {
       "available": true,
+      "history_prefix_events": [
+        "E1"
+      ],
       "outcome": "accepted"
     },
     "input_sha256": "0b3d470a80d1c39045a5298fc263bbbc3453353322ab9fb2983aca12470cbd93",
-    "oracle_sha256": "ce3c299ad995bade685910bb6a92573d77d7cdc9e14bf497e3aada7a3fcc200a"
+    "oracle_sha256": "296b681a56b75d0e42f3be47cddef432cc5aec36ddbc83cd1ac8f8337734acde"
   },
   {
     "id": "FX-03-a",
@@ -691,10 +700,13 @@ FIXTURES = json.loads(r"""
     },
     "oracle": {
       "available": true,
+      "history_prefix_events": [
+        "E1"
+      ],
       "outcome": "accepted"
     },
     "input_sha256": "0b3d470a80d1c39045a5298fc263bbbc3453353322ab9fb2983aca12470cbd93",
-    "oracle_sha256": "ce3c299ad995bade685910bb6a92573d77d7cdc9e14bf497e3aada7a3fcc200a"
+    "oracle_sha256": "296b681a56b75d0e42f3be47cddef432cc5aec36ddbc83cd1ac8f8337734acde"
   },
   {
     "id": "FX-05-a",
@@ -2990,33 +3002,30 @@ FIXTURES = json.loads(r"""
     "consumer": "observation.interpret",
     "input": {
       "claim": {
-        "diagnostic": "change_vs_baseline",
-        "history": {
-          "schema": "exposure_history.v1",
-          "id": "HX-1",
-          "specimen": "SP-1",
-          "segments": [
-            {
-              "clock": "monotonic",
-              "id": "S1",
-              "origin_utc": "2026-01-01T00:00:00Z",
-              "uncertainty_s": 0.5
-            }
-          ],
-          "events": [
-            {
-              "end_utc": "2026-01-01T01:00:00Z",
-              "id": "E1",
-              "kind": "load_block",
-              "segment": "S1",
-              "start_utc": "2026-01-01T00:00:00Z",
-              "trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
-            }
-          ]
-        },
-        "raw_bytes_by_id": {
-          "M-1": "3333333333333333333333333333333333333333333333333333333333333333"
-        }
+        "diagnostic": "change_vs_baseline"
+      },
+      "history": {
+        "schema": "exposure_history.v1",
+        "id": "HX-1",
+        "specimen": "SP-1",
+        "segments": [
+          {
+            "clock": "monotonic",
+            "id": "S1",
+            "origin_utc": "2026-01-01T00:00:00Z",
+            "uncertainty_s": 0.5
+          }
+        ],
+        "events": [
+          {
+            "end_utc": "2026-01-01T01:00:00Z",
+            "id": "E1",
+            "kind": "load_block",
+            "segment": "S1",
+            "start_utc": "2026-01-01T00:00:00Z",
+            "trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
       },
       "observations": [
         {
@@ -3069,13 +3078,16 @@ FIXTURES = json.loads(r"""
           "value": 100.0,
           "schema": "measurement_intervention.v1"
         }
-      ]
+      ],
+      "raw_bytes_by_id": {
+        "M-1": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
     },
     "oracle": {
       "finding": "supported_within_scope",
       "outcome": "accepted"
     },
-    "input_sha256": "b0bbd9027ad9b4513658e4df52534741265d9526616729623ab1c219e96270f3",
+    "input_sha256": "a4b9903e2698f95edfc63c1b323e3db934a9bd34de0f9d6244af374b336d14fd",
     "oracle_sha256": "12870b8eb14cb79a599bf329d6fc07c121320d6a5fdfa70e09e901ec48ddbe50"
   },
   {
@@ -3331,6 +3343,8 @@ def _run(fixture):
             operator_rows=payload.get("operator_rows"),
             observed=payload.get("observed"),
             alternatives=payload.get("alternatives"),
+            history=payload.get("history"),
+            raw_bytes_by_id=payload.get("raw_bytes_by_id"),
         )
     if consumer == "records.load_historical":
         return records.load_historical(payload["record"], payload.get("claim"))
@@ -3448,7 +3462,11 @@ class SameConsumerContractControls(unittest.TestCase):
     def test_interpret_requires_a_validated_observation(self):
         healthy = _fixture("FX-12-p")
         accepted = observation.interpret(
-            observations=healthy["observations"], claim=healthy["claim"])
+            observations=healthy["observations"],
+            claim=healthy["claim"],
+            history=healthy["history"],
+            raw_bytes_by_id=healthy["raw_bytes_by_id"],
+        )
         self.assertEqual(accepted, {
             "finding": "supported_within_scope",
             "outcome": "accepted",
@@ -3473,7 +3491,11 @@ class SameConsumerContractControls(unittest.TestCase):
         healthy = _fixture("FX-05-p")
         accepted = observation.bind_observation(
             healthy["measurement"], healthy["history"], healthy["raw_bytes_sha256"])
-        self.assertEqual(accepted, {"available": True, "outcome": "accepted"})
+        self.assertEqual(accepted, {
+            "available": True,
+            "history_prefix_events": ["E1"],
+            "outcome": "accepted",
+        })
         omitted = observation.bind_observation(
             healthy["measurement"], healthy["history"], None)
         self.assertEqual(omitted["reason"], "raw_identity_unavailable")
@@ -3658,19 +3680,31 @@ class SameConsumerContractControls(unittest.TestCase):
     def test_interpret_uses_the_binding_not_the_record_label(self):
         healthy = _fixture("FX-12-p")
         accepted = observation.interpret(
-            observations=healthy["observations"], claim=healthy["claim"])
+            observations=healthy["observations"],
+            claim=healthy["claim"],
+            history=healthy["history"],
+            raw_bytes_by_id=healthy["raw_bytes_by_id"],
+        )
         self.assertEqual(accepted["outcome"], "accepted")
         invalid = _fixture("FX-12-p")
         invalid["observations"][0]["calibration"]["valid_from_utc"] = "2026-01-01T03:00:00Z"
         refused = observation.interpret(
-            observations=invalid["observations"], claim=invalid["claim"])
+            observations=invalid["observations"],
+            claim=invalid["claim"],
+            history=invalid["history"],
+            raw_bytes_by_id=invalid["raw_bytes_by_id"],
+        )
         self.assertEqual(refused["diagnostic"], "unable_to_determine")
         self.assertEqual(refused["reason"], "calibration_not_valid_at_acquisition")
         flagged = _fixture("FX-12-p")
         flagged["observations"][0]["validated"] = True
         flagged["observations"][0]["accepted"] = True
         unknown = observation.interpret(
-            observations=flagged["observations"], claim=flagged["claim"])
+            observations=flagged["observations"],
+            claim=flagged["claim"],
+            history=flagged["history"],
+            raw_bytes_by_id=flagged["raw_bytes_by_id"],
+        )
         self.assertEqual(unknown["reason"], "schema_rejected")
         bare = observation.interpret(
             observations=healthy["observations"],
@@ -3678,6 +3712,40 @@ class SameConsumerContractControls(unittest.TestCase):
         )
         self.assertEqual(bare["diagnostic"], "unable_to_determine")
         self.assertNotEqual(bare.get("finding"), "supported_within_scope")
+        embedded = _fixture("FX-12-p")
+        embedded["claim"]["history"] = embedded["history"]
+        embedded["claim"]["raw_bytes_by_id"] = embedded["raw_bytes_by_id"]
+        subject_only = observation.interpret(
+            observations=embedded["observations"],
+            claim=embedded["claim"],
+        )
+        self.assertEqual(subject_only["diagnostic"], "unable_to_determine")
+        self.assertEqual(subject_only["reason"], "history_not_an_object")
+        self.assertNotEqual(subject_only.get("finding"), "supported_within_scope")
+        overridden = observation.interpret(
+            observations=embedded["observations"],
+            claim=embedded["claim"],
+            history=embedded["history"],
+            raw_bytes_by_id={"M-1": "ab" * 32},
+        )
+        self.assertEqual(overridden["reason"], "raw_acquisition_mismatch")
+        self.assertEqual(overridden["diagnostic"], "unable_to_determine")
+        bad_history = copy.deepcopy(embedded["history"])
+        bad_history["events"] = []
+        history_overridden = observation.interpret(
+            observations=embedded["observations"],
+            claim=embedded["claim"],
+            history=bad_history,
+            raw_bytes_by_id=embedded["raw_bytes_by_id"],
+        )
+        self.assertEqual(history_overridden["reason"], "history_prefix_mismatch")
+        empty_map = observation.interpret(
+            observations=embedded["observations"],
+            claim=embedded["claim"],
+            history=embedded["history"],
+            raw_bytes_by_id={},
+        )
+        self.assertEqual(empty_map["reason"], "raw_identity_unavailable")
 
     def test_legacy_scope_tokens_are_not_route_or_surface_coverage(self):
         healthy = _fixture("FX-02-p")
@@ -3739,12 +3807,14 @@ class SameConsumerContractControls(unittest.TestCase):
         self.assertEqual(bind(before)["reason"], "history_prefix_mismatch")
         before["measurement"]["history_prefix_events"] = ["E1", "E2"]
         self.assertEqual(bind(before)["outcome"], "accepted")
+        self.assertEqual(bind(before)["history_prefix_events"], ["E1", "E2"])
         at_boundary = _fixture("FX-03-p")
         at_boundary["history"]["events"].append(
             event("2026-01-01T02:00:00Z", "2026-01-01T01:30:00Z"))
         self.assertEqual(bind(at_boundary)["reason"], "history_prefix_mismatch")
         at_boundary["measurement"]["history_prefix_events"] = ["E1", "E2"]
         self.assertEqual(bind(at_boundary)["outcome"], "accepted")
+        self.assertEqual(bind(at_boundary)["history_prefix_events"], ["E1", "E2"])
         after = _fixture("FX-03-p")
         after["history"]["events"].append(
             event("2026-01-01T03:00:00Z", "2026-01-01T01:30:00Z"))
