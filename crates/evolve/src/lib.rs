@@ -1379,7 +1379,10 @@ mod tests {
         let refuse_text = |name: &str, body: String| {
             let p = scratch(name);
             std::fs::write(&p, body).unwrap();
-            load_ckpt(&p).unwrap_err()
+            match load_ckpt(&p) {
+                Err(e) => e,
+                Ok(_) => panic!("{name}: malformed current checkpoint returned Loaded"),
+            }
         };
         assert!(refuse_text("trail", format!("{original}AFTER_END\n")).contains("trailing record"));
         assert!(refuse_text("extra-end", format!("{original}end\n")).contains("trailing record"));
