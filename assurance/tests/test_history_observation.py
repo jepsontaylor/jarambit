@@ -2,6 +2,7 @@
 
 A passing count is not group acceptance and not a laboratory pass.
 """
+import copy
 import json
 import unittest
 
@@ -3351,6 +3352,223 @@ class FrozenT07Controls(unittest.TestCase):
 for _fixture in FIXTURES:
     _name = "test_" + _fixture["id"].replace("-", "_")
     setattr(FrozenT07Controls, _name, _bind(_fixture))
+
+
+def _fixture(fixture_id):
+    for fixture in FIXTURES:
+        if fixture["id"] == fixture_id:
+            return copy.deepcopy(fixture["input"])
+    raise AssertionError(fixture_id)
+
+
+class SameConsumerContractControls(unittest.TestCase):
+    """Healthy and adverse inputs call the same function on disposable copies."""
+
+    def test_validate_reduction_accepts_only_the_independent_trace(self):
+        healthy = _fixture("FX-06-a-runout_relabel")
+        healthy["summary"]["termination"] = "runout_censored"
+        accepted = observation.validate_reduction(healthy["summary"], healthy["trace"])
+        self.assertEqual(accepted["outcome"], "accepted")
+        self.assertEqual(accepted["reduction"]["values_n"], [0.0, 5.0, None, 10.0])
+        wrong_value = _fixture("FX-06-a-runout_relabel")
+        wrong_value["summary"]["termination"] = "runout_censored"
+        wrong_value["summary"]["values_n"][3] = 999.0
+        refused = observation.validate_reduction(wrong_value["summary"], wrong_value["trace"])
+        self.assertEqual(refused["reason"], "reduction_mismatch")
+        changed_raw = _fixture("FX-06-a-runout_relabel")
+        changed_raw["summary"]["termination"] = "runout_censored"
+        changed_raw["trace"]["samples"][3][1] = 99
+        raw_refused = observation.validate_reduction(
+            changed_raw["summary"], changed_raw["trace"])
+        self.assertEqual(raw_refused["reason"], "reduction_mismatch")
+        changed_time = _fixture("FX-06-a-runout_relabel")
+        changed_time["summary"]["termination"] = "runout_censored"
+        changed_time["trace"]["samples"][3][0] = 4
+        time_refused = observation.validate_reduction(
+            changed_time["summary"], changed_time["trace"])
+        self.assertEqual(time_refused["reason"], "reduction_mismatch")
+
+    def test_interpret_requires_a_validated_observation(self):
+        healthy = _fixture("FX-12-p")
+        accepted = observation.interpret(
+            observations=healthy["observations"], claim=healthy["claim"])
+        self.assertEqual(accepted, {
+            "finding": "supported_within_scope",
+            "outcome": "accepted",
+        })
+        invalid = _fixture("FX-12-p")
+        invalid["observations"][0]["unit"] = "N"
+        refused = observation.interpret(
+            observations=invalid["observations"], claim={"diagnostic": "healthy"})
+        self.assertEqual(refused["diagnostic"], "unable_to_determine")
+        self.assertNotIn("identified", refused)
+        self.assertNotEqual(refused.get("finding"), "supported_within_scope")
+        empty_rows = observation.interpret(
+            operator_rows=[], observed=[], alternatives=[[1, 0]])
+        self.assertNotIn("identified", empty_rows)
+        self.assertEqual(empty_rows["reason"], "not_identified")
+        malformed = observation.interpret(
+            operator_rows=[[1, 1]], observed=[1], alternatives=[[1, 0], [0, 1, 0]])
+        self.assertNotIn("identified", malformed)
+        self.assertEqual(malformed["reason"], "alternative_dimension_mismatch")
+
+    def test_raw_identity_is_required_at_the_caller_boundary(self):
+        healthy = _fixture("FX-05-p")
+        accepted = observation.bind_observation(
+            healthy["measurement"], healthy["history"], healthy["raw_bytes_sha256"])
+        self.assertEqual(accepted, {"available": True, "outcome": "accepted"})
+        mismatch = _fixture("FX-05-p")
+        refused = observation.bind_observation(
+            mismatch["measurement"], mismatch["history"], "ab" * 32)
+        self.assertEqual(refused["reason"], "raw_acquisition_mismatch")
+        missing = _fixture("FX-05-p")
+        del missing["measurement"]["raw_sha256"]
+        unavailable = observation.bind_observation(
+            missing["measurement"], missing["history"], None)
+        self.assertEqual(unavailable["reason"], "raw_identity_unavailable")
+
+    def test_one_specimen_over_two_sessions_is_one_unit(self):
+        paired = _fixture("FX-11-p")
+        paired["observations"][1]["specimen"] = "SP-1"
+        paired["observations"][1]["experimental_unit"]["specimen"] = "SP-1"
+        paired["claim"]["independent_observations"] = 1
+        accepted = records.validate_validation_lineage(
+            paired["claim"], observations=paired["observations"])
+        self.assertEqual(accepted, {"independent_units": 1, "outcome": "accepted"})
+        overclaimed = _fixture("FX-11-p")
+        overclaimed["observations"][1]["specimen"] = "SP-1"
+        overclaimed["observations"][1]["experimental_unit"]["specimen"] = "SP-1"
+        refused = records.validate_validation_lineage(
+            overclaimed["claim"], observations=overclaimed["observations"])
+        self.assertEqual(refused["reason"], "duplicate_acquisition_counted_independent")
+        orphan = _fixture("FX-11-p-A02-02_derived")
+        orphan["observations"][1]["parents"] = ["M-404"]
+        orphan_result = records.validate_validation_lineage(
+            orphan["claim"], observations=orphan["observations"])
+        self.assertEqual(orphan_result["reason"], "orphan_parent")
+
+    def test_unknown_support_cannot_substantiate_a_local_claim(self):
+        present = _fixture("FX-08-p")["observation"]
+        accepted = observation.validate_observation_support(
+            present, {"scope": "local_organization"})
+        self.assertEqual(accepted, {"outcome": "accepted"})
+        missing = _fixture("FX-10-p")["observation"]
+        del missing["support"]
+        refused = observation.validate_observation_support(
+            missing, {"scope": "local_organization"})
+        self.assertEqual(refused["reason"], "scope_exceeds_support")
+        permuted = _fixture("FX-08-p")
+        permuted["observation"]["frame"]["axes"] = ["z", "x", "y"]
+        axes = observation.validate_observation_support(
+            permuted["observation"], permuted["claim"])
+        self.assertEqual(axes["reason"], "frame_axes_mismatch")
+        unit = _fixture("FX-08-p")
+        unit["observation"]["unit"] = "gram"
+        unit_result = observation.validate_observation_support(
+            unit["observation"], unit["claim"])
+        self.assertEqual(unit_result["reason"], "unit_mismatch")
+
+    def test_measured_zero_is_not_a_value_keyed_fill(self):
+        measured = _fixture("FX-09-p-A03-03_components")
+        measured["measurement"]["components"] = {
+            "xx": 0.0,
+            "xy": {"unknown": "not measured"},
+            "yy": 20.0,
+        }
+        measured["measurement"]["component_roles"] = {"xx": "measured", "yy": "measured"}
+        accepted = observation.bind_observation(
+            measured["measurement"], measured["history"], measured.get("raw_bytes_sha256"))
+        self.assertEqual(accepted["outcome"], "accepted")
+        self.assertEqual(accepted["components_unknown"], ["xy"])
+        filled = _fixture("FX-09-a-A03-03_components")
+        filled["measurement"]["components"]["xy"] = 7.5
+        refused = observation.bind_observation(
+            filled["measurement"], filled["history"], filled.get("raw_bytes_sha256"))
+        self.assertEqual(refused["reason"], "inferred_component_labeled_measured")
+
+    def test_active_exposure_is_not_a_completed_prefix(self):
+        during = _fixture("FX-03-p")
+        during["history"]["events"].append({
+            "end_utc": "2026-01-01T03:00:00Z",
+            "id": "E2",
+            "kind": "load_block",
+            "segment": "S1",
+            "start_utc": "2026-01-01T01:30:00Z",
+            "trace_sha256": "5" * 64,
+        })
+        refused = observation.bind_observation(
+            during["measurement"], during["history"], during.get("raw_bytes_sha256"))
+        self.assertEqual(refused["reason"], "measurement_during_active_exposure")
+
+    def test_history_rejects_bad_clocks_without_an_exception(self):
+        negative = _fixture("FX-04-p")
+        negative["segments"][1]["uncertainty_s"] = -1.0
+        self.assertEqual(
+            history.validate_history(negative)["reason"], "segment_uncertainty_invalid")
+        missing_segment = _fixture("FX-04-p")
+        missing_segment["events"][1]["segment"] = "S9"
+        self.assertEqual(
+            history.validate_history(missing_segment)["reason"], "segment_reference_unknown")
+        impossible = _fixture("FX-04-p")
+        impossible["events"][0]["start_utc"] = "2026-02-30T00:00:00Z"
+        self.assertEqual(
+            history.validate_history(impossible)["reason"], "timestamp_not_a_calendar_date")
+        gap = _fixture("FX-04-p")
+        gap["events"].append({
+            "end_utc": "2026-01-01T02:00:00Z",
+            "id": "E1b",
+            "kind": "dwell",
+            "segment": "S1",
+            "start_utc": "2026-01-01T01:30:00Z",
+            "trace_sha256": "6" * 64,
+        })
+        self.assertEqual(history.validate_history(gap)["reason"], "uncovered_gap")
+
+    def test_mass_and_trace_reject_non_numbers(self):
+        blank = _fixture("FX-07-p")
+        blank["records"][1]["value_g"] = None
+        self.assertEqual(
+            records.validate_mass(blank["records"], blank["requested"])["reason"],
+            "mass_value_invalid",
+        )
+        conflict = _fixture("FX-07-p")
+        extra = copy.deepcopy(conflict["records"][1])
+        extra["value_g"] = 91.0
+        conflict["records"].append(extra)
+        self.assertEqual(
+            records.validate_mass(conflict["records"], conflict["requested"])["reason"],
+            "conflicting_configuration_measurements",
+        )
+        textual = _fixture("FX-06-p")
+        textual["trace"]["gain_n_per_count"] = "1/2"
+        self.assertEqual(
+            observation.reduce_trace(textual["trace"])["reason"], "non_numeric_value")
+        boolean = _fixture("FX-05-p")
+        boolean["measurement"]["value"] = True
+        self.assertEqual(
+            observation.bind_observation(
+                boolean["measurement"], boolean["history"], boolean["raw_bytes_sha256"]
+            )["reason"],
+            "non_numeric_value",
+        )
+
+    def test_intervention_pair_uses_one_function(self):
+        accepted = observation.validate_intervention(
+            {"may_introduce": []}, {"scope": "intrinsic", "species": "H"})
+        self.assertEqual(accepted, {"outcome": "accepted"})
+        refused = observation.validate_intervention(
+            {}, {"scope": "intrinsic", "species": "H"})
+        self.assertEqual(refused["reason"], "preparation_undeclared")
+        induced = observation.validate_intervention(
+            {"may_introduce": ["H"]}, {"scope": "intrinsic", "species": "H"})
+        self.assertEqual(induced["reason"], "preparation_induced_not_intrinsic")
+
+    def test_closed_schema_rejects_an_extra_passport_field(self):
+        passport = _fixture("FX-01-p")["passport"]
+        passport["finish_claim"] = "polished"
+        refused = records.validate_specimen(passport, [])
+        self.assertEqual(refused["reason"], "schema_rejected")
+        self.assertEqual(refused["material_state"], "unknown")
 
 
 if __name__ == "__main__":

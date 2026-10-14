@@ -116,6 +116,61 @@ class GenericLaboratoryRecords(unittest.TestCase):
             "reason": "unapproved_route_transfer",
         })
 
+    def test_opaque_route_coverage_is_membership_in_both_directions(self):
+        passport = {
+            "alloy": "OPAQUE-1",
+            "chain_of_custody": ["receipt:CC-Q"],
+            "geometry_sha256": "1" * 64,
+            "heat_treatment": "HT-Q",
+            "id": "SP-Q",
+            "material_lot": "LOT-Q",
+            "parent_stock": "STOCK-Q",
+            "process_route": "route-alpha",
+            "surface_process": "surface-alpha",
+        }
+        covered = {
+            "covered_routes": ["route-alpha"],
+            "passport_sha256": scientific_hash(passport),
+        }
+        self.assertEqual(
+            records.check_transfer(covered, passport), {"outcome": "accepted"})
+        reversed_route = {
+            "covered_routes": ["route-beta"],
+            "passport_sha256": scientific_hash(passport),
+        }
+        self.assertEqual(
+            records.check_transfer(reversed_route, passport)["reason"],
+            "unapproved_route_transfer",
+        )
+        empty = {
+            "covered_routes": [],
+            "passport_sha256": scientific_hash(passport),
+        }
+        self.assertEqual(
+            records.check_transfer(empty, passport)["reason"],
+            "unapproved_route_transfer",
+        )
+        wrong_surface = {
+            "covered_routes": ["route-alpha"],
+            "covered_surfaces": ["surface-beta"],
+            "passport_sha256": scientific_hash(passport),
+        }
+        self.assertEqual(
+            records.check_transfer(wrong_surface, passport)["reason"],
+            "unapproved_route_transfer",
+        )
+        other = dict(passport)
+        other["process_route"] = "route-beta"
+        other["id"] = "SP-R"
+        other_qualification = {
+            "covered_routes": ["route-alpha"],
+            "passport_sha256": scientific_hash(other),
+        }
+        self.assertEqual(
+            records.check_transfer(other_qualification, other)["reason"],
+            "unapproved_route_transfer",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
