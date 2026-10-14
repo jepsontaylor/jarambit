@@ -1,5 +1,10 @@
 <div align="center">
 
+<a href="https://github.com/neverhuman/jarambit/releases/download/film-c10d-rc6-v1/switchback_C10d_rc6_chat_h264.mp4"><img src="docs/render/media/switchback_c10d_rc6_hero.webp" width="960" alt="SWITCHBACK Rev C.10d rc6 — 13 s highlight of the product film (click for the full 1080p MP4)"></a>
+
+<sub>SWITCHBACK Rev C.10d rc6 · 64.9 g Gr5 Ti — <a href="https://github.com/neverhuman/jarambit/releases/download/film-c10d-rc6-v1/switchback_C10d_rc6_chat_h264.mp4">full film (1080p MP4)</a> · rendered by <code>ops/render/pro/jr_film.py</code></sub>
+
+
 # 🗡️ jarambit
 
 ### Intelligence-designed titanium utility karambits — evolved, FEM-verified, Monte-Carlo-robust

@@ -69,6 +69,11 @@ def main():
         if Ku[max(0, by0):by1, max(0, bx0):bx1].any(): backing = 0.55   # macro frames: badge over metal -> dark plate
         if sci:
             cues = TL['cues']
+            hold = TL.get('broadside_holds_s'); sf_txt = dict(overlay.science_lines(man, shot))['sf']
+            if hold:   # owner 16:01: the SF line must finish typing inside the field broadside hold
+                t_end = cues['sf'] + overlay.type_schedule(sf_txt)[-1]; h_end = hold['field_back'] + hold['half_width']
+                if t_end > h_end: raise SystemExit(f"assemble: FAIL typing: {shot['gate']} SF line ends {t_end:.2f}s > hold end {h_end:.2f}s")
+                log.setdefault('typing_qa', []).append({'gate': shot['gate'], 'sf_end_s': round(t_end, 2), 'hold_end_s': h_end, 'pass': True})
             _, q = overlay.compose_v2(blank, man, Ku, Su, card=(shot, 99.0, cues, 1.0), heat_alpha=1.0, gain=gain,
                                       badge_corner=badge_corner, badge_backing=backing)
             card_layout = tuple(q['layout'])
@@ -87,6 +92,12 @@ def main():
                 data = real if W_ is None else real * (1 - w_wire) + W_ * w_wire
                 if H_ is not None: data = data * (1 - w_heat) + H_ * w_heat
                 img = data * (1 - w_back) + real * w_back
+                fg = TL.get('floor_grade')
+                if fg:   # owner 16:01: spin floor ~half brightness, fading softly away from the knife; data plates only on the knife
+                    Kf = cv2.GaussianBlur(K.astype(np.float32), (0, 0), 2.0)[..., None]
+                    dist = cv2.distanceTransform((~K).astype(np.uint8), cv2.DIST_L2, 5) / float(size[0])
+                    g = fg['near'] + (fg['far'] - fg['near']) * np.clip(dist / fg['falloff_frac'], 0, 1) ** 1.5
+                    img = img * Kf + real * g[..., None] * (1 - Kf)
                 ha = w_heat * (1 - w_back)
                 fade = 1.0 - sm((t - TL['text_fade'][0]) / (TL['text_fade'][1] - TL['text_fade'][0]))
                 card = (shot, t, TL['cues'], fade) if fade > 0 else None

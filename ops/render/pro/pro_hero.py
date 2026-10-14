@@ -155,9 +155,10 @@ def ti_material():
 
 
 def protect_signature(N, L, sig, finish):
-    """The maker mark is its own protected region: one design-wide glossy BLACK ink (dielectric), independent of
-    every finish knob (#53/#55). Values come from CFG['protected']['mark']; missing keys are a hard failure."""
+    """The laser-etched mark is its own bare-metal region, independent of every finish knob (#53/#55)."""
     M = CFG['protected']['mark']
+    if M['metallic'] != 1:
+        raise ValueError('the protected laser-etched mark must remain bare metal (Metallic=1)')
     bare = N('ShaderNodeBsdfPrincipled'); bare.name = 'protected_laser_etched_ti'   # node name pinned by #53 tests
     bare.inputs['Base Color'].default_value = (*M['base_rgb'], 1)
     bare.inputs['Metallic'].default_value = M['metallic']
@@ -167,7 +168,7 @@ def protect_signature(N, L, sig, finish):
     for key in ('Coat Weight', 'Thin Film Thickness', 'Anisotropic', 'Emission Strength'):
         bare.inputs[key].default_value = 0
     mix = N('ShaderNodeMixShader')
-    # Any ink coverage is protected, including antialiased stroke boundaries.
+    # Any mask coverage is protected, including antialiased stroke boundaries.
     L(math_node(N, L, 'GREATER_THAN', sig, 0.0), mix.inputs[0])
     L(finish, mix.inputs[1]); L(bare.outputs[0], mix.inputs[2])
     return mix.outputs[0]
@@ -266,6 +267,9 @@ if FILM_PATH:   # named anodize finishes (e.g. satin_blue) get the same floor / 
 z_floor = float(lo[2])
 scene.build_backdrop(rig['backdrop'], D, z_floor, materials.floor_material(rig['backdrop']['material']))
 
+FLOOR_NODES = []
+
+
 def soften_floor(fc):
     """Owner 2026-10-13: floor reflection ~45 % darker, soft falloff, gentle distance fade (dark + reflective kept)."""
     if not fc: return
@@ -283,6 +287,12 @@ def soften_floor(fc):
         mr.inputs['To Min'].default_value = fc.get('roughness', 0.10); mr.inputs['To Max'].default_value = fc.get('rough_far', 0.30)
         nt.links.new(tc.outputs['Object'], vl.inputs[0]); nt.links.new(vl.outputs['Value'], mr.inputs['Value'])
         nt.links.new(mr.outputs['Result'], p.inputs['Roughness'])
+        # specular fades softly away from the knife (near -> far x spec_far_frac); per-shot floor_gain scales it (spin: ~0.5)
+        ms = nt.nodes.new('ShaderNodeMapRange'); ms.name = 'floor_spec_fade'
+        ms.inputs['From Min'].default_value, ms.inputs['From Max'].default_value = fc.get('spec_fade_m', fc.get('fade_m', [0.06, 0.30]))
+        ms.inputs['To Min'].default_value = fc.get('spec_level', 0.28); ms.inputs['To Max'].default_value = fc.get('spec_level', 0.28) * fc.get('spec_far_frac', 1.0)
+        nt.links.new(vl.outputs['Value'], ms.inputs['Value']); nt.links.new(ms.outputs['Result'], p.inputs['Specular IOR Level'])
+        FLOOR_NODES.append((ms, p, fc))
         print('floor softened', m.name)
 soften_floor(CFG.get('floor_soft'))
 hdri = scene.find_hdri(rig['world']['hdri']['file'], rig['world']['hdri']['sha256'],
@@ -301,6 +311,12 @@ def apply_shot_light(sh):
         on = n not in FILM_LIGHTS or n in sh.get('enable_lights', [])
         ev = sh.get('light_ev_all', 0.0) + sh.get('light_ev', {}).get(n, 0.0)
         sc.objects[n].data.energy = e0 * (2.0 ** ev) * (1.0 if on else 0.0)
+    g = sh.get('floor_gain', 1.0)   # per-shot floor brightness (spec + coat + base); 1 = look of record
+    for ms, p, fc in FLOOR_NODES:
+        sl = fc.get('spec_level', 0.28) * g
+        ms.inputs['To Min'].default_value = sl; ms.inputs['To Max'].default_value = sl * sh.get('floor_spec_far_frac', fc.get('spec_far_frac', 1.0))
+        p.inputs['Coat Weight'].default_value = fc.get('coat', 0.08) * g
+        p.inputs['Base Color'].default_value = (*[c * g for c in fc.get('tint', [0.002, 0.002, 0.0025])], 1)
     if not SCI:
         sc.view_settings.exposure = LOOK['exposure'] + sh.get('exposure_ev_add', 0.0)
 
@@ -551,7 +567,10 @@ def qa_sig_frame(side):
 
 
 def sha(p):
-    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+    h = hashlib.sha256()
+    with open(p, 'rb') as f:
+        for block in iter(lambda: f.read(1 << 20), b''): h.update(block)
+    return h.hexdigest()
 
 
 def r6(v):
@@ -576,6 +595,14 @@ MATERIAL_STATE = {'finish': None, 'look': LOOK, 'flame': CFG.get('flame'), 'prep
                   'art_sha256': MAN['art']['sha256']}
 CODE_ID = {'pro_hero_sha256': sha(os.path.abspath(__file__)), 'cfg_sha256': hashlib.sha256(json.dumps(CFG, sort_keys=True).encode()).hexdigest(),
            'prep_sha256': sha(os.path.join(PREP, 'prep.json')), 'source': MAN['source']}
+CODE_ID['inputs'] = {p: sha(p) for p in [os.path.join(PREP, 'mesh.npz'), os.path.join(PREP, 'regions.json'),
+                    MAN['art']['path'], MAN['signature']['mask'], os.path.join(MK, 'presets', 'rig_dark_arc_key.json'),
+                    *[os.path.join(root, name) for root in (HERE, MK, os.path.join(MK, 'blender'))
+                      for name in sorted(os.listdir(root)) if name.endswith('.py')],
+                    *([os.path.join(HERE, CFG['flame']['lut'])] if FILM_PATH else []),
+                    *([os.path.join(HERE, '..', 'brand', 'signature', CFG['flame']['sig_inner_mask'])]
+                      if FILM_PATH and CFG['flame'].get('sig_inner_mask') else []),
+                    *([hdri] if hdri else []), *([A['--sci']] if '--sci' in A else [])]}
 sc.render.use_motion_blur = False   # stills/animatic: no shutter blending of states (books: disable blur unless subframes are evaluated)
 
 
@@ -659,10 +686,15 @@ def run_animation():
         a0, b0 = map(int, A['--frame_range'].split(':')); want = set(range(a0, b0))
     DRY = A.get('--dry') == '1'
     header = {'schema': 'jarambit.render.pro.anim_qa.v1', 'fps': AN['fps'], 'film': AN.get('title'), 'finish': FINISH,
+              'blender_version': bpy.app.version_string,
               'code': CODE_ID, 'material_state_sha256': hashlib.sha256(json.dumps({**MATERIAL_STATE, 'finish': FINISH}, sort_keys=True, default=str).encode()).hexdigest(),
               'fault': A.get('--fault'), 'release_ready': False,
               'release_note': 'human creative + presentation sign-off required; C.10a = design candidate, not certified'}
     path = os.path.join(OUT, A.get('--receipt', 'anim_qa.json'))
+    cache = Q.FrameCache({**header, 'film_plan': AN, 'spp': SPP, 'size': [RX, RY],
+                         'options': {k: v for k, v in A.items() if k not in
+                                     ('--out', '--resume', '--receipt', '--frames', '--frame_range', '--step', '--dry')}})
+    header['render_provenance_sha256'] = cache.key
     with Q.AnimationReceipt(path, header, dry=DRY) as receipt:
         for S in AN['shots']:
             fr = range(S['frames'][0], S['frames'][1], step) if want is None else sorted(x for x in want if S['frames'][0] <= x < S['frames'][1])
@@ -693,8 +725,10 @@ def run_animation():
                     print('QAFAIL', json.dumps(rec), flush=True); return 1
                 if not DRY:
                     r.filepath = os.path.join(OUT, f'f{f:05d}.png')
-                    if A.get('--resume') == '1' and os.path.isfile(r.filepath) and os.path.getsize(r.filepath) > 0:
-                        rec['resumed'] = True   # same state hash path; image QA re-run on the existing frame below
+                    outputs = [r.filepath, *[os.path.join(OUT, f'qa_{plate}_f{f:05d}_0001.png')
+                                            for plate in ('sig', 'idx')]]
+                    if A.get('--resume') == '1' and cache.matches(r.filepath, h, outputs):
+                        rec['resumed'] = True
                     else:
                         bpy.ops.render.render(write_still=True)
                     try:
@@ -702,6 +736,8 @@ def run_animation():
                     except Exception as e:
                         rec['image'] = {'pass': False, 'error': str(e)}
                 ok = Q.frame_pass(rec, dry=DRY)
+                if ok and not DRY:
+                    cache.mark(r.filepath, h, outputs)
                 rec['status'] = ('QA_DRY' if DRY else 'RENDERED') if ok else 'FAIL_POST_RENDER'
                 receipt.add(rec)
                 if not ok:

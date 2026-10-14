@@ -569,7 +569,9 @@
      246.3884,
      248.1942
     ],
-    "note": "broadside-eased turntable: slow ~2.2 s holds at the front (mesh) and back (field) broadsides, fast through edge-on"
+    "note": "broadside-eased turntable: slow ~2.2 s holds at the front (mesh) and back (field) broadsides, fast through edge-on",
+    "floor_gain": 0.5,
+    "floor_spec_far_frac": 0.35
    },
    "start": {
     "az": -20,
@@ -897,7 +899,9 @@
      606.3884,
      608.1942
     ],
-    "note": "broadside-eased turntable: slow ~2.2 s holds at the front (mesh) and back (field) broadsides, fast through edge-on"
+    "note": "broadside-eased turntable: slow ~2.2 s holds at the front (mesh) and back (field) broadsides, fast through edge-on",
+    "floor_gain": 0.5,
+    "floor_spec_far_frac": 0.35
    },
    "start": {
     "az": -20,
@@ -1225,7 +1229,9 @@
      966.3884,
      968.1942
     ],
-    "note": "broadside-eased turntable: slow ~2.2 s holds at the front (mesh) and back (field) broadsides, fast through edge-on"
+    "note": "broadside-eased turntable: slow ~2.2 s holds at the front (mesh) and back (field) broadsides, fast through edge-on",
+    "floor_gain": 0.5,
+    "floor_spec_far_frac": 0.35
    },
    "start": {
     "az": -20,
@@ -1364,9 +1370,9 @@
   "cues": {
    "load": 0.15,
    "mesh": 2.35,
-   "peak": 5.6,
-   "sf": 7.0,
-   "prov": 7.6
+   "peak": 4.5,
+   "sf": 5.85,
+   "prov": 7.2
   },
   "text_fade": [
    8.9,
@@ -1377,6 +1383,12 @@
    "field_back": 6.9,
    "half_width": 1.25
   },
-  "note": "mesh peaks on the front broadside hold, field on the back broadside hold; the lines type into those holds"
+  "note": "mesh peaks on the front broadside hold, field on the back broadside hold; the lines type into those holds; QA: SF line must finish typing inside the field hold (assemble fails otherwise)",
+  "floor_grade": {
+   "near": 0.5,
+   "far": 0.3,
+   "falloff_frac": 0.35,
+   "note": "2D grade outside the per-frame knife mask (idx pass); glossy reflections kept"
+  }
  }
 }

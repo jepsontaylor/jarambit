@@ -295,17 +295,18 @@ def weight_badge(d, lay, man, corner='bl', backing=None):
 def science_lines(man, shot):
     """(start_s, role, text) for one data turntable. Start times are keyed to the visuals (see timeline):
     the load at the photoreal open, the mesh line when the solver mesh fades in, PEAK / SF when the field does."""
-    load = shot['load']; mesh = man['fem']['mesh']
+    load = shot['load']; mesh = shot.get('mesh') or man['fem']['mesh']
     need_keys = [k for k in ('nodes', 'tets') if k not in mesh]
     if need_keys: raise SystemExit(f'overlay: FAIL: manifest fem.mesh lacks {need_keys}')
     return [
         ('load', f"{shot['test']} · {num_str(load['value'])} {load['unit']}"),
         ('mesh', f"MESH · {mesh['tets']:,} TETS"),
-        *([('peak', f"PEAK σvM {shot['peak_vm_MPa']:.0f} MPa"), ('sf', f"SF {shot['SF']:.3f} · {shot['verdict']}")]
+        *([('peak', f"PEAK σvM {shot['peak_vm_MPa']:.0f} MPa"), ('sf', f"{shot.get('gate_label', shot['gate'])} SF {shot['SF']:.3f} · {shot['verdict']}")]
           if shot.get('certification', {}).get('status', 'of record') == 'of record' else
           [('peak', f"PEAK σvM {shot['solver_peak_vm_MPa']:.0f} MPa*"),
            ('sf', f"SF {shot['solver_SF']:.2f}* · OPEN")]),
-        ('prov', (f"{man['label']} · solver output · gate SF ≥ {shot['gate_SF']:.3f} · Sy {man['Sy_MPa']:.0f} MPa · {man['status_note']}").upper()
+        ('prov', (f"{man['label']} · solver output · gate SF ≥ {shot['gate_SF']:.3f} · Sy {man['Sy_MPa']:.0f} MPa"
+                  + (f" · {shot['carry']}" if shot.get('carry') else f" · {man['status_note']}")).upper()
                  if shot.get('certification', {}).get('status', 'of record') == 'of record' else
                  (f"{man['label']} · *solver value · cert. {shot['certification']['status']} ({shot['certification'].get('ref', '')}) · Sy {man['Sy_MPa']:.0f} MPa").upper())]
 
