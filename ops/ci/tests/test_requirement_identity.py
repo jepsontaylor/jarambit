@@ -82,6 +82,32 @@ class RequirementIdentity(unittest.TestCase):
 
     def test_authority(self):self.family('authority')
     def test_policy(self):self.family('policy')
+
+    def test_source54_fixed_policy_pair_retains_both_external_pins(self):
+        # Reuse the original independently fixed pair; no new approved policy,
+        # authority, caller or expected refusal is derived from attacker bytes.
+        for fixed in runner.corpus()['supplemental_controls']:
+            meta=fixed['fixed_metadata']
+            if meta['family']!='policy':continue
+            with self.subTest(control=meta['id']):
+                context=runner.context_for(meta['id']);pin=context.caller.data['pin']
+                request=claims.read_bounded(context.request_path);raw=claims.read_bounded(context.authority_path)
+                authority=claims.validate_authority(claims.decode(raw))
+                policy_hash=authority['roots']['reporting_policy']['raw_sha256']
+                if meta['polarity']=='positive':
+                    self.assertEqual(claims.raw_hash(raw),pin['authority_raw_sha256'])
+                    self.assertEqual(policy_hash,pin['policy_raw_sha256'])
+                    claims.admission_binding(request,raw,context.caller)
+                else:
+                    self.assertNotEqual(claims.raw_hash(raw),pin['authority_raw_sha256'])
+                    self.assertNotEqual(policy_hash,pin['policy_raw_sha256'])
+                    with self.assertRaises(claims.Refusal) as raised:
+                        claims.admission_binding(request,raw,context.caller)
+                    self.assertEqual(raised.exception.reason,'untrusted_policy_root')
+                    self.assertEqual(raised.exception.reason,meta['independent_oracle']['refusal_reason'])
+                    self.assertIsNone(context.last_resolution)
+                row=runner.runtime()['rows'][meta['id']]
+                runner.immutable(Path(row['output_dir'])/'source54-fixed-policy-pins.json',{'id':meta['id'],'execution':'passed','comparison_passed':True,'authority_raw_sha256':claims.raw_hash(raw),'policy_raw_sha256':policy_hash,'external_authority_raw_sha256':pin['authority_raw_sha256'],'external_policy_raw_sha256':pin['policy_raw_sha256'],'oracle':meta['independent_oracle'],'new_root_approval':False})
     def test_binary(self):self.family('binary')
     def test_cache(self):self.family('cache')
     def test_request_wire(self):self.family('request_wire')

@@ -21,6 +21,7 @@ from assurance.testing.contracts import ContractError
 RS = re.compile(r'\bRS-[A-Za-z0-9_-]+\b')
 ASSERTION = re.compile(r'(?P<rs>\bRS-[A-Za-z0-9_-]+\b):\s*(?P<fields>[^;\n|]+?)\s+(?P<outcome>PASS|FAIL|INCOMPLETE)\b\.?\s*(?=;|$|\|)')
 CURRENT_HEADING = re.compile(r'^\s*#{1,6}\s+(?P<candidate>[^\s;]+)\s+(?:CURRENT(?:\s+RELEASE\s+CANDIDATE)?|RELEASE\s+CANDIDATE)(?=\s|;|$)', re.I)
+CURRENT_MARKER_HEADING = re.compile(r'^\s*#{1,6}\s+(?:CURRENT(?:\s+RELEASE\s+CANDIDATE)?|RELEASE\s+CANDIDATE)\s*:\s*(?P<candidate>[^\s;]+)(?=\s|;|$)', re.I)
 
 
 @dataclass
@@ -94,7 +95,7 @@ def scan_pass(rel, text, report, registry, parsed=(), stop=None, *, registration
             table_assertion = bool(assertions)
         for assertion in assertions:
             errors.extend(f'{rel}:{number}: {reason}' for reason in assertion_errors(assertion, report, registration))
-        heading = CURRENT_HEADING.match(line)
+        heading = CURRENT_MARKER_HEADING.match(line) or CURRENT_HEADING.match(line)
         covered = assertions + ([heading] if heading else [])
         if not table_assertion and any(not any(s.start() <= token.start() and token.end() <= s.end() for s in covered)
                                        for token in re.finditer(r'\bPASS\b', line)):

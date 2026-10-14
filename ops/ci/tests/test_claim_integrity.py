@@ -111,6 +111,8 @@ def publish_paired_group(group, row_results):
     data = runtime();case = next(c for c in data['catalog'] if c['id'] == group)
     claims.require(set(row_results) == {'positive','adverse'}, 'paired_buckets_required')
     wanted=corpus()['paired_group_subcontrols'][group]
+    additions=corpus().get('review54_receipt_overlay',{}).get(group,{'positive':[],'adverse':[]})
+    wanted={bucket:[*wanted[bucket],*additions[bucket]] for bucket in wanted}
     claims.require(all(len(row_results[b])==len(wanted[b]) and {r['id'] for r in row_results[b]}==set(wanted[b]) for b in wanted), 'exact_child_inventory_required')
     claims.require(all(type(v) is list and v and all(r['execution']=='passed' and r['comparison_passed'] is True for r in v) for v in row_results.values()), 'child_control_missing_or_failed')
     artifact = (json.dumps(row_results,sort_keys=True,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'\n').encode()
@@ -234,6 +236,81 @@ class ClaimIntegrity(unittest.TestCase):
                     self.assertEqual(check_claims.check_document(old,context).exit_code,0)
                 # The original fixed adverse still fails without the mutant.
                 self.assertEqual(check_claims.check_document(old,context).exit_code,1)
+
+    def test_source54_surrounding_scope_pairs(self):
+        fixed=corpus();base={r['id']:r for r in fixed['original_controls']}
+        for case in fixed['review54_controls']:
+            if case['kind']!='surrounding_scope':continue
+            with self.subTest(control=case['id']):
+                row=runtime()['rows'][case['base_control_id']]
+                context=context_for(case['base_control_id'])
+                expected=current_expected(row,base[case['base_control_id']]['fixed_metadata']['literal_expected_report'])
+                document=case['heading_utf8']+blocks.write_block('claim-a',expected)+'\n'
+                result=check_claims.check_document(document,context)
+                oracle=case['independent_oracle']
+                self.assertEqual(result.exit_code,oracle['checker_exit'])
+                self.assertIsNotNone(result.provider)
+                self.assertEqual({k:result.provider.output[k] for k in ['verdict','publication_eligible','release_authorized']},base[case['base_control_id']]['expected_provider']['Resolution'])
+                if oracle['violation_substring']:
+                    self.assertTrue(any(oracle['violation_substring'] in v for v in result.violations))
+                else:self.assertEqual(result.violations,[])
+                # The canonical body is independently approved, never rebuilt
+                # from the checker/provider whose scope guard is under test.
+                self.assertEqual(blocks.canonical_body(context.last_report),blocks.canonical_body(expected))
+                immutable(Path(runtime()['output_dir'])/'review54'/case['id']/'control-comparison.json',{'id':case['id'],'execution':'passed','comparison_passed':True,'frozen_oracle':oracle,'document_sha256':raw_hash(document.encode()),'checker_exit':result.exit_code,'violations':result.violations,'actual_provider':result.provider.output,'input_sha256':result.provider.input_sha256,'scientific_publication':False})
+
+    def test_source54_actual_request_binding_pairs(self):
+        fixed=corpus()
+        for case in fixed['review54_controls']:
+            if case['kind']!='request_binding':continue
+            with self.subTest(control=case['id']):
+                context=context_for(case['base_control_id']);oracle=case['independent_oracle']
+                before=claims.read_bounded(context.request_path)
+                authority=claims.read_bounded(context.authority_path)
+                report=context.report_for('claim-a');first=context.last_resolution
+                self.assertEqual(first.output['input_binding']['request_raw_sha256'],raw_hash(before))
+                self.assertEqual(first.output['input_binding']['authority_raw_sha256'],raw_hash(authority))
+                cache=claims.cache_record(first,report)
+                self.assertEqual(claims.checked_cache(cache,first.input_sha256,report,first.output['input_binding']),report)
+                if case['bucket']=='positive':
+                    self.assertEqual(report['mass']['value_g'],oracle['mass_g'])
+                    observed={'report':report,'actual_provider':first.output,'cache_reusable':True}
+                else:
+                    replacement=claims.read_bounded(runtime()['rows'][case['replacement_control_id']]['request_path'])
+                    self.assertNotEqual(raw_hash(before),raw_hash(replacement))
+                    request1=claims.decode(before);request2=claims.decode(replacement)
+                    self.assertEqual(request1['claim'],request2['claim']);self.assertEqual(request1['expected'],request2['expected'])
+                    self.assertEqual([o for o in request1['observations'] if o['id']!='mass'],[o for o in request2['observations'] if o['id']!='mass'])
+                    real=claims.resolve_provider;seen={}
+                    def replace_then_actual_provider(request_path,authority_path,caller):
+                        self.assertEqual(claims.read_bounded(request_path),before)
+                        self.assertEqual(claims.read_bounded(authority_path),authority)
+                        Path(request_path).write_bytes(replacement)
+                        value=real(request_path,authority_path,caller)
+                        self.assertEqual(value.output['input_binding']['request_raw_sha256'],raw_hash(replacement))
+                        self.assertEqual(value.output['verdict']['outcome'],'pass')
+                        seen['actual_provider']=value
+                        return value
+                    try:
+                        with patch.object(claims,'resolve_provider',replace_then_actual_provider),patch.object(rs_verdicts,'source_mass',wraps=rs_verdicts.source_mass) as mass,patch.object(rs_verdicts,'checked_global_metric',wraps=rs_verdicts.checked_global_metric) as metric,patch.object(claims,'cache_record',wraps=claims.cache_record) as publish_cache:
+                            with self.assertRaises(claims.Refusal) as raised:
+                                bad=context.report_for('claim-a')
+                                # Removing the binding guard would reach real
+                                # cache publication; the fixed refusal forbids it.
+                                claims.cache_record(context.last_resolution,bad)
+                            self.assertEqual(raised.exception.reason,oracle['refusal_reason'])
+                            mass.assert_not_called();metric.assert_not_called();publish_cache.assert_not_called()
+                        self.assertIsNone(context.last_report);self.assertIsNone(context.last_resolution)
+                        second=seen['actual_provider']
+                        with self.assertRaises(claims.Refusal) as stale:
+                            claims.checked_cache(cache,second.input_sha256,report,second.output['input_binding'])
+                        self.assertEqual(stale.exception.reason,'cache_input_identity_mismatch')
+                        observed={'retained_request_raw_sha256':raw_hash(before),'actual_provider_request_raw_sha256':raw_hash(replacement),'retained_authority_raw_sha256':raw_hash(authority),'actual_provider':second.output,'first_input_sha256':first.input_sha256,'second_input_sha256':second.input_sha256,'refusal':raised.exception.reason,'old_cache_reusable':False,'new_report_cache_published':False,'mass_metric_consumed':False}
+                    finally:
+                        # Only this admitted mutable fixture input is restored;
+                        # actual provider/red streams and comparison stay intact.
+                        Path(context.request_path).write_bytes(before)
+                immutable(Path(runtime()['output_dir'])/'review54'/case['id']/'control-comparison.json',{'id':case['id'],'execution':'passed','comparison_passed':True,'frozen_oracle':oracle,'observed':observed,'scientific_publication':False})
 
 
 if __name__=='__main__':unittest.main()
