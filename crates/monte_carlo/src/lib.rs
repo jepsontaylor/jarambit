@@ -817,4 +817,235 @@ mod tests {
             );
         }
     }
+
+    /// First-fresh companion. Each owned worker builds `Rng(mix_seed(seed, sample))`
+    /// and records that RNG's first `f64`. This is not a pre-perturb read of
+    /// `indexed_replay_binds_the_post_perturb_draw`, which reconstructs draw1
+    /// after its post-perturb callback returns.
+    #[test]
+    fn first_fresh_companion_runs_on_owned_workers() {
+        use std::collections::HashSet;
+        use std::time::Duration;
+        #[derive(Copy, Clone)]
+        struct Fresh {
+            sample: usize,
+            bits: u64,
+            i0: usize,
+            i1: usize,
+            slot: usize,
+            order: usize,
+            worker: std::thread::ThreadId,
+        }
+        struct Oracle {
+            seed: u64,
+            draw1: [u64; 8],
+            stage27: [u64; 8],
+        }
+        fn worker_token(id: std::thread::ThreadId) -> String {
+            let token: String = format!("{id:?}").chars().filter(|c| c.is_ascii_alphanumeric()).collect();
+            assert!(!token.is_empty(), "worker token");
+            token
+        }
+        fn handwritten_ranges(threads: usize) -> &'static [(usize, usize)] {
+            match threads {
+                1 => &[(0, 8)],
+                2 => &[(0, 4), (4, 8)],
+                4 => &[(0, 2), (2, 4), (4, 6), (6, 8)],
+                _ => panic!("unplanned companion width {threads}"),
+            }
+        }
+        let seed99 = Oracle {
+            seed: 99,
+            draw1: [
+                0x3fdf_6870_85d2_01f2,
+                0x3fe5_8a98_45c5_3715,
+                0x3fdf_b1e8_edfe_f9e4,
+                0x3fd2_0a41_6a8d_bdb0,
+                0x3f94_98cd_6df3_1e60,
+                0x3f9d_44d4_3c11_8320,
+                0x3fa4_55b0_ebf0_69e0,
+                0x3fe6_e41b_5e02_ff70,
+            ],
+            stage27: [
+                0x3feb_d436_3fad_a11e,
+                0x3fea_c088_b75e_2652,
+                0x3feb_c530_75fc_8b7e,
+                0x3fe4_5fcb_a420_2be3,
+                0x3fb5_30d9_8d6f_2fd0,
+                0x3fe1_70f6_5814_1b61,
+                0x3fd7_0995_5edd_d904,
+                0x3fcd_1537_359a_15c8,
+            ],
+        };
+        // Seed 100 bits are the frozen closed-form oracle. They are not a product Rng call.
+        let seed100 = Oracle {
+            seed: 100,
+            draw1: [
+                0x3fe2_cd5c_5427_8477,
+                0x3fe8_7047_3bf5_a69e,
+                0x3fe4_383b_fe51_cd3d,
+                0x3fda_8d01_285a_0912,
+                0x3fd5_711e_3c8d_9e90,
+                0x3fef_0e83_9cec_d0e8,
+                0x3fea_62c2_5ca6_e083,
+                0x3fe7_55a6_f3a8_457e,
+            ],
+            stage27: [
+                0x3fe1_5758_ad2a_8f72,
+                0x3fd1_fb87_4796_0d7a,
+                0x3fea_3380_4c0e_ca13,
+                0x3fef_1a3f_f137_b1f2,
+                0x3fd4_1102_18fe_1078,
+                0x3fc7_58cd_49d4_f3fc,
+                0x3fe3_4be2_1567_2a45,
+                0x3fe8_eee7_2d2a_7a87,
+            ],
+        };
+        for i in 0..8 {
+            assert_ne!(seed99.draw1[i], seed99.stage27[i], "seed99 stage literal {i}");
+            assert_ne!(seed100.draw1[i], seed100.stage27[i], "seed100 stage literal {i}");
+            assert_ne!(seed100.draw1[i], seed99.draw1[i], "literal seed99 replay oracle {i}");
+        }
+        for i in 1..8 {
+            assert_ne!(seed99.draw1[i], seed99.draw1[0], "seed99 index reuse oracle {i}");
+            assert_ne!(seed100.draw1[i], seed100.draw1[0], "seed100 index reuse oracle {i}");
+        }
+        for oracle in [&seed99, &seed100] {
+            for threads in [1usize, 2, 4] {
+                let expected = handwritten_ranges(threads);
+                let mut cursor = 0usize;
+                for &(i0, i1) in expected {
+                    assert_eq!(i0, cursor, "handwritten partition");
+                    assert!(i1 > i0, "handwritten partition");
+                    cursor = i1;
+                }
+                assert_eq!(cursor, 8, "handwritten partition");
+                let pool = private_pool();
+                pool.try_ensure(threads).unwrap();
+                assert_eq!(pool.tx.lock().unwrap().len(), threads);
+                let planned = plan_ranges(8, threads);
+                let (tx, rx) = mpsc::channel::<Vec<Fresh>>();
+                for (t, (i0, i1)) in planned.iter().copied().enumerate() {
+                    let tx = tx.clone();
+                    let seed = oracle.seed;
+                    checked_dispatch(&pool, t, Box::new(move || {
+                        let worker = std::thread::current().id();
+                        let mut rows = Vec::new();
+                        for (order, sample) in (i0..i1).enumerate() {
+                            let mut rng = Rng(mix_seed(seed, sample as u64));
+                            let bits = rng.f64().to_bits();
+                            rows.push(Fresh { sample, bits, i0, i1, slot: t, order, worker });
+                        }
+                        let _ = tx.send(rows);
+                    })).unwrap();
+                }
+                drop(tx);
+                assert_eq!(pool.tx.lock().unwrap().len(), threads);
+                let mut placed: [Option<Fresh>; 8] = [None; 8];
+                let mut slot_worker: [Option<std::thread::ThreadId>; 4] = [None; 4];
+                let mut filled = 0usize;
+                for _ in 0..planned.len() {
+                    let rows = rx.recv_timeout(Duration::from_secs(5)).expect("first-fresh companion timed out");
+                    assert!(!rows.is_empty(), "empty owned slot");
+                    let slot = rows[0].slot;
+                    assert!(slot < threads, "slot {slot}");
+                    assert!(slot_worker[slot].is_none(), "slot {slot} delivered twice");
+                    let (i0, i1): (usize, usize) = expected[slot];
+                    for (pos, row) in rows.iter().copied().enumerate() {
+                        assert_eq!(row.slot, slot);
+                        assert_eq!(row.worker, rows[0].worker, "slot {slot} changed worker");
+                        assert_eq!((row.i0, row.i1), (i0, i1), "recorded range is not the handwritten partition");
+                        assert_eq!(row.order, pos, "monotone order");
+                        assert_eq!(row.sample, i0 + pos, "sample index");
+                        assert_eq!(row.bits, oracle.draw1[row.sample], "wrong seed or sample index {} {}", oracle.seed, row.sample);
+                        assert_ne!(row.bits, oracle.stage27[row.sample], "stage swap {} {}", oracle.seed, row.sample);
+                        assert!(placed[row.sample].is_none(), "duplicate sample {}", row.sample);
+                        placed[row.sample] = Some(row);
+                        filled += 1;
+                    }
+                    slot_worker[slot] = Some(rows[0].worker);
+                }
+                assert_eq!(filled, 8, "sample count");
+                assert!(placed.iter().all(|row| row.is_some()), "missing sample");
+                let mut distinct = HashSet::new();
+                for bound in slot_worker.iter().take(threads).copied() {
+                    let worker = bound.expect("missing slot worker");
+                    assert!(distinct.insert(worker), "slots share one worker");
+                }
+                assert_eq!(distinct.len(), threads, "distinct workers");
+                for sample in 0..8 {
+                    let row = placed[sample].unwrap();
+                    let token = worker_token(row.worker);
+                    println!(
+                        "S04_CASE id=T03-08-first-fresh-companion seed={} sample={sample} threads={threads} slot={} i0={} i1={} draw1={:016x} stage27_ne=1 worker={token} order={} distinct={}",
+                        oracle.seed, row.slot, row.i0, row.i1, row.bits, row.order, distinct.len()
+                    );
+                }
+                println!(
+                    "S04_CASE id=T03-08-first-fresh-mask seed={} threads={threads} requested={threads} actual={} logical_slots={threads} samples=8 monotone=1 same_worker_slot=1",
+                    oracle.seed, distinct.len()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn disconnected_owned_receiver_refuses_both_dispatches_clean_pool_succeeds() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use std::time::Duration;
+        let pool = private_pool();
+        let spawned_workers = {
+            let (send, recv) = mpsc::channel::<Box<dyn FnOnce() + Send>>();
+            drop(recv);
+            {
+                let mut guard = pool.tx.lock().unwrap();
+                guard.push(send);
+                assert_eq!(guard.len(), 1);
+            }
+            // This block never calls thread::Builder::spawn. Zero is that construction.
+            0usize
+        };
+        assert_eq!(pool.spawn_failures.load(Ordering::SeqCst), 0, "failure budget is not a spawn count");
+        let hits = Arc::new(AtomicUsize::new(0));
+        let seen = hits.clone();
+        let first = checked_dispatch(&pool, 0, Box::new(move || { seen.fetch_add(1, Ordering::SeqCst); }));
+        let seen = hits.clone();
+        let second = checked_dispatch(&pool, 0, Box::new(move || { seen.fetch_add(1, Ordering::SeqCst); }));
+        assert_eq!(first, Err(CheckedError::WorkerLost));
+        assert_eq!(second, Err(CheckedError::WorkerLost));
+        assert_eq!(hits.load(Ordering::SeqCst), 0);
+        assert_eq!(pool.tx.lock().unwrap().len(), 1);
+        assert_eq!(pool.spawn_failures.load(Ordering::SeqCst), 0);
+        assert_eq!(spawned_workers, 0);
+        let clean = private_pool();
+        clean.try_ensure(1).unwrap();
+        assert_eq!(clean.tx.lock().unwrap().len(), 1);
+        let clean_hits = Arc::new(AtomicUsize::new(0));
+        let (tx, rx) = mpsc::channel::<(u8, std::thread::ThreadId)>();
+        let seen = clean_hits.clone();
+        let tx7 = tx.clone();
+        checked_dispatch(&clean, 0, Box::new(move || {
+            seen.fetch_add(1, Ordering::SeqCst);
+            let _ = tx7.send((7u8, std::thread::current().id()));
+        })).unwrap();
+        let seen = clean_hits.clone();
+        checked_dispatch(&clean, 0, Box::new(move || {
+            seen.fetch_add(1, Ordering::SeqCst);
+            let _ = tx.send((8u8, std::thread::current().id()));
+        })).unwrap();
+        let (v7, w7) = rx.recv_timeout(Duration::from_secs(5)).expect("clean job 7 timed out");
+        let (v8, w8) = rx.recv_timeout(Duration::from_secs(5)).expect("clean job 8 timed out");
+        assert_eq!((v7, v8), (7, 8));
+        assert_eq!(w7, w8, "jobs 7 and 8 left the owned worker");
+        assert_eq!(clean_hits.load(Ordering::SeqCst), 2);
+        assert_eq!(clean.tx.lock().unwrap().len(), 1);
+        assert_eq!(clean.spawn_failures.load(Ordering::SeqCst), 0);
+        println!(
+            "S04_CASE id=T03-05-disconnected-receiver error=WorkerLost callbacks=0 spawned=0 sender_len=1 first=WorkerLost second=WorkerLost"
+        );
+        println!(
+            "S04_CASE id=T03-05-clean-owned-pair error=delivered clean_first=7 clean_second=8 callbacks=2 sender_len=1 same_worker=1"
+        );
+    }
 }
