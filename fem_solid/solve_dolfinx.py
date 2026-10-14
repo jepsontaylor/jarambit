@@ -77,8 +77,9 @@ def interpolation_points(V):
 # ---------------- model, mesh and unit validation ----------------
 
 def validate_units(units):
-    _require(type(units) in (tuple, list) and tuple(units) in UNIT_SYSTEMS, "incoherent_units",
-             f"{units!r}; supported {sorted(UNIT_SYSTEMS)} (stress = force / length^2)")
+    """Exactly one declared coherent (length, force, stress) triple of strings; shape/types are checked before hashing."""
+    ok = type(units) in (tuple, list) and len(units) == 3 and all(type(u) is str for u in units)
+    _require(ok and tuple(units) in UNIT_SYSTEMS, "incoherent_units", f"{units!r}; supported {sorted(UNIT_SYSTEMS)} (stress = force / length^2)")
     return {"length": units[0], "force": units[1], "stress": units[2], "moment": f"{units[1]}*{units[0]}", "energy": f"{units[1]}*{units[0]}"}
 
 
@@ -180,9 +181,17 @@ def validate_mesh(msh):
     return {"coordinate_degree": k, "cells": int(ncell), "min_jacobian": float(det.min()), "components": 1}
 
 
+def _tag_list(tags, what):
+    """Validate a tag container and every member (integers, never bool) before any hashing, dedup or sort."""
+    _require(type(tags) in (list, tuple), "invalid_tag", f"{what} tags must be a list or tuple, got {type(tags).__name__}")
+    bad = [t for t in tags if not _integer(t)]
+    _require(not bad, "invalid_tag", f"{what} tags must be integers (bool/float/str/containers refused): {bad!r}"[:300])
+    return [int(t) for t in tags]
+
+
 def _tag_geometry(msh, ft, tag, what):
-    _require(_integer(tag), "missing_tag", f"{what} tag {tag!r} is not an integer")
-    facets = ft.find(tag)
+    _require(_integer(tag), "invalid_tag", f"{what} tag {tag!r} is not an integer")
+    facets = ft.find(int(tag))
     _require(facets.size > 0, "missing_tag", f"{what} tag {tag} has no facets")
     msh.topology.create_connectivity(2, 3); msh.topology.create_connectivity(3, 2)
     nodes = np.unique(dmesh.entities_to_geometry(msh, msh.topology.dim - 1, facets.astype(np.int32)).reshape(-1))
@@ -206,12 +215,15 @@ def validate_model(msh, ft, E, nu, clamp_tags, tractions, sym_tags, rtol, order,
     _require(_integer(max_it) and max_it >= 0, "invalid_max_it", f"max_it={max_it!r}")
     geo = validate_mesh(msh)
     _require(getattr(ft, "dim", None) == msh.topology.dim - 1, "missing_tag", "facet tags of dimension tdim-1 required")
-    _require(type(tractions) is dict and type(clamp_tags) in (list, tuple), "invalid_traction", "tractions dict / clamp list")
-    sym_tags = sym_tags or {}
-    _require(type(sym_tags) is dict, "invalid_symmetry_component", "sym_tags must be a dict {tag: component}")
+    _require(type(tractions) is dict, "invalid_traction", f"tractions must be a dict {{tag: callable}}, got {type(tractions).__name__}")
+    _tag_list(list(tractions), "traction")
+    clamps = _tag_list(clamp_tags, "clamp")
+    if sym_tags is None: sym_tags = {}  # only None is normalized; False/0/[]/()/"" are refused below
+    _require(type(sym_tags) is dict, "invalid_symmetry_component", f"sym_tags must be None or a dict {{tag: component}}, got {sym_tags!r}"[:200])
+    _tag_list(list(sym_tags), "symmetry")
     center, scale = msh.geometry.x.mean(axis=0), float(np.ptp(msh.geometry.x, axis=0).max())
     restrained = []
-    for tag in sorted(set(clamp_tags)):  # duplicate compatible zero clamps are deduplicated, not conflicting
+    for tag in sorted(set(clamps)):  # duplicate compatible zero clamps are deduplicated, not conflicting
         _, x = _tag_geometry(msh, ft, tag, "clamp"); restrained.append(_rigid_rows((x - center) / scale, (0, 1, 2)))
     for tag, comp in sym_tags.items():
         _require(_integer(comp) and 0 <= comp <= 2, "invalid_symmetry_component", f"tag {tag}: component {comp!r}")
@@ -228,7 +240,7 @@ def validate_model(msh, ft, E, nu, clamp_tags, tractions, sym_tags, rtol, order,
         rank = int((s > 1e-10 * s[0]).sum()) if s[0] > 0 else 0
     _require(rank == 6, "insufficient_restraint", f"essential BCs restrain {rank} of 6 rigid modes; pure-traction/mechanism models are unsupported")
     return {"units": unit, "material": {"E": float(E), "nu": float(nu), "lambda": lam, "mu": mu}, "order": order,
-            "rtol": float(rtol), "max_it": int(max_it), "mesh": geo, "clamp_tags": sorted({int(t) for t in clamp_tags}),
+            "rtol": float(rtol), "max_it": int(max_it), "mesh": geo, "clamp_tags": sorted(set(clamps)),
             "sym_tags": {str(int(t)): int(c) for t, c in sym_tags.items()}, "traction_tags": sorted(int(t) for t in tractions),
             "rigid_restraint_rank": rank}
 
@@ -308,7 +320,7 @@ def realized_solver_contract(ksp, *, expected, provider, effective_options):
 def krylov_solve(A, b, x, comm, *, rtol, max_it=KSP_MAX_IT, options_prefix=None, defaults=None):
     """Shared CG/GAMG solve: call-owned prefix and default options, setFromOptions, final explicit tolerances, realized
     settings check, solve, reason>0. Options are restored and the KSP destroyed in all cases. Returns (settings, stats)."""
-    prefix = _check_prefix(options_prefix or f"s07_{_ATTEMPT}_{next(_CALLS)}_")
+    prefix = _check_prefix(f"s07_{_ATTEMPT}_{next(_CALLS)}_" if options_prefix is None else options_prefix)
     defaults = SOLVER_DEFAULTS if defaults is None else defaults
     expected = {"ksp_type": "cg", "pc_type": "gamg", "rtol": float(rtol), "atol": KSP_ATOL, "divtol": KSP_DIVTOL, "max_it": int(max_it), "prefix": prefix}
     ksp = PETSc.KSP().create(comm)
@@ -358,8 +370,16 @@ def field_descriptor(f, *, operator, quantity, formula, units, frame, region):
             "units": unit["stress"], "unit_system": [unit["length"], unit["force"], unit["stress"]], "frame": frame, "region": region,
             "mesh": mesh_identity(V.mesh), "not": ["l2_projection", "nodal_smoothing", "volume_weighting"], "content_hash": CONTENT_HASH}
     sha = _content_sha256(body)
-    return {**body, "content_sha256": sha, "gci_observable": {"id": f"{operator}@{sha[:16]}", "units": unit["stress"],
-            "region": region["id"], "projection": operator, "metric": quantity}}
+    return {**body, "content_sha256": sha, "gci_observable": _gci_observable(body, sha)}
+
+
+_GCI_KEYS = ("id", "units", "region", "projection", "metric")
+
+
+def _gci_observable(body, sha):
+    """The accepted S02 five-field GCI Observable identity, derived only from the hashed body (no self-hash cycle)."""
+    return {"id": f"{body['operator']}@{sha[:16]}", "units": body["units"], "region": body["region"]["id"],
+            "projection": body["operator"], "metric": body["quantity"]}
 
 
 def dg_von_mises(msh, stress, order, *, units, frame, region):
@@ -388,8 +408,9 @@ _DERIVED = ("sampling", "map", "mesh", "not", "content_hash")
 
 def validate_observable_contract(f, descriptor, expected_descriptor):
     """Bind a producer descriptor to the actual Function and to a trusted expected contract (never derived from the output).
-    Generic labels (e.g. {"tier": "T2"}) or relabelled operators are refused."""
-    for name, d, keys in (("descriptor", descriptor, _STATIC + _DERIVED + ("content_sha256",)), ("expected", expected_descriptor, _STATIC)):
+    Generic labels (e.g. {"tier": "T2"}) or relabelled operators are refused. The nested GCI identity must be a closed
+    five-field object equal to the one regenerated from the actual Function; the verified regenerated descriptor is returned."""
+    for name, d, keys in (("descriptor", descriptor, _STATIC + _DERIVED + ("content_sha256", "gci_observable")), ("expected", expected_descriptor, _STATIC)):
         _require(type(d) is dict and all(k in d for k in keys), "incomplete_observable_contract",
                  f"{name} lacks {[k for k in keys if type(d) is not dict or k not in d]}")
     _require(expected_descriptor["operator"] in (DG_VM, DG_COMPONENTS), "unsupported_operator", f"{expected_descriptor['operator']!r} is not produced here")
@@ -401,7 +422,15 @@ def validate_observable_contract(f, descriptor, expected_descriptor):
     _require(not bad, "descriptor_mismatch", f"descriptor disagrees with the actual Function on {bad}")
     bad = [k for k in _STATIC if descriptor[k] != expected_descriptor[k]]
     _require(not bad, "descriptor_mismatch", f"descriptor disagrees with the trusted expected contract on {bad}")
-    return descriptor
+    extra = sorted(set(descriptor) - set(actual))
+    _require(not extra and descriptor["content_sha256"] == actual["content_sha256"], "descriptor_mismatch",
+             f"descriptor is not the closed regenerated object (extra keys {extra})")
+    gci = descriptor["gci_observable"]
+    _require(type(gci) is dict and set(gci) == set(_GCI_KEYS), "gci_observable_schema",
+             f"gci_observable must be a closed object with exactly {list(_GCI_KEYS)}, got {gci!r}"[:300])
+    bad = [k for k in _GCI_KEYS if gci[k] != actual["gci_observable"][k]]
+    _require(not bad, "gci_observable_mismatch", f"gci_observable disagrees with the regenerated identity on {bad}")
+    return actual
 
 
 def geometry_vertex_association(msh, f, *, reference_tolerance=REFERENCE_TOL):
@@ -438,8 +467,9 @@ def recover_vertex_vm(msh, f, operator, *, descriptor, expected_descriptor, inpu
     """Incident-cell scalar reduction of a validated scalar DG1 field at topological vertices: 'max' or unweighted 'mean'
     (no tensor averaging, no volume weighting, not L2). Optional `input_nodes` selects outputs by input node ID and refuses
     any node without an incident cell instead of padding it with zero."""
-    _require(operator in RECOVERY, "unsupported_recovery", f"{operator!r}; supported {sorted(RECOVERY)}")
-    validate_observable_contract(f, descriptor, expected_descriptor)
+    _require(type(operator) is str and operator in RECOVERY, "unsupported_recovery", f"{operator!r}; supported {sorted(RECOVERY)}")
+    nodes = None if input_nodes is None else _entity_ids(input_nodes)
+    checked = validate_observable_contract(f, descriptor, expected_descriptor)
     a = geometry_vertex_association(msh, f)
     val = f.x.array
     _require(np.isfinite(val).all(), "nonfinite_field", f"{int((~np.isfinite(val)).sum())} non-finite samples")
@@ -451,13 +481,24 @@ def recover_vertex_vm(msh, f, operator, *, descriptor, expected_descriptor, inpu
     _require((cnt > 0).all(), "orphan_vertex", f"{int((cnt == 0).sum())} vertices without incident cells")
     out = mx if operator == "max" else acc / cnt
     sel = np.arange(nv)
-    if input_nodes is not None:
+    if nodes is not None:
         where = {int(n): i for i, n in enumerate(a["input_node"])}
-        missing = [int(n) for n in input_nodes if int(n) not in where]
+        missing = [n for n in nodes if n not in where]
         _require(not missing, "orphan_vertex", f"input nodes {missing} have no incident cell")
-        sel = np.array([where[int(n)] for n in input_nodes], dtype=np.int64)
+        sel = np.array([where[n] for n in nodes], dtype=np.int64)
     return {"operator": RECOVERY[operator], "values": out[sel], "incidence": cnt[sel].astype(int), "vertex": sel,
-            "input_node": a["input_node"][sel], "coordinates": a["coordinates"][sel], "field": descriptor["gci_observable"]}
+            "input_node": a["input_node"][sel], "coordinates": a["coordinates"][sel], "field": dict(checked["gci_observable"])}
+
+
+def _entity_ids(ids):
+    """Requested input node ids: a non-empty list/tuple or 1-D integer array of integers in [0, 2**63) (no bool/float/str)."""
+    if isinstance(ids, np.ndarray):
+        _require(ids.ndim == 1 and np.issubdtype(ids.dtype, np.integer), "invalid_entity_id", f"array ids must be 1-D integer, got {ids.dtype} ndim {ids.ndim}")
+        ids = ids.tolist()
+    _require(type(ids) in (list, tuple) and len(ids) > 0, "invalid_entity_id", f"input_nodes must be a non-empty list/tuple, got {ids!r}"[:200])
+    bad = [n for n in ids if not (_integer(n) and 0 <= n < 2 ** 63)]
+    _require(not bad, "invalid_entity_id", f"input node ids must be integers in [0, 2**63): {bad!r}"[:200])
+    return [int(n) for n in ids]
 
 
 def tip_roi_mask(tip_distance, cut_distance):
@@ -489,8 +530,8 @@ def supplied_load_resultant(msh, ft, tractions):
         t = fem.Function(Q); t.interpolate(f)
         m = ufl.cross(xs, t)
         for c in range(3):
-            force[c] += fem.assemble_scalar(fem.form(t[c] * ds(tag)))
-            moment[c] += fem.assemble_scalar(fem.form(m[c] * ds(tag)))
+            force[c] += fem.assemble_scalar(fem.form(t[c] * ds(int(tag))))
+            moment[c] += fem.assemble_scalar(fem.form(m[c] * ds(int(tag))))
     return {"force": force.tolist(), "moment_about_origin": moment.tolist()}
 
 
@@ -528,6 +569,7 @@ def solve(msh, ft, E, nu, clamp_tags, tractions, sym_tags=None, rtol=1e-10, orde
           max_it=KSP_MAX_IT, options_prefix=None):
     """sym_tags: {facet tag: component} -> u[component] = 0 on that facet set (symmetry planes). Homogeneous essential BCs only."""
     t0 = time.time()
+    if options_prefix is not None: _check_prefix(options_prefix)  # explicit invalid prefixes refuse before any assembly
     model = validate_model(msh, ft, E, nu, clamp_tags, tractions, sym_tags, rtol, order, units, max_it)
     V = fem.functionspace(msh, ("Lagrange", order, (3,)))
     eps, sig = elastic_stress(E, nu)
@@ -536,13 +578,13 @@ def solve(msh, ft, E, nu, clamp_tags, tractions, sym_tags=None, rtol=1e-10, orde
     a = ufl.inner(sig(u), eps(v)) * ufl.dx
     L = ufl.inner(fem.Constant(msh, np.zeros(3)), v) * ufl.dx
     for tag, f in tractions.items():
-        tf = fem.Function(V); tf.interpolate(f); L = L + ufl.inner(tf, v) * ds(tag)
+        tf = fem.Function(V); tf.interpolate(f); L = L + ufl.inner(tf, v) * ds(int(tag))
     fdim = msh.topology.dim - 1
     bcs = []
     for tag in model["clamp_tags"]:
         dofs = fem.locate_dofs_topological(V, fdim, ft.find(tag))
         bcs.append(fem.dirichletbc(np.zeros(3), dofs, V))
-    for tag, comp in (sym_tags or {}).items():
+    for tag, comp in ((int(t), c) for t, c in model["sym_tags"].items()):
         Vc, _ = V.sub(comp).collapse()
         dofs = fem.locate_dofs_topological((V.sub(comp), Vc), fdim, ft.find(tag))
         z = fem.Function(Vc); bcs.append(fem.dirichletbc(z, dofs, V.sub(comp)))
