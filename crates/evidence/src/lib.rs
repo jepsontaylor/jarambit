@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::io::Write;
+pub mod identity;
+pub mod assurance;
 
 pub type Id = u64;
 /// Version of the variation-operator semantics recorded with every birth (bump when operators change).
@@ -29,15 +31,42 @@ pub struct RunManifest {
     pub seed: u64,
     /// Remaining knobs (pop, gens, threads, fem area, env overrides ...), sorted by key.
     pub params: BTreeMap<String, serde_json::Value>,
+    /// Absent in JEV1 historical manifests; absence can never qualify a new scientific claim.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scientific: Option<identity::ScientificIdentity>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runtime: Option<identity::RuntimeMetadata>,
 }
 impl RunManifest {
     pub fn new(command: &str, seed: u64, requirement_set: &str) -> Self {
         RunManifest { schema: SCHEMA, tool: "jarambit".into(), tool_version: include_str!("../../../docs/VERSION").trim().into(), requirement_set: requirement_set.into(),
-            op_version: OP_VERSION, command: command.into(), seed, params: BTreeMap::new() }
+            op_version: OP_VERSION, command: command.into(), seed, params: BTreeMap::new(), scientific: None, runtime: None }
     }
     pub fn param(mut self, k: &str, v: impl Into<serde_json::Value>) -> Self { self.params.insert(k.into(), v.into()); self }
     pub fn canonical_json(&self) -> String { serde_json::to_string(self).expect("manifest serialises") }
     pub fn sha256(&self) -> String { hex(&Sha256::digest(self.canonical_json().as_bytes())) }
+    pub fn qualified(command: &str, seed: u64, identity: identity::ScientificIdentity) -> Result<Self, String> {
+        identity.check()?;
+        let mut m = Self::new(command, seed, &identity.requirements[0].id);
+        m.schema = 2; m.scientific = Some(identity); Ok(m)
+    }
+    /// Historical records remain readable with their original hash; only checked v2 identity qualifies.
+    pub fn scientific_sha256(&self) -> Result<String, String> {
+        if self.schema != 2 { return Err("historical_or_unsupported_manifest".into()); }
+        let identity = self.scientific.as_ref().ok_or("scientific_identity_missing")?;
+        if identity.requirements.first().map(|r| r.id.as_str()) != Some(self.requirement_set.as_str()) { return Err("manifest_requirement_mismatch".into()); }
+        identity.check()?;
+        identity::scientific_hash(&serde_json::json!({"identity": identity, "seed": self.seed,
+            "command": self.command, "op_version": self.op_version, "params": self.params}))
+    }
+    pub fn ingest_qualified(bytes: &[u8]) -> Result<Self, String> {
+        let value = identity::strict_json(bytes)?;
+        let fields = value.as_object().ok_or("manifest object required")?;
+        let allowed = ["schema", "tool", "tool_version", "requirement_set", "op_version", "command", "seed", "params", "scientific", "runtime"];
+        if fields.keys().any(|key| !allowed.contains(&key.as_str())) { return Err("unknown qualified manifest field".into()); }
+        let manifest: Self = serde_json::from_value(value).map_err(|e| e.to_string())?;
+        manifest.scientific_sha256()?; Ok(manifest)
+    }
 }
 pub fn hex(b: &[u8]) -> String { b.iter().map(|x| format!("{x:02x}")).collect() }
 
