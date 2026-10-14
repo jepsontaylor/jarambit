@@ -222,10 +222,13 @@ def admission_binding(request_raw, authority_raw, caller):
     require(type(caller) is TrustedCaller, 'caller_approval_required')
     data = caller.verify_current(); pin = data['pin']
     request = validate_request(decode(request_raw)); authority = validate_authority(decode(authority_raw))
+    # A well-formed policy substitution also changes the authority envelope.
+    # Classify its independently pinned RAW root first, without approving either.
+    require(authority['roots']['reporting_policy']['raw_sha256'] == pin['policy_raw_sha256'], 'untrusted_policy_root')
     require(raw_hash(authority_raw) == pin['authority_raw_sha256'], 'untrusted_authority_root')
     require(authority['bootstrap_id'] == pin['bootstrap_id'], 'untrusted_authority_root')
-    for key, expected in [('registry', 'registry_raw_sha256'), ('reporting_policy', 'policy_raw_sha256'), ('resolver_source_build_recipe', 'source_build_recipe_raw_sha256')]:
-        require(authority['roots'][key]['raw_sha256'] == pin[expected], 'untrusted_policy_root' if key == 'reporting_policy' else 'untrusted_authority_root')
+    for key, expected in [('registry', 'registry_raw_sha256'), ('resolver_source_build_recipe', 'source_build_recipe_raw_sha256')]:
+        require(authority['roots'][key]['raw_sha256'] == pin[expected], 'untrusted_authority_root')
     build = authority['roots']['actual_build']
     require(build == {'stage': 'runtime_admitted', 'source_closure_sha256': pin['actual_resolver_source_closure_sha256'], 'binary_sha256': pin['actual_resolver_binary_sha256']}, 'unbuilt_or_untrusted_binary')
     validate_build_recipe(decode(raw_root(authority['roots']['resolver_source_build_recipe'])), pin['actual_resolver_source_closure_sha256'])
