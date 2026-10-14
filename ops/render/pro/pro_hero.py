@@ -154,11 +154,23 @@ def ti_material():
     return m
 
 
+def mark_ink(cfg):
+    """Design-wide mark material (#53: never finish-dependent). Default black_gloss (owner, 2026-10-13); bare_metal = #53 Ti."""
+    mark = cfg['protected']['mark']
+    ink = mark.get('ink', 'black_gloss')
+    if ink not in mark.get('inks', {}):
+        raise ValueError(f'unknown mark ink {ink!r}')
+    M = mark['inks'][ink]
+    if ink == 'bare_metal' and M['metallic'] != 1:
+        raise ValueError('the bare_metal mark ink must remain bare metal (Metallic=1)')
+    if ink == 'black_gloss' and (M['metallic'] != 0 or max(M['base_rgb']) > 0.05):
+        raise ValueError('the black_gloss mark ink must stay a dark dielectric (Metallic=0)')
+    return ink, M
+
+
 def protect_signature(N, L, sig, finish):
-    """The laser-etched mark is its own bare-metal region, independent of every finish knob (#53/#55)."""
-    M = CFG['protected']['mark']
-    if M['metallic'] != 1:
-        raise ValueError('the protected laser-etched mark must remain bare metal (Metallic=1)')
+    """The maker mark is its own protected region with one design-wide ink, independent of every finish knob (#53/#55)."""
+    _, M = mark_ink(CFG)
     bare = N('ShaderNodeBsdfPrincipled'); bare.name = 'protected_laser_etched_ti'   # node name pinned by #53 tests
     bare.inputs['Base Color'].default_value = (*M['base_rgb'], 1)
     bare.inputs['Metallic'].default_value = M['metallic']

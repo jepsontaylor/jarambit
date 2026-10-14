@@ -362,16 +362,34 @@
  },
  "protected": {
   "mark": {
-   "base_rgb": [
-    0.12,
-    0.13,
-    0.14
-   ],
-   "metallic": 1.0,
-   "roughness": 0.22,
-   "ior": 1.5,
-   "specular_ior_level": 0.5,
-   "note": "#53/#55/#64: protected bare laser-etched Ti, restored to the pre-#63 material. Metallic=1 in every finish; no coat, thin film, brushing or emission."
+   "ink": "black_gloss",
+   "inks": {
+    "black_gloss": {
+     "base_rgb": [
+      0.01,
+      0.01,
+      0.01
+     ],
+     "metallic": 0.0,
+     "roughness": 0.15,
+     "ior": 1.5,
+     "specular_ior_level": 0.06,
+     "note": "owner 10:39 + 2026-10-13 decision: glossy BLACK dielectric ink is the design-wide default. Spec IOR level 0.06 keeps a crisp gloss highlight that still reads black on the satin macro."
+    },
+    "bare_metal": {
+     "base_rgb": [
+      0.12,
+      0.13,
+      0.14
+     ],
+     "metallic": 1.0,
+     "roughness": 0.22,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "note": "#53/#55/#64 bare laser-etched Ti (pre-#63 material). Metallic=1 enforced for this ink."
+    }
+   },
+   "note": "Design-wide mark material (#53: identical in every finish; no finish knob reaches it). Owner decision 2026-10-13: black_gloss is the default and supersedes the #65 bare-metal restore; set ink=bare_metal to get the #53 laser-etched Ti look."
   },
   "grind_roughness": 0.24,
   "note": "#53 protected regions: values are design-wide, never finish-dependent. Grinds: satin-ground raw Ti (rough 0.24, F0 ~0.6) instead of mirror 0.06/0.72, which blew the serration scallops to white in the satin hero (clipping gate).",

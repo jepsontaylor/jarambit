@@ -18,6 +18,7 @@ from ops.render.pro import director_gates, qa, runtime
 
 ROOT = Path(__file__).resolve().parents[4]
 PRO = ROOT / 'ops/render/pro'
+MARK = json.loads((PRO / 'shots.json').read_text())['protected']['mark']
 
 
 @pytest.fixture(scope='module')
@@ -40,7 +41,7 @@ def test_protected_regions_per_finish(shader_results, finish, override):
     assert row['mark_pixel_max_diff'] < 1e-6
     assert row['antialiased_mark_pixel_max_diff'] < 1e-6
     assert row['grind_pixel_max_diff'] < 1e-6
-    assert row['mark_metallic'] == 1 and not row['mark_metallic_linked']
+    assert row['mark_metallic'] == MARK['inks'][MARK['ink']]['metallic'] and not row['mark_metallic_linked']
     assert all(p['value'] == 0 and not p['linked'] for p in row['protected_inputs'].values())
     if finish == 'flame':
         assert row['body_pixel_diff'] > .01  # Finish is still active outside protected regions.
