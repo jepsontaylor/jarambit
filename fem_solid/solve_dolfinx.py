@@ -299,7 +299,7 @@ def realized_solver_contract(ksp, *, expected, provider, effective_options):
     rtol, atol, divtol, max_it = ksp.getTolerances()
     actual = {"ksp_type": ksp.getType(), "pc_type": ksp.getPC().getType(), "rtol": float(rtol), "atol": float(atol),
               "divtol": float(divtol), "max_it": int(max_it), "prefix": ksp.getOptionsPrefix()}
-    bad = {k: (actual[k], v) for k, v in expected.items() if actual.get(k) != v}
+    bad = {k: (actual.get(k), v) for k, v in {**expected, "ksp_type": "cg", "pc_type": "gamg"}.items() if actual.get(k) != v}
     if bad: raise ModelError("unsupported_solver_configuration", f"actual vs expected {bad}", info={"actual": actual})
     eff = {str(k): str(v) for k, v in sorted(effective_options.items())}
     return {**actual, "model": MODEL_ID, "effective_options": eff, "effective_options_sha256": _content_sha256(eff), "provider": provider}

@@ -1,0 +1,2169 @@
+{
+ "schema": "jarambit.science.observable_catalog.v1",
+ "scope": "S07 numerical/field producer contracts and S07-phase T05 registration; software verification only. No native-CAD, physical, certificate or release qualification.",
+ "authority": {
+  "packet_sha256": "68bf2c59edace59f550944da60a247709e9dbb7a5319c7faeaecb946ac6a8571",
+  "fixtures_sha256": "828f5708ae34ce47f5acc7c342fc2a00dd8e2744fd2aa271ffc4f495dfa5b4c9",
+  "independent_review_sha256": "2272861f02bc9654ab5cb56ffb728101c175e5dd5cc159f67c85e644eedd09dd",
+  "frozen_catalog_commit": "75bc76b",
+  "fixture_policy_ref": "f2c87b48ab088b783d981e74e5a55ce7b84a7d43cd1a526b7405ddfe4957b0f7"
+ },
+ "hashing": {
+  "structured": "S01 scientific_hash = SHA256(canonical_wire) of descriptor / model / phase objects",
+  "solver_descriptors": "solve_dolfinx content_sha256 = sha256 of sorted-key compact JSON (labelled per descriptor)",
+  "raw": "SHA256"
+ },
+ "tolerances": {
+  "patch_metamorphic": {
+   "relative": 1e-08,
+   "absolute_declared_units": 1e-10,
+   "rule": "|a - b| <= abs + rel * max(|a|, |b|)"
+  },
+  "manufactured_field": {
+   "relative": 1e-09,
+   "absolute_MPa": 1e-10
+  },
+  "spatial_norm": {
+   "relative": 1e-09,
+   "absolute": 1e-12
+  },
+  "free_residual": "||r_free||2 <= 1e-10 N + 1e-8 ||b0_free||2",
+  "balance": "|applied + reaction| <= 1e-10 N or N*length + 1e-8 max(|applied|, |reaction|)",
+  "existing_theory_gate": "max_err_pct 5, strict < at gate levels, level match |a - b| < 1e-9",
+  "existing_analytic": "rel <= 0.01",
+  "existing_same_submodel_cross_check": "rel <= 0.02",
+  "frozen": "before execution; never relaxed after a failure"
+ },
+ "regions": [
+  {
+   "key": "whole_domain",
+   "descriptor": {
+    "id": "whole_domain"
+   },
+   "descriptor_sha256": "f1d5eb620c3c0098cd3e181799bb51cf703decef4d135a608531c8473d5407bc"
+  },
+  {
+   "key": "tip_annulus_roi.v1",
+   "descriptor": {
+    "id": "tip_annulus_roi.v1",
+    "tip_distance": {
+     "min_inclusive": 4.0,
+     "max_exclusive": 15.0
+    },
+    "cut_distance": {
+     "min_exclusive": 3.0
+    },
+    "units": "mm",
+    "empty": "refused"
+   },
+   "descriptor_sha256": "c7c971d8dbcc27886c874a84f21aef6dace2d47e7055af44cd446b64cdd998cd"
+  }
+ ],
+ "observables": [
+  {
+   "key": "cauchy_stress_tensor.v1",
+   "kind": "base_tensor",
+   "producer": "fem_solid.solve_dolfinx.elastic_stress (UFL sig(u) of the P<order> displacement)",
+   "descriptor": {
+    "quantity": "cauchy_stress",
+    "tensor": "symmetric 3x3, components xx,yy,zz,xy,yz,zx, signed",
+    "units_by_system": {
+     "mm,N,MPa": "MPa",
+     "m,N,Pa": "Pa"
+    },
+    "frame": "cartesian_xyz_right_handed",
+    "evaluation": "pointwise UFL expression; transforms as Q sigma Q^T under a proper rotation"
+   },
+   "descriptor_sha256": "2e3d9c4082750d08c3d9b66af796db813c79fc2f1db73dc23aa361f3d29e3faa"
+  },
+  {
+   "key": "dg_cauchy_component_interpolation.v1/P2-DG1/mm",
+   "kind": "expected_field_contract",
+   "producer": "fem_solid.solve_dolfinx.dg_stress_components",
+   "descriptor": {
+    "operator": "dg_cauchy_component_interpolation.v1",
+    "quantity": "cauchy_stress_component",
+    "formula": "s[a,b] for xx,yy,zz,xy,yz,zx (one shared W)",
+    "basis": {
+     "family": "P",
+     "discontinuous": true,
+     "degree": 1,
+     "cell": "tetrahedron",
+     "value_shape": [],
+     "block_size": 1
+    },
+    "units": "MPa",
+    "unit_system": [
+     "mm",
+     "N",
+     "MPa"
+    ],
+    "frame": "cartesian_xyz_right_handed",
+    "region": {
+     "id": "whole_domain"
+    }
+   },
+   "descriptor_sha256": "1d73124da8a474be10ae12c3ba5237ebfd2d63a507f1fdcd18c831fe9bba57ba"
+  },
+  {
+   "key": "dg_vm_interpolation.v1/P2-DG1/mm",
+   "kind": "expected_field_contract",
+   "producer": "fem_solid.solve_dolfinx.dg_von_mises",
+   "descriptor": {
+    "operator": "dg_vm_interpolation.v1",
+    "quantity": "von_mises_stress",
+    "formula": "sqrt(3/2 dev(s):dev(s))",
+    "basis": {
+     "family": "P",
+     "discontinuous": true,
+     "degree": 1,
+     "cell": "tetrahedron",
+     "value_shape": [],
+     "block_size": 1
+    },
+    "units": "MPa",
+    "unit_system": [
+     "mm",
+     "N",
+     "MPa"
+    ],
+    "frame": "cartesian_xyz_right_handed",
+    "region": {
+     "id": "whole_domain"
+    }
+   },
+   "descriptor_sha256": "c8f057d675913d721a32d4f7830a9c97697af6fcf7bfb1cc75a0a943f28ca37f"
+  },
+  {
+   "key": "dg_vm_interpolation.v1/P1-DG0/mm",
+   "kind": "expected_field_contract",
+   "producer": "fem_solid.solve_dolfinx.dg_von_mises",
+   "descriptor": {
+    "operator": "dg_vm_interpolation.v1",
+    "quantity": "von_mises_stress",
+    "formula": "sqrt(3/2 dev(s):dev(s))",
+    "basis": {
+     "family": "P",
+     "discontinuous": true,
+     "degree": 0,
+     "cell": "tetrahedron",
+     "value_shape": [],
+     "block_size": 1
+    },
+    "units": "MPa",
+    "unit_system": [
+     "mm",
+     "N",
+     "MPa"
+    ],
+    "frame": "cartesian_xyz_right_handed",
+    "region": {
+     "id": "whole_domain"
+    }
+   },
+   "descriptor_sha256": "e936dc93e767aeaa1038b72b71944ef6b9d6ae9bb58faa6b06131a8c8caf3cdf"
+  },
+  {
+   "key": "dg_vm_interpolation.v1/P2-DG1/m",
+   "kind": "expected_field_contract",
+   "producer": "fem_solid.solve_dolfinx.dg_von_mises",
+   "descriptor": {
+    "operator": "dg_vm_interpolation.v1",
+    "quantity": "von_mises_stress",
+    "formula": "sqrt(3/2 dev(s):dev(s))",
+    "basis": {
+     "family": "P",
+     "discontinuous": true,
+     "degree": 1,
+     "cell": "tetrahedron",
+     "value_shape": [],
+     "block_size": 1
+    },
+    "units": "Pa",
+    "unit_system": [
+     "m",
+     "N",
+     "Pa"
+    ],
+    "frame": "cartesian_xyz_right_handed",
+    "region": {
+     "id": "whole_domain"
+    }
+   },
+   "descriptor_sha256": "726cd0a2534405b0c74325bb5fce63900a52c15d1f3af46fde508f2038c7da69"
+  },
+  {
+   "key": "incident_cell_vertex_max.v1",
+   "kind": "recovery",
+   "producer": "fem_solid.solve_dolfinx.recover_vertex_vm(operator='max')",
+   "descriptor": {
+    "input": "scalar DG1 field bound by validate_observable_contract and geometry_vertex_association",
+    "reduction": "max over incident cells at each topological vertex",
+    "weights": "none",
+    "unsupported": [
+     "DG0",
+     "DG2+",
+     "coordinate degree > 2",
+     "mesh mismatch",
+     "non-finite samples",
+     "orphan vertices"
+    ]
+   },
+   "descriptor_sha256": "c05d9344b585052b8020013a91a64059a8840c1d9854aede56108673f529bc86"
+  },
+  {
+   "key": "incident_cell_vertex_unweighted_mean.v1",
+   "kind": "recovery",
+   "producer": "fem_solid.solve_dolfinx.recover_vertex_vm(operator='mean')",
+   "descriptor": {
+    "input": "scalar DG1 field bound by validate_observable_contract and geometry_vertex_association",
+    "reduction": "arithmetic mean of incident-cell scalar samples",
+    "weights": "unweighted; not volume-weighted, not tensor-first, not L2",
+    "unsupported": [
+     "DG0",
+     "DG2+",
+     "coordinate degree > 2",
+     "mesh mismatch",
+     "non-finite samples",
+     "orphan vertices"
+    ]
+   },
+   "descriptor_sha256": "ac508e1a47bac452f3b58523041e1781c25b92a8669334df07f925c9f1eb11dd"
+  },
+  {
+   "key": "legacy_vertex_sample_element_mean.v1",
+   "kind": "legacy_identity",
+   "producer": "fem_solid/tip_solid.py (read-only; labelled 'element-mean (centroid)')",
+   "descriptor": {
+    "reduction": "arithmetic mean of the four reference-vertex VM samples of a cell",
+    "is_pointwise_centroid_vm": false,
+    "applicability": "incomplete: historical rounded MPa/SF keep legacy identities; not relabelled, sharpened or qualified"
+   },
+   "descriptor_sha256": "9ac50d93421bcf8600df7caea7688cbcf7c85045783976b67806d42f4235a679"
+  },
+  {
+   "key": "pointwise_centroid_vm.v1",
+   "kind": "pointwise",
+   "producer": "fem.Expression(von_mises(sig(u)), reference centroid (1/4,1/4,1/4)).eval",
+   "descriptor": {
+    "evaluation": "VM of the stress tensor at the physical cell centroid",
+    "differs_from": "legacy_vertex_sample_element_mean.v1 for non-constant fields"
+   },
+   "descriptor_sha256": "4a74a92c851e4e00700657e2618f2cc577c329858d24cf8c270d2b03d8b2fb5e"
+  },
+  {
+   "key": "discrete_nodal_relative_l2.v1",
+   "kind": "norm",
+   "producer": "test-side coefficient arithmetic",
+   "descriptor": {
+    "definition": "sum_i (f_i - g_i)^2 / sum_i g_i^2 over all DG coefficients",
+    "is_spatial_integral": false
+   },
+   "descriptor_sha256": "f1125bbe5692ed306d1d02b1e9fb19d40010ab5861b7b443d8a0a48cdca38377"
+  },
+  {
+   "key": "spatial_fe_relative_l2.v1",
+   "kind": "norm",
+   "producer": "fem.assemble_scalar(form(inner(d, d) * dx)) / fem.assemble_scalar(form(inner(g, g) * dx))",
+   "descriptor": {
+    "definition": "integral of the squared field difference over the domain / integral of the squared baseline",
+    "quadrature_degree": 2,
+    "independent_oracle": "element mass matrix diag V/10, off-diagonal V/20 for P1 on a tetrahedron"
+   },
+   "descriptor_sha256": "ca56094eeb99b0367245d89461437749db8d391002123209cd653827fdcc7545"
+  }
+ ],
+ "models": [
+  {
+   "id": "dolfinx3d_isotropic_linear_elasticity.cg_gamg.v1",
+   "producer": "fem_solid.solve_dolfinx.solve / krylov_solve",
+   "emitted_only_after": "realized_solver_contract reads ksp_type cg, pc_type gamg, rtol, atol 1e-50, divtol 1e4, max_it from PETSc",
+   "defaults_under_owned_prefix": {
+    "mg_levels_ksp_type": "chebyshev",
+    "mg_levels_pc_type": "jacobi",
+    "pc_gamg_coarse_eq_limit": 1000
+   },
+   "units": [
+    "mm,N,MPa",
+    "m,N,Pa"
+   ],
+   "orders": [
+    1,
+    2
+   ],
+   "mesh": "serial connected tet4/tet10 with positive sampled Jacobians",
+   "restraint": "rank-6 homogeneous essential BCs",
+   "sha256": "4cf1f545a20b7b09e07393ffa0ee1b307ddcad829f82686f49b7192582c296b3"
+  },
+  {
+   "id": "jarambit_physics.fine.Plate.dkt_cst.v1",
+   "producer": "crates/physics/src/fine.rs Plate (DKT bending + CST membrane, direct Cholesky)",
+   "units": [
+    "mm,N,MPa"
+   ],
+   "sha256": "2be61b322b9f8fe90a64ccd7812cac397d7fcbec31ce271ae4f4e598c07eff6b"
+  },
+  {
+   "id": "jarambit_physics.fine.T6.quadratic_membrane.v1",
+   "producer": "crates/physics/src/fine.rs T6 (quadratic membrane, direct Cholesky)",
+   "units": [
+    "mm,N,MPa"
+   ],
+   "sha256": "57c73f340f1e899199f11697d0721ef882408cac1cd72b09e55862d7c3f5846f"
+  },
+  {
+   "id": "T2",
+   "producer": null,
+   "identity": false,
+   "note": "display/tier label only; ambiguous between plate certification and solid reference; never an observable or model identity",
+   "sha256": "645ee177103be649c02904a9d3a041877e88df16998debc76e84f07ee4d9f217"
+  }
+ ],
+ "inherited_regression": {
+  "interpolated_field_is_not_labeled_as_l2_projection": {
+   "owner": "S07",
+   "case": "T05-07-field_semantics",
+   "test": "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_adverse"
+  }
+ },
+ "s07_phase": {
+  "phase": "S07_core",
+  "case_schema": "assurance.testing.contracts.validate_case; controls exactly positive/adverse",
+  "policy": "build with assurance.testing.catalog.bind_policy(cases, limits); publish with assurance.testing.receipt.publish_receipt (no-clobber)",
+  "not_global_T05": "S08 owns T05-09..12 primary bindings; the root combines phase receipts after S08. Never resolve this phase and an S08 phase with the same IDs in one inventory.",
+  "S08_held_buckets": [
+   "09-positive",
+   "09-adverse",
+   "10-positive",
+   "10-adverse",
+   "11-positive",
+   "11-adverse",
+   "12-positive",
+   "12-adverse"
+  ],
+  "row_rule": "every listed row/provider is mandatory and maps by polarity into its bucket's schema control; missing/error/not_run fails the bucket; a bucket label never grants a row PASS",
+  "counts": {
+   "cases": 10,
+   "buckets": 44,
+   "rows": 107,
+   "nested_provider_controls": 6
+  },
+  "cases": [
+   {
+    "schema": 1,
+    "id": "T05-01-linear_scaling",
+    "required": true,
+    "evidence_class": "deterministic_contract",
+    "input_sha256": "de198348234ec3698a7b1eebda2b3f6cc933f61e80983028284eaeaaef1cc81e",
+    "oracle_sha256": "2da529179f2353f0dcd5458c1a49649dab873b997d17f13d5976efefc3000b51",
+    "controls": [
+     "positive",
+     "adverse"
+    ],
+    "disabled_reason": null,
+    "claim_enabled": true
+   },
+   {
+    "schema": 1,
+    "id": "T05-02-rigid_transform",
+    "required": true,
+    "evidence_class": "deterministic_contract",
+    "input_sha256": "934ea930b0ef1487a33458b967d91c3d8dd8a0e1450319e4fedb766c22869c08",
+    "oracle_sha256": "5745ff3c09599eb2dc485d9472bb96ed2f3849e23b44245f6a0b0514b2131b6a",
+    "controls": [
+     "positive",
+     "adverse"
+    ],
+    "disabled_reason": null,
+    "claim_enabled": true
+   },
+   {
+    "schema": 1,
+    "id": "T05-03-unit_consistency",
+    "required": true,
+    "evidence_class": "deterministic_contract",
+    "input_sha256": "05b9a932252e821be55c707e643bc44e86712f2796171188fde541f7eca0b415",
+    "oracle_sha256": "37237521d317a0c8d4c3c3c14da90845e31d60232a8ecd4d7551afd49f9ca6ff",
+    "controls": [
+     "positive",
+     "adverse"
+    ],
+    "disabled_reason": null,
+    "claim_enabled": true
+   },
+   {
+    "schema": 1,
+    "id": "T05-04-analytic_balance",
+    "required": true,
+    "evidence_class": "deterministic_contract",
+    "input_sha256": "029b920a97fc03216afde69b018074a39f1690a80154ab9de5b8dfaf7dcb5995",
+    "oracle_sha256": "e183300676a6b7a98976a8ebdf19091d0a4b7a582c115cff012b113f109acf17",
+    "controls": [
+     "positive",
+     "adverse"
+    ],
+    "disabled_reason": null,
+    "claim_enabled": true
+   },
+   {
+    "schema": 1,
+    "id": "T05-05-bc_failure",
+    "required": true,
+    "evidence_class": "deterministic_contract",
+    "input_sha256": "d3c0e6249d5ee7030dc349322de6d3d3b1234510bc4e50f77a4733eb458aabe6",
+    "oracle_sha256": "80b3692e30353a02830be55aedeb36ad426c4c78501d8f1157a96ac21a439882",
+    "controls": [
+     "positive",
+     "adverse"
+    ],
+    "disabled_reason": null,
+    "claim_enabled": true
+   },
+   {
+    "schema": 1,
+    "id": "T05-06-mesh_failure",
+    "required": true,
+    "evidence_class": "deterministic_contract",
+    "input_sha256": "2609ecc1f12887a3213173d6b9dce028fcbb18503a1ddac3d98ffc06380a9d1d",
+    "oracle_sha256": "bbd7065115366b01583f5af8d949b5875389b7d70a2c4f03d8e5e8db75627c1c",
+    "controls": [
+     "positive",
+     "adverse"
+    ],
+    "disabled_reason": null,
+    "claim_enabled": true
+   },
+   {
+    "schema": 1,
+    "id": "T05-07-field_semantics",
+    "required": true,
+    "evidence_class": "deterministic_contract",
+    "input_sha256": "b97283c564f52891d7c69e729f48206ce066286ecea978c0e84d4c0ac51e1b86",
+    "oracle_sha256": "5117d85e8bbf8a52aace4384b1460787cf60272c0c93259491ac8b2f8df22250",
+    "controls": [
+     "positive",
+     "adverse"
+    ],
+    "disabled_reason": null,
+    "claim_enabled": true
+   },
+   {
+    "schema": 1,
+    "id": "T05-08-localized_peak",
+    "required": true,
+    "evidence_class": "deterministic_contract",
+    "input_sha256": "f66f9a2a92df0bbc2be05f9a4de003de671dfd950c15f250ee3018427aec93c3",
+    "oracle_sha256": "635751caeca8d52f8117c711a599e05ca08f2a97fcd977c1fa5e7d2cd40f3b8c",
+    "controls": [
+     "positive",
+     "adverse"
+    ],
+    "disabled_reason": null,
+    "claim_enabled": true
+   },
+   {
+    "schema": 1,
+    "id": "T05-09-certificate_field",
+    "required": true,
+    "evidence_class": "deterministic_contract",
+    "input_sha256": "547cda290de8ae73a244a52d8c91bcf6587b3e9c1e767f4cc7d5e9a0a69ac107",
+    "oracle_sha256": "a4c4b7a33e5d0b672bf479b4c2bb35f883df3eebde1486ee37622209aa600c16",
+    "controls": [
+     "positive",
+     "adverse"
+    ],
+    "disabled_reason": null,
+    "claim_enabled": true
+   },
+   {
+    "schema": 1,
+    "id": "T05-12-tier_collision",
+    "required": true,
+    "evidence_class": "deterministic_contract",
+    "input_sha256": "06a58f90e191a930c25acd9a9bbdbff54dbfc66f87d4dbe66b8804a7a48efe43",
+    "oracle_sha256": "cacda557fc1fcf5b51ee0fea1b3033c2eb5b33234fcff9e8a82dde24939db896",
+    "controls": [
+     "positive",
+     "adverse"
+    ],
+    "disabled_reason": null,
+    "claim_enabled": true
+   }
+  ],
+  "buckets": [
+   {
+    "bucket": "01-positive",
+    "case": "T05-01-linear_scaling",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "d588fb6777fff284092089419702592d86e54437e2c32247ceb71d42df33d39e",
+    "oracle_ref": "e8e2ef735dccc4ad49521cb171ffc6440280e68b1d2ef375e4bbfe9a92878312",
+    "complete_ref": "7deffb63dca871cf068cdee03a753c05d47a43cb58154c96c132ef7a9b329707",
+    "tests": [
+     "crates/physics/tests/invariance.rs::t05_01_supplied_load_resultants",
+     "crates/physics/tests/invariance.rs::t05_01_positive_rust_scaling",
+     "fem_solid/tests/test_representation_invariants.py::LinearScaling.test_t05_01_positive_axial_scaling"
+    ],
+    "rows": [
+     {
+      "id": "01-rev33-distinct-load-superposition-positive",
+      "test": null,
+      "polarity": "positive",
+      "input_ref": "295126dac5d2c09577516ff7a3205b47a5cf280a0db3720c1f65e5fd96903cad",
+      "oracle_ref": "091109f9c3bbd7cd101b6d285af21b3e189dcb2dd0661e9f644553cb0bd054f3",
+      "providers": [
+       {
+        "id": "01-rev33-solid_dolfinx-positive",
+        "provider": "solid_dolfinx",
+        "loads": [
+         "F",
+         "G",
+         "F+G"
+        ],
+        "test": "fem_solid/tests/test_representation_invariants.py::LinearScaling.test_t05_01_rev33_solid_positive"
+       },
+       {
+        "id": "01-rev33-rust_Plate-positive",
+        "provider": "rust_Plate",
+        "loads": [
+         "F",
+         "G",
+         "F+G"
+        ],
+        "test": "crates/physics/tests/invariance.rs::t05_01_rev33_rust_plate_positive"
+       },
+       {
+        "id": "01-rev33-rust_T6-positive",
+        "provider": "rust_T6",
+        "loads": [
+         "F",
+         "G",
+         "F+G"
+        ],
+        "test": "crates/physics/tests/invariance.rs::t05_01_rev33_rust_t6_positive"
+       }
+      ],
+      "complete_ref": "bc2018d478f9adc0469de5d79ae2f511aae367dd5c72a4747aac93816b9fe7e1"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "01-adverse",
+    "case": "T05-01-linear_scaling",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "6aafb0f98887dd7b1404ae21e1541eab353bf57d3a4662a6e77f4c96cc7884d9",
+    "oracle_ref": "d0437baf94aac8d323cd29927c59b4e6b1061db38c7a22b9d2163a43b7e45971",
+    "complete_ref": "966f8ed62c8417b0e05146d56365a3afd49aec62675259c79a8f96d447137df0",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::LinearScaling.test_t05_01_adverse_dropped_multiplier"
+    ],
+    "rows": [
+     {
+      "id": "01-rev33-distinct-load-superposition-adverse",
+      "test": null,
+      "polarity": "adverse",
+      "input_ref": "4a004c1cba4c8e26551ea4527221108b3e7e949ea00b5364a1be649f7e1dc464",
+      "oracle_ref": "091e5b814acf72c03ca89842930f3d2290e26a95c43259f30c01daab9100402e",
+      "providers": [
+       {
+        "id": "01-rev33-solid_dolfinx-adverse",
+        "provider": "solid_dolfinx",
+        "loads": [
+         "F",
+         "G",
+         "F+G"
+        ],
+        "test": "fem_solid/tests/test_representation_invariants.py::LinearScaling.test_t05_01_rev33_solid_adverse"
+       },
+       {
+        "id": "01-rev33-rust_Plate-adverse",
+        "provider": "rust_Plate",
+        "loads": [
+         "F",
+         "G",
+         "F+G"
+        ],
+        "test": "crates/physics/tests/invariance.rs::t05_01_rev33_rust_plate_adverse"
+       },
+       {
+        "id": "01-rev33-rust_T6-adverse",
+        "provider": "rust_T6",
+        "loads": [
+         "F",
+         "G",
+         "F+G"
+        ],
+        "test": "crates/physics/tests/invariance.rs::t05_01_rev33_rust_t6_adverse"
+       }
+      ],
+      "complete_ref": "8f39376708af7135e87715974cd18aff086db660de379048f5aa0ecd21977094"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "02-positive",
+    "case": "T05-02-rigid_transform",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "f95ac8db456530c20416f6de79152ad26bd143bd25a668b7f85aa038a3d58f80",
+    "oracle_ref": "77069823894279618974f19f3cc42e547954238f98cf4845202d611d8cdb9bdd",
+    "complete_ref": "b12fc0801b994ba10577fb0233bb4831c770fe113a0ba3ac44bed73b5af22f5f",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::RigidTransform.test_t05_02_positive"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "02-adverse",
+    "case": "T05-02-rigid_transform",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "c7a69d959c5137a2b39ffad9d031bd4555ac4251eb66d1de8bd3443c25e2e3d7",
+    "oracle_ref": "bc09b0376b46c1dbda665602b510be58770e11ac6cf50ef0fbb59da8b6e4c722",
+    "complete_ref": "2023bd722b198eb8c8262f198f8ce346362b628e31846dd4e0ea3bfeda3f5adb",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::RigidTransform.test_t05_02_adverse"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "02-association-positive",
+    "case": "T05-02-rigid_transform",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "96ed408a7ba31c5db84ea66acccba82b6fca28aa0f8f5cb3cfd1d4ed4b915001",
+    "oracle_ref": "3d66f7ef1ebfd1abbe381a5426636553573fd2053ca8858ccd3d8a5dc7416e30",
+    "complete_ref": "66d8038d7dc125749c9aae4d0c59c3cbc386c98a99b5e36c3c3e0c00516c41de",
+    "tests": [],
+    "rows": [
+     {
+      "id": "02-rev-valid-tet4",
+      "test": "fem_solid/tests/test_field_semantics.py::Association.test_t05_02_rev_valid_tet4",
+      "polarity": "positive",
+      "input_ref": "6db5a97ecaae2f2aa865e6a7d0457ea1c69922e9b7d0795f5e66ea325fd67db9",
+      "oracle_ref": "641a38f48ca6ca62272ca28a009187995c40c1ed7a10681193ed932c54edba5a"
+     },
+     {
+      "id": "02-rev-valid-tet10",
+      "test": "fem_solid/tests/test_field_semantics.py::Association.test_t05_02_rev_valid_tet10",
+      "polarity": "positive",
+      "input_ref": "d6971423c607429060c76a6f42834c60369dff7c4d2a0c3be84aaaf539c4d863",
+      "oracle_ref": "464d97930389031d7e6b8870434655f5619ae3510891d0255806c453e703caa1"
+     },
+     {
+      "id": "02-rev-constant-retained",
+      "test": "fem_solid/tests/test_field_semantics.py::Association.test_t05_02_rev_constant_retained",
+      "polarity": "positive",
+      "input_ref": "0db181662302b9831963766803d21015324b658a629cf943fd59f5e2c37e56b9",
+      "oracle_ref": "0319d460c93deaccea757f4e8eb57563edf9cec95e614e59d533afc5844043e0"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "02-association-adverse",
+    "case": "T05-02-rigid_transform",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "0347c7d54bd4350e3dfd02bab1c22d1b251e13460cd178560b68fd3d704548ab",
+    "oracle_ref": "3d66f7ef1ebfd1abbe381a5426636553573fd2053ca8858ccd3d8a5dc7416e30",
+    "complete_ref": "11b2a725e5bb77945446ca0afa244aa5ce7638a8d4b51ef95b9fc2d57e74ed1d",
+    "tests": [],
+    "rows": [
+     {
+      "id": "02-rev-wrong-map",
+      "test": "fem_solid/tests/test_field_semantics.py::Association.test_t05_02_rev_wrong_map",
+      "polarity": "adverse",
+      "input_ref": "8190c33d73faa0317385a68d0bbf11fb3e720823fa9eed18d5118fd0dd1578c8",
+      "oracle_ref": "b294ddf2ba7dc4977d087441e102af806960d198e2df574a8b803bd44056411b"
+     },
+     {
+      "id": "02-rev-reject-all-remaps",
+      "test": "fem_solid/tests/test_field_semantics.py::Association.test_t05_02_rev_reject_all_remaps",
+      "polarity": "adverse",
+      "input_ref": "5e5547012cea8dd8bd11a04a181f4f699d64ae8ad1848ec7675737e3d4273609",
+      "oracle_ref": "9d0d71f05b2296e6eca1989fd8f46c2bf521942eedafa37fac9637d464f6e15a"
+     },
+     {
+      "id": "02-rev-unsupported-geometry3",
+      "test": "fem_solid/tests/test_field_semantics.py::Association.test_t05_02_rev_unsupported_geometry3",
+      "polarity": "adverse",
+      "input_ref": "d8158d4534fab4f5f48c3ee31d8efd9ccc06b7a9254752dbd0eb74876a85f09e",
+      "oracle_ref": "53fc261abecd1f3f66fb173eb8c4534d45bb8f79e0855324f3cd8d7976b54cc0"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "03-positive",
+    "case": "T05-03-unit_consistency",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "12ef9ec73ec9af4a633a2e0f19548eaa7072f4d3972b13d6bc605c67bd059543",
+    "oracle_ref": "2ffbcb90646bcb57d40be3c5988d9d492ec50e63d38002fc022e39a02c44a237",
+    "complete_ref": "33f3d8fe6c95ebcbbe5c570ffa5163956694714ea2a00202597302558146dd67",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::Units.test_t05_03_positive"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "03-adverse",
+    "case": "T05-03-unit_consistency",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "52801a622e86acf3191a75fbdf66d33eeac7713cd0fa6cc910c5c8229c5dd615",
+    "oracle_ref": "b75ba05701e9285d59d0b62f123a13d620ed23541a75e9d88a83e076cd071e46",
+    "complete_ref": "2e1dc289a69a9f91262326cf7ca813006b1548235ef8a2c4bd4c428ef1daf534",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::Units.test_t05_03_adverse"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "03-changed-physics",
+    "case": "T05-03-unit_consistency",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "44b6f64603674c0a087df6b2a24837880680bd7e44c4f895eefeb51bcd5df029",
+    "oracle_ref": "6e8e90d5cd45f942b481066647f0d4b91221eba7452503930db28ee49bcf4b7e",
+    "complete_ref": "2abeb8c2154434a8bc5d8161a00a146cc79ced5dcb8706786ca05aec8050a2e6",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::Units.test_t05_03_changed_physics"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "04-positive",
+    "case": "T05-04-analytic_balance",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "11f7609c4ec5458926291c77f30e8df38c6c0e2fc78740d8f634844d7ffbbee4",
+    "oracle_ref": "e2f5a7fb5c5ca705a7a40ae54bebaac10bd373629847a65dc032fcf55c261225",
+    "complete_ref": "cfc5e67e43ebb89737ebcf7abab957f3c8c4b99f3f83cc25040c6451ed21e96a",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::Balance.test_t05_04_positive"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "04-adverse",
+    "case": "T05-04-analytic_balance",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "077d38636acf2e16d64cb39a01367eefe087f4038a5075e718bac2f7870c57cd",
+    "oracle_ref": "cdc0cf1e01b74f4c183aeafcb47ada3da630fe5f269de4bf9ea41fab089ec36a",
+    "complete_ref": "ee2fa88c188ae1e3ef755c381194700b68de230bcc6e3d0860e908f15dc13bb2",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::Balance.test_t05_04_adverse"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "04-direct-finite-good",
+    "case": "T05-04-analytic_balance",
+    "schema_bucket": "positive",
+    "control_kind": "actual_rust_API",
+    "input_ref": "30e27b96302d075c54fa8c848308f705747935fb496c8aee8dec9733e99f9d86",
+    "oracle_ref": "efa0296c53139096e2dd5074db0e19ccd7be13f60c16cf2f384a81531f8ff523",
+    "complete_ref": "ef9704e975785ebe997444c40e59f696fa5dc280ca15dc5d29e6addfe723d8de",
+    "tests": [
+     "crates/physics/tests/invariance.rs::t05_04_direct_finite_good"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "04-direct-finite-bad",
+    "case": "T05-04-analytic_balance",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_rust_API",
+    "input_ref": "f1d872063af4083ab05ba39d69c93c3221a414c868aad1716997c8381805b700",
+    "oracle_ref": "e4dcd7f4c4d1f3245dab34ab06139fd179c8f42b53be109e5ce9a0a2b2594246",
+    "complete_ref": "d04a949b47935594ea02b73b70ac1da1092fc9183926d3b0a0f49daed2701227",
+    "tests": [
+     "crates/physics/tests/invariance.rs::t05_04_direct_finite_bad"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "04-current45",
+    "case": "T05-04-analytic_balance",
+    "schema_bucket": "positive",
+    "control_kind": "actual_rust_API",
+    "input_ref": "88fb1a11116ec10541bebd973579b4516bf5ea0989deb8ec554f55c16c58728b",
+    "oracle_ref": "8a3130688816ee532e4615cc0b3c6a0790e96ac2b8ce6dd61303737f4525013d",
+    "complete_ref": "e571a5f48020c82355d623381e13d5af212a900c1715fca05d9360a09663c03b",
+    "tests": [
+     "crates/physics/tests/invariance.rs::t05_04_current45"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "04-nan-tolerance",
+    "case": "T05-04-analytic_balance",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_rust_API",
+    "input_ref": "0fa3783905a47dc23de7aad65632b69ba2d56d67527e8cb48634fb01a40b8c43",
+    "oracle_ref": "18cb28111b30f05a05dead7b731a2adbe0f1572ef37a46acb4e8ddd17b1f2284",
+    "complete_ref": "dd7c619a59a1ed65cc4532ef2399154c6af2bc0cd243e80913fd107f10eaee66",
+    "tests": [
+     "crates/physics/tests/invariance.rs::t05_04_nan_tolerance"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "04-inf-tolerance",
+    "case": "T05-04-analytic_balance",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_rust_API",
+    "input_ref": "0697bf6293e3e8efe5aded33e4056f106a0c0100d99b223c36fe6015e7d6a974",
+    "oracle_ref": "4c67d1d8acbc6f09495fb93b8df84b65531cd6744e43c826532395d1389172c7",
+    "complete_ref": "1d727855f72da7ea9d84e174508d3429075133f30479f9730a7db5d9cc6dc835",
+    "tests": [
+     "crates/physics/tests/invariance.rs::t05_04_inf_tolerance"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "04-valid-unicode",
+    "case": "T05-04-analytic_balance",
+    "schema_bucket": "positive",
+    "control_kind": "actual_rust_API",
+    "input_ref": "9f6b5ffb0f38fdece0ed17fbf745fea8d1e407bb302f8999531af665613b80b8",
+    "oracle_ref": "b61914e265aa2b55e70cf4a77d98339b965b3d0cee2d0a364d6b2ba612e9eee0",
+    "complete_ref": "d2b5a7c4bf302351995aaf1fd835a86d4cde2b8b10d2f0ba1caa2840a5beae77",
+    "tests": [
+     "crates/physics/tests/invariance.rs::t05_04_valid_unicode"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "04-invalid-Expected",
+    "case": "T05-04-analytic_balance",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_rust_API",
+    "input_ref": "9f1d17fe70d63e51d12af1534c0d790fe9cd90ac293e2a3fcd780ff77d2f9f65",
+    "oracle_ref": "17f1f786a24e3c7d67504008539c67113c347b0f4d48ed9f686cf23bb52e6bb7",
+    "complete_ref": "08368c2a712b0de6e5362ed86a8329254905dc1814d4176c284e4860e9c11174",
+    "tests": [],
+    "rows": [
+     {
+      "id": "04-invalid-Expected/original/1",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "1"
+     },
+     {
+      "id": "04-invalid-Expected/original/2",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "2"
+     },
+     {
+      "id": "04-invalid-Expected/original/3",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "3"
+     },
+     {
+      "id": "04-invalid-Expected/original/4",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "4"
+     },
+     {
+      "id": "04-invalid-Expected/original/5",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "5"
+     },
+     {
+      "id": "04-invalid-Expected/original/6",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "6"
+     },
+     {
+      "id": "04-invalid-Expected/original/7",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "7"
+     },
+     {
+      "id": "04-invalid-Expected/original/8",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "8"
+     },
+     {
+      "id": "04-invalid-Expected/original/9",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "9"
+     },
+     {
+      "id": "04-invalid-Expected/original/10",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "10"
+     },
+     {
+      "id": "04-invalid-Expected/original/11",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "11"
+     },
+     {
+      "id": "04-invalid-Expected/original/12",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "12"
+     },
+     {
+      "id": "04-invalid-Expected/original/13",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "13"
+     },
+     {
+      "id": "04-invalid-Expected/original/14",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "14"
+     },
+     {
+      "id": "04-invalid-Expected/original/15",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "15"
+     },
+     {
+      "id": "04-invalid-Expected/original/16",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "16"
+     },
+     {
+      "id": "04-invalid-Expected/original/17",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "17"
+     },
+     {
+      "id": "04-invalid-Expected/original/18",
+      "test": "crates/physics/tests/invariance.rs::t05_04_invalid_expected",
+      "subtest": "18"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "04-observation-domain",
+    "case": "T05-04-analytic_balance",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_rust_API",
+    "input_ref": "09367a7a42b176b78cd1d74de56455c003c60ddbf8b7d2bbca7ce3e1e56c7f11",
+    "oracle_ref": "13e8ed9c3c09442404bf1984c941c8586676fb7d0cc379982569eafc6f150885",
+    "complete_ref": "1870e0b172328de99141369cc1e40301458ef4e1824050723ff101d75b765549",
+    "tests": [],
+    "rows": [
+     {
+      "id": "04-observation-domain/original/1",
+      "test": "crates/physics/tests/invariance.rs::t05_04_observation_domain",
+      "subtest": "1"
+     },
+     {
+      "id": "04-observation-domain/original/2",
+      "test": "crates/physics/tests/invariance.rs::t05_04_observation_domain",
+      "subtest": "2"
+     },
+     {
+      "id": "04-observation-domain/original/3",
+      "test": "crates/physics/tests/invariance.rs::t05_04_observation_domain",
+      "subtest": "3"
+     },
+     {
+      "id": "04-observation-domain/original/4",
+      "test": "crates/physics/tests/invariance.rs::t05_04_observation_domain",
+      "subtest": "4"
+     },
+     {
+      "id": "04-observation-domain/original/5",
+      "test": "crates/physics/tests/invariance.rs::t05_04_observation_domain",
+      "subtest": "5"
+     },
+     {
+      "id": "04-observation-domain/original/6",
+      "test": "crates/physics/tests/invariance.rs::t05_04_observation_domain",
+      "subtest": "6"
+     },
+     {
+      "id": "04-observation-domain/original/7",
+      "test": "crates/physics/tests/invariance.rs::t05_04_observation_domain",
+      "subtest": "7"
+     },
+     {
+      "id": "04-observation-domain/original/8",
+      "test": "crates/physics/tests/invariance.rs::t05_04_observation_domain",
+      "subtest": "8"
+     },
+     {
+      "id": "04-observation-domain/original/9",
+      "test": "crates/physics/tests/invariance.rs::t05_04_observation_domain",
+      "subtest": "9"
+     },
+     {
+      "id": "04-observation-domain/original/10",
+      "test": "crates/physics/tests/invariance.rs::t05_04_observation_domain",
+      "subtest": "10"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "04-boundary-pair",
+    "case": "T05-04-analytic_balance",
+    "schema_bucket": "positive",
+    "control_kind": "actual_rust_API",
+    "input_ref": "f92dc16a9db49a312fd19c625cb97555d93035c12c06fc19da664409f86dcee7",
+    "oracle_ref": "b9c547358ca7102782e0838a5d6cf4eb9cd1d8f2d0d54ce5ff90373b0f996a81",
+    "complete_ref": "fa28388a6d190dcdec95ee5ba07385ee7c901b205cff1930c7c9c55b9c27bc90",
+    "tests": [],
+    "rows": [
+     {
+      "id": "04-boundary-pair/original/1",
+      "test": "crates/physics/tests/invariance.rs::t05_04_boundary_pair",
+      "subtest": "1"
+     },
+     {
+      "id": "04-boundary-pair/original/2",
+      "test": "crates/physics/tests/invariance.rs::t05_04_boundary_pair",
+      "subtest": "2"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "04-known-negative",
+    "case": "T05-04-analytic_balance",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_rust_API",
+    "input_ref": "9dcb2099abb0d989d6decc3b706c28f624f86ae897394369457b0498827d20b1",
+    "oracle_ref": "85f5be1c872a54509718746bc381b13f644e701969575ac467d18dc4531d32be",
+    "complete_ref": "ebe2af3dd24afffa13861b5db63f399cd4593823294b4dd006af271ad16fceb0",
+    "tests": [
+     "crates/physics/tests/invariance.rs::t05_04_known_negative"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "05-positive",
+    "case": "T05-05-bc_failure",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "f58e710bb6ec73c8c7c3038043b49cf946150573e4192c1e3cdbbe0ce11d91bc",
+    "oracle_ref": "3a2ebefdcaa9cdc95cd5d2f99fd700f180532ca8bbeec834ced3f4afc6e76d4f",
+    "complete_ref": "577883627eafad72dde783c828e84b77c3386ab814e980b001595e90ba3b5dff",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_positive"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "05-adverse",
+    "case": "T05-05-bc_failure",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "72b7ccfb0b58395cb988b15b20f62ad7d131c386546d9c996b5a63db84997a4c",
+    "oracle_ref": "3f5997b3f6cb264d145c7a1bbff5381eefdc4608d4bdcd381fba5f37d24a2716",
+    "complete_ref": "52c06996fbe7730011573ee6af4b085dbe0cd222b62bcbf6c2322cff395f2384",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_adverse"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "05-singular",
+    "case": "T05-05-bc_failure",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "9e58d86e2a4f4eb5d06d90b707ec241534ba889dd86659b7eebd3b91b28c22ad",
+    "oracle_ref": "d621ec2a4affd00b4ad8e5df7eeac35625e9d22027f28965964277af87c66de0",
+    "complete_ref": "fa8e9686ac234ceedde3e98dac93f62a396c92d431613c51d396029b21158e80",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_singular"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "05-load-and-symmetry",
+    "case": "T05-05-bc_failure",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "c0ef239ded3c87554b308ceef2114b6338a37b5e612f380ce4d1cbb86705c436",
+    "oracle_ref": "d661a7fe321a69e0ca355212bbd693680941c5568591068c40922d62d4f0c2d1",
+    "complete_ref": "4027115b2793abee6d2699d80e20fac4ca9d7d1c47a2925d935307bfa2b8e9dc",
+    "tests": [],
+    "rows": [
+     {
+      "id": "05-load-and-symmetry/original/1",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_load_and_symmetry",
+      "subtest": "1"
+     },
+     {
+      "id": "05-load-and-symmetry/original/2",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_load_and_symmetry",
+      "subtest": "2"
+     },
+     {
+      "id": "05-load-and-symmetry/original/3",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_load_and_symmetry",
+      "subtest": "3"
+     },
+     {
+      "id": "05-load-and-symmetry/original/4",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_load_and_symmetry",
+      "subtest": "4"
+     },
+     {
+      "id": "05-load-and-symmetry/original/5",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_load_and_symmetry",
+      "subtest": "5"
+     },
+     {
+      "id": "05-load-and-symmetry/original/6",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_load_and_symmetry",
+      "subtest": "6"
+     },
+     {
+      "id": "05-load-and-symmetry/original/7",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_load_and_symmetry",
+      "subtest": "7"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "05-nonconvergence",
+    "case": "T05-05-bc_failure",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "28878edb69da7785cd42258b23e64c897f90822556233219cecab3b490616494",
+    "oracle_ref": "6acf4f775ace28315f4c7fcb01eedd5b4264962dae1f355f98b798c520b2b727",
+    "complete_ref": "d65bf68eb7f4ef2349dd2c8c57ff163a46b21184c725228bb22df42fa596dc32",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_nonconvergence"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "05-lifetime",
+    "case": "T05-05-bc_failure",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "bfcc55d0e27b5f1dc8e2ae83eec28c53cc128ae868ee86b8c83f3e7faafb8d92",
+    "oracle_ref": "8b2316b87c8ecfed372a56a8c55dadeeed5cdb6b234c59cd0d673d895cd78548",
+    "complete_ref": "33b584f33e661f0612a0041c4af7b603760f83915fcdaed3d35a8dd52fe040ba",
+    "tests": [],
+    "rows": [
+     {
+      "id": "05-lifetime/original/1",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "1"
+     },
+     {
+      "id": "05-lifetime/original/2",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "2"
+     },
+     {
+      "id": "05-lifetime/original/3",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "3"
+     },
+     {
+      "id": "05-lifetime/original/4",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "4"
+     },
+     {
+      "id": "05-lifetime/original/5",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "5"
+     },
+     {
+      "id": "05-lifetime/original/6",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "6"
+     },
+     {
+      "id": "05-lifetime/original/7",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "7"
+     },
+     {
+      "id": "05-lifetime/original/8",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "8"
+     },
+     {
+      "id": "05-lifetime/original/9",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "9"
+     },
+     {
+      "id": "05-lifetime/original/10",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "10"
+     },
+     {
+      "id": "05-lifetime/original/11",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "11"
+     },
+     {
+      "id": "05-lifetime/original/12",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "12"
+     },
+     {
+      "id": "05-lifetime/original/13",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "13"
+     },
+     {
+      "id": "05-lifetime/original/14",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "14"
+     },
+     {
+      "id": "05-lifetime/original/15",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "15"
+     },
+     {
+      "id": "05-lifetime/original/16",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "16"
+     },
+     {
+      "id": "05-lifetime/original/17",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "17"
+     },
+     {
+      "id": "05-lifetime/original/18",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "18"
+     },
+     {
+      "id": "05-lifetime/original/19",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "19"
+     },
+     {
+      "id": "05-lifetime/original/20",
+      "test": "fem_solid/tests/test_representation_invariants.py::BoundaryConditions.test_t05_05_lifetime",
+      "subtest": "20"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "06-positive",
+    "case": "T05-06-mesh_failure",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "115e3fa6c19e74e908bd7c2ac029a9ebb6e94e49950ce201045edab6865043e7",
+    "oracle_ref": "ac1d4eb64aaf3492188f96f45492744f3168c086f3d18c90ed0cb469cb7d584e",
+    "complete_ref": "80236e3c5f382a4041df207bf2f015d74e12557feec318d8dad94dcf1a9e2222",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_positive"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "06-adverse",
+    "case": "T05-06-mesh_failure",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "952128ade7fce8529c068d2f218b7e419d3f0ba5f10e298a04b1f4a2fee36f1d",
+    "oracle_ref": "5afc7954194838a2811d455b1e3d4e0cfe20cd55ad35d35941ce6e9b2502f0d9",
+    "complete_ref": "222cfcd079f3c6f3b3d2b7a1a6ce6e61fc661db3d072dc824e7a941bef6c6a09",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_adverse"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "06-degenerate",
+    "case": "T05-06-mesh_failure",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "a7abba89b9e373db1bc83b58012aa6a2535e04d7bef800a38363b00a665bba9b",
+    "oracle_ref": "089d11756a83d61b048b73662485b9d631de68b5ffc40ab5360a6d117756e8f0",
+    "complete_ref": "db55c80f8f27e405cbd70b0fbffd782d128624d4442846ed1c6d76812b914e89",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_degenerate"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "06-disconnected",
+    "case": "T05-06-mesh_failure",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "7e3609c5143c431bf75a9df85da0bf7c47dda75f7f2b2a593117ca2faf07756c",
+    "oracle_ref": "15993c69dc4ef65a48e72f67ae5d18d47267836cdfcb9eedb35ddab0dc8a11f1",
+    "complete_ref": "f3a8a68535eb88c832f1872d23f5e6e39b7ba2876959dc0cc0c4b7a1e9525db8",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_disconnected"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "06-material-order",
+    "case": "T05-06-mesh_failure",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "73b823b9c15ddffa4a4d3a71dbead34b7135ae0c7f58897f58d6eefdbf1a9f1a",
+    "oracle_ref": "9dd26e42f0834b407935b4f521e4a8763df828c333fb3bfefd7f69338198b2c6",
+    "complete_ref": "c28da7bf15c4a8dc6c98de0595f438620975e031f18e15dca2fadbe232243d4b",
+    "tests": [],
+    "rows": [
+     {
+      "id": "06-material-order/original/1",
+      "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_material_order",
+      "subtest": "1"
+     },
+     {
+      "id": "06-material-order/original/2",
+      "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_material_order",
+      "subtest": "2"
+     },
+     {
+      "id": "06-material-order/original/3",
+      "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_material_order",
+      "subtest": "3"
+     },
+     {
+      "id": "06-material-order/original/4",
+      "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_material_order",
+      "subtest": "4"
+     },
+     {
+      "id": "06-material-order/original/5",
+      "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_material_order",
+      "subtest": "5"
+     },
+     {
+      "id": "06-material-order/original/6",
+      "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_material_order",
+      "subtest": "6"
+     },
+     {
+      "id": "06-material-order/original/7",
+      "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_material_order",
+      "subtest": "7"
+     },
+     {
+      "id": "06-material-order/original/8",
+      "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_material_order",
+      "subtest": "8"
+     },
+     {
+      "id": "06-material-order/original/9",
+      "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_material_order",
+      "subtest": "9"
+     },
+     {
+      "id": "06-material-order/original/10",
+      "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_material_order",
+      "subtest": "10"
+     },
+     {
+      "id": "06-material-order/original/11",
+      "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_material_order",
+      "subtest": "11"
+     },
+     {
+      "id": "06-material-order/original/12",
+      "test": "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_material_order",
+      "subtest": "12"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "06-order1",
+    "case": "T05-06-mesh_failure",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "6f022b43f6ac20e4b3a4a95d6034faf445a29abd1e24676987db45fa33ee4ae0",
+    "oracle_ref": "e2d9d9a533b1e02756efb029105b03f185dd2b5c8d6b4da90ebf4f98988acf57",
+    "complete_ref": "eeb8e106753a1eefc3354f047db533b1e8d0cf705a4a7df98a3bda7dccb62958",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::MeshAndMaterial.test_t05_06_order1"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "07-positive",
+    "case": "T05-07-field_semantics",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "9911ae03b08555dce36f4ed9b8ae68e3cee372fd1dea6f76d11ed121a7cbbf7c",
+    "oracle_ref": "4b4c8dac44eb95c763bf33bbe9838b633cdccdcedcdbc765f61465d832e2b938",
+    "complete_ref": "61a1c41267f866cf5cefb0001ce79b5b6518bc0343ee5d1c6201c4e0fe5b30b6",
+    "tests": [
+     "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_positive"
+    ],
+    "rows": [],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "07-adverse",
+    "case": "T05-07-field_semantics",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "fb36db49307eb55611f6affccb1171c43e64548359f6cd6a51c2e02faf241986",
+    "oracle_ref": "78eaee4cf5afd08b458bb88471180d5f5c002b43c39c07f22b5bb8d3b37db3c6",
+    "complete_ref": "230f55561ac48d55e6c37c10a4a8e77b72395e638dd417d2c1bf91ec8052791c",
+    "tests": [],
+    "rows": [
+     {
+      "id": "07-adverse/original/1",
+      "test": "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_adverse",
+      "subtest": "1"
+     },
+     {
+      "id": "07-adverse/original/2",
+      "test": "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_adverse",
+      "subtest": "2"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "07-incidence-pair",
+    "case": "T05-07-field_semantics",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "9551fbbb79e78e4fbd3d95b9dc3b6a8e28e6ba23f0a7153aeb0fb932e521844f",
+    "oracle_ref": "0e9b08f9f790be3467340755347cfc5fa9a65477697e8c47fea56a9bed689eff",
+    "complete_ref": "53a9bf3a7528fc77d0d207bd56c9fe1928dead98ce911134d3158032f55840e3",
+    "tests": [],
+    "rows": [
+     {
+      "id": "07-rev-signed-incidence",
+      "test": "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_rev_signed_incidence",
+      "polarity": "positive",
+      "input_ref": "9551fbbb79e78e4fbd3d95b9dc3b6a8e28e6ba23f0a7153aeb0fb932e521844f",
+      "oracle_ref": "0e9b08f9f790be3467340755347cfc5fa9a65477697e8c47fea56a9bed689eff"
+     },
+     {
+      "id": "07-rev-tensor-first",
+      "test": "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_rev_tensor_first",
+      "polarity": "adverse",
+      "input_ref": "9551fbbb79e78e4fbd3d95b9dc3b6a8e28e6ba23f0a7153aeb0fb932e521844f",
+      "oracle_ref": "040adf8276dc3935cde00e1c7cf0044ede051f68abe7a622cd7890cb02de5170"
+     },
+     {
+      "id": "07-rev-volume-weighted",
+      "test": "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_rev_volume_weighted",
+      "polarity": "adverse",
+      "input_ref": "9551fbbb79e78e4fbd3d95b9dc3b6a8e28e6ba23f0a7153aeb0fb932e521844f",
+      "oracle_ref": "5e28d4f72b549fbc219d059cc0e054008d9410e66c210f929718a6df8740f280"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "07-unsupported-recovery",
+    "case": "T05-07-field_semantics",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "d0106ee9f6326aa0c6ff45149160c29ded747d7605ef70cbd8a94a2f8c3b7a57",
+    "oracle_ref": "bd5ca98fa53968ab5dec43531e0dfb4a67a84e0ee5fba2749a49224d0076ba9f",
+    "complete_ref": "719c641e8e69b61ef3cd20e41347583bfcbed6b40f9bac6e574cad30f7ba2883",
+    "tests": [],
+    "rows": [
+     {
+      "id": "07-unsupported-recovery/original/1",
+      "test": "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_unsupported_recovery",
+      "subtest": "1"
+     },
+     {
+      "id": "07-unsupported-recovery/original/2",
+      "test": "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_unsupported_recovery",
+      "subtest": "2"
+     },
+     {
+      "id": "07-unsupported-recovery/original/3",
+      "test": "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_unsupported_recovery",
+      "subtest": "3"
+     },
+     {
+      "id": "07-unsupported-recovery/original/4",
+      "test": "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_unsupported_recovery",
+      "subtest": "4"
+     },
+     {
+      "id": "07-unsupported-recovery/original/5",
+      "test": "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_unsupported_recovery",
+      "subtest": "5"
+     },
+     {
+      "id": "07-unsupported-recovery/original/6",
+      "test": "fem_solid/tests/test_field_semantics.py::FieldSemantics.test_t05_07_unsupported_recovery",
+      "subtest": "6"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "08-positive",
+    "case": "T05-08-localized_peak",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "e2611c0908e9c7b08881a09ed6b37b2665aa4ed6404ce0fb4e9e03f2013ca611",
+    "oracle_ref": "0fbf7696acec2ce629b8a4af1d6fd3e13d057887c66dd6e24e6fdfce127285b2",
+    "complete_ref": "7799195b8452de265b9a70f1d8370b625ef505a7c1f164ab923aa1fbf834d1d2",
+    "tests": [
+     "fem_solid/tests/test_field_semantics.py::LocalizedPeak.test_t05_08_positive"
+    ],
+    "rows": [
+     {
+      "id": "08-rev-discrete-norm",
+      "test": "fem_solid/tests/test_field_semantics.py::LocalizedPeak.test_t05_08_rev_discrete_norm",
+      "polarity": "positive",
+      "input_ref": "048cd1ed4500ce6bd4dbd0a26f5509ff7bdecc490b5888c2742a1208e2074d84",
+      "oracle_ref": "e61aeea27dc34e3c872e172715bc06772d458f6f17e3f9e842c79a1a642f358a"
+     },
+     {
+      "id": "08-rev-spatial-integral",
+      "test": "fem_solid/tests/test_field_semantics.py::LocalizedPeak.test_t05_08_rev_spatial_integral",
+      "polarity": "positive",
+      "input_ref": "7077864b16947feed707a14a24e10819997c0936213eab36ced0d10f679bca73",
+      "oracle_ref": "3f7bbf81fe53da50032a3a9ad15e345431e8ad569caacb8dfca540454d1fb332"
+     },
+     {
+      "id": "08-rev-mass-matrix",
+      "test": "fem_solid/tests/test_field_semantics.py::LocalizedPeak.test_t05_08_rev_mass_matrix",
+      "polarity": "positive",
+      "input_ref": "5a7af50c7bd08b8b93a107f185041387b04a256eb6f63007116a60b50dd86d64",
+      "oracle_ref": "73d6aa1ef63e873667eeac30758008cd90277eb82bfa040087b1b90a31b50e01"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "08-adverse",
+    "case": "T05-08-localized_peak",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "69bf299dde4169d06e074bcde2ced008a7802dc1219899aaeadb37082419f900",
+    "oracle_ref": "5ffa1aa4b4050cc48ebd6a907cdb3b0769929b060788de3887fbfcc85e891182",
+    "complete_ref": "8b9d66bb6d0a5a0e9cfd27604b12a9aa9e93dd15146cf5a492d628a61a6fc170",
+    "tests": [
+     "fem_solid/tests/test_field_semantics.py::LocalizedPeak.test_t05_08_adverse"
+    ],
+    "rows": [
+     {
+      "id": "08-rev-array-as-spatial",
+      "test": "fem_solid/tests/test_field_semantics.py::LocalizedPeak.test_t05_08_rev_array_as_spatial",
+      "polarity": "adverse",
+      "input_ref": "5f6e5731ba1cf499e4b1703e180047ab25bb00ef7cbd4803ba536fc194c9eec8",
+      "oracle_ref": "06a422faaf923e5eac28e29e5861f6dc4bea0aaf45fbd20592296f47cfd4a057"
+     },
+     {
+      "id": "08-rev-mean-as-extreme",
+      "test": "fem_solid/tests/test_field_semantics.py::LocalizedPeak.test_t05_08_rev_mean_as_extreme",
+      "polarity": "adverse",
+      "input_ref": "e236b972441875442943b995bf22b23cdcdbba9a2b80c4e7b6132f6aed35fe6a",
+      "oracle_ref": "7d48127499120b62d4819e6799bedd19cf1480b9861b8948491f1f7d4d986a54"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "08-ROI-boundary",
+    "case": "T05-08-localized_peak",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "89851e4c141f8c0e318fee0ae584259544cde004003226be80252cd6b6c71bf8",
+    "oracle_ref": "52cdbb740ac8de891095a162eb7108618c2a43519853cdce2e04fadf9fa949a9",
+    "complete_ref": "f6e89a9e0781c3f54973a2ad233f06da59810acc45ea430b2644223355f8ad53",
+    "tests": [],
+    "rows": [
+     {
+      "id": "08-ROI-boundary/original/1",
+      "test": "fem_solid/tests/test_field_semantics.py::LocalizedPeak.test_t05_08_roi_boundary",
+      "subtest": "1"
+     },
+     {
+      "id": "08-ROI-boundary/original/2",
+      "test": "fem_solid/tests/test_field_semantics.py::LocalizedPeak.test_t05_08_roi_boundary",
+      "subtest": "2"
+     },
+     {
+      "id": "08-ROI-boundary/original/3",
+      "test": "fem_solid/tests/test_field_semantics.py::LocalizedPeak.test_t05_08_roi_boundary",
+      "subtest": "3"
+     },
+     {
+      "id": "08-ROI-boundary/original/4",
+      "test": "fem_solid/tests/test_field_semantics.py::LocalizedPeak.test_t05_08_roi_boundary",
+      "subtest": "4"
+     },
+     {
+      "id": "08-ROI-boundary/original/5",
+      "test": "fem_solid/tests/test_field_semantics.py::LocalizedPeak.test_t05_08_roi_boundary",
+      "subtest": "5"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "09-producer-positive",
+    "case": "T05-09-certificate_field",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "d34dd96338e425a6db728933b43e0bb6b8e03649f7f3b40e3f4255ab2a203a8d",
+    "oracle_ref": "e48c92b839d7bab54910646b6d5ccf0807e99b2e0951dd85d6cc705cf4f5925e",
+    "complete_ref": "ab980e15e1c15edad9d6b3c91e41c19a7b390a752de42e7b3cab2fbec52482ea",
+    "tests": [],
+    "rows": [
+     {
+      "id": "09-producer-positive/original/1",
+      "test": "fem_solid/tests/test_field_semantics.py::Producer.test_t05_09_producer_positive",
+      "subtest": "1"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "09-producer-adverse",
+    "case": "T05-09-certificate_field",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "06b4ae765a0579c1c6d7edd61da1c60a02fcd64a19ed73c54ae5c442888a0ca5",
+    "oracle_ref": "851d46f06f0937ac6adc19c5ab248a0df173441c5655a2b0c0920651c018f1aa",
+    "complete_ref": "ef60bb290ee7066e93e723c179cff06eeaf88c7de76cc47049c871d28c8c908c",
+    "tests": [],
+    "rows": [
+     {
+      "id": "09-producer-adverse/original/1",
+      "test": "fem_solid/tests/test_field_semantics.py::Producer.test_t05_09_producer_adverse",
+      "subtest": "1"
+     },
+     {
+      "id": "09-producer-adverse/original/2",
+      "test": "fem_solid/tests/test_field_semantics.py::Producer.test_t05_09_producer_adverse",
+      "subtest": "2"
+     },
+     {
+      "id": "09-producer-adverse/original/mesh",
+      "test": "fem_solid/tests/test_field_semantics.py::Producer.test_t05_09_producer_adverse",
+      "subtest": "mesh"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "12-producer-positive",
+    "case": "T05-12-tier_collision",
+    "schema_bucket": "positive",
+    "control_kind": "actual_operator",
+    "input_ref": "cb7d1928a197d02ab28bf8fb43a7e805cfc46cc6da7144fb7348e11af65d76bf",
+    "oracle_ref": "e1a506cd8794d6bbeb934f048fb77b9ddd54b3952689f766ca46e65cc1ddf844",
+    "complete_ref": "722efca21aa42f42399e761ce24fa6c5400866f215656730cc9d7b1627774206",
+    "tests": [],
+    "rows": [
+     {
+      "id": "12-rev-realized-default",
+      "test": "fem_solid/tests/test_representation_invariants.py::RealizedSolver.test_t05_12_rev_realized_default",
+      "polarity": "positive",
+      "input_ref": "c1657a11826a800e7941cc729bf090f4e776f25191c113efb1c5233c21f3d192",
+      "oracle_ref": "e1a506cd8794d6bbeb934f048fb77b9ddd54b3952689f766ca46e65cc1ddf844"
+     },
+     {
+      "id": "12-rev-options-restored",
+      "test": "fem_solid/tests/test_representation_invariants.py::RealizedSolver.test_t05_12_rev_options_restored",
+      "polarity": "positive",
+      "input_ref": "9b011c2b749dbd2d43d88aabd68da3e8cea5902b54233d8cd24a4a77f47762b3",
+      "oracle_ref": "f4e176095a125833bb4f8f3e8813c329ef875776cb42a4c24fc95d8da55ea0af"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   },
+   {
+    "bucket": "12-producer-adverse",
+    "case": "T05-12-tier_collision",
+    "schema_bucket": "adverse",
+    "control_kind": "actual_operator",
+    "input_ref": "873ee075c863c8261ae4b2e1e80b779e01e308d624fc7f0d14677279aaad221e",
+    "oracle_ref": "94cf8df1d0a067147706fffe5dbb739dcfdfae738ca5a5d3521e62048392fe8a",
+    "complete_ref": "7d47052853725f122a24f197969b2e3816e2a2958876965fc12273ae887b29cd",
+    "tests": [
+     "fem_solid/tests/test_representation_invariants.py::RealizedSolver.test_t05_12_producer_adverse_generic_tier"
+    ],
+    "rows": [
+     {
+      "id": "12-rev-KSP-override",
+      "test": "fem_solid/tests/test_representation_invariants.py::RealizedSolver.test_t05_12_rev_ksp_override",
+      "polarity": "adverse",
+      "input_ref": "cbddf45e3d5140073277f5edd5c814eae62cce059bd4c3c4fcaa7f378902b6b2",
+      "oracle_ref": "e2a52fd8085689452c41dfd383f4757405353fcb089ae8ba3a4e051ef51ec780"
+     },
+     {
+      "id": "12-rev-PC-override",
+      "test": "fem_solid/tests/test_representation_invariants.py::RealizedSolver.test_t05_12_rev_pc_override",
+      "polarity": "adverse",
+      "input_ref": "ccf8520818228bddfa3e3b4b5c884b7693cccadc7496926b80e788f4a9f949b3",
+      "oracle_ref": "37e44d3bd31a4f51bc49d39055908b6ca0894562e64c16ac422b3b363af9bfd4"
+     },
+     {
+      "id": "12-rev-false-default",
+      "test": "fem_solid/tests/test_representation_invariants.py::RealizedSolver.test_t05_12_rev_false_default",
+      "polarity": "adverse",
+      "input_ref": "62cf72e282284843f81439c895113bd01024304d03cd20767c15cab6452607b6",
+      "oracle_ref": "97c34097e4d4ba7b1d441f7e2d8ef710ddc156b27ab34faa9396589005c7390e"
+     }
+    ],
+    "expected_artifacts": [
+     "exact-source-and-read-closure.json",
+     "input-and-oracle-refs.json",
+     "literal-argv-and-resource.json",
+     "raw-stdout.log",
+     "raw-stderr.log",
+     "actual-findings.json",
+     "raw-field-and-dof-association.npz",
+     "balance-and-ksp.json"
+    ],
+    "required": true
+   }
+  ],
+  "cases_sha256": "94a6c26511a9e1701a6ab6adc4337f403dd1cb8f9c4eea579e174afdf6d0ea31"
+ },
+ "execution": "not_run"
+}
