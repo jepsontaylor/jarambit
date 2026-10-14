@@ -334,6 +334,46 @@ def tet_mesh(vertices, cells):
 TET = [[-1, 0, 0], [1, 0, 0], [-1, 1, 0], [-1, 0, 1]]
 
 
+class IngressTypes(Operator):
+    """Forward52 (S07-SRC-R001-P2-2): only None is normalized; malformed containers/members refuse with stable typed reasons."""
+
+    def test_valid_none_and_empty_symmetry_stay_healthy(self):
+        for sym in (None, {}):
+            with self.subTest(sym_tags=sym):
+                uh, vmh, sig, info = S.solve(self.msh, self.ft, E, NU, [1], {2: traction(F)}, sym_tags=sym)
+                self.assertTrue(close(float(probe(self.msh, uh, [[0, 0, 1.0]])[0][2]), 1 / 1000)); self.assertEqual(info["validated_model"]["sym_tags"], {})
+        self.assertEqual(S.validate_units(["mm", "N", "MPa"])["stress"], "MPa"); self.assertEqual(S.validate_units(("m", "N", "Pa"))["stress"], "Pa")
+        record("forward52-ingress-positive", sym_tags=["None", "{}"], units=["list", "tuple"])
+
+    def test_malformed_ingress_refuses_with_typed_reasons(self):
+        cases = [("sym False", dict(sym_tags=False), "invalid_symmetry_component"), ("sym 0", dict(sym_tags=0), "invalid_symmetry_component"),
+                 ("sym []", dict(sym_tags=[]), "invalid_symmetry_component"), ("sym ()", dict(sym_tags=()), "invalid_symmetry_component"),
+                 ("sym ''", dict(sym_tags=""), "invalid_symmetry_component"), ("sym component True", dict(sym_tags={1: True}), "invalid_symmetry_component"),
+                 ("sym key True", dict(sym_tags={True: 0}), "invalid_tag"), ("sym key '1'", dict(sym_tags={"1": 0}), "invalid_tag"),
+                 ("units nested list", dict(units=["mm", "N", []]), "incoherent_units"), ("units arity 2", dict(units=("mm", "N")), "incoherent_units"),
+                 ("units arity 4", dict(units=("mm", "N", "MPa", "x")), "incoherent_units"), ("units string", dict(units="mmNMPa"), "incoherent_units"),
+                 ("units dict", dict(units={"mm": 1}), "incoherent_units"),
+                 ("clamp [1, True]", dict(clamp_tags=[1, True]), "invalid_tag"), ("clamp [1, 1.0]", dict(clamp_tags=[1, 1.0]), "invalid_tag"),
+                 ("clamp [[1]]", dict(clamp_tags=[[1]]), "invalid_tag"), ("clamp ['1']", dict(clamp_tags=["1"]), "invalid_tag"),
+                 ("clamp [1, None]", dict(clamp_tags=[1, None]), "invalid_tag"), ("clamp '1'", dict(clamp_tags="1"), "invalid_tag"),
+                 ("clamp {1}", dict(clamp_tags={1}), "invalid_tag"), ("traction key True", dict(tractions={True: traction(F)}), "invalid_tag"),
+                 ("traction key '2'", dict(tractions={"2": traction(F)}), "invalid_tag"), ("traction list", dict(tractions=[traction(F)]), "invalid_traction"),
+                 ("prefix ''", dict(options_prefix=""), "invalid_options_prefix"), ("prefix False", dict(options_prefix=False), "invalid_options_prefix"),
+                 ("prefix 0", dict(options_prefix=0), "invalid_options_prefix"), ("prefix bytes", dict(options_prefix=b"s07x_"), "invalid_options_prefix")]
+        for label, kw, reason in cases:
+            with self.subTest(case=label):
+                args = {"clamp_tags": [1], "tractions": {2: traction(F)}, **kw}
+                e = self.assertRefused(reason, S.solve, self.msh, self.ft, E, NU, args.pop("clamp_tags"), args.pop("tractions"), **args)
+                record("forward52-ingress-adverse", case=label, refused=e.reason, detail=e.detail)
+
+    def test_duplicate_compatible_zero_clamps_and_numpy_integer_tags_stay_healthy(self):
+        r = run(self.msh, self.ft, F, clamp=(1, 1))
+        self.assertEqual(r["info"]["validated_model"]["clamp_tags"], [1])
+        uh, vmh, sig, info = S.solve(self.msh, self.ft, E, NU, [np.int64(1)], {np.int32(2): traction(F)})
+        self.assertEqual(info["validated_model"]["clamp_tags"], [1]); self.assertEqual(info["validated_model"]["traction_tags"], [2])
+        record("forward52-ingress-positive", clamps=["[1, 1]", "[np.int64(1)]"])
+
+
 class MeshAndMaterial(Operator):
     def test_t05_06_positive(self):
         self.healthy(run(self.msh, self.ft, F), "06-positive", "F")
@@ -347,12 +387,24 @@ class MeshAndMaterial(Operator):
         record("06-adverse", refused=self.assertRefused("inverted_cell", S.validate_mesh, msh).detail)
 
     def test_t05_06_degenerate(self):
-        verts = [TET[0], TET[1], TET[2], TET[0]]
-        try:
-            msh = tet_mesh(verts, [[0, 1, 2, 3]])
-        except Exception as error:  # constructor refusal is an acceptable, recorded failure stage
-            record("06-degenerate", stage="constructor", error=repr(error)); return
-        record("06-degenerate", stage="validator", refused=self.assertRefused("degenerate_cell", S.validate_mesh, msh).detail)
+        msh = tet_mesh(TET, [[0, 1, 2, 3]])  # genuine healthy construction first; any constructor error fails this test
+        self.assertGreater(S.validate_mesh(msh)["min_jacobian"], 0)
+        node = {int(i): g for g, i in enumerate(np.asarray(msh.geometry.input_global_indices))}
+        msh.geometry.x[node[3]] = msh.geometry.x[node[0]]  # materialize vertex 3 := vertex 0 (zero volume, fixed topology)
+        e = self.assertRefused("degenerate_cell", S.validate_mesh, msh)
+        record("06-degenerate", stage="validator after healthy construction", refused=e.detail)
+
+    def test_t05_06_degenerate_wrong_error_control(self):
+        """The refusal helper accepts only the named typed ModelError: unrelated errors propagate, wrong reasons fail."""
+        def raises(exc):
+            def fn(*_a, **_k): raise exc
+            return fn
+        with self.assertRaises(MemoryError): self.assertRefused("degenerate_cell", raises(MemoryError("resource")))
+        with self.assertRaises(OSError): self.assertRefused("degenerate_cell", raises(OSError("jit cache")))
+        with self.assertRaises(AttributeError): self.assertRefused("degenerate_cell", raises(AttributeError("provider api")))
+        with self.assertRaises(AssertionError): self.assertRefused("degenerate_cell", raises(S.ModelError("inverted_cell", "wrong reason")))
+        with self.assertRaises(AssertionError): self.assertRefused("degenerate_cell", lambda: None)  # no refusal at all
+        record("06-degenerate-wrong-error-control", propagated=["MemoryError", "OSError", "AttributeError"], wrong_reason_fails=True, no_refusal_fails=True)
 
     def test_t05_06_disconnected(self):
         box = dmesh.create_box(MPI.COMM_WORLD, [[0, 0, 0], [1, 1, 1]], [1, 1, 1], dmesh.CellType.tetrahedron)
