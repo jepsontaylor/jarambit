@@ -116,3 +116,10 @@ jobs:
           PY
       - name: Solid tip submodel evidence (PR-0.30.1; slow re-run is opt-in)
         run: python3 -m unittest discover -s fem_solid/tests -v
+      - name: Generic history, observation and laboratory record contracts
+        run: |
+          export PYTHONDONTWRITEBYTECODE=1 RAYON_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=
+          export TMPDIR="$PWD/target/ci-records-tmp"
+          mkdir -p "$TMPDIR"
+          python3 -B -m unittest discover -s assurance/tests -p test_history_observation.py -v
+          python3 -B -m unittest discover -s assurance/tests -p test_laboratory.py -v
