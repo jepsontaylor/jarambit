@@ -42,5 +42,73 @@ jobs:
         run: python3 ops/ci/verify_figures.py
       - name: Figure helper tests (PR-0.29.4)
         run: python3 -m unittest discover -s ops/ci/tests -v
+      - name: Typed evidence controls and frozen T00 inventory
+        run: |
+          unset CARGO_TARGET_DIR
+          export CARGO_INCREMENTAL=0 PYTHONDONTWRITEBYTECODE=1
+          export RAYON_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+          attempt=".agent/ci-foundation/${GITHUB_RUN_ID}/${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$(dirname "$attempt")"
+          mkdir "$attempt"
+          export JARAMBIT_FOUNDATION_ATTEMPT="$attempt"
+          # The required Python wire control needs this exact freshly built Rust fixture.
+          cargo test --release --locked -p jarambit-evidence --test assurance_contract \
+            --no-run --message-format=json > "$attempt/rust-build.jsonl"
+          python3 -B - <<'PY'
+          import json, os, re, subprocess, sys
+          from pathlib import Path
+          from assurance.testing.catalog import build_catalog, source_bundle
+          from assurance.testing.contracts import raw_hash
+          from assurance.testing.receipt import publish_receipt
+
+          root = Path.cwd()
+          attempt = Path(os.environ['JARAMBIT_FOUNDATION_ATTEMPT']).resolve()
+          artifacts = [json.loads(line) for line in (attempt/'rust-build.jsonl').read_text().splitlines()]
+          binaries = {a['executable'] for a in artifacts
+                      if a.get('reason') == 'compiler-artifact'
+                      and a['target']['name'] == 'assurance_contract'
+                      and a['profile']['test'] and a.get('executable')}
+          assert len(binaries) == 1, 'Exact Rust wire fixture build is required'
+          binary = Path(next(iter(binaries)))
+          assert binary.is_file(), 'Rust wire fixture is missing'
+          policy = json.loads((root/'assurance/testing/policy.json').read_bytes())
+          assert source_bundle(root) == policy['source_bundle'], 'Frozen source closure differs'
+          argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'assurance/testing/tests', '-v']
+          run = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                               env={**os.environ, 'JARAMBIT_SCIENCE_WIRE_BIN': str(binary)})
+          (attempt/'python-tests.log').write_bytes(run.stdout)
+          log = run.stdout.decode()
+          print(log, flush=True)
+          assert run.returncode == 0 and 'Ran 18 tests' in log and log.rstrip().endswith('OK')
+          records = re.findall(r'^test_\w+ \(([^)]+)\) \.\.\. ok$', log, re.M)
+          assert len(records) == 18, 'All controls must execute; no skipped required tests'
+          release = json.loads((root/'assurance/policies/release-v1.json').read_bytes())
+          catalog = build_catalog(release, policy['source_input_sha256'])
+          (attempt/'catalog.json').write_text(json.dumps(catalog) + '\n')
+          cases = attempt/'cases'
+          cases.mkdir()
+          for case in catalog:
+              prefix = 'test_' + case['id'].split('-')[0] + '_' + case['id'].split('-')[1] + '_'
+              matched = [name for name in records if name.split('.')[-1].startswith(prefix)]
+              assert len(matched) == 1, 'Missing or duplicate frozen T00 control'
+              name = case['id'] + '.result.txt'
+              payload = (json.dumps({'test_result': matched[0], 'controls': ['positive', 'adverse'],
+                                    'actual_argv': argv, 'actual_suite_log_sha256': raw_hash(run.stdout),
+                                    'wire_binary_sha256': raw_hash(binary.read_bytes()),
+                                    'source_input_sha256': policy['source_input_sha256'],
+                                    'scope': 'synthetic software controls only'}, sort_keys=True) + '\n').encode()
+              (cases/name).write_bytes(payload)
+              receipt = {'schema': 1, 'case_id': case['id'], 'input_sha256': case['input_sha256'],
+                         'oracle_sha256': case['oracle_sha256'], 'execution': 'passed',
+                         'finding': 'inconclusive' if case['id'] == 'T00-09-finding_vs_execution' else 'rejected_within_scope',
+                         'argv': argv, 'exit_code': run.returncode, 'timed_out': False, 'complete': True,
+                         'controls': {'positive': 'passed', 'adverse': 'passed'},
+                         'artifacts': {name: raw_hash(payload)},
+                         'counts': {'expected': 2, 'passed': 2, 'failed': 0, 'error': 0, 'not_run': 0}, 'reason': None}
+              publish_receipt(cases/(case['id']+'.json'), receipt, case, {name: payload})
+          subprocess.run([sys.executable, '-B', 'ops/ci/test_inventory.py', '--catalog', str(attempt/'catalog.json'),
+                          '--receipts', str(cases), '--policy', 'assurance/testing/policy.json'], check=True)
+          assert source_bundle(root) == policy['source_bundle'], 'Source changed during controls'
+          PY
       - name: Solid tip submodel evidence (PR-0.30.1; slow re-run is opt-in)
         run: python3 -m unittest discover -s fem_solid/tests -v
