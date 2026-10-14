@@ -149,18 +149,42 @@ struct Pool {
 thread_local! {
     static IN_MC_WORKER: Cell<bool> = Cell::new(false);
     static SAMPLE_INDEX: Cell<Option<usize>> = Cell::new(None);
+    static WORKER_SLOT: Cell<Option<usize>> = Cell::new(None);
+    static WORKER_RANGE: Cell<(usize, usize)> = Cell::new((0, 0));
 }
 
-struct ClearWorkerFlag;
-impl Drop for ClearWorkerFlag {
+/// Restores the previous worker flag, sample index, and slot, including on unwind.
+/// A nested sample scope must not force the outer worker marker to false.
+struct TlsScope {
+    flag: bool,
+    index: Option<usize>,
+    slot: Option<usize>,
+}
+
+impl Drop for TlsScope {
     fn drop(&mut self) {
-        IN_MC_WORKER.with(|flag| flag.set(false));
-        SAMPLE_INDEX.with(|slot| slot.set(None));
+        IN_MC_WORKER.with(|flag| flag.set(self.flag));
+        SAMPLE_INDEX.with(|slot| slot.set(self.index));
+        WORKER_SLOT.with(|slot| slot.set(self.slot));
     }
+}
+
+fn tls_enter(flag: bool, index: Option<usize>, slot: Option<usize>) -> TlsScope {
+    let flag = IN_MC_WORKER.with(|cell| cell.replace(flag));
+    let index = SAMPLE_INDEX.with(|cell| cell.replace(index));
+    let slot = WORKER_SLOT.with(|cell| cell.replace(slot));
+    TlsScope { flag, index, slot }
+}
+
+fn enter_owned_job() -> TlsScope {
+    let index = SAMPLE_INDEX.with(|cell| cell.get());
+    let slot = WORKER_SLOT.with(|cell| cell.get());
+    tls_enter(true, index, slot)
 }
 
 fn worker_loop(recv: mpsc::Receiver<Box<dyn FnOnce() + Send>>) {
     while let Ok(job) = recv.recv() {
+        let _scope = enter_owned_job();
         job();
     }
 }
@@ -231,6 +255,16 @@ impl Pool {
         }
         Ok(())
     }
+}
+
+/// Checked dispatch. A poisoned mutex is [`CheckedError::WorkerSetup`]. A missing
+/// sender is [`CheckedError::WorkerLost`]. The guard is dropped before `send`.
+fn checked_dispatch(pool: &Pool, t: usize, job: Box<dyn FnOnce() + Send>) -> Result<(), CheckedError> {
+    let sender = {
+        let guard = pool.tx.lock().map_err(|_| CheckedError::WorkerSetup)?;
+        guard.get(t).cloned().ok_or(CheckedError::WorkerLost)?
+    };
+    sender.send(job).map_err(|_| CheckedError::WorkerLost)
 }
 
 /// Evaluate `n` samples across `threads` (capped at `max_threads()`). Each sample returns `K` scalars.
@@ -336,21 +370,19 @@ where F: Fn(&Genotype, &mut Rng) -> [f64; K] + Sync + Send + 'static {
         let g = g.clone();
         let done_tx = done_tx.clone();
         let job = Box::new(move || {
+            let _slot = tls_enter(true, None, Some(t));
+            WORKER_RANGE.with(|cell| cell.set((i0, i1)));
             let rows = catch_unwind(AssertUnwindSafe(|| {
                 (i0..i1).map(|i| {
                     let mut r = Rng(mix_seed(seed, i as u64));
                     let h = perturb(&g, &mut r);
-                    IN_MC_WORKER.with(|flag| flag.set(true));
-                    SAMPLE_INDEX.with(|slot| slot.set(Some(i)));
-                    let _clear = ClearWorkerFlag;
+                    let _sample = tls_enter(true, Some(i), Some(t));
                     f(&h, &mut r)
                 }).collect::<Vec<_>>()
             }));
             let _ = done_tx.send((t, rows));
         });
-        if pool.tx.lock().unwrap()[t].send(job).is_err() {
-            return Err(CheckedError::WorkerLost);
-        }
+        checked_dispatch(pool, t, job)?;
     }
     drop(done_tx);
     let mut parts: Vec<Option<Vec<[f64; K]>>> = (0..workers).map(|_| None).collect();
@@ -549,6 +581,45 @@ mod tests {
         assert_eq!(poisoned.try_ensure(1), Err(CheckedError::WorkerSetup));
     }
     #[test]
+    fn private_dispatch_maps_poison_and_a_clean_pool_stays_usable() {
+        let poisoned = private_pool();
+        poisoned.try_ensure(1).unwrap();
+        let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = poisoned.tx.lock().unwrap();
+            panic!("poison this private pool after setup");
+        }));
+        let refused = checked_dispatch(&poisoned, 0, Box::new(|| {}));
+        assert_eq!(refused, Err(CheckedError::WorkerSetup));
+        let clean = private_pool();
+        clean.try_ensure(1).unwrap();
+        let (tx, rx) = mpsc::channel();
+        checked_dispatch(&clean, 0, Box::new(move || { let _ = tx.send(7u8); })).unwrap();
+        assert_eq!(rx.recv().unwrap(), 7);
+        let (tx2, rx2) = mpsc::channel();
+        checked_dispatch(&clean, 0, Box::new(move || { let _ = tx2.send(8u8); })).unwrap();
+        assert_eq!(rx2.recv().unwrap(), 8);
+        println!("S04_CASE id=T03-05-poison-dispatch error=WorkerSetup clean_first=7 clean_second=8");
+    }
+    #[test]
+    fn legacy_worker_refuses_checked_entry_before_dispatch() {
+        let pool = private_pool();
+        pool.try_ensure(1).unwrap();
+        let (tx, rx) = mpsc::channel();
+        let g = Genotype::random(&mut Rng(6));
+        checked_dispatch(&pool, 0, Box::new(move || {
+            let err = try_run_cols::<1, _>(&g, 1, ThreadRequest::Exact(1), 1, 3, |_, _| [1.0]);
+            let _ = tx.send(err);
+        })).unwrap();
+        assert_eq!(rx.recv().unwrap(), Err(CheckedError::ReentrantPool));
+        let (tx2, rx2) = mpsc::channel();
+        checked_dispatch(&pool, 0, Box::new(move || { let _ = tx2.send(1u8); })).unwrap();
+        assert_eq!(rx2.recv().unwrap(), 1);
+        let top = try_run_cols::<1, _>(&g, 1, ThreadRequest::Exact(1), 1, 5, |_, _| [1.0]).unwrap();
+        assert!(top.statistical_credit);
+        assert_eq!(top.cols.unwrap()[0].mean, 1.0);
+        println!("S04_CASE id=T03-05-legacy-nesting error=ReentrantPool subsequent=1 top_credit=1");
+    }
+    #[test]
     fn nested_checked_call_is_refused_before_the_pool() {
         let g = Genotype::random(&mut Rng(6));
         let got = try_run_cols::<1, _>(&g, 1, ThreadRequest::Exact(1), 1, 11, |h, _r| {
@@ -561,13 +632,23 @@ mod tests {
     }
     #[test]
     fn indexed_replay_binds_the_post_perturb_draw() {
-        use std::collections::HashSet;
+        use std::sync::atomic::{AtomicUsize, Ordering};
         use std::sync::{Arc, Mutex};
         let g = Genotype::random(&mut Rng(4));
         let n = 8usize;
         let seed = 99u64;
-        // Frozen independent reference for seed 99, callback draw after perturb.
-        // Controller closed form at head 3c9c3ee. Not an executed T03 group.
+        let admitted = 4usize;
+        // Independent root reference, seed 99, ids 0-7. Not a production RNG output.
+        let draw1 = [
+            0x3fdf_6870_85d2_01f2u64,
+            0x3fe5_8a98_45c5_3715,
+            0x3fdf_b1e8_edfe_f9e4,
+            0x3fd2_0a41_6a8d_bdb0,
+            0x3f94_98cd_6df3_1e60,
+            0x3f9d_44d4_3c11_8320,
+            0x3fa4_55b0_ebf0_69e0,
+            0x3fe6_e41b_5e02_ff70,
+        ];
         let stage27 = [
             0x3feb_d436_3fad_a11eu64,
             0x3fea_c088_b75e_2652,
@@ -578,34 +659,131 @@ mod tests {
             0x3fd7_0995_5edd_d904,
             0x3fcd_1537_359a_15c8,
         ];
+        let margin27 = [
+            0x3fe7_a86c_7f5b_423cu64,
+            0x3fe5_8111_6ebc_4ca4,
+            0x3fe7_8a60_ebf9_16fc,
+            0x3fd1_7f2e_9080_af8c,
+            0xbfea_b3c9_9ca4_340c,
+            0x3fb7_0f65_8141_b610,
+            0xbfd1_ecd5_4244_4df8,
+            0xbfe1_7564_6532_f51c,
+        ];
+        let stage28 = [
+            0x3fdc_5914_2e13_6332u64,
+            0x3fca_3abb_4bc5_c580,
+            0x3fe7_728b_0942_b989,
+            0x3fdf_3dd6_7f08_48bc,
+            0x3fdc_dded_fd64_b600,
+            0x3fed_7da4_8086_60ea,
+            0x3f8d_6b70_1b66_6300,
+            0x3fe9_e615_9092_82a8,
+        ];
+        let margin28 = [
+            0xbfbd_375e_8f64_e670u64,
+            0xbfe2_e2a2_5a1d_1d40,
+            0x3fdd_ca2c_250a_e624,
+            0xbf98_4530_1ef6_e880,
+            0xbfb9_1090_14da_5000,
+            0x3fea_fb49_010c_c1d4,
+            0xbfef_14a4_7f24_cce8,
+            0x3fe3_cc2b_2125_0550,
+        ];
+        let pass27 = [true, true, true, true, false, true, false, false];
+        let pass28 = [false, false, true, false, false, true, false, true];
+        #[derive(Clone)]
+        struct Obs {
+            slot: usize,
+            i0: usize,
+            i1: usize,
+            draw27: u64,
+            draw28: u64,
+            margin27: u64,
+            margin28: u64,
+            pass27: bool,
+            pass28: bool,
+            returned: u64,
+        }
         for threads in [1usize, 2, 4] {
-            let bits = Arc::new(Mutex::new(vec![None; n]));
-            let ids = Arc::new(Mutex::new(Vec::new()));
-            let bits_cb = bits.clone();
-            let ids_cb = ids.clone();
-            let got = try_run_cols::<1, _>(&g, n, ThreadRequest::Exact(threads), 4, seed, move |_h, r| {
+            let calls = Arc::new(AtomicUsize::new(0));
+            let rows = Arc::new(Mutex::new(vec![None; n]));
+            let order = Arc::new(Mutex::new(Vec::new()));
+            let calls_cb = calls.clone();
+            let rows_cb = rows.clone();
+            let order_cb = order.clone();
+            let got = try_run_cols::<1, _>(&g, n, ThreadRequest::Exact(threads), admitted, seed, move |_h, r| {
+                calls_cb.fetch_add(1, Ordering::SeqCst);
                 let i = SAMPLE_INDEX.with(|slot| slot.get()).expect("sample index");
-                ids_cb.lock().unwrap().push(std::thread::current().id());
-                bits_cb.lock().unwrap()[i] = Some(r.f64().to_bits());
-                [0.0]
+                let slot = WORKER_SLOT.with(|cell| cell.get()).expect("worker slot");
+                let (i0, i1) = WORKER_RANGE.with(|cell| cell.get());
+                let u27 = r.f64();
+                let u28 = r.f64();
+                let m27 = 2.0 * u27 - 1.0;
+                let m28 = 2.0 * u28 - 1.0;
+                let pass_a = m27 >= 0.0;
+                let pass_b = m28 >= 0.0;
+                order_cb.lock().unwrap().push((slot, i));
+                rows_cb.lock().unwrap()[i] = Some(Obs {
+                    slot,
+                    i0,
+                    i1,
+                    draw27: u27.to_bits(),
+                    draw28: u28.to_bits(),
+                    margin27: m27.to_bits(),
+                    margin28: m28.to_bits(),
+                    pass27: pass_a,
+                    pass28: pass_b,
+                    returned: m27.to_bits(),
+                });
+                [m27]
             }).unwrap();
             assert!(got.statistical_credit);
-            let distinct: HashSet<_> = ids.lock().unwrap().iter().copied().collect();
-            assert_eq!(distinct.len(), threads);
-            let recorded = bits.lock().unwrap().clone();
-            let mut stage_differs = false;
+            assert_eq!(calls.load(Ordering::SeqCst), n);
+            let ranges = plan_ranges(n, threads);
+            let recorded = rows.lock().unwrap().clone();
+            let mut by_slot = vec![Vec::new(); threads];
+            for (slot, id) in order.lock().unwrap().iter().copied() {
+                by_slot[slot].push(id);
+            }
+            let mut joint_ids = Vec::new();
             for i in 0..n {
+                let obs = recorded[i].clone().expect("callback row");
+                let (i0, i1) = ranges[obs.slot];
+                assert_eq!((obs.i0, obs.i1), (i0, i1), "recorded range {i}");
+                assert!(i >= obs.i0 && i < obs.i1, "sample {i} slot {}", obs.slot);
+                assert_eq!(by_slot[obs.slot].iter().filter(|id| **id == i).count(), 1);
+                let mut fresh = Rng(mix_seed(seed, i as u64));
+                let observed_draw1 = fresh.f64().to_bits();
+                assert_eq!(observed_draw1, draw1[i], "draw1 {i}");
+                assert_ne!(observed_draw1, obs.draw27, "stage swap {i}");
                 let mut oracle = Rng(mix_seed(seed, i as u64));
                 let _sample = perturb(&g, &mut oracle);
-                let after = oracle.f64().to_bits();
-                assert_eq!(recorded[i], Some(after), "index {i} threads {threads}");
-                assert_eq!(after, stage27[i], "frozen reference index {i}");
-                let mut fresh = Rng(mix_seed(seed, i as u64));
-                if fresh.f64().to_bits() != after {
-                    stage_differs = true;
-                }
+                assert_eq!(oracle.f64().to_bits(), stage27[i]);
+                assert_eq!(obs.draw27, stage27[i], "draw27 {i} threads {threads}");
+                assert_eq!(obs.draw28, stage28[i], "draw28 {i} threads {threads}");
+                assert_eq!(obs.margin27, margin27[i]);
+                assert_eq!(obs.margin28, margin28[i]);
+                assert_eq!(obs.pass27, pass27[i]);
+                assert_eq!(obs.pass28, pass28[i]);
+                assert_eq!(obs.returned, margin27[i]);
+                if obs.pass27 && obs.pass28 { joint_ids.push(i); }
+                println!(
+                    "S04_CASE id=T03-08-indexed sample={i} threads={threads} slot={} range={i0}-{i1} draw1={observed_draw1:016x} draw27={:016x} draw28={:016x} margin27={:016x} margin28={:016x} pass27={} pass28={} returned={:016x}",
+                    obs.slot, obs.draw27, obs.draw28, obs.margin27, obs.margin28, u8::from(obs.pass27), u8::from(obs.pass28), obs.returned
+                );
             }
-            assert!(stage_differs);
+            for (t, (i0, i1)) in ranges.iter().copied().enumerate() {
+                let expected: Vec<usize> = (i0..i1).collect();
+                assert_eq!(by_slot[t], expected, "batch order slot {t}");
+            }
+            let actual = by_slot.iter().filter(|ids| !ids.is_empty()).count();
+            assert_eq!(actual, threads);
+            assert_eq!(joint_ids, vec![2, 5]);
+            assert_eq!(pass27.iter().filter(|p| **p).count(), 5);
+            assert_eq!(pass28.iter().filter(|p| **p).count(), 3);
+            println!(
+                "S04_CASE id=T03-08-masks threads={threads} requested={threads} admitted={admitted} actual={actual} pass27=5 pass28=3 joint=2 joint_ids=2,5 product_num=15 product_den=64 calls={n}"
+            );
         }
     }
 }

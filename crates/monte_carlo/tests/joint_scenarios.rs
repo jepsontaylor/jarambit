@@ -49,6 +49,56 @@ fn four_state_joint_matches_product_and_audit_ids_are_not_reused() {
 }
 
 #[test]
+fn aligned_joint_columns_count_passes_and_crn_does_not_change_them() {
+    let a = [
+        ColumnSample { id: 0, value: 1.0 },
+        ColumnSample { id: 1, value: 1.0 },
+        ColumnSample { id: 2, value: -1.0 },
+        ColumnSample { id: 3, value: -1.0 },
+    ];
+    let b = [
+        ColumnSample { id: 0, value: 1.0 },
+        ColumnSample { id: 1, value: 1.0 },
+        ColumnSample { id: 2, value: -1.0 },
+        ColumnSample { id: 3, value: -1.0 },
+    ];
+    let est = joint_columns(&a, &b).unwrap();
+    assert_eq!((est.joint.text(), est.marginal_a.text(), est.marginal_b.text(), est.product.text(), est.product_label), ("2/4".into(), "2/4".into(), "2/4".into(), "1/4".into(), "assumed_independent"));
+    let j2a = [
+        ColumnSample { id: 0, value: 1.0 },
+        ColumnSample { id: 1, value: 2.0 },
+        ColumnSample { id: 2, value: -1.0 },
+        ColumnSample { id: 3, value: -2.0 },
+    ];
+    let j2b = [
+        ColumnSample { id: 0, value: -1.0 },
+        ColumnSample { id: 1, value: -2.0 },
+        ColumnSample { id: 2, value: 1.0 },
+        ColumnSample { id: 3, value: 2.0 },
+    ];
+    let opposed = joint_columns(&j2a, &j2b).unwrap();
+    assert_eq!(opposed.joint.text(), "0/4");
+    assert_eq!(opposed.product.text(), "1/4");
+    let swapped = joint_columns(&j2b, &j2a).unwrap();
+    assert_eq!(swapped.joint.text(), opposed.joint.text());
+    let short = [ColumnSample { id: 0, value: 1.0 }];
+    assert_eq!(joint_columns(&j2a, &short), Err(CheckedError::MismatchedSampleId));
+    assert_eq!(joint_columns(&[], &[]), Err(CheckedError::EmptySample));
+    let dup_a = [ColumnSample { id: 0, value: 1.0 }, ColumnSample { id: 0, value: 2.0 }];
+    let dup_b = [ColumnSample { id: 0, value: 1.0 }, ColumnSample { id: 0, value: -1.0 }];
+    assert_eq!(joint_columns(&dup_a, &dup_b), Err(CheckedError::DuplicateSampleId));
+    let ids = AuditIds { search: 11, calibration: 22, final_audit: 33 };
+    let crn = CommonRandomNumbers { stream: ids.search };
+    assert_eq!(check_audit_ids(ids), Ok(()));
+    assert_eq!(check_audit_ids(AuditIds { search: crn.stream, calibration: 22, final_audit: crn.stream }), Err(CheckedError::AuditStreamNotIndependent));
+    let again = joint_columns(&a, &b).unwrap();
+    assert_eq!(again.joint.passes, est.joint.passes);
+    assert_eq!(accept_sourced_correlation(false), Err(CheckedError::UnsourcedCorrelation));
+    println!("S04_CASE id=T03-06-joint-columns joint=2/4 marginal_a=2/4 marginal_b=2/4 product=1/4 label=assumed_independent");
+    println!("S04_CASE id=T03-07-crn crn_stream={} audit_positive=1 audit_reused=0 joint_unchanged=1 shared_slot=0", crn.stream);
+}
+
+#[test]
 fn nonfinite_joint_inputs_publish_no_rate() {
     let finite = paired_joint(&[pair(0, 1.0, 2.0), pair(1, -1.0, 2.0)]).unwrap();
     assert_eq!(finite.joint.text(), "1/2");

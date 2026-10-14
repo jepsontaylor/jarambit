@@ -478,6 +478,9 @@ pub struct SerialInject {
     pub panic_at: Option<u64>,
     pub panic_before_first_chunk: bool,
     pub lose_worker: bool,
+    /// Walk planner chunks from the last range back to the first. This is not
+    /// `panic_before_first_chunk`.
+    pub reverse_chunks: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -512,7 +515,10 @@ pub fn run_serial_double(values: &[f64], threads: usize, inject: SerialInject) -
         return fail(0, CheckedError::WorkerPanic);
     }
     let mut completed = 0u64;
-    let ranges = if values.is_empty() { Vec::new() } else { plan_ranges(values.len(), threads.max(1)) };
+    let mut ranges = if values.is_empty() { Vec::new() } else { plan_ranges(values.len(), threads.max(1)) };
+    if inject.reverse_chunks {
+        ranges.reverse();
+    }
     for (start, end) in ranges {
         for i in start..end {
             if inject.panic_at == Some(i as u64) {

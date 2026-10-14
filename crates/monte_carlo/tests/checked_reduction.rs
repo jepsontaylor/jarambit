@@ -48,6 +48,9 @@ fn quantile_boundaries_match_historical_floor_ratio() {
     assert_eq!(quantile_index(194176253407468965, 95, 100), Err(CheckedError::QuantileOverflow));
     assert_eq!(quantile_index(3689348814741910324, 5, 100), Err(CheckedError::QuantileOverflow));
     assert_eq!(quantile_index(194176253407468964, 95, 100).unwrap(), 184467440737095515);
+    let p05 = quantile_index(194176253407468964, 5, 100).unwrap();
+    assert_eq!(p05, 9708812670373448);
+    println!("S04_CASE id=T03-02-fit-p05 index={p05}");
 }
 
 #[test]
@@ -87,6 +90,14 @@ fn nonfinite_monte_carlo_sample_is_not_sorted_as_equal() {
     let all = reduce_rows(2, &rows_of(&[f64::NAN, f64::NAN])).unwrap();
     assert_eq!((all.valid, all.invalid), (0, 2));
     assert_ne!(legacy_sample_count(2).0, 1);
+    let forward = [finite(0, 1.0), model(1), finite(2, f64::NAN)];
+    let mut reversed = forward.clone();
+    reversed.reverse();
+    let a = reduce_rows(3, &forward).unwrap();
+    let b = reduce_rows(3, &reversed).unwrap();
+    assert_eq!((a.valid, a.invalid, a.model_failed, a.numerically_failed, a.p05_index), (1, 2, 1, 1, None));
+    assert_eq!((b.valid, b.invalid, b.model_failed, b.numerically_failed, b.p05_index), (a.valid, a.invalid, a.model_failed, a.numerically_failed, a.p05_index));
+    println!("S04_CASE id=T03-04-reorder valid={} invalid={} model={} numerical={} p05=absent", b.valid, b.invalid, b.model_failed, b.numerically_failed);
 }
 
 #[test]
@@ -124,6 +135,18 @@ fn serial_double_counts_panic_and_keeps_the_positive() {
     assert!(s.statistical_credit);
     assert_eq!(s.mean_ratio.unwrap().text(), "3/1");
     assert_eq!((s.p05, s.p95), (Some(1.0), Some(5.0)));
+    assert_eq!((s.p05_index, s.p95_index), (Some(0), Some(4)));
+    let reversed_ok = run_serial_double(&[1.0, 2.0, 3.0, 4.0, 5.0], 2, SerialInject { reverse_chunks: true, ..SerialInject::default() });
+    assert_eq!(reversed_ok.completed, 5);
+    assert!(reversed_ok.statistical_credit);
+    assert!(reversed_ok.error.is_none());
+    let reversed = run_serial_double(&[1.0, 2.0, 3.0, 4.0, 5.0], 2, SerialInject { panic_at: Some(3), reverse_chunks: true, panic_before_first_chunk: false, ..SerialInject::default() });
+    assert_eq!((reversed.completed, reversed.missing, reversed.error, reversed.respawns, reversed.foreign_kills), (0, 5, Some(CheckedError::WorkerPanic), 0, 0));
+    assert!(reversed.summary.is_none() && !reversed.statistical_credit);
+    assert_ne!((reversed.completed, reversed.missing), (late.completed, late.missing));
+    assert!(!early.statistical_credit && early.error == Some(CheckedError::WorkerPanic));
+    println!("S04_CASE id=T03-05-index p05_index={} p95_index={}", s.p05_index.unwrap(), s.p95_index.unwrap());
+    println!("S04_CASE id=T03-05-reverse completed={} missing={} forward_completed={} forward_missing={} early_completed={} credit=0 respawns=0 foreign_kills=0", reversed.completed, reversed.missing, late.completed, late.missing, early.completed);
 }
 
 #[test]

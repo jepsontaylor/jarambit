@@ -84,7 +84,7 @@ pub struct ColumnSample {
 }
 
 pub fn joint_columns(a: &[ColumnSample], b: &[ColumnSample]) -> Result<JointEstimate, CheckedError> {
-    if a.len() != b.len() || a.is_empty() {
+    if a.len() != b.len() {
         return Err(CheckedError::MismatchedSampleId);
     }
     let mut rows = Vec::with_capacity(a.len());
