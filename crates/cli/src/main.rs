@@ -10,6 +10,21 @@ mod calib;
 mod crescent;
 mod bench;
 
+/// Validate an existing history header before any append, then open the log.
+/// A fresh path is created with `fresh_header` and only then opened for append.
+fn prepare_history_log(path: &str, resume_or_fork: bool, current_columns: &[&str], fresh_header: &str) -> Result<std::fs::File, String> {
+    let exists = std::path::Path::new(path).exists();
+    if resume_or_fork && exists {
+        let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
+        let header = text.lines().next().unwrap_or("");
+        let existing: Vec<&str> = header.split(',').collect();
+        history_header_status(&existing, current_columns)?;
+    } else {
+        std::fs::write(path, fresh_header).map_err(|e| format!("{path}: {e}"))?;
+    }
+    std::fs::OpenOptions::new().append(true).open(path).map_err(|e| format!("{path}: {e}"))
+}
+
 fn main() {
     let a: Vec<String> = std::env::args().collect();
     if a.iter().any(|s| s == "fem-smoke") {
@@ -117,20 +132,18 @@ fn main() {
     // PR-0.29.3: history / quarantine are STREAMED (appended + flushed every generation), so an interrupted run
     // keeps its log; the mean is over feasible() designs only; quarantine rows carry the genotype hash.
     let resuming = (cfg.resume || cfg.fork) && std::path::Path::new(&hist_path).exists();
-    if resuming {
-        let text = std::fs::read_to_string(&hist_path).unwrap_or_else(|e| panic!("{hist_path}: {e}"));
-        let header = text.lines().next().unwrap_or("");
-        let existing: Vec<&str> = header.split(',').collect();
-        let mut current: Vec<&str> = CURRENT_HISTORY_COLUMNS.to_vec();
-        current.extend(Genotype::CSV_HEADER.split(','));
-        if let Err(e) = history_header_status(&existing, &current) { eprintln!("evolve: {e}"); std::process::exit(2); }
-    }
+    let mut current: Vec<&str> = CURRENT_HISTORY_COLUMNS.to_vec();
+    current.extend(Genotype::CSV_HEADER.split(','));
+    let fresh_header = format!("{},{}\n", CURRENT_HISTORY_COLUMNS.join(","), Genotype::CSV_HEADER);
+    let mut hf_w = match prepare_history_log(&hist_path, cfg.resume || cfg.fork, &current, &fresh_header) {
+        Ok(file) => file,
+        Err(e) => { eprintln!("evolve: {e}"); std::process::exit(2); }
+    };
     if !resuming {
-        std::fs::write(&hist_path, format!("{},{}\n", CURRENT_HISTORY_COLUMNS.join(","), Genotype::CSV_HEADER)).unwrap();
         std::fs::write(&q_path, "gen,genotype_hash,reasons\n").unwrap();
     }
     let open_app = |p: &str| std::fs::OpenOptions::new().append(true).open(p).unwrap_or_else(|e| panic!("{p}: {e}"));
-    let (mut hf_w, mut qf_w) = (open_app(&hist_path), open_app(&q_path));
+    let mut qf_w = open_app(&q_path);
     let mut raw: Vec<(f64, f64)> = vec![];
     let show = |r: Result<String, String>| match r { Ok(s) => s, Err(e) => { eprintln!("evolve: {e}"); std::process::exit(2); } };
     let res = jarambit_evolve::try_run(&cfg, |s| {
@@ -200,5 +213,93 @@ fn main() {
     if cfg.fine {
         let n = calib::verify_front(&out, &front, threads);
         println!("calibrated front: {n} LEGAL on the verification mesh -> {out}/calibrated_pareto.md");
+    }
+}
+
+#[cfg(test)]
+mod science_s04_tests {
+    use super::*;
+    use jarambit_evolve::{AbsenceReason, CutAvailability, SampleStatistics};
+    use std::os::unix::fs::PermissionsExt;
+
+    fn columns() -> Vec<&'static str> {
+        let mut current: Vec<&'static str> = CURRENT_HISTORY_COLUMNS.to_vec();
+        current.extend(Genotype::CSV_HEADER.split(','));
+        current
+    }
+
+    fn fresh_header() -> String {
+        format!("{},{}\n", CURRENT_HISTORY_COLUMNS.join(","), Genotype::CSV_HEADER)
+    }
+
+    fn fixture(name: &str) -> std::path::PathBuf {
+        let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.agent/science-s04/s04-cli-unit");
+        std::fs::create_dir_all(&dir).unwrap();
+        dir.join(format!("{name}-{}", std::process::id()))
+    }
+
+    fn readonly(path: &std::path::Path) {
+        let mut perm = std::fs::metadata(path).unwrap().permissions();
+        perm.set_mode(0o444);
+        std::fs::set_permissions(path, perm).unwrap();
+    }
+
+    fn restore(path: &std::path::Path) {
+        let mut perm = std::fs::metadata(path).unwrap().permissions();
+        perm.set_mode(0o644);
+        std::fs::set_permissions(path, perm).unwrap();
+    }
+
+    #[test]
+    fn science_s04_old_cut_header_errors_before_append() {
+        let path = fixture("old-cut");
+        std::fs::write(&path, "best_cut_p05,rest\n").unwrap();
+        let before = std::fs::read(&path).unwrap();
+        readonly(&path);
+        let err = prepare_history_log(path.to_str().unwrap(), true, &columns(), &fresh_header()).unwrap_err();
+        assert_eq!(err, "historical_cut_column_not_current");
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+        restore(&path);
+        println!("S04_CASE id=T03-10-cli header=best_cut_p05 error={err} bytes_unchanged=1");
+    }
+
+    #[test]
+    fn science_s04_old_sharp_header_errors_before_append() {
+        let path = fixture("old-sharp");
+        std::fs::write(&path, "best_sharp_p05\n").unwrap();
+        let before = std::fs::read(&path).unwrap();
+        readonly(&path);
+        let err = prepare_history_log(path.to_str().unwrap(), true, &columns(), &fresh_header()).unwrap_err();
+        assert_eq!(err, "historical_statistics_column_not_current");
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+        restore(&path);
+        println!("S04_CASE id=T03-10-cli header=best_sharp_p05 error={err} bytes_unchanged=1");
+    }
+
+    #[test]
+    fn science_s04_current_header_appends_without_duplication() {
+        let path = fixture("current");
+        let header = fresh_header();
+        std::fs::write(&path, &header).unwrap();
+        let before = std::fs::read(&path).unwrap();
+        let file = prepare_history_log(path.to_str().unwrap(), true, &columns(), &header).unwrap();
+        drop(file);
+        let after = std::fs::read(&path).unwrap();
+        assert_eq!(after, before);
+        assert_eq!(after.iter().filter(|b| **b == b'\n').count(), 1);
+        println!("S04_CASE id=T03-10-cli header=current bytes={} duplicated=0", after.len());
+    }
+
+    #[test]
+    fn science_s04_typed_cells_keep_historical_unavailable_and_finite_sentinel() {
+        let historical = CutAvailability::Historical { value: 0.1 };
+        assert_eq!(format_cut_for_current_log(&historical).unwrap_err(), "historical_cut_column_not_current");
+        let unavailable = SampleStatistics::unavailable(AbsenceReason::ThreadBudget);
+        assert_eq!(format_stats_mean_cell(&unavailable).unwrap(), "unavailable:thread_budget");
+        assert_eq!(format_stats_sharp_cell(&unavailable, SharpFormat::Report3).unwrap(), "unavailable:thread_budget");
+        let credited = SampleStatistics::credited(-1000.0, 0.0).unwrap();
+        assert_eq!(format_stats_mean_cell(&credited).unwrap(), "-1000.00000");
+        assert_eq!(format_stats_sharp_cell(&credited, SharpFormat::Csv4).unwrap(), "0.0000");
+        println!("S04_CASE id=T03-10-cli-cells historical_cut=refused unavailable=thread_budget mean=-1000.00000 sharp=0.0000");
     }
 }
