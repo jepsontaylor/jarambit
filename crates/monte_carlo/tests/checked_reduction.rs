@@ -1,7 +1,7 @@
 //! T03-01 through T03-05 and the T03-08 planner. No process-global pool and no 1/2/4 spawn.
 use jarambit_monte_carlo::{
     admit_threads, legacy_sample_count, mix_seed, plan_ranges, quantile_index, reduce_rows, run_serial_double,
-    CheckedError, Finding, MIX_SEED_0, MIX_SEED_1, MIX_SEED_2, MIX_SEED_3, Observation, Row, SerialInject,
+    CheckedError, Finding, MIX_SEED_0, MIX_SEED_1, MIX_SEED_2, MIX_SEED_3, Observation, Ratio, Row, SerialInject,
     ThreadRequest,
 };
 
@@ -209,4 +209,12 @@ fn huge_cancellation_keeps_the_exact_power_of_two() {
     let restored = reduce_rows(3, &rows_of(&[f64::MAX, f64::MAX, -f64::MAX])).unwrap();
     assert!(restored.statistical_credit && restored.mean_ratio.is_none() && restored.aggregate_error.is_none());
     assert_eq!(restored.sum.unwrap().to_bits(), f64::MAX.to_bits());
+}
+
+#[test]
+fn ratio_rejects_a_zero_denominator() {
+    assert_eq!(Ratio::reduced(1, 0), Err(CheckedError::InvalidConfig));
+    assert_eq!(Ratio::reduced(0, 0), Err(CheckedError::InvalidConfig));
+    assert_eq!(Ratio::reduced(2, 4).unwrap().text(), "1/2");
+    assert_eq!(Ratio::reduced(i128::MIN, 1).unwrap().num, i128::MIN);
 }

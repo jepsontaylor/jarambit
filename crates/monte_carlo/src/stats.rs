@@ -54,7 +54,7 @@ pub enum Finding {
     RejectedWithinScope,
 }
 
-/// Reduced `num/den`. Zero denominator is not constructed.
+/// Reduced `num/den`. A zero denominator is [`CheckedError::InvalidConfig`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Ratio {
     pub num: i128,
@@ -62,10 +62,14 @@ pub struct Ratio {
 }
 
 impl Ratio {
-    pub fn reduced(num: i128, den: u64) -> Self {
-        debug_assert!(den > 0);
-        let g = gcd_u128(num.unsigned_abs(), den as u128);
-        Self { num: num / g as i128, den: den / g as u64 }
+    /// `den == 0` is refused before the gcd. The divisor is positive and divides
+    /// `unsigned_abs`, so `i128::MIN / g` stays in range.
+    pub fn reduced(num: i128, den: u64) -> Result<Self, CheckedError> {
+        if den == 0 {
+            return Err(CheckedError::InvalidConfig);
+        }
+        let g = gcd_u128(num.unsigned_abs(), u128::from(den));
+        Ok(Self { num: num / g as i128, den: den / g as u64 })
     }
 
     pub fn text(self) -> String {
@@ -405,7 +409,7 @@ pub fn reduce_rows(requested_n: u64, rows: &[Row]) -> Result<ColumnSummary, Chec
     ordered.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
     let mut ratio = None;
     if let Some(total) = ordered.iter().try_fold(0i128, |acc, x| integer_value(*x).and_then(|v| acc.checked_add(v))) {
-        ratio = Some(Ratio::reduced(total, requested_n));
+        ratio = Ratio::reduced(total, requested_n).ok();
     }
     summary.statistical_credit = true;
     summary.mean_ratio = ratio;

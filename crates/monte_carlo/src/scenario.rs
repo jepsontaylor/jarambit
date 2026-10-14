@@ -66,11 +66,13 @@ pub fn paired_joint(rows: &[Pair]) -> Result<JointEstimate, CheckedError> {
             joint += 1;
         }
     }
+    let den = n.checked_mul(n).ok_or(CheckedError::InvalidConfig)?;
+    let num = i128::from(ma).checked_mul(i128::from(mb)).ok_or(CheckedError::InvalidConfig)?;
     Ok(JointEstimate {
         joint: Count { passes: joint, n },
         marginal_a: Count { passes: ma, n },
         marginal_b: Count { passes: mb, n },
-        product: Ratio::reduced((ma as i128) * (mb as i128), n * n),
+        product: Ratio::reduced(num, den)?,
         product_label: "assumed_independent",
     })
 }
@@ -107,7 +109,7 @@ pub struct Shift {
 /// Service `k/(10k)`, discovery `5k/(10k)`, gap `2/5`. The pooled `3/10` is not the service rate.
 /// A fully enumerated finite list has Monte Carlo error 0 and does not erase the gap.
 /// Zero and a `10k` or `5k` overflow return [`CheckedError::InvalidConfig`] before a ratio
-/// is constructed. [`Ratio::reduced`] still requires a positive denominator.
+/// is constructed. A zero denominator is the same error.
 pub fn population_shift(k: u64) -> Result<Shift, CheckedError> {
     if k == 0 {
         return Err(CheckedError::InvalidConfig);
@@ -115,9 +117,9 @@ pub fn population_shift(k: u64) -> Result<Shift, CheckedError> {
     let den = k.checked_mul(10).ok_or(CheckedError::InvalidConfig)?;
     let discovered = k.checked_mul(5).ok_or(CheckedError::InvalidConfig)?;
     Ok(Shift {
-        service: Ratio::reduced(k as i128, den),
-        discovery: Ratio::reduced(i128::from(discovered), den),
-        gap: Ratio::reduced(2, 5),
+        service: Ratio::reduced(k as i128, den)?,
+        discovery: Ratio::reduced(i128::from(discovered), den)?,
+        gap: Ratio::reduced(2, 5)?,
         label: "assumed_model_population_discrepancy",
         mc_error: 0,
     })
