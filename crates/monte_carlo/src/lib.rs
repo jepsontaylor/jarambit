@@ -606,8 +606,9 @@ mod tests {
         pool.try_ensure(1).unwrap();
         let (tx, rx) = mpsc::channel();
         let g = Genotype::random(&mut Rng(6));
+        let nested_g = g.clone();
         checked_dispatch(&pool, 0, Box::new(move || {
-            let err = try_run_cols::<1, _>(&g, 1, ThreadRequest::Exact(1), 1, 3, |_, _| [1.0]);
+            let err = try_run_cols::<1, _>(&nested_g, 1, ThreadRequest::Exact(1), 1, 3, |_, _| [1.0]);
             let _ = tx.send(err);
         })).unwrap();
         assert_eq!(rx.recv().unwrap(), Err(CheckedError::ReentrantPool));
