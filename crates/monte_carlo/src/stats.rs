@@ -257,12 +257,16 @@ pub struct ThreadPlan {
     pub label: &'static str,
 }
 
-/// Legacy clamps. Exact does not: zero is [`CheckedError::InvalidConfig`], and a
-/// request above the admission is [`CheckedError::ThreadBudget`] with no `actual`.
+/// Legacy clamps. Exact does not. Exact(0) is [`CheckedError::InvalidConfig`].
+/// A request above the admission is [`CheckedError::ThreadBudget`] and wins over
+/// the sample-count check. Exact(k) above a nonempty `n` is
+/// [`CheckedError::InvalidConfig`] before any worker is planned; `n == 0` is not
+/// rewritten here.
 pub fn admit_threads(request: ThreadRequest, admitted: usize, n: usize) -> Result<ThreadPlan, CheckedError> {
     match request {
         ThreadRequest::Exact(0) => Err(CheckedError::InvalidConfig),
         ThreadRequest::Exact(k) if k > admitted => Err(CheckedError::ThreadBudget),
+        ThreadRequest::Exact(k) if n > 0 && k > n => Err(CheckedError::InvalidConfig),
         ThreadRequest::Exact(k) => Ok(ThreadPlan { requested: k, admitted, actual: Some(k), label: "exact" }),
         ThreadRequest::Legacy(requested) => {
             let actual = requested.max(1).min(admitted).min(n);

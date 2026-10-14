@@ -407,4 +407,42 @@ mod tests {
         assert_eq!((sentinel.attempted, sentinel.valid, sentinel.invalid, sentinel.model_failed, sentinel.numerically_failed), (2, 2, 0, 0, 0));
         assert_eq!(sentinel.cols.unwrap()[0].mean, -1000.0);
     }
+    #[test]
+    fn exact_request_above_n_does_not_run_and_four_workers_dispatch() {
+        use std::collections::HashSet;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::{Arc, Mutex};
+        let g = Genotype::random(&mut Rng(81));
+        for n in [1usize, 2, 3] {
+            let calls = Arc::new(AtomicUsize::new(0));
+            let seen = calls.clone();
+            let err = try_run_cols::<1, _>(&g, n, ThreadRequest::Exact(4), 4, 99, move |_, _| {
+                seen.fetch_add(1, Ordering::SeqCst);
+                [1.0]
+            });
+            assert_eq!(err, Err(CheckedError::InvalidConfig));
+            assert_eq!(calls.load(Ordering::SeqCst), 0);
+        }
+        let budget_calls = Arc::new(AtomicUsize::new(0));
+        let budget_seen = budget_calls.clone();
+        let budget = try_run_cols::<1, _>(&g, 8, ThreadRequest::Exact(4), 1, 99, move |_, _| {
+            budget_seen.fetch_add(1, Ordering::SeqCst);
+            [1.0]
+        });
+        assert_eq!(budget, Err(CheckedError::ThreadBudget));
+        assert_eq!(budget_calls.load(Ordering::SeqCst), 0);
+        let ids = Arc::new(Mutex::new(Vec::new()));
+        let id_seen = ids.clone();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let seen = calls.clone();
+        let got = try_run_cols::<1, _>(&g, 8, ThreadRequest::Exact(4), 4, 99, move |_, _| {
+            seen.fetch_add(1, Ordering::SeqCst);
+            id_seen.lock().unwrap().push(std::thread::current().id());
+            [1.0]
+        }).unwrap();
+        assert!(got.statistical_credit);
+        assert_eq!(calls.load(Ordering::SeqCst), 8);
+        let distinct: HashSet<_> = ids.lock().unwrap().iter().copied().collect();
+        assert_eq!(distinct.len(), 4);
+    }
 }

@@ -134,6 +134,12 @@ fn thread_admission_and_planner_do_not_spawn() {
     assert_eq!(admit_threads(ThreadRequest::Legacy(0), 4, 8).unwrap().actual, Some(1));
     assert_eq!(admit_threads(ThreadRequest::Exact(0), 4, 8), Err(CheckedError::InvalidConfig));
     assert_eq!(admit_threads(ThreadRequest::Exact(4), 1, 8), Err(CheckedError::ThreadBudget));
+    let exact = admit_threads(ThreadRequest::Exact(4), 4, 8).unwrap();
+    assert_eq!((exact.actual, exact.label), (Some(4), "exact"));
+    for n in [1usize, 2, 3] {
+        assert_eq!(admit_threads(ThreadRequest::Exact(4), 4, n), Err(CheckedError::InvalidConfig));
+    }
+    assert_eq!(admit_threads(ThreadRequest::Exact(4), 4, 0).unwrap().actual, Some(4));
     assert_eq!(plan_ranges(8, 1), vec![(0, 8)]);
     assert_eq!(plan_ranges(8, 2), vec![(0, 4), (4, 8)]);
     assert_eq!(plan_ranges(8, 4), vec![(0, 2), (2, 4), (4, 6), (6, 8)]);
