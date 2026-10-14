@@ -49,6 +49,24 @@ def main():
         for k, f in shot['fem'].items():
             if hashlib.sha256(open(os.path.join(fem, f['file']), 'rb').read()).hexdigest() != f['sha256']: fail(f'{f["file"]} sha != manifest')
         z = np.load(os.path.join(fem, fc['npz'])); j = json.load(open(os.path.join(fem, fc['scale_json'])))
+        if fc.get('mesh') and fc['mesh'] != man['fem']['mesh']['file']:
+            # solved on its own mesh: check the result against THAT mesh, then carry each display face's value from the
+            # nearest case-mesh tet centroid (same CAD frame); the transfer distance is recorded
+            from scipy.spatial import cKDTree
+            P2, T2 = read_msh22(os.path.join(fem, fc['mesh'])); cen2 = P2[T2].mean(1)
+            dc = float(np.abs(z['c'].T - cen2).max())
+            if dc >= 1e-3: fail(f'{cid}: result centroids do not match case mesh {fc["mesh"]} ({dc} mm)')
+            fcen = P[Fb].mean(1); dist, nn = cKDTree(cen2).query(fcen)
+            s_ = j
+            for k in fc['scale_key']: s_ = s_[k]
+            vm2 = z[fc['key']].astype(np.float64) * float(s_)
+            arrays['vm_' + cid] = vm2[nn].astype(np.float32)
+            i = int(np.argmax(vm2))
+            rec['cases'][cid] = {'load_scale': float(s_), 'centroid_match_mm': dc, 'case_mesh': fc['mesh'],
+                                 'transfer_nn_mm': {'p50': round(float(np.median(dist)), 3), 'p99': round(float(np.percentile(dist, 99)), 3)},
+                                 'field_vm_max_MPa': round(float(vm2.max()), 1), 'field_SF_global': round(SY / float(vm2.max()), 3),
+                                 'peak_cad_mm': [round(float(x), 2) for x in cen2[i]], 'result_sha16': shot['fem']['result']['sha256'][:16]}
+            continue
         dc = float(np.abs(z['c'].T - cen).max())
         if dc >= 1e-3: fail(f'{cid}: result centroids do not match mesh ({dc} mm)')
         s = j

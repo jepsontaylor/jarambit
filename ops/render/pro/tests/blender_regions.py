@@ -89,7 +89,7 @@ for finish in ('art', 'flame', 'satin_blue'):
             poly.material_index = i
         protected = part.data.materials[0].node_tree.nodes['protected_laser_etched_ti']
         metallic = protected.inputs['Metallic']
-        assert metallic.default_value == 1 and not metallic.is_linked
+        assert metallic.default_value == cfg['protected']['mark']['inks'][cfg['protected']['mark']['ink']]['metallic'] and not metallic.is_linked
         properties = {key: {'value': protected.inputs[key].default_value, 'linked': protected.inputs[key].is_linked}
                       for key in ('Coat Weight', 'Thin Film Thickness', 'Anisotropic', 'Emission Strength')}
         assert all(p['value'] == 0 and not p['linked'] for p in properties.values())

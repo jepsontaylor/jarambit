@@ -155,11 +155,31 @@ def test_inter_font_checksum_manifest():
     assert f'{expected}  {font.name}' in (font.parent / 'SHA256SUMS').read_text().splitlines()
 
 
+def _mark_env(ink, **over):
+    inks = {'black_gloss': {'metallic': 0.0, 'base_rgb': [0.01] * 3}, 'bare_metal': {'metallic': 1.0, 'base_rgb': [.12] * 3}}
+    inks[ink].update(over)
+    env = {}; exec(functions({'mark_ink'}), env)
+    return env['mark_ink'], {'protected': {'mark': {'ink': ink, 'inks': inks}}}
+
+
+def test_mark_ink_defaults_to_black_gloss_design_wide():
+    cfg = json.loads((PRO / 'shots.json').read_text())
+    assert cfg['protected']['mark']['ink'] == 'black_gloss'   # owner decision 2026-10-13
+    env = {}; exec(functions({'mark_ink'}), env)
+    ink, M = env['mark_ink'](cfg)
+    assert ink == 'black_gloss' and M['metallic'] == 0
+
+
 def test_signature_rejects_dielectric_override():
-    env = {'CFG': {'protected': {'mark': {'metallic': 0}}}}
-    exec(functions({'protect_signature'}), env)
+    f, cfg = _mark_env('bare_metal', metallic=0)
     with pytest.raises(ValueError, match='must remain bare metal'):
-        env['protect_signature'](None, None, None, None)
+        f(cfg)
+    f, cfg = _mark_env('black_gloss', metallic=1)
+    with pytest.raises(ValueError, match='dark dielectric'):
+        f(cfg)
+    f, cfg = _mark_env('black_gloss'); cfg['protected']['mark']['ink'] = 'gold'
+    with pytest.raises(ValueError, match='unknown mark ink'):
+        f(cfg)
 
 
 def test_jr_film_refuses_failed_admission_before_children(film_runner, monkeypatch):

@@ -104,7 +104,7 @@ def main():
     # ---- manifest
     dm = work / 'design_manifest.json'
     src = ['--latest', str(REPO / (a.latest or 'designs/switchback'))] if not a.design else [str(REPO / a.design if not os.path.isabs(a.design) else a.design)]
-    run([py, HERE / 'design_manifest.py', *src, '--fem-store', a.fem_store, '--out', dm], logs / 'manifest.log')
+    run([py, HERE / 'design_manifest.py', *src, '--fem-store', a.fem_store, '--cases', HERE / R.get('fem_cases', 'fem_cases.json'), '--out', dm], logs / 'manifest.log')
     man = json.loads(dm.read_text()); msha = man['manifest_sha256']; stamp = man['stamp']
     for k in ('label', 'badge', 'stamp', 'Sy_MPa', 'science', 'step', 'design_dir'):
         need(k in man, f'manifest lacks {k}')
@@ -138,9 +138,10 @@ def main():
     stop = lambda st: a.until == st
 
     # ---- ingest
-    mesh = work / 'mesh'; bundle = mesh / 'bundle.json'
+    mesh = work / 'mesh'; bundle = mesh / 'bundle.json'   # ingest.py --out WORK writes WORK/mesh/
     if not (bundle.is_file() and json.loads(bundle.read_text())['source']['sha256'] == man['step']['sha256']):
-        run([py, REPO / 'ops/render/marketing/ingest.py', Path(man['design_dir']) / man['step']['path'], '--out', mesh, '--units', 'mm',
+        run([os.environ.get('JR_CAD_PY', py), REPO / 'ops/render/marketing/ingest.py', Path(man['design_dir']) / man['step']['path'], '--out', work,
+             *([] if man['step']['path'].lower().endswith(('.step', '.stp')) else ['--units', 'mm']),   # STEP: units from header
              '--expected-sha256', man['step']['sha256']], logs / 'ingest.log', cwd=REPO / 'ops/render/marketing')
     need(json.loads(bundle.read_text())['source']['sha256'] == man['step']['sha256'], 'mesh bundle is not from the manifest STEP')
     if stop('ingest'): return
@@ -184,7 +185,7 @@ def main():
             run([*B, *base, '--out', dr, '--spp', R['spp']['sci'], '--anim', HERE / R['film'], '--frame_range', rng,
                  '--sci', fem, '--sci_case', sci_shots[0]['common']['sci_case'], '--sci_mode', m, '--sci_vmax', man['Sy_MPa'],
                  '--sci_gain', R['sci_gain'], '--sci_glint', R['sci_glint'], '--sci_wire_rgb', json.dumps(R['sci_wire_rgb']),
-                 '--sci_wire_px', R['sci_wire_px']], logs / f'sci_{m}.log')
+                 '--sci_wire_px', R['sci_wire_px'], '--resume', 1], logs / f'sci_{m}.log')
             S.mark(f'sci_{m}', [dr / 'anim_qa.json'])
         got = len(list(dr.glob('f[0-9]*.png'))); need(got == b0 - a0, f'sci_{m}: {got} frames, expected {b0 - a0}')
     if stop('sci'): return

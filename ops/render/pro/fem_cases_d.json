@@ -1,0 +1,69 @@
+{
+ "_note": "W86 variant d (rc5 candidate). Fields: V3R finest rung h0.05 (display field; SF shown = converged V3R of record), V6 global plate on d_c80g (SF of record = V6 sub rule), V7 carried from rc4 (identical handle) on its rc4 mesh, nearest-centroid transfer.",
+ "cad_json": "cad_revC9_d.json",
+ "gates_json": "candidate_gates.json",
+ "gates_key": "candidate.gates",
+ "gates_mass_key": "candidate.mass_g",
+ "fem_mesh": "d_c80g.msh",
+ "science": [
+  {
+   "gate": "V3",
+   "gate_label": "V3R",
+   "display": "spine strike",
+   "fem_case": {
+    "npz": "b1_d_R0p05_vm.npz",
+    "key": "vm",
+    "scale_json": "b1_d_R0p05_zones.json",
+    "scale_key": [
+     "scale_to_sourced"
+    ],
+    "mesh": "d_R0p05.msh"
+   },
+   "fem_files": {
+    "result": "b1_d_R0p05_vm.npz",
+    "scale": "b1_d_R0p05_zones.json",
+    "mesh": "d_R0p05.msh"
+   },
+   "shot": "01_hero_34"
+  },
+  {
+   "gate": "V6",
+   "display": "pry",
+   "fem_case": {
+    "npz": "d_c80g_plate_grip_sig.npz",
+    "key": "vm_a1_40N",
+    "scale_json": "d_sj_0p1_plate_grip_sub.json",
+    "scale_key": [
+     "a1_40N",
+     "13.7Nm",
+     "scale"
+    ]
+   },
+   "fem_files": {
+    "result": "d_c80g_plate_grip_sig.npz",
+    "scale": "d_sj_0p1_plate_grip_sub.json"
+   },
+   "shot": "02_face_on"
+  },
+  {
+   "gate": "V7",
+   "display": "handle twist",
+   "fem_case": {
+    "npz": "glob_c10ar_g2hsoft_vm.npz",
+    "key": "vm",
+    "scale_json": "glob_c10ar_g2hsoft_zones.json",
+    "scale_key": [
+     "scale"
+    ],
+    "mesh": "c10ar_g2h.msh"
+   },
+   "fem_files": {
+    "result": "glob_c10ar_g2hsoft_vm.npz",
+    "scale": "glob_c10ar_g2hsoft_zones.json",
+    "mesh": "c10ar_g2h.msh"
+   },
+   "shot": "01_hero_34",
+   "carry": "V7 carried from rc4 (identical handle)"
+  }
+ ]
+}

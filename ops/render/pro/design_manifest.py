@@ -123,7 +123,10 @@ def build(design_dir, fem_store, cases_cfg):
         rec = {'gate': v, 'test': sc.get('display', name).upper(), 'case_text': gates[v]['case'],
                'load': {'value': val, 'unit': unit}, 'SF': sf, 'gate_SF': gate, 'certification': cert,
                'solver_peak_vm_MPa': round(solver_peak, 1), 'solver_SF': round(sy / solver_peak, 3),
-               'fem': res, 'fem_case': fc, 'shot': sc['shot']}
+               'fem': res, 'fem_case': fc, 'shot': sc['shot'], 'gate_label': sc.get('gate_label', v), 'carry': sc.get('carry')}
+        if fc.get('mesh'):   # this case was solved on its own mesh (e.g. V3R refined rung); counts shown on screen
+            mp = Path(fem_store) / fc['mesh']; need(mp.is_file(), f'{v}: case mesh {mp} missing')
+            rec['mesh'] = {'file': fc['mesh'], 'sha256': sha256(mp), **msh_counts(mp)}
         if cert['status'] == 'of record':
             rec.update(verdict='PASS' if sf >= gate else 'FAIL', peak_vm_MPa=round(sy / sf, 1), peak_basis='Sy / SF of record (converged)')
         else:   # no converged claim: show the solver value, verdict = the open status
@@ -142,6 +145,10 @@ def build(design_dir, fem_store, cases_cfg):
            'sources': {'readme': {'path': 'README.md', 'sha256': sha256(readme)},
                        'cad_json': {'path': 'data/' + cases_cfg['cad_json'], 'sha256': sha256(D / 'data' / cases_cfg['cad_json'])},
                        'gates_json': {'path': 'data/' + cases_cfg['gates_json'], 'sha256': sha256(D / 'data' / cases_cfg['gates_json'])}}}
+    m = re.search(r'^Display label:\s*(.+)$', R, re.M)   # unpromoted candidates (make_candidate_design.py)
+    if m:
+        man['label'] = f"Rev {rev} {m.group(1).strip()}"; man['status_note'] = 'release candidate (not tagged), not certified'
+        man['badge'] = f"{man['family']} {man['label']} · {mass:.1f} g · {material} Ti"
     man['stamp'] = f"{man['family'].lower()}_{rev.replace('.', '')}_{rc}_{step_sha[:8]}"
     man['manifest_sha256'] = hashlib.sha256(json.dumps(man, sort_keys=True).encode()).hexdigest()
     return man

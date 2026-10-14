@@ -154,11 +154,23 @@ def ti_material():
     return m
 
 
+def mark_ink(cfg):
+    """Design-wide mark material (#53: never finish-dependent). Default black_gloss (owner, 2026-10-13); bare_metal = #53 Ti."""
+    mark = cfg['protected']['mark']
+    ink = mark.get('ink', 'black_gloss')
+    if ink not in mark.get('inks', {}):
+        raise ValueError(f'unknown mark ink {ink!r}')
+    M = mark['inks'][ink]
+    if ink == 'bare_metal' and M['metallic'] != 1:
+        raise ValueError('the bare_metal mark ink must remain bare metal (Metallic=1)')
+    if ink == 'black_gloss' and (M['metallic'] != 0 or max(M['base_rgb']) > 0.05):
+        raise ValueError('the black_gloss mark ink must stay a dark dielectric (Metallic=0)')
+    return ink, M
+
+
 def protect_signature(N, L, sig, finish):
-    """The laser-etched mark is its own bare-metal region, independent of every finish knob (#53/#55)."""
-    M = CFG['protected']['mark']
-    if M['metallic'] != 1:
-        raise ValueError('the protected laser-etched mark must remain bare metal (Metallic=1)')
+    """The maker mark is its own protected region with one design-wide ink, independent of every finish knob (#53/#55)."""
+    _, M = mark_ink(CFG)
     bare = N('ShaderNodeBsdfPrincipled'); bare.name = 'protected_laser_etched_ti'   # node name pinned by #53 tests
     bare.inputs['Base Color'].default_value = (*M['base_rgb'], 1)
     bare.inputs['Metallic'].default_value = M['metallic']
@@ -267,6 +279,9 @@ if FILM_PATH:   # named anodize finishes (e.g. satin_blue) get the same floor / 
 z_floor = float(lo[2])
 scene.build_backdrop(rig['backdrop'], D, z_floor, materials.floor_material(rig['backdrop']['material']))
 
+FLOOR_NODES = []
+
+
 def soften_floor(fc):
     """Owner 2026-10-13: floor reflection ~45 % darker, soft falloff, gentle distance fade (dark + reflective kept)."""
     if not fc: return
@@ -284,6 +299,12 @@ def soften_floor(fc):
         mr.inputs['To Min'].default_value = fc.get('roughness', 0.10); mr.inputs['To Max'].default_value = fc.get('rough_far', 0.30)
         nt.links.new(tc.outputs['Object'], vl.inputs[0]); nt.links.new(vl.outputs['Value'], mr.inputs['Value'])
         nt.links.new(mr.outputs['Result'], p.inputs['Roughness'])
+        # specular fades softly away from the knife (near -> far x spec_far_frac); per-shot floor_gain scales it (spin: ~0.5)
+        ms = nt.nodes.new('ShaderNodeMapRange'); ms.name = 'floor_spec_fade'
+        ms.inputs['From Min'].default_value, ms.inputs['From Max'].default_value = fc.get('spec_fade_m', fc.get('fade_m', [0.06, 0.30]))
+        ms.inputs['To Min'].default_value = fc.get('spec_level', 0.28); ms.inputs['To Max'].default_value = fc.get('spec_level', 0.28) * fc.get('spec_far_frac', 1.0)
+        nt.links.new(vl.outputs['Value'], ms.inputs['Value']); nt.links.new(ms.outputs['Result'], p.inputs['Specular IOR Level'])
+        FLOOR_NODES.append((ms, p, fc))
         print('floor softened', m.name)
 soften_floor(CFG.get('floor_soft'))
 hdri = scene.find_hdri(rig['world']['hdri']['file'], rig['world']['hdri']['sha256'],
@@ -302,6 +323,12 @@ def apply_shot_light(sh):
         on = n not in FILM_LIGHTS or n in sh.get('enable_lights', [])
         ev = sh.get('light_ev_all', 0.0) + sh.get('light_ev', {}).get(n, 0.0)
         sc.objects[n].data.energy = e0 * (2.0 ** ev) * (1.0 if on else 0.0)
+    g = sh.get('floor_gain', 1.0)   # per-shot floor brightness (spec + coat + base); 1 = look of record
+    for ms, p, fc in FLOOR_NODES:
+        sl = fc.get('spec_level', 0.28) * g
+        ms.inputs['To Min'].default_value = sl; ms.inputs['To Max'].default_value = sl * sh.get('floor_spec_far_frac', fc.get('spec_far_frac', 1.0))
+        p.inputs['Coat Weight'].default_value = fc.get('coat', 0.08) * g
+        p.inputs['Base Color'].default_value = (*[c * g for c in fc.get('tint', [0.002, 0.002, 0.0025])], 1)
     if not SCI:
         sc.view_settings.exposure = LOOK['exposure'] + sh.get('exposure_ev_add', 0.0)
 
