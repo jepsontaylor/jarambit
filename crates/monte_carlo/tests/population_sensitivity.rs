@@ -5,8 +5,8 @@ use jarambit_monte_carlo::{
 
 #[test]
 fn population_shift_rates_stay_constant_for_repetitions() {
-    for k in [1u64, 2] {
-        let s = population_shift(k);
+    for k in [1u64, 2, u64::MAX / 10] {
+        let s = population_shift(k).unwrap();
         assert_eq!(s.service.text(), "1/10");
         assert_eq!(s.discovery.text(), "1/2");
         assert_eq!(s.gap.text(), "2/5");
@@ -14,6 +14,9 @@ fn population_shift_rates_stay_constant_for_repetitions() {
         assert_eq!(s.mc_error, 0);
         assert_ne!(s.service.text(), "3/10");
     }
+    assert_eq!(population_shift(0), Err(CheckedError::InvalidConfig));
+    assert_eq!(population_shift(u64::MAX / 10 + 1), Err(CheckedError::InvalidConfig));
+    assert_eq!(population_shift(u64::MAX), Err(CheckedError::InvalidConfig));
 }
 
 #[test]

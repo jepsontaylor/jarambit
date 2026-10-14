@@ -106,15 +106,21 @@ pub struct Shift {
 
 /// Service `k/(10k)`, discovery `5k/(10k)`, gap `2/5`. The pooled `3/10` is not the service rate.
 /// A fully enumerated finite list has Monte Carlo error 0 and does not erase the gap.
-pub fn population_shift(k: u64) -> Shift {
-    let den = 10 * k;
-    Shift {
+/// Zero and a `10k` or `5k` overflow return [`CheckedError::InvalidConfig`] before a ratio
+/// is constructed. [`Ratio::reduced`] still requires a positive denominator.
+pub fn population_shift(k: u64) -> Result<Shift, CheckedError> {
+    if k == 0 {
+        return Err(CheckedError::InvalidConfig);
+    }
+    let den = k.checked_mul(10).ok_or(CheckedError::InvalidConfig)?;
+    let discovered = k.checked_mul(5).ok_or(CheckedError::InvalidConfig)?;
+    Ok(Shift {
         service: Ratio::reduced(k as i128, den),
-        discovery: Ratio::reduced((5 * k) as i128, den),
+        discovery: Ratio::reduced(i128::from(discovered), den),
         gap: Ratio::reduced(2, 5),
         label: "assumed_model_population_discrepancy",
         mc_error: 0,
-    }
+    })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
