@@ -36,7 +36,9 @@ fn pass(x: f64) -> bool {
 }
 
 /// Position-aligned pairs. A second column whose ids are a permutation is
-/// [`CheckedError::MismatchedSampleId`] and publishes no joint.
+/// [`CheckedError::MismatchedSampleId`] and publishes no joint. A nonfinite
+/// value on either side is [`CheckedError::NonFiniteInput`] and publishes no
+/// joint, marginal, or product. [`joint_columns`] uses this same check.
 pub fn paired_joint(rows: &[Pair]) -> Result<JointEstimate, CheckedError> {
     let n = rows.len() as u64;
     if n == 0 {
@@ -47,6 +49,9 @@ pub fn paired_joint(rows: &[Pair]) -> Result<JointEstimate, CheckedError> {
     let mut ma = 0u64;
     let mut mb = 0u64;
     for row in rows {
+        if !row.a.is_finite() || !row.b.is_finite() {
+            return Err(CheckedError::NonFiniteInput);
+        }
         if seen.contains(&row.id) {
             return Err(CheckedError::DuplicateSampleId);
         }

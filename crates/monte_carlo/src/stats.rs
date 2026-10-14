@@ -17,6 +17,8 @@ pub enum CheckedError {
     AuditStreamNotIndependent,
     UnsourcedCorrelation,
     RetiredLookup,
+    /// A joint input was NaN or infinite. No rate is published.
+    NonFiniteInput,
 }
 
 impl CheckedError {
@@ -35,6 +37,7 @@ impl CheckedError {
             Self::AuditStreamNotIndependent => "AuditStreamNotIndependent",
             Self::UnsourcedCorrelation => "UnsourcedCorrelation",
             Self::RetiredLookup => "RetiredLookup",
+            Self::NonFiniteInput => "NonFiniteInput",
         }
     }
 }

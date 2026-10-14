@@ -47,3 +47,26 @@ fn four_state_joint_matches_product_and_audit_ids_are_not_reused() {
     assert_eq!(accept_sourced_correlation(false), Err(CheckedError::UnsourcedCorrelation));
     accept_sourced_correlation(true).unwrap();
 }
+
+#[test]
+fn nonfinite_joint_inputs_publish_no_rate() {
+    let finite = paired_joint(&[pair(0, 1.0, 2.0), pair(1, -1.0, 2.0)]).unwrap();
+    assert_eq!(finite.joint.text(), "1/2");
+    assert_eq!(finite.marginal_a.text(), "1/2");
+    assert_eq!(finite.marginal_b.text(), "2/2");
+    assert_eq!(finite.product.text(), "1/2");
+    assert_eq!(finite.product_label, "assumed_independent");
+    let failing = paired_joint(&[pair(0, -1.0, -2.0)]).unwrap();
+    assert_eq!((failing.joint.text(), failing.marginal_a.text(), failing.marginal_b.text(), failing.product.text()), ("0/1".into(), "0/1".into(), "0/1".into(), "0/1".into()));
+    for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        for (a, b) in [(bad, 1.0), (1.0, bad)] {
+            assert_eq!(paired_joint(&[pair(0, a, b)]), Err(CheckedError::NonFiniteInput));
+        }
+        let left = [ColumnSample { id: 0, value: bad }];
+        let right = [ColumnSample { id: 0, value: 1.0 }];
+        assert_eq!(joint_columns(&left, &right), Err(CheckedError::NonFiniteInput));
+        let left = [ColumnSample { id: 0, value: 1.0 }];
+        let right = [ColumnSample { id: 0, value: bad }];
+        assert_eq!(joint_columns(&left, &right), Err(CheckedError::NonFiniteInput));
+    }
+}
