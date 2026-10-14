@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "authority": "jarambit-evidence Rust resolver",
+  "qualified_observation_schema": 2,
+  "legacy": {
+    "JEV1": "historical read/display retained; absent scientific identity cannot qualify new claims",
+    "writes": "checked v2 payload in compatible JEV1 frames"
+  },
+  "canonical_wire": "jarambit.science.canonical.v1",
+  "runtime_fields": [
+    "host",
+    "threads",
+    "metadata"
+  ],
+  "required_states": [
+    "execution succeeded",
+    "numerical verified",
+    "current independent identity-bound review",
+    "complete nonempty required inventory"
+  ],
+  "physical": "validated requires identified specimen/material, measurement origin and acquisition bytes; synthetic/simulation cannot produce this label",
+  "scoped_fail": "valid applicable unrounded observation fails its declared criterion",
+  "incomplete": "invalid/missing/reopened/stale/mismatched required evidence",
+  "release_authorization": "always separate; this resolver never authorizes release/manufacturing",
+  "software_receipts": "offline support only; no alternate scientific truth engine",
+  "inventory_authority": "Opaque TrustedInventory admitted from approved out-of-band content reference + requirement roots; incoming labels/rehashes do not authorize criterion changes",
+  "physical_qualification_provider": "unavailable until S13 authenticated lab/passport reduction; declared acquisition metadata cannot qualify",
+  "unicode": "raw UTF-8 preserved; NFC-equivalent domain IDs and object keys cannot collide; general JSON keys are not domain IDs"
+}
