@@ -639,6 +639,35 @@ class Collector(Workspace):
     def collect(self, attempt, history=EMPTY_HISTORY, pin=PIN, expected=TOY_IDS, execution=None, execution_pin=None):
         return s.collect(self.catalog(), attempt, expected, history, pin, execution, execution_pin)
 
+    def reuse_copy(self, source, name, reused_from='placeholder-old', scope='same placeholder source, inputs and transcript'):
+        """An explicit compatible-reuse attempt: healthy records relabeled as reuse of a pinned historical attempt."""
+        target = self.root/name
+        shutil.copytree(source, target)
+        context = strict_loads((target/s.CONTEXT).read_bytes(), s.LIMITS)
+        context['execution_sha256'] = None
+        os.chmod(target/s.CONTEXT, 0o644)
+        (target/s.CONTEXT).write_text(json.dumps(context, sort_keys=True) + '\n')
+        for case in self.catalog():
+            run_path, receipt_path = target/(case['id'] + '.run.json'), target/(case['id'] + '.json')
+            run = strict_loads(run_path.read_bytes(), s.LIMITS)
+            run['execution_sha256'] = None
+            run['run'].update(mode='reuse', reused_from={'attempt_id': reused_from, 'scope': scope})
+            os.chmod(run_path, 0o644)
+            run_path.write_text(json.dumps(run, sort_keys=True) + '\n')
+            receipt = strict_loads(receipt_path.read_bytes(), s.LIMITS)
+            receipt['artifacts'] = {n: raw_hash((target/n).read_bytes()) for n in receipt['artifacts']}
+            os.chmod(receipt_path, 0o644)
+            receipt_path.write_text(json.dumps(receipt, sort_keys=True) + '\n')
+        return target
+
+    def attested_attempt(self):
+        log = self.transcript()
+        history, pin = self.history_with(log)
+        execution, execution_pin = self.execution_for(log, 'placeholder-attested')
+        attempt = self.publish(log, name='attested', attempt_id='placeholder-attested', history=history, pin=pin,
+                               execution=execution, execution_pin=execution_pin)
+        return log, attempt, history, pin, execution, execution_pin
+
     def execution_for(self, log, attempt_id, **changes):
         """The trusted runner's pinned receipt for the run that produced these (deterministic) bytes."""
         record = {'schema': 1, 'producer': 'placeholder trusted runner', 'attempt_id': attempt_id,
@@ -785,6 +814,47 @@ class Collector(Workspace):
         with self.assertRaisesRegex(ContractError, 'pin without receipt'):
             self.collect(attested, history=history, pin=pin, execution_pin=execution_pin)
 
+    def test_T19_06_positive_collector_keeps_fresh_and_reuse_provenance_apart(self):
+        _, attested, history, pin, execution, execution_pin = self.attested_attempt()
+        fresh = self.collect(attested, history=history, pin=pin, execution=execution, execution_pin=execution_pin)
+        self.assertEqual(fresh['provenance'], {'T19-01-required_skip': {
+            'mode': 'fresh', 'counts_as_fresh_execution': True, 'identical_to_history': True, 'attested': True}})
+        self.assertEqual((fresh['fresh_execution_ids'], fresh['reused_ids']), (['T19-01-required_skip'], []))
+        reused = self.collect(self.reuse_copy(attested, 'reuse'), history=history, pin=pin)
+        self.assertEqual(reused['provenance'], {'T19-01-required_skip': {
+            'mode': 'reuse', 'counts_as_fresh_execution': False,
+            'scope': 'same placeholder source, inputs and transcript', 'reused_from': 'placeholder-old'}})
+        self.assertEqual((reused['fresh_execution_ids'], reused['reused_ids']), ([], ['T19-01-required_skip']))
+        self.assertNotIn('T19-01-required_skip', reused['missing'])
+        self.assertIn('T19-01-required_skip', reused['missing_fresh_execution'])
+        self.assertEqual((reused['fresh_execution_support'], reused['execution']['T19-07-dossier_mismatch']),
+                         ('incomplete', 'not_run'))
+
+    def test_T19_06_adverse_reuse_cannot_borrow_fresh_receipt_or_unrecorded_origin(self):
+        log, attested, history, pin, execution, execution_pin = self.attested_attempt()
+        with self.assertRaisesRegex(ContractError, 'different execution receipt'):
+            self.collect(self.reuse_copy(attested, 'borrowing'), history=history, pin=pin,
+                         execution=execution, execution_pin=execution_pin)
+        for name, changes, reason in (('unknown-origin', {'reused_from': 'placeholder-404'}, 'reused attempt unknown'),
+                                      ('unscoped', {'scope': ''}, 'invalid identity')):
+            with self.subTest(name), self.assertRaisesRegex(ContractError, reason):
+                self.collect(self.reuse_copy(attested, name, **changes), history=history, pin=pin)
+        replay = self.collect(self.publish(log, name='replay', attempt_id='placeholder-replay', history=history, pin=pin),
+                              history=history, pin=pin)
+        self.assertEqual((replay['provenance'], replay['fresh_execution_ids'], replay['reused_ids']), ({}, [], []))
+        self.assertIn('T19-01-required_skip', replay['missing'])
+
+    def test_T19_06_positive_cli_check_reports_reuse_provenance(self):
+        _, attested, history, pin, _, _ = self.attested_attempt()
+        history_path = self.root/'history.json'
+        history_path.write_text(json.dumps(history))
+        code, result = self.run_cli('check', '--receipts', str(self.reuse_copy(attested, 'reuse')),
+                                    '--history', str(history_path), '--history-sha256', pin)
+        self.assertEqual((code, result['provenance']['T19-01-required_skip']['mode'],
+                          result['provenance']['T19-01-required_skip']['counts_as_fresh_execution'],
+                          result['reused_ids'], result['fresh_execution_ids']),
+                         (1, 'reuse', False, ['T19-01-required_skip'], []))
+
     def test_T19_05_adverse_collector_reads_refuse_replaced_receipt_and_raced_transcript(self):
         attempt = self.publish(self.transcript())
         copy = self.outside/'receipt.json'
@@ -918,6 +988,14 @@ MUTANTS = {
     'historical bytes accepted as fresh': (
         "        require(not identical or attested, 'historical artifact bytes claimed fresh')\n",
         "        pass\n", ['FreshVsReuse.test_T19_06_adverse_historical_evidence_claimed_fresh_rejected']),
+    'collector labels every credit fresh': (
+        "    fresh = sorted(cid for cid, label in provenance.items() if label['counts_as_fresh_execution'] is True)\n",
+        "    fresh = sorted(provenance)\n",
+        ['Collector.test_T19_06_positive_collector_keeps_fresh_and_reuse_provenance_apart']),
+    'collector drops reuse provenance': (
+        "        provenance[record['case_id']] = classification\n",
+        "        provenance[record['case_id']] = {'mode': 'fresh', 'counts_as_fresh_execution': True}\n",
+        ['Collector.test_T19_06_positive_collector_keeps_fresh_and_reuse_provenance_apart']),
     'execution receipt binding ignored': (
         "    return sorted(k for k, v in expected.items() if execution[k] != v)\n", "    return []\n",
         ['FreshVsReuse.test_T19_06_adverse_unattested_or_unbound_identical_output_refused']),

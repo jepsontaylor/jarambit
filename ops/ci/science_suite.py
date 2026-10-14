@@ -939,7 +939,9 @@ def publish_attempt(directory, catalog, log, argv, exit_code, attempt_id, expect
 def collect(catalog, directory, expected, history, history_sha256, execution_receipt=None, execution_sha256=None):
     """Resolve frozen receipts through S01 and re-derive every pass from the raw transcript, the trusted
     expected inventory, the caller-pinned history and any caller-pinned execution receipt.
-    history=None (unavailable) credits nothing."""
+    history=None (unavailable) credits nothing. Each credited case keeps its classify_run provenance:
+    fresh executions and explicitly scoped compatible reuse are reported separately, and reuse never
+    counts toward fresh-execution support."""
     directory = Path(directory).absolute()
     expected = trusted_inventory(expected)
     attempts = None if history is None else validate_history(history, history_sha256)
@@ -962,7 +964,7 @@ def collect(catalog, directory, expected, history, history_sha256, execution_rec
                                 and context['expected_inventory_sha256'] == scientific_hash(expected)),
             'attempt inventory differs from the trusted expected inventory')
     execution = {cid: 'not_run' for cid in inventory['expected_ids']}
-    credited = set()
+    provenance = {}
     for record in receipts:
         execution[record['case_id']] = record['execution']
         if record['execution'] != 'passed':
@@ -981,13 +983,22 @@ def collect(catalog, directory, expected, history, history_sha256, execution_rec
             continue
         require(run['history_sha256'] == history_sha256, 'attempt bound to a different history')
         require(run['execution_sha256'] == execution_sha256, 'attempt bound to a different execution receipt')
-        classify_run(run['run'], record['input_sha256'], attempts, execution_receipt, execution_sha256,
-                     record['argv'], record['exit_code'])
-        credited.add(record['case_id'])
-    missing = sorted(set(inventory['expected_ids']) - credited)
+        classification = classify_run(run['run'], record['input_sha256'], attempts, execution_receipt, execution_sha256,
+                                      record['argv'], record['exit_code'])
+        require(classification['mode'] in ('fresh', 'reuse')
+                and classification['counts_as_fresh_execution'] is (classification['mode'] == 'fresh'),
+                'classification provenance inconsistent')
+        provenance[record['case_id']] = classification
+    fresh = sorted(cid for cid, label in provenance.items() if label['counts_as_fresh_execution'] is True)
+    reused = sorted(cid for cid, label in provenance.items() if label['mode'] == 'reuse')
+    missing = sorted(set(inventory['expected_ids']) - set(provenance))
+    missing_fresh = sorted(set(inventory['expected_ids']) - set(fresh))
     return {'schema': 1, 'unit': 'T19', 'expected_ids': inventory['expected_ids'],
             'denominator': len(inventory['expected_ids']), 'execution': execution,
             'findings': inventory['findings'], 'support': 'complete' if not missing else 'incomplete', 'missing': missing,
+            'provenance': provenance, 'fresh_execution_ids': fresh, 'reused_ids': reused,
+            'fresh_execution_support': 'complete' if not missing_fresh else 'incomplete',
+            'missing_fresh_execution': missing_fresh,
             'freshness': 'history_unavailable' if attempts is None else 'caller_pinned_history',
             'execution_receipt': 'none' if execution_receipt is None else 'caller_pinned',
             'expected_tests': len(expected), 'upstream_not_run': sorted(set(UPSTREAM) & set(missing)),
