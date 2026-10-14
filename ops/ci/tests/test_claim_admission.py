@@ -79,8 +79,11 @@ class OperatorAdmission(unittest.TestCase):
         self.recipe = self.directory/'build-recipe.json'
         self.recipe.write_bytes(wire(recipe))
         files = self.fixed['files_utf8']
-        request = files['request'].encode('utf-8')
+        request_value = claims.decode(files['request'].encode('utf-8'))
+        request_value['schema'] = 2
+        request = wire(request_value)
         authority = claims.decode(files['authority'].encode('utf-8'))
+        authority['schema'] = 2
         pin = claims.decode(files['caller_pin'].encode('utf-8'))
         self.registry = self.directory/'registry.json'
         self.registry.write_bytes((ROOT/'assurance/registry/current.v1.json').read_bytes())
