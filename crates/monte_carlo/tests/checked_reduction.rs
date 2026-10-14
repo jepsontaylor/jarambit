@@ -178,3 +178,35 @@ fn exact_ratio_stops_at_the_half_open_i128_bound() {
     assert_eq!(endpoint.mean_ratio.unwrap().num, i128::MIN);
     assert_eq!(endpoint.mean_ratio.unwrap().den, 1);
 }
+
+#[test]
+fn huge_cancellation_keeps_the_exact_power_of_two() {
+    let b = f64::from_bits(0x7fe0_0000_0000_0000);
+    let sum_bits = 0x1.0000000000000p+1023f64.to_bits();
+    let mean_bits = 0x1.5555555555555p+1021f64.to_bits();
+    assert_eq!(b.to_bits(), sum_bits);
+    let positive = [[b, b, -b], [b, -b, b], [-b, b, b]];
+    for order in positive {
+        let s = reduce_rows(3, &rows_of(&order)).unwrap();
+        assert_eq!((s.valid, s.invalid, s.numerically_failed, s.model_failed), (3, 0, 0, 0));
+        assert!(s.statistical_credit && s.mean_ratio.is_none() && s.aggregate_error.is_none());
+        assert_eq!(s.sum.unwrap().to_bits(), sum_bits);
+        assert_eq!(s.mean.unwrap().to_bits(), mean_bits);
+    }
+    let negative = [[-b, -b, b], [-b, b, -b], [b, -b, -b]];
+    for order in negative {
+        let s = reduce_rows(3, &rows_of(&order)).unwrap();
+        assert_eq!((s.valid, s.invalid, s.numerically_failed, s.model_failed), (3, 0, 0, 0));
+        assert!(s.statistical_credit && s.mean_ratio.is_none() && s.aggregate_error.is_none());
+        assert_eq!(s.sum.unwrap().to_bits(), (-b).to_bits());
+        assert_eq!(s.mean.unwrap().to_bits(), (-0x1.5555555555555p+1021f64).to_bits());
+    }
+    let unit = f64::from_bits(1);
+    let tiny = reduce_rows(1, &rows_of(&[unit])).unwrap();
+    assert!(tiny.statistical_credit && tiny.aggregate_error.is_none());
+    assert_eq!(tiny.sum.unwrap().to_bits(), 1);
+    assert_eq!(tiny.mean.unwrap().to_bits(), 1);
+    let restored = reduce_rows(3, &rows_of(&[f64::MAX, f64::MAX, -f64::MAX])).unwrap();
+    assert!(restored.statistical_credit && restored.mean_ratio.is_none() && restored.aggregate_error.is_none());
+    assert_eq!(restored.sum.unwrap().to_bits(), f64::MAX.to_bits());
+}

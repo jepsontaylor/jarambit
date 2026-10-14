@@ -136,20 +136,190 @@ fn integer_value(x: f64) -> Option<i128> {
     Some(v)
 }
 
-/// Compensated sum. The acceptance oracle is the exact f64 bits, not this name.
-fn compensated_sum(xs: &[f64]) -> f64 {
-    let mut sum = 0.0f64;
-    let mut c = 0.0f64;
+/// Words of a sign-magnitude integer. Index 0 is the 2^-1074 place.
+const ACC_WORDS: usize = 40;
+
+/// Exact finite sum, rounded back to f64 with ties to even.
+/// A non-finite input returns NaN. A magnitude of 2^1024 or more (bit 2098)
+/// returns ±infinity and is left uncredited by the caller. No dependency.
+fn exact_finite_sum(xs: &[f64]) -> f64 {
+    let mut acc = ExactAcc::default();
     for &x in xs {
-        let t = sum + x;
-        if sum.abs() >= x.abs() {
-            c += (sum - t) + x;
-        } else {
-            c += (x - t) + sum;
-        }
-        sum = t;
+        acc.add(x);
     }
-    sum + c
+    acc.to_f64()
+}
+
+#[derive(Clone, Copy)]
+struct ExactAcc {
+    mag: [u64; ACC_WORDS],
+    neg: bool,
+    non_finite: bool,
+}
+
+impl Default for ExactAcc {
+    fn default() -> Self {
+        Self { mag: [0; ACC_WORDS], neg: false, non_finite: false }
+    }
+}
+
+fn acc_place(words: &mut [u64; ACC_WORDS], value: u64, index: usize) {
+    let word = index / 64;
+    let off = index % 64;
+    let wide = (value as u128) << off;
+    words[word] |= wide as u64;
+    let spill = (wide >> 64) as u64;
+    if spill != 0 {
+        words[word + 1] |= spill;
+    }
+}
+
+fn acc_deposit(x: f64) -> (bool, [u64; ACC_WORDS]) {
+    let bits = x.to_bits();
+    let neg = bits >> 63 == 1;
+    let exp = ((bits >> 52) & 0x7ff) as usize;
+    let frac = bits & ((1u64 << 52) - 1);
+    let mut words = [0u64; ACC_WORDS];
+    if exp == 0 {
+        if frac != 0 {
+            words[0] = frac;
+        }
+        return (neg && frac != 0, words);
+    }
+    acc_place(&mut words, (1u64 << 52) | frac, exp - 1);
+    (neg, words)
+}
+
+fn acc_add(a: &mut [u64; ACC_WORDS], b: &[u64; ACC_WORDS]) -> bool {
+    let mut carry = 0u128;
+    for i in 0..ACC_WORDS {
+        let sum = a[i] as u128 + b[i] as u128 + carry;
+        a[i] = sum as u64;
+        carry = sum >> 64;
+    }
+    carry != 0
+}
+
+fn acc_sub(a: &mut [u64; ACC_WORDS], b: &[u64; ACC_WORDS]) {
+    let mut borrow = 0u64;
+    for i in 0..ACC_WORDS {
+        let (d1, b1) = a[i].overflowing_sub(b[i]);
+        let (d2, b2) = d1.overflowing_sub(borrow);
+        a[i] = d2;
+        borrow = u64::from(b1 || b2);
+    }
+}
+
+fn acc_cmp(a: &[u64; ACC_WORDS], b: &[u64; ACC_WORDS]) -> Ordering {
+    for i in (0..ACC_WORDS).rev() {
+        match a[i].cmp(&b[i]) {
+            Ordering::Equal => {}
+            other => return other,
+        }
+    }
+    Ordering::Equal
+}
+
+fn acc_msb(words: &[u64; ACC_WORDS]) -> Option<usize> {
+    for i in (0..ACC_WORDS).rev() {
+        if words[i] != 0 {
+            return Some(i * 64 + (63 - words[i].leading_zeros() as usize));
+        }
+    }
+    None
+}
+
+fn acc_extract(words: &[u64; ACC_WORDS], index: usize, width: u32) -> u64 {
+    let word = index / 64;
+    let off = index % 64;
+    let mut wide = (words[word] as u128) >> off;
+    if off != 0 && word + 1 < ACC_WORDS {
+        wide |= (words[word + 1] as u128) << (64 - off);
+    }
+    (wide & ((1u128 << width) - 1)) as u64
+}
+
+fn acc_any_below(words: &[u64; ACC_WORDS], index: usize) -> bool {
+    if index == 0 {
+        return false;
+    }
+    let word = index / 64;
+    let off = index % 64;
+    if off != 0 && words[word] & ((1u64 << off) - 1) != 0 {
+        return true;
+    }
+    words[..word].iter().any(|w| *w != 0)
+}
+
+impl ExactAcc {
+    fn add(&mut self, x: f64) {
+        if self.non_finite {
+            return;
+        }
+        if !x.is_finite() {
+            self.non_finite = true;
+            return;
+        }
+        let (neg, mag) = acc_deposit(x);
+        if mag.iter().all(|w| *w == 0) {
+            return;
+        }
+        if self.mag.iter().all(|w| *w == 0) {
+            self.mag = mag;
+            self.neg = neg;
+            return;
+        }
+        if self.neg == neg {
+            if acc_add(&mut self.mag, &mag) {
+                self.non_finite = true;
+            }
+            return;
+        }
+        match acc_cmp(&self.mag, &mag) {
+            Ordering::Equal => {
+                self.mag = [0; ACC_WORDS];
+                self.neg = false;
+            }
+            Ordering::Greater => acc_sub(&mut self.mag, &mag),
+            Ordering::Less => {
+                let mut bigger = mag;
+                acc_sub(&mut bigger, &self.mag);
+                self.mag = bigger;
+                self.neg = neg;
+            }
+        }
+    }
+
+    fn to_f64(self) -> f64 {
+        if self.non_finite {
+            return f64::NAN;
+        }
+        let Some(m) = acc_msb(&self.mag) else { return 0.0 };
+        let sign = u64::from(self.neg) << 63;
+        if m >= 2098 {
+            return f64::from_bits(sign | 0x7ff0_0000_0000_0000);
+        }
+        if m < 52 {
+            return f64::from_bits(sign | (self.mag[0] & ((1u64 << 52) - 1)));
+        }
+        let mut sig = acc_extract(&self.mag, m - 52, 53);
+        if m >= 53 {
+            let round_bit = acc_extract(&self.mag, m - 53, 1) == 1;
+            let sticky = acc_any_below(&self.mag, m - 53);
+            if round_bit && (sticky || (sig & 1) == 1) {
+                sig += 1;
+            }
+        }
+        let mut exp = m - 51;
+        if sig == 1u64 << 53 {
+            sig = 1u64 << 52;
+            exp += 1;
+        }
+        if exp >= 2047 {
+            return f64::from_bits(sign | 0x7ff0_0000_0000_0000);
+        }
+        f64::from_bits(sign | ((exp as u64) << 52) | (sig & ((1u64 << 52) - 1)))
+    }
 }
 
 /// Reduce one column. `requested_n == 0` returns [`CheckedError::EmptySample`] and
@@ -213,7 +383,7 @@ pub fn reduce_rows(requested_n: u64, rows: &[Row]) -> Result<ColumnSummary, Chec
     if invalid != 0 {
         return Ok(summary);
     }
-    let sum = compensated_sum(&valid_values);
+    let sum = exact_finite_sum(&valid_values);
     if !sum.is_finite() {
         summary.aggregate_error = Some(CheckedError::UnrepresentableAggregate);
         return Ok(summary);
