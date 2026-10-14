@@ -231,11 +231,15 @@ pub struct CheckedCols<const K: usize> {
 }
 
 /// Checked column runner. `n == 0` is [`CheckedError::EmptySample`] and does not coerce to 1.
+/// `K == 0` is [`CheckedError::InvalidConfig`] and does not start the pool.
+/// Each requested row is counted once: any nonfinite column invalidates that row.
+/// Finite -1000 stays a sample, not a model failure.
 /// [`ThreadRequest::Exact`] does not clamp. A worker panic or a lost worker publishes no tails.
 /// The legacy [`run`] / [`run_cols`] path is unchanged.
 pub fn try_run_cols<const K: usize, F>(g: &Genotype, n: usize, request: ThreadRequest, admitted: usize, seed: u64, f: F) -> Result<CheckedCols<K>, CheckedError>
 where F: Fn(&Genotype, &mut Rng) -> [f64; K] + Sync + Send + 'static {
     if n == 0 { return Err(CheckedError::EmptySample); }
+    if K == 0 { return Err(CheckedError::InvalidConfig); }
     let plan = admit_threads(request, admitted, n)?;
     let threads = plan.actual.ok_or(CheckedError::ThreadBudget)?;
     if threads == 0 { return Err(CheckedError::ThreadBudget); }
@@ -274,38 +278,58 @@ where F: Fn(&Genotype, &mut Rng) -> [f64; K] + Sync + Send + 'static {
     }
     let all: Vec<[f64; K]> = parts.into_iter().flat_map(|p| p.unwrap()).collect();
     if all.len() != n { return Err(CheckedError::WorkerLost); }
+    let mut row_valid = 0u64;
+    let mut row_numerical = 0u64;
+    for row in &all {
+        if row.iter().all(|x| x.is_finite()) {
+            row_valid += 1;
+        } else {
+            row_numerical += 1;
+        }
+    }
+    let attempted = n as u64;
+    if row_numerical != 0 {
+        return Ok(CheckedCols {
+            cols: None,
+            statistical_credit: false,
+            attempted,
+            valid: row_valid,
+            invalid: row_numerical,
+            model_failed: 0,
+            numerically_failed: row_numerical,
+        });
+    }
     let mut tails = [CheckedTails { mean: 0.0, p05: 0.0, p95: 0.0 }; K];
-    let mut credit = true;
-    let mut valid = u64::MAX;
-    let mut invalid = 0u64;
-    let mut numerical = 0u64;
     for k in 0..K {
         let rows: Vec<Row> = all.iter().enumerate().map(|(id, row)| Row {
             id: id as u64,
             value: Observation::Finite(row[k]),
         }).collect();
-        let summary = reduce_rows(n as u64, &rows)?;
-        valid = valid.min(summary.valid);
-        invalid = invalid.max(summary.invalid);
-        numerical = numerical.max(summary.numerically_failed);
+        let summary = reduce_rows(attempted, &rows)?;
         if let Some(CheckedError::UnrepresentableAggregate) = summary.aggregate_error {
             return Err(CheckedError::UnrepresentableAggregate);
         }
         if !summary.statistical_credit {
-            credit = false;
-            continue;
+            return Ok(CheckedCols {
+                cols: None,
+                statistical_credit: false,
+                attempted,
+                valid: row_valid,
+                invalid: 0,
+                model_failed: 0,
+                numerically_failed: 0,
+            });
         }
         tails[k] = CheckedTails { mean: summary.mean.unwrap(), p05: summary.p05.unwrap(), p95: summary.p95.unwrap() };
     }
-    if !credit { valid = valid.min(n as u64); }
     Ok(CheckedCols {
-        cols: if credit { Some(tails) } else { None },
-        statistical_credit: credit,
-        attempted: n as u64,
-        valid,
-        invalid,
+        cols: Some(tails),
+        statistical_credit: true,
+        attempted,
+        valid: row_valid,
+        invalid: 0,
         model_failed: 0,
-        numerically_failed: numerical,
+        numerically_failed: 0,
     })
 }
 
@@ -345,5 +369,42 @@ mod tests {
         let easy = cut_margin(500.0, 2000.0, 1.0, 1.0, CutMedia::Gel);
         let dull = cut_margin(500.0, 2000.0, 0.0, 0.0, CutMedia::Cord);
         assert!(easy > 0.0 && dull < 0.0, "{easy} {dull}");
+    }
+    #[test]
+    fn requested_rows_count_each_invalid_union_once() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        let g = Genotype::random(&mut Rng(77));
+        assert_eq!(try_run_cols::<2, _>(&g, 0, ThreadRequest::Exact(1), 1, 91, |_, _| [1.0, 1.0]), Err(CheckedError::EmptySample));
+        assert_eq!(try_run_cols::<0, _>(&g, 0, ThreadRequest::Exact(1), 1, 91, |_, _| []), Err(CheckedError::EmptySample));
+        assert_eq!(try_run_cols::<0, _>(&g, 2, ThreadRequest::Exact(1), 1, 91, |_, _| []), Err(CheckedError::InvalidConfig));
+        let counter = Arc::new(AtomicUsize::new(0));
+        let c = counter.clone();
+        let cols = try_run_cols::<2, _>(&g, 4, ThreadRequest::Exact(1), 1, 91, move |_, _| {
+            match c.fetch_add(1, Ordering::SeqCst) {
+                0 => [f64::NAN, 1.0],
+                1 => [1.0, f64::INFINITY],
+                _ => [1.0, 1.0],
+            }
+        }).unwrap();
+        assert_eq!((cols.attempted, cols.valid, cols.invalid, cols.numerically_failed, cols.model_failed), (4, 2, 2, 2, 0));
+        assert!(!cols.statistical_credit && cols.cols.is_none());
+        assert_eq!(cols.valid + cols.invalid, cols.attempted);
+        let same = try_run_cols::<2, _>(&g, 1, ThreadRequest::Exact(1), 1, 91, |_, _| [f64::NAN, f64::NEG_INFINITY]).unwrap();
+        assert_eq!((same.attempted, same.valid, same.invalid, same.numerically_failed), (1, 0, 1, 1));
+        assert!(!same.statistical_credit && same.cols.is_none());
+        let finite = try_run_cols::<2, _>(&g, 2, ThreadRequest::Exact(1), 1, 91, |_, _| [1.0, 2.0]).unwrap();
+        assert!(finite.statistical_credit && finite.cols.is_some());
+        assert_eq!((finite.attempted, finite.valid, finite.invalid, finite.numerically_failed, finite.model_failed), (2, 2, 0, 0, 0));
+        assert_eq!(finite.valid + finite.invalid, finite.attempted);
+        assert_eq!(finite.cols.unwrap()[0].mean, 1.0);
+        assert_eq!(finite.cols.unwrap()[1].mean, 2.0);
+        let none = try_run_cols::<1, _>(&g, 2, ThreadRequest::Exact(1), 1, 91, |_, _| [f64::NAN]).unwrap();
+        assert_eq!((none.attempted, none.valid, none.invalid, none.numerically_failed, none.model_failed), (2, 0, 2, 2, 0));
+        assert!(!none.statistical_credit && none.cols.is_none());
+        let sentinel = try_run_cols::<1, _>(&g, 2, ThreadRequest::Exact(1), 1, 91, |_, _| [-1000.0]).unwrap();
+        assert!(sentinel.statistical_credit);
+        assert_eq!((sentinel.attempted, sentinel.valid, sentinel.invalid, sentinel.model_failed, sentinel.numerically_failed), (2, 2, 0, 0, 0));
+        assert_eq!(sentinel.cols.unwrap()[0].mean, -1000.0);
     }
 }
