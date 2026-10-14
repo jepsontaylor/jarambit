@@ -28,7 +28,9 @@ MM = ("mm", "N", "MPa")
 FIELD_REL, FIELD_ABS = 1e-9, 1e-10  # frozen manufactured-field tolerance (MPa)
 NORM_REL, NORM_ABS = 1e-9, 1e-12    # frozen spatial-norm tolerance
 CATALOG_PATH = os.path.join(ROOT, "assurance", "numerical", "observable_catalog.json")
-CATALOG = json.load(open(CATALOG_PATH))
+with open(CATALOG_PATH) as _catalog_file:
+    CATALOG = json.load(_catalog_file)
+del _catalog_file
 EXPECTED = {o["key"]: o["descriptor"] for o in CATALOG["observables"]}
 VM_DG1, VM_DG0 = EXPECTED["dg_vm_interpolation.v1/P2-DG1/mm"], EXPECTED["dg_vm_interpolation.v1/P1-DG0/mm"]
 TET = [[-1, 0, 0], [1, 0, 0], [-1, 1, 0], [-1, 0, 1]]
@@ -512,9 +514,11 @@ class Catalog(unittest.TestCase):
     def test_named_tests_exist(self):
         sources = {}
         for path in ("fem_solid/tests/test_representation_invariants.py", "fem_solid/tests/test_field_semantics.py"):
-            tree = ast.parse(open(os.path.join(ROOT, path)).read())
+            with open(os.path.join(ROOT, path)) as handle:
+                tree = ast.parse(handle.read())
             sources[path] = {f"{c.name}.{f.name}" for c in tree.body if isinstance(c, ast.ClassDef) for f in c.body if isinstance(f, ast.FunctionDef)}
-        rust = set(re.findall(r"#\[test\]\s*fn\s+(\w+)", open(os.path.join(ROOT, "crates/physics/tests/invariance.rs")).read()))
+        with open(os.path.join(ROOT, "crates/physics/tests/invariance.rs")) as handle:
+            rust = set(re.findall(r"#\[test\]\s*fn\s+(\w+)", handle.read()))
         names = [t for b in CATALOG["s07_phase"]["buckets"] for t in b["tests"]]
         names += [r["test"] for b in CATALOG["s07_phase"]["buckets"] for r in b["rows"] if r["test"]]
         names += [p["test"] for b in CATALOG["s07_phase"]["buckets"] for r in b["rows"] for p in r.get("providers", [])]
