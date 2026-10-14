@@ -41,9 +41,12 @@ def build_report(records, expected):
     try:
         require(type(expected) in (list, tuple) and bool(expected), 'empty_expected_inventory')
         require(all(isinstance(x, ExpectedRecord) and isinstance(x.observable, Observable) for x in expected), 'invalid_expected_inventory')
-        unique_ids(x.id for x in expected)
         require(type(records) in (list, tuple) and all(isinstance(x, Record) for x in records), 'invalid_records')
-        unique_ids(x.id for x in records)
+        try:
+            unique_ids(x.id for x in expected)
+            unique_ids(x.id for x in records)
+        except UnicodeError as error:
+            raise ContractError('invalid_unicode_identity') from error
         wanted = {x.id: x for x in expected}
         require({x.id for x in records} == set(wanted), 'missing_or_extra_record')
     except (ContractError, TypeError) as error:
@@ -83,6 +86,11 @@ def reclassify_history(paths):
                'physical_design_verdict': None}
         try:
             old = strict_loads(raw, LIMITS)
+            require(type(old) is dict, 'invalid_historical_root')
+            require(all(name in old for name in ('vm_nodal_max_MPa', 'vm_nodal_avg_MPa')),
+                    'missing_historical_observable')
+            require(all(type(old[name]) is dict for name in ('vm_nodal_max_MPa', 'vm_nodal_avg_MPa')),
+                    'invalid_historical_observables')
             row['id'] = old['design']
             row['observables'] = {}
             for name in ('vm_nodal_max_MPa', 'vm_nodal_avg_MPa'):

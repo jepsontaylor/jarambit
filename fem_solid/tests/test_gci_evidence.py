@@ -90,6 +90,78 @@ class GCIEvidence(unittest.TestCase):
         for path, checksum in pinned.items():
             self.assertEqual(hashlib.sha256((ROOT/path).read_bytes()).hexdigest(), checksum)
 
+    def test_typed_report_ids_have_structured_unicode_refusal(self):
+        surrogate = json.loads('"\\ud800"')
+        for side in ('record', 'expected'):
+            with self.subTest(side=side):
+                record, expected = fixture('设计-é')
+                positive = build_report([record], [expected])
+                self.assertEqual(positive['status'], 'PASS')
+                self.assertTrue(positive['ordinary_gci_supported'])
+                json.dumps(positive, allow_nan=False, ensure_ascii=False).encode('utf-8')
+                if side == 'record': record = replace(record, id=surrogate)
+                else: expected = replace(expected, id=surrogate)
+                refused = build_report([record], [expected])
+                self.assertEqual(refused['status'], 'UNVERIFIED')
+                self.assertFalse(refused['ordinary_gci_supported'])
+                self.assertEqual(refused['rows'], [])
+                self.assertEqual(refused['reasons'], ['invalid_unicode_identity'])
+                self.assertEqual(refused['numerical_verification'], 'not_established')
+                self.assertEqual(refused['physical_validation'], 'not_performed')
+                serialized = json.dumps(refused, allow_nan=False, ensure_ascii=False)
+                serialized.encode('utf-8'); self.assertNotIn(surrogate, serialized)
+
+    def test_historical_shape_refusals_preserve_complete_cli_batches(self):
+        pinned = json.loads((ROOT/'assurance/numerical/gci_inventory.json').read_text())['raw_history_sha256']
+        valid = [ROOT/p for p in pinned if p.endswith('_gci.json')]
+        self.assertEqual(len(valid), 5)
+        positive = reclassify_history(valid)
+        self.assertEqual(len(positive['rows']), 5)
+        self.assertFalse(positive['ordinary_gci_supported'])
+        self.assertTrue(all('observables' in row and 'reason' not in row for row in positive['rows']))
+        for row, path in zip(positive['rows'], valid):
+            self.assertEqual(row['source'], str(path))
+            self.assertEqual(row['raw_sha256'], pinned[path.relative_to(ROOT).as_posix()])
+            self.assertIsNone(row['physical_design_verdict'])
+        cases = []
+        for name in ('vm_nodal_max_MPa', 'vm_nodal_avg_MPa'):
+            for kind, value in (('array', []), ('scalar', 1.0), ('null', None), ('missing', None)):
+                old = {'design': 'malformed-history', 'vm_nodal_max_MPa': {}, 'vm_nodal_avg_MPa': {}}
+                if kind == 'missing': del old[name]
+                else: old[name] = value
+                reason = 'missing_historical_observable' if kind == 'missing' else 'invalid_historical_observables'
+                cases.append((name+'-'+kind, old, reason))
+        cases += [('root-array', [], 'invalid_historical_root'),
+                  ('root-scalar', 1.0, 'invalid_historical_root'),
+                  ('root-null', None, 'invalid_historical_root')]
+        with tempfile.TemporaryDirectory() as directory:
+            malformed = Path(directory)/'malformed-history.json'
+            for name, old, reason in cases:
+                raw = (json.dumps(old, allow_nan=False)+'\n').encode(); malformed.write_bytes(raw)
+                for position in (0, 3, 5):
+                    with self.subTest(shape=name, position=position):
+                        paths = list(valid); paths.insert(position, malformed)
+                        report = reclassify_history(paths)
+                        self.assertEqual(len(report['rows']), 6)
+                        self.assertFalse(report['ordinary_gci_supported'])
+                        self.assertIsNone(report['physical_design_verdict'])
+                        bad = report['rows'][position]
+                        self.assertEqual(bad['status'], 'UNVERIFIED')
+                        self.assertEqual(bad['reason'], 'invalid_historical_record:'+reason)
+                        self.assertEqual(bad['raw_sha256'], hashlib.sha256(raw).hexdigest())
+                        self.assertEqual(bad['source'], str(malformed))
+                        self.assertNotIn('observables', bad)
+                        self.assertIsNone(bad['physical_design_verdict'])
+                        self.assertEqual([row for i, row in enumerate(report['rows']) if i != position], positive['rows'])
+                        argv = [sys.executable, str(ROOT/'fem_solid/gci_report.py'), '--historical', *map(str, paths)]
+                        result = subprocess.run(argv, cwd=ROOT, capture_output=True, text=True, timeout=10)
+                        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+                        self.assertNotIn('Traceback', result.stderr)
+                        self.assertEqual(json.loads(result.stdout), report)
+                        json.dumps(report, allow_nan=False, ensure_ascii=False).encode('utf-8')
+                        self.assertEqual(malformed.read_bytes(), raw)
+        for path, checksum in pinned.items():
+            self.assertEqual(hashlib.sha256((ROOT/path).read_bytes()).hexdigest(), checksum)
     def test_import_has_no_generated_doc_writes(self):
         path = ROOT/'docs/calibration/solid_gci.md'; before = path.read_bytes()
         result = subprocess.run([sys.executable, '-c', 'import fem_solid.gci_report'], cwd=ROOT,
