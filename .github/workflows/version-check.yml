@@ -41,7 +41,12 @@ jobs:
           mkdir -p "$(dirname "$attempt")"
           mkdir "$attempt"
           export JARAMBIT_CLAIM_UNIT_ATTEMPT="$attempt"
-          /home/ubuntu/.rustup/toolchains/1.85.1-x86_64-unknown-linux-gnu/bin/cargo \
+          # xbabe3's runner PATH has no rustc. This cargo looks up rustc on PATH.
+          toolchain=/home/ubuntu/.rustup/toolchains/1.85.1-x86_64-unknown-linux-gnu/bin
+          export PATH="${toolchain}:${PATH}"
+          export RUSTC="${toolchain}/rustc"
+          test -x "$RUSTC"
+          "${toolchain}/cargo" \
             build --release --offline --locked --jobs 1 -p jarambit-evidence \
             --example claim_report --message-format=json > "$attempt/build.jsonl"
           python3 -B - <<'PY'
@@ -100,6 +105,11 @@ jobs:
           mkdir -p "$(dirname "$attempt")"
           mkdir "$attempt"
           export JARAMBIT_FOUNDATION_ATTEMPT="$attempt"
+          # Same toolchain pin as the claim bridge. A bare cargo is absent on xbabe3.
+          toolchain=/home/ubuntu/.rustup/toolchains/1.85.1-x86_64-unknown-linux-gnu/bin
+          export PATH="${toolchain}:${PATH}"
+          export RUSTC="${toolchain}/rustc"
+          test -x "$RUSTC"
           # The required Python wire control needs this exact freshly built Rust fixture.
           cargo test --release --locked -p jarambit-evidence --test assurance_contract \
             --no-run --message-format=json > "$attempt/rust-build.jsonl"
