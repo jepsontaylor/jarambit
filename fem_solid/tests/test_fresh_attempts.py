@@ -94,7 +94,19 @@ class FreshAttempts(unittest.TestCase):
             root = Path(directory); self.positive(root/'positive')
             def missing(*args):
                 complete(*args); args[2].unlink(); return 0
-            with self.assertRaises((OSError, ContractError)): fresh_attempt(root/'missing', identity(), ['mock'], missing)
+            with self.assertRaisesRegex(ContractError, '^missing_or_symlink_artifact$'):
+                fresh_attempt(root/'missing', identity(), ['mock'], missing)
+            attempt = next((root/'missing').glob('attempt-*'))
+            self.assertTrue((attempt/'result.pending.json').is_file())
+            for artifact in ('completion.pending.json', 'result.json', 'manifest.json', 'COMPLETED.json'):
+                self.assertFalse((attempt/artifact).exists())
+            self.assertEqual(json.loads((attempt/'failure.json').read_text()),
+                             {'status': 'incomplete', 'reason': 'missing_or_symlink_artifact',
+                              'execution_kind': 'mock'})
+            with self.assertRaisesRegex(ContractError, '^failed_attempt_not_reusable$'):
+                load_completed(attempt, identity())
+            with self.assertRaisesRegex(ContractError, '^failed_attempt_not_reusable$'):
+                reuse(attempt, identity())
             for artifact in ('manifest.json', 'COMPLETED.json'):
                 original = run_tip.atomic_json
                 def fault(path, value):
