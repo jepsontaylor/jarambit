@@ -1,6 +1,39 @@
 """Fail-closed pro gates and an O(1)-memory animation receipt writer."""
 import json
 import os
+import hashlib
+from pathlib import Path
+
+
+def file_sha256(path):
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for block in iter(lambda: f.read(1 << 20), b''): h.update(block)
+    return h.hexdigest()
+
+
+class FrameCache:
+    """One small receipt per frame; reuse requires matching inputs, state and all plate bytes."""
+    def __init__(self, provenance):
+        self.key = hashlib.sha256(json.dumps(provenance, sort_keys=True).encode()).hexdigest()
+
+    def matches(self, png, state, outputs):
+        try:
+            rec = json.loads(Path(png + '.provenance.json').read_text())
+            return (rec.get('render_provenance_sha256') == self.key
+                    and rec.get('physical_state_sha256') == state
+                    and rec.get('outputs') == {Path(p).name: file_sha256(p) for p in outputs}
+                    and all(Path(p).stat().st_size > 0 for p in outputs))
+        except (OSError, ValueError, AttributeError):
+            return False
+
+    def mark(self, png, state, outputs):
+        rec = {'render_provenance_sha256': self.key, 'physical_state_sha256': state,
+               'outputs': {Path(p).name: file_sha256(p) for p in outputs}}
+        path = png + '.provenance.json'
+        with open(path + '.partial', 'w') as f:
+            json.dump(rec, f); f.flush(); os.fsync(f.fileno())
+        os.replace(path + '.partial', path)
 
 
 def passed(check):

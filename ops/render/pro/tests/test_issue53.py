@@ -40,6 +40,7 @@ def test_protected_regions_per_finish(shader_results, finish, override):
     assert row['mark_pixel_max_diff'] < 1e-6
     assert row['antialiased_mark_pixel_max_diff'] < 1e-6
     assert row['grind_pixel_max_diff'] < 1e-6
+    assert row['mark_metallic'] == 1 and not row['mark_metallic_linked']
     assert all(p['value'] == 0 and not p['linked'] for p in row['protected_inputs'].values())
     if finish == 'flame':
         assert row['body_pixel_diff'] > .01  # Finish is still active outside protected regions.
@@ -87,6 +88,13 @@ def worker_env(tmp_path):
     r = SimpleNamespace(image_settings=SimpleNamespace())
     scene = SimpleNamespace(render=r, frame_set=lambda n: None)
     image = SimpleNamespace(save_render=lambda p, scene: None)
+    def render(**kw):
+        calls.append(kw)
+        if getattr(r, 'filepath', '').endswith('.png'):
+            Path(r.filepath).write_bytes(b'new frame')
+            tag = Path(r.filepath).stem
+            for plate in ('sig', 'idx'):
+                (tmp_path / f'qa_{plate}_{tag}_0001.png').write_bytes(b'new plate')
     env = dict(A={'--anim': str(film)}, CFG={'shots': [{'name': 'fixture', 'sig_side': 'front'}], 'flame': {}},
                json=json, os=os, time=time, np=np, hashlib=hashlib, Q=qa, BASE_LIGHTS={}, OUT=str(tmp_path),
                PREP=str(tmp_path), r=r, sc=scene, reset_lights=lambda: None, place_camera=lambda s: .1,
@@ -97,7 +105,7 @@ def worker_env(tmp_path):
                MAN={'edge_qa': {'pass': True}, 'source': {}},
                fo=SimpleNamespace(file_slots=[SimpleNamespace(), SimpleNamespace()]),
                bpy=SimpleNamespace(data=SimpleNamespace(images={'Render Result': image}), app=SimpleNamespace(version_string='test'),
-                                   ops=SimpleNamespace(render=SimpleNamespace(render=lambda **kw: calls.append(kw)))),
+                                   ops=SimpleNamespace(render=SimpleNamespace(render=render))),
                frame_qa_image=lambda p, f: {'pass': True},
                image_pixels=lambda p, raw=False: np.full((4, 4, 4), .5 if 'qa_idx_' in p else .02),
                cd=SimpleNamespace(lens=85, dof=SimpleNamespace(use_dof=False)),
