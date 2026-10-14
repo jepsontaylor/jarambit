@@ -3,15 +3,17 @@ import copy
 import json
 import os
 import re
+import shutil
 from pathlib import Path
 import subprocess
+import sys
 import threading
 import tempfile
 import unittest
 import unicodedata
 from unittest import mock
 from assurance.testing import contracts as c
-from assurance.testing.catalog import bind_policy, build_catalog
+from assurance.testing.catalog import bind_policy, build_catalog, source_bundle
 from assurance.testing.receipt import publish_receipt
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -349,6 +351,62 @@ class Contracts(unittest.TestCase):
         validator.validate(case())
         for bad in [{**case(), 'unknown': True}, {**case(), 'schema': 99}, {**case(), 'required': 1}]:
             self.assertTrue(list(validator.iter_errors(bad)))
+
+    def test_executable_initializers_and_new_import_inputs_withdraw_old_receipts(self):
+        from ops.ci.test_inventory import check
+        frozen = source_bundle(ROOT)
+        policy = json.loads((ROOT/'assurance/testing/policy.json').read_text())
+        self.assertEqual(frozen, policy['source_bundle'])
+        self.assertEqual(c.scientific_hash(frozen), policy['source_input_sha256'])
+        release = json.loads((ROOT/'assurance/policies/release-v1.json').read_text())
+        catalog = build_catalog(release, policy['source_input_sha256'])
+        guard = b'\nfrom assurance.testing import contracts\ncontracts.finite = lambda value: float(value)\n'
+        with tempfile.TemporaryDirectory() as directory:
+            def fixture(name):
+                root = Path(directory)/name
+                for path in set(frozen) | {'assurance/testing/policy.json', 'assurance/policies/release-v1.json'}:
+                    source = ROOT/path
+                    if source.is_file():
+                        dest = root/path; dest.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(source, dest)
+                self.assertEqual(source_bundle(root), frozen)
+                (root/'catalog.json').write_text(json.dumps(catalog))
+                records = root/'receipts'; records.mkdir(); (records/'result').write_bytes(ARTIFACTS['result'])
+                for cs in catalog: (records/(cs['id']+'.json')).write_text(json.dumps(receipt(cs)))
+                with mock.patch('ops.ci.test_inventory.ROOT', root):
+                    self.assertEqual(check(root/'catalog.json', records, root/'assurance/testing/policy.json')['support'], 'complete')
+                return root
+
+            # Exercise real imports after existing and previously absent initializers alter a guard.
+            for i, initializer in enumerate(['assurance/testing/__init__.py', 'assurance/__init__.py',
+                                              'assurance/testing/tests/__init__.py', 'ops/__init__.py', 'ops/ci/__init__.py']):
+                root = fixture(str(i)); target = root/initializer
+                target.write_bytes((target.read_bytes() if target.exists() else b'') + guard)
+                self.assertNotEqual(source_bundle(root), frozen)
+                script = '''from assurance.testing import contracts
+import assurance.testing.tests
+from ops.ci.test_inventory import check
+from pathlib import Path
+assert contracts.finite(True) == 1.0
+try:
+    check(Path('catalog.json'), Path('receipts'), Path('assurance/testing/policy.json'))
+except contracts.ContractError as error:
+    assert 'source/input' in str(error), error
+else:
+    raise AssertionError('old receipt inventory admitted after runtime mutation')
+'''
+                run = subprocess.run([sys.executable, '-c', script], cwd=root, capture_output=True, text=True, timeout=30)
+                self.assertEqual(run.returncode, 0, run.stdout+run.stderr)
+            root = fixture('new-module')
+            (root/'assurance/testing/new_input.py').write_text('value = 1\n')
+            self.assertNotEqual(source_bundle(root), frozen)
+            with mock.patch('ops.ci.test_inventory.ROOT', root), self.assertRaisesRegex(c.ContractError, 'source/input'):
+                check(root/'catalog.json', root/'receipts', root/'assurance/testing/policy.json')
+            root = fixture('escape')
+            (root/'assurance/testing/escape.py').symlink_to(ROOT/'assurance/testing/contracts.py')
+            with self.assertRaisesRegex(c.ContractError, 'symlink'): source_bundle(root)
+            root = fixture('unsupported')
+            (root/'assurance/testing/unsupported.py').write_text('from ops.render import pro_hero\n')
+            with self.assertRaisesRegex(c.ContractError, 'unsupported local import'): source_bundle(root)
 
 
 if __name__ == '__main__':
