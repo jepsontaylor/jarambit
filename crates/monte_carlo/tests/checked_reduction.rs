@@ -194,6 +194,7 @@ fn huge_cancellation_keeps_the_exact_power_of_two() {
         assert_eq!(s.sum.unwrap().to_bits(), sum_bits);
         assert_eq!(s.mean.unwrap().to_bits(), mean_bits);
     }
+    assert_eq!((-b / 3.0).to_bits(), 0xffc5_5555_5555_5555u64);
     let negative = [[-b, -b, b], [-b, b, -b], [b, -b, -b]];
     for order in negative {
         let s = reduce_rows(3, &rows_of(&order)).unwrap();
