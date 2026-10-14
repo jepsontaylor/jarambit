@@ -67,8 +67,16 @@ jobs:
                   assert '\n' not in value and '\r' not in value
                   output.write(name+'='+value+'\n')
           PY
-      - name: Claim checker — scoped PASS, RS verdict blocks, default evaluator (PR-0.28.2)
-        run: python3 ops/ci/check_claims.py
+      - name: Claim checker — checkout admission, then scoped public documents
+        run: |
+          python3 -B - <<'PY'
+          import os, sys
+          from ops.ci.claim_admission import checkout_main
+          # The runner records GITHUB_SHA. The string is not an authority:
+          # checkout_main refuses unless it is the commit object and the
+          # blobs this job checked out. This does not install a TrustedCaller.
+          sys.exit(checkout_main(os.environ.get('GITHUB_SHA', '')))
+          PY
       - name: STATUS.md is generated and current (PR-0.28.5)
         run: python3 ops/ci/gen_status.py --check
       - name: Media manifests match outputs and inputs (ops/render)

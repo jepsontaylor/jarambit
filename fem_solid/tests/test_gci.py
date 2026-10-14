@@ -131,6 +131,33 @@ class GCI(unittest.TestCase):
                     self.assertIsNone(result.gci_fine)
                     json.dumps(result.to_dict(), allow_nan=False, ensure_ascii=False).encode('utf-8')
 
+    def test_historical_adapter_refuses_the_seven_defects(self):
+        """The typed gci() call must not pass, raise, or report convergence."""
+        cases = (
+            (10, 12, 13, 2, 'nonpositive_observed_order'),
+            (10, 11, 12, 2, 'nonpositive_observed_order'),
+            (10, 10, 100, 2, 'fine_pair_plateau'),
+            (10, 10, 10, 2, 'all_levels_equal'),
+            (0, 1, 2, 2, 'zero_reference_quantity'),
+        )
+        for f1, f2, f3, ratio, reason in cases:
+            report = gci(f1, f2, f3, ratio)
+            self.assertEqual(report['reason'], reason)
+            self.assertNotEqual(report['fit_status'], FitStatus.VALID.value)
+            self.assertFalse(report['admitted'])
+            self.assertFalse(report['relative_error_available'])
+        for ratio in (1, 0, -2):
+            report = gci(10, 12, 13, ratio)
+            self.assertEqual(report['fit_status'], FitStatus.INVALID.value)
+            self.assertFalse(report['admitted'])
+        for bad in (math.nan, math.inf, -math.inf):
+            report = gci(bad, 12, 13, 2)
+            self.assertEqual(report['fit_status'], FitStatus.INVALID.value)
+            self.assertFalse(report['admitted'])
+        empty = compute_gci(10, 12, 13, 2, levels=())
+        self.assertEqual(empty.reason, 'three_ordered_levels_required')
+        self.assertFalse(empty.admitted)
+
     def test_T01_18_peak_singularity(self):
         global_result = self.positive(); local = compute_gci(10, 12, 13, 2, levels=levels())
         self.assertTrue(global_result.admitted); self.assertFalse(local.admitted)

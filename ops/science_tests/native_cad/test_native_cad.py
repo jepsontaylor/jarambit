@@ -463,5 +463,34 @@ class CandidateTests(unittest.TestCase):
         self.assertNotIn("direct_native", text)
 
 
+class EarlierRevisionPins(unittest.TestCase):
+    """C.9.2 and C.9.3 use the same pin rules as C.10a. They are not product passes."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.reports = {name: evaluate_subject(name) for name in ("C92", "C93")}
+
+    def test_identity_sentences_are_in_the_pinned_readme(self):
+        for name in ("C92", "C93"):
+            text = read_pin(SUBJECTS[name]["readme"]).decode()
+            self.assertIn(SUBJECTS[name]["claim_snippets"]["identity"], text)
+            self.assertIsNone(SUBJECTS[name]["genome_id"])
+
+    def test_step_mass_and_stl_are_measured(self):
+        for name, report in self.reports.items():
+            self.assertTrue(report["identity_ok"])
+            self.assertEqual(report["step"]["solids"], 1)
+            self.assertEqual(report["step"]["units"], "mm")
+            self.assertEqual(report["step"]["units_source"], "step_declaration")
+            self.assertEqual(report["mass"]["step_vs_readme"]["status"], "PASS")
+            self.assertTrue(report["stl"]["watertight_exact"])
+            self.assertEqual(report["mass"]["stl_vs_readme"]["status"], "PASS")
+            self.assertEqual(report["geometry_status"], "PASS")
+            self.assertEqual(report["genome_binding"], "INCOMPLETE")
+            self.assertEqual(report["candidate_status"], "INCOMPLETE")
+            self.assertFalse(report["pipeline_eligible"])
+            self.assertFalse(report["physical_qualification"])
+
+
 if __name__ == "__main__":
     unittest.main()

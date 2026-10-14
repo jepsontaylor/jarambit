@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import unittest
 import uuid
 from unittest.mock import patch
@@ -221,3 +222,69 @@ class OperatorAdmission(unittest.TestCase):
         self.healthy()
         code, output = self.run_checker({'authority': str(self.authority)})
         self.assertEqual(code, 2); self.assertIn('independent_caller_admission_required', output)
+
+
+class CheckoutAdmission(unittest.TestCase):
+    """The recorded commit admits the public-document check and nothing else."""
+
+    def test_direct_checker_and_standalone_admission_still_refuse(self):
+        env = os.environ.copy()
+        env['GITHUB_SHA'] = 'a' * 40
+        env['JARAMBIT_CALLER_ADMISSION'] = 'not-an-authority'
+        for script in ('ops/ci/check_claims.py', 'ops/ci/claim_admission.py'):
+            run = subprocess.run([sys.executable, script], cwd=ROOT, env=env,
+                                 capture_output=True, text=True)
+            self.assertEqual(run.returncode, 2, run.stdout + run.stderr)
+            self.assertIn('independent_caller_admission_unavailable', run.stdout)
+
+    def test_wrong_or_missing_sha_is_a_refusal(self):
+        head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+        with patch.dict(os.environ, {'GITHUB_SHA': head}):
+            for recorded in ('', 'not-a-sha', '0' * 40, head[:-1] + ('0' if head[-1] != '0' else '1')):
+                code, output = self._run(recorded)
+                self.assertEqual(code, 2, output)
+                self.assertIn('checkout_sha_refused', output)
+
+    def test_dirty_blob_refuses_a_matching_sha(self):
+        root = self._fixture_repo()
+        head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
+        readme = root / 'README.md'
+        readme.write_text(readme.read_text(encoding='utf-8') + '\n')
+        code, output = self._run(head, root)
+        self.assertEqual(code, 2, output)
+        self.assertIn('checkout_sha_refused', output)
+
+    def test_matching_checkout_is_the_only_success(self):
+        root = self._fixture_repo()
+        head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
+        code, output = self._run(head, root)
+        self.assertEqual(code, 0, output)
+        self.assertIn('check_claims: 0 violation(s)', output)
+        code, output = self._run('0' * 40, root)
+        self.assertEqual(code, 2, output)
+
+    def _run(self, recorded, root=ROOT):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            code = claim_admission.checkout_main(recorded, root)
+        return code, output.getvalue()
+
+    def _fixture_repo(self):
+        directory = Path(self.id().replace('.', '_') + '-' + uuid.uuid4().hex)
+        # Keep the fixture under the repo's parent so it is a real git dir,
+        # and remove it when the test ends.
+        root = ROOT / '.agent' / 'cad-battery-fixtures' / directory.name
+        if root.exists():
+            shutil.rmtree(root)
+        root.mkdir(parents=True)
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        for rel in claim_admission._CHECKOUT_BLOBS:
+            target = root / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / rel, target)
+        subprocess.check_call(['git', 'init', '-q'], cwd=root)
+        subprocess.check_call(['git', 'add', '--', *claim_admission._CHECKOUT_BLOBS], cwd=root)
+        subprocess.check_call(
+            ['git', '-c', 'user.email=bot@jekko.ai', '-c', 'user.name=jekko',
+             'commit', '-q', '-m', 'fixture checkout'], cwd=root)
+        return root
