@@ -5,7 +5,7 @@ Manufactured fields are interpolated exactly (P2 displacement, DG0/DG1 tensors) 
 dg_von_mises / validate_observable_contract / geometry_vertex_association / recover_vertex_vm path. Expected descriptors
 come from the trusted catalog, never from the output. Operator classes raise a required-capability ERROR when the provider
 is missing (never a skip); the Catalog class needs only the standard library and the accepted assurance package."""
-import ast, hashlib, json, math, os, re, sys, unittest
+import ast, copy, hashlib, json, math, os, re, sys, unittest
 from fractions import Fraction
 import numpy as np
 
@@ -49,11 +49,12 @@ def record(row, **kv):
 
 
 def laundered(descriptor, **changes):
-    """Relabel a descriptor and re-seal its content hash, i.e. the strongest metadata-only laundering."""
+    """Relabel a descriptor and re-seal its content hash and GCI identity, i.e. the strongest metadata-only laundering."""
     body = {k: v for k, v in descriptor.items() if k not in ("content_sha256", "gci_observable")}
     body.update(changes)
     sha = hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode()).hexdigest()
-    return {**body, "content_sha256": sha}
+    gci = {"id": f"{body['operator']}@{sha[:16]}", "units": body["units"], "region": body["region"]["id"], "projection": body["operator"], "metric": body["quantity"]}
+    return {**body, "content_sha256": sha, "gci_observable": gci}
 
 
 def lagrange_mesh(vertices, cells, degree=1):
@@ -383,8 +384,90 @@ class Producer(Operator):
                 record(f"09-producer-adverse/original/{row}", literal=literal, refused=e.reason, detail=e.detail)
 
 
+class GciIdentity(Operator):
+    """Forward52 (S07-SRC-R001-P2-1): the nested GCI identity is closed and regenerated; tampering refuses at both seams."""
+
+    def setUp(self):
+        self.msh = lagrange_mesh(TET, [[0, 1, 2, 3]], 1)
+        self.uh, self.sig, self.vmh, self.desc = manufactured_vm(self.msh, lambda x: x * x / (2 * E))
+
+    def test_healthy_identity_is_the_regenerated_object(self):
+        d = S.validate_observable_contract(self.vmh, copy.deepcopy(self.desc), VM_DG1)
+        want = {"id": "dg_vm_interpolation.v1@" + self.desc["content_sha256"][:16], "units": "MPa", "region": "whole_domain",
+                "projection": "dg_vm_interpolation.v1", "metric": "von_mises_stress"}
+        self.assertEqual(d["gci_observable"], want); self.assertEqual(d, self.desc)
+        rec = self.vertex_vm(self.msh, self.vmh, copy.deepcopy(self.desc), [0, 1, 2, 3])
+        self.assertEqual(rec["field"], want); self.assertTrue(allclose(rec["values"], [1, 1, 1, 1]))
+        record("forward52-gci-positive", gci=want)
+
+    def test_nested_identity_tampering_refuses_at_validator_and_recovery(self):
+        def changed(**kv):
+            d = copy.deepcopy(self.desc); d["gci_observable"].update(kv); return d
+
+        def edited(fn):
+            d = copy.deepcopy(self.desc); fn(d); return d
+        cases = [("id", changed(id="false_l2_identity"), "gci_observable_mismatch"), ("projection", changed(projection="l2_projection"), "gci_observable_mismatch"),
+                 ("units", changed(units="Pa"), "gci_observable_mismatch"), ("region", changed(region="tip_annulus_roi.v1"), "gci_observable_mismatch"),
+                 ("metric", changed(metric="max_principal"), "gci_observable_mismatch"),
+                 ("missing object", edited(lambda d: d.pop("gci_observable")), "incomplete_observable_contract"),
+                 ("missing nested key", edited(lambda d: d["gci_observable"].pop("metric")), "gci_observable_schema"),
+                 ("extra nested field", changed(certified=True), "gci_observable_schema"),
+                 ("malformed string", edited(lambda d: d.__setitem__("gci_observable", "dg_vm_interpolation.v1")), "gci_observable_schema"),
+                 ("malformed list", edited(lambda d: d.__setitem__("gci_observable", list(self.desc["gci_observable"].items()))), "gci_observable_schema"),
+                 ("extra top-level key, re-hashed", laundered({**self.desc, "qualified": True}), "descriptor_mismatch")]
+        for label, bad, reason in cases:
+            with self.subTest(case=label):
+                if label != "extra top-level key, re-hashed":
+                    self.assertEqual(bad["content_sha256"], self.desc["content_sha256"])  # the checked body hash cannot see the change
+                a = self.assertRefused(reason, S.validate_observable_contract, self.vmh, bad, VM_DG1)
+                b = self.assertRefused(reason, S.recover_vertex_vm, self.msh, self.vmh, "max", descriptor=bad, expected_descriptor=VM_DG1, input_nodes=[0, 1, 2, 3])
+                record("forward52-gci-adverse", case=label, validator=a.reason, recovery=b.reason)
+
+
+class EntityIds(Operator):
+    """Forward52 (S07-SRC-R001-P2-2): requested input node ids are validated before any integer cast or lookup."""
+
+    def setUp(self):
+        self.msh = lagrange_mesh(TET, [[0, 1, 2, 3]], 1)
+        self.uh, self.sig, self.vmh, self.desc = manufactured_vm(self.msh, lambda x: x * x / (2 * E))
+
+    def test_integer_ids_select_exact_nodes(self):
+        for ids in ([3, 0], (3, 0), np.array([3, 0], dtype=np.int64)):
+            with self.subTest(ids=repr(ids)):
+                rec = self.vertex_vm(self.msh, self.vmh, self.desc, ids)
+                self.assertEqual(rec["input_node"].tolist(), [3, 0])
+        record("forward52-entity-positive", ids=["list", "tuple", "int64 array"])
+
+    def test_malformed_ids_refuse_before_cast(self):
+        cases = [("fractional", [0.5]), ("bool", [False]), ("bool true", [True]), ("nan", [float("nan")]), ("inf", [float("inf")]),
+                 ("unhashable", [[0]]), ("string", ["0"]), ("negative", [-1]), ("out of range", [2 ** 70]), ("empty", []),
+                 ("scalar", 0), ("string container", "0123"), ("set", {0}), ("float array", np.array([0.0, 1.0])), ("2-D array", np.array([[0, 1]]))]
+        for label, ids in cases:
+            with self.subTest(case=label):
+                e = self.assertRefused("invalid_entity_id", S.recover_vertex_vm, self.msh, self.vmh, "max", descriptor=self.desc, expected_descriptor=VM_DG1, input_nodes=ids)
+                record("forward52-entity-adverse", case=label, refused=e.reason)
+
+
 class Catalog(unittest.TestCase):
     """Host-runnable binding of the catalog to accepted S01 hashing/case schema and to the test sources it names."""
+
+    def test_forward52_controls_are_additive_and_bound(self):
+        ph = CATALOG["s07_phase"]; fw = ph["forward_controls_052"]; rows = fw["rows"]
+        self.assertEqual(scientific_hash(rows), ph["forward_controls_052_sha256"])
+        unique_ids(r["id"] for r in rows)
+        s07 = {b["bucket"]: b for b in ph["buckets"]}
+        for r in rows:
+            self.assertIn(r["bucket"], s07, r["id"]); self.assertNotIn(r["bucket"], ph["S08_held_buckets"])
+            self.assertEqual(r["case"], s07[r["bucket"]]["case"]); self.assertIn(r["polarity"], ("positive", "adverse"))
+            self.assertEqual((r["input_ref"], r["oracle_ref"], r["execution"]), (scientific_hash(r["input"]), scientific_hash(r["expected"]), "not_run"))
+        self.assertEqual(fw["counts"]["rows"], len(rows))
+        self.assertEqual({f: sum(r["finding"] == f for r in rows) for f in fw["counts"]["by_finding"]}, fw["counts"]["by_finding"])
+        self.assertEqual(set(fw["counts"]["by_finding"]), {"S07-SRC-R001-P2-1", "S07-SRC-R001-P2-2", "S07-SRC-R001-P2-3"})
+        for f in fw["counts"]["by_finding"]:
+            self.assertTrue({r["polarity"] for r in rows if r["finding"] == f} >= {"adverse"}, f)
+        self.assertTrue(any(r["polarity"] == "positive" for r in rows if r["finding"] == "S07-SRC-R001-P2-1"))
+        self.assertTrue(any(r["polarity"] == "positive" for r in rows if r["finding"] == "S07-SRC-R001-P2-2"))
+        self.assertEqual((len(ph["cases"]), len(ph["buckets"]), sum(len(b["rows"]) for b in ph["buckets"])), (10, 44, 107))  # originals unchanged
 
     def test_descriptor_hashes(self):
         for o in CATALOG["observables"] + CATALOG["regions"]:
@@ -436,6 +519,7 @@ class Catalog(unittest.TestCase):
         names += [r["test"] for b in CATALOG["s07_phase"]["buckets"] for r in b["rows"] if r["test"]]
         names += [p["test"] for b in CATALOG["s07_phase"]["buckets"] for r in b["rows"] for p in r.get("providers", [])]
         names.append(CATALOG["inherited_regression"]["interpolated_field_is_not_labeled_as_l2_projection"]["test"])
+        names += [r["test"] for r in CATALOG["s07_phase"]["forward_controls_052"]["rows"]]
         for name in names:
             path, test = name.split("::")
             self.assertIn(test, rust if path.endswith(".rs") else sources[path], name)
