@@ -3,7 +3,9 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import signal
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -11,6 +13,54 @@ WRAPPER = ROOT / 'ops/ci/run_bounded.sh'
 
 
 class BoundedCITests(unittest.TestCase):
+    def test_pid_cancellation_stops_body_and_detached_child_preserves_other_job(self):
+        def alive(pid):
+            try:
+                text = Path(f'/proc/{pid}/stat').read_text()
+                return text[text.rfind(')') + 2:].split()[0] != 'Z'
+            except FileNotFoundError:
+                return False
+
+        for signum in (signal.SIGINT, signal.SIGTERM):
+            with self.subTest(signum=signum), tempfile.TemporaryDirectory() as temporary:
+                folder = Path(temporary)
+                pidfile = folder / 'owned-pids.json'
+                payload = folder / 'body.py'
+                payload.write_text('import json,os,subprocess,time\n'
+                                   'from pathlib import Path\n'
+                                   'p=subprocess.Popen(["sleep","30"],start_new_session=True)\n'
+                                   f'Path({str(pidfile)!r}).write_text(json.dumps([os.getpid(),p.pid]))\n'
+                                   'time.sleep(30)\n')
+                body = folder / 'body.sh'
+                body.write_text('exec python3 "' + str(payload) + '"\n')
+                sentinel = subprocess.Popen(['sleep', '30'])
+                process = subprocess.Popen(['bash', str(WRAPPER), 'version', str(body)],
+                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                owned = []
+                try:
+                    deadline = time.monotonic() + 15
+                    while not pidfile.exists() and process.poll() is None and time.monotonic() < deadline:
+                        time.sleep(0.02)
+                    self.assertTrue(pidfile.exists(), 'bounded body did not start')
+                    owned = json.loads(pidfile.read_text())
+                    process.send_signal(signum)
+                    stdout, stderr = process.communicate(timeout=10)
+                    self.assertEqual(process.returncode, 128 + signum, stdout + stderr)
+                    deadline = time.monotonic() + 3
+                    while any(alive(pid) for pid in owned) and time.monotonic() < deadline:
+                        time.sleep(0.02)
+                    self.assertFalse(any(alive(pid) for pid in owned), 'owned work survived cancellation')
+                    self.assertIsNone(sentinel.poll(), 'unrelated sentinel was stopped')
+                finally:
+                    if process.poll() is None:
+                        process.terminate()
+                        process.communicate(timeout=10)
+                    for pid in owned:
+                        if alive(pid):
+                            os.kill(pid, signal.SIGKILL)  # only this fixture's recorded children
+                    sentinel.terminate()
+                    sentinel.wait(timeout=5)
+
     def test_invalid_profile_never_executes_body(self):
         with tempfile.TemporaryDirectory() as temporary:
             folder = Path(temporary)

@@ -32,7 +32,8 @@ PY
   )
   export XDG_RUNTIME_DIR="/run/user/$(id -u)"
   export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
-  exec /home/ubuntu/bin/memcap "$memory" -- nice -n 19 taskset -c "$selected" \
+  exec python3 "$(dirname "$0")/bounded_process.py" \
+    /home/ubuntu/bin/memcap "$memory" -- nice -n 19 taskset -c "$selected" \
     env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
     CARGO_BUILD_JOBS="$cpus" RUST_TEST_THREADS="$cpus" JARAMBIT_CI_BOUNDED=1 \
     bash "$0" --inside "$profile" "$script"
@@ -40,7 +41,7 @@ fi
 
 # Check actual enforcement before executing the job body; a marker is insufficient.
 python3 - "$memory_bytes" "$cpus" <<'PY'
-import json, os, pathlib, sys
+import json, os, pathlib, sys, time
 expected_memory, maximum_cpus = map(int, sys.argv[1:])
 relative = pathlib.Path("/proc/self/cgroup").read_text().strip().split("::", 1)[1]
 group = pathlib.Path("/sys/fs/cgroup") / relative.lstrip("/")
@@ -58,6 +59,16 @@ for name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
     require(os.environ.get(name) == "1", name + " not bounded")
 for name in ("CARGO_BUILD_JOBS", "RUST_TEST_THREADS"):
     require(0 < int(os.environ[name]) <= maximum_cpus, name + " not bounded")
+report = pathlib.Path(os.environ['JARAMBIT_CI_SCOPE_REPORT'])
+ack = pathlib.Path(os.environ['JARAMBIT_CI_SCOPE_ACK'])
+temporary = report.with_suffix('.pending')
+with temporary.open('x') as output:
+    json.dump({'pid': os.getppid(), 'cgroup': relative}, output)
+temporary.replace(report)
+deadline = time.monotonic() + 30
+while not ack.exists():
+    require(time.monotonic() < deadline, 'scope supervisor acknowledgement missing')
+    time.sleep(0.02)
 print("CI_RESOURCE_PROBE=" + json.dumps({"memory_max": int(memory), "swap_max": 0,
       "affinity": affinity, "native_pools": 1, "nice": os.getpriority(os.PRIO_PROCESS, 0)}), flush=True)
 PY
