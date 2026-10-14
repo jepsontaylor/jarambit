@@ -423,9 +423,20 @@ class FreshVsReuse(unittest.TestCase):
                                   'reused_from': {'attempt_id': 'attempt-001', 'scope': 'unchanged placeholder inputs'},
                                   **changes})
 
+    ARGV = ['python3', '-B', '-m', 'unittest']
+
+    def execution(self, **changes):
+        """A caller-pinned current-execution receipt for attempt-002 whose deterministic output equals history."""
+        record = {'schema': 1, 'producer': 'placeholder trusted runner', 'attempt_id': 'attempt-002',
+                  'input_sha256': self.CURRENT, 'argv': list(self.ARGV), 'exit_code': 0, 'timed_out': False,
+                  'started_utc': '2026-01-01T00:00:00Z', 'ended_utc': '2026-01-01T00:00:01Z',
+                  'artifacts': {'log': toy_digest('old log')}, **changes}
+        return record, scientific_hash(record)
+
     def test_T19_06_positive_fresh_and_scoped_reuse_labeled(self):
         fresh = s.classify_run(self.run_record(), self.CURRENT, self.HISTORY)
-        self.assertEqual(fresh, {'mode': 'fresh', 'counts_as_fresh_execution': True})
+        self.assertEqual(fresh, {'mode': 'fresh', 'counts_as_fresh_execution': True,
+                                 'identical_to_history': False, 'attested': False})
         reused = s.classify_run(self.reuse(), self.CURRENT, self.HISTORY)
         self.assertEqual((reused['mode'], reused['counts_as_fresh_execution']), ('reuse', False))
         history = {'schema': 1, 'attempts': self.HISTORY}
@@ -455,6 +466,40 @@ class FreshVsReuse(unittest.TestCase):
                                     'unknown outcome': (bad_outcome, scientific_hash(bad_outcome))}.items():
             with self.subTest(name), self.assertRaises(ContractError):
                 s.validate_history(record, pin)
+
+    def test_T19_06_positive_attested_fresh_output_may_equal_history(self):
+        identical = self.run_record(artifacts={'log': toy_digest('old log')})
+        execution, pin = self.execution()
+        self.assertEqual(s.classify_run(identical, self.CURRENT, self.HISTORY, execution, pin, self.ARGV, 0),
+                         {'mode': 'fresh', 'counts_as_fresh_execution': True, 'identical_to_history': True, 'attested': True})
+        reused = s.classify_run(self.reuse(), self.CURRENT, self.HISTORY, execution, pin, self.ARGV, 0)
+        self.assertEqual((reused['mode'], reused['counts_as_fresh_execution']), ('reuse', False))
+
+    def test_T19_06_adverse_unattested_or_unbound_identical_output_refused(self):
+        identical = self.run_record(artifacts={'log': toy_digest('old log')})
+        with self.assertRaisesRegex(ContractError, 'historical artifact bytes claimed fresh'):
+            s.classify_run(identical, self.CURRENT, self.HISTORY)
+        unbound = {'other attempt': self.execution(attempt_id='attempt-009'),
+                   'other source': self.execution(input_sha256=toy_digest('other input')),
+                   'other argv': self.execution(argv=['python3', '-m', 'unittest']),
+                   'failed exit': self.execution(exit_code=1),
+                   'timed out': self.execution(timed_out=True),
+                   'other artifact': self.execution(artifacts={'log': toy_digest('new log')})}
+        for name, (execution, pin) in unbound.items():
+            with self.subTest(name), self.assertRaisesRegex(ContractError, 'does not attest this run'):
+                s.classify_run(identical, self.CURRENT, self.HISTORY, execution, pin, self.ARGV, 0)
+        execution, pin = self.execution()
+        flagged = {**execution, 'actually_executed': True}
+        malformed = {'pin mismatch': (execution, toy_digest('other pin')),
+                     'executed flag': (flagged, scientific_hash(flagged)),
+                     'reversed interval': self.execution(started_utc='2026-01-01T00:00:02Z'),
+                     'local time': self.execution(ended_utc='2026-01-01T01:00:01+01:00')}
+        for name, (record, record_pin) in malformed.items():
+            with self.subTest(name), self.assertRaises(ContractError):
+                s.classify_run(identical, self.CURRENT, self.HISTORY, record, record_pin, self.ARGV, 0)
+        relabeled = self.run_record(attempt_id='attempt-001', artifacts={'log': toy_digest('old log')})
+        with self.assertRaisesRegex(ContractError, 'historical attempt relabeled fresh'):
+            s.classify_run(relabeled, self.CURRENT, self.HISTORY, *self.execution(attempt_id='attempt-001'), self.ARGV, 0)
 
 
 class DossierInterface(unittest.TestCase):
@@ -582,14 +627,25 @@ class Collector(Workspace):
     def catalog(self):
         return s.build_catalog(ROOT)
 
-    def publish(self, log, name='attempt', attempt_id='placeholder-attempt', history=EMPTY_HISTORY, pin=PIN):
+    ARGV = ['python3', '-B', '-m', 'unittest']
+
+    def publish(self, log, name='attempt', attempt_id='placeholder-attempt', history=EMPTY_HISTORY, pin=PIN,
+                execution=None, execution_pin=None):
         attempt = self.root/name
-        s.publish_attempt(attempt, self.catalog(), log, ['python3', '-B', '-m', 'unittest'], 0, attempt_id,
-                          TOY_IDS, history, pin)
+        s.publish_attempt(attempt, self.catalog(), log, list(self.ARGV), 0, attempt_id,
+                          TOY_IDS, history, pin, execution, execution_pin)
         return attempt
 
-    def collect(self, attempt, history=EMPTY_HISTORY, pin=PIN, expected=TOY_IDS):
-        return s.collect(self.catalog(), attempt, expected, history, pin)
+    def collect(self, attempt, history=EMPTY_HISTORY, pin=PIN, expected=TOY_IDS, execution=None, execution_pin=None):
+        return s.collect(self.catalog(), attempt, expected, history, pin, execution, execution_pin)
+
+    def execution_for(self, log, attempt_id, **changes):
+        """The trusted runner's pinned receipt for the run that produced these (deterministic) bytes."""
+        record = {'schema': 1, 'producer': 'placeholder trusted runner', 'attempt_id': attempt_id,
+                  'input_sha256': self.catalog()[0]['input_sha256'], 'argv': list(self.ARGV), 'exit_code': 0,
+                  'timed_out': False, 'started_utc': '2026-01-01T00:00:00Z', 'ended_utc': '2026-01-01T00:00:01Z',
+                  'artifacts': {s.LOG: raw_hash(log)}, **changes}
+        return record, scientific_hash(record)
 
     def forge_pass(self, attempt, case_id):
         path = attempt/(case_id + '.json')
@@ -695,6 +751,40 @@ class Collector(Workspace):
         with self.assertRaisesRegex(ContractError, 'caller pin'):
             self.publish(log, name='badpin', history=history, pin=self.PIN)
 
+    def test_T19_06_positive_attested_identical_transcript_end_to_end(self):
+        log = self.transcript()
+        history, pin = self.history_with(log)
+        execution, execution_pin = self.execution_for(log, 'placeholder-attested')
+        attempt = self.publish(log, name='attested', attempt_id='placeholder-attested', history=history, pin=pin,
+                               execution=execution, execution_pin=execution_pin)
+        result = self.collect(attempt, history=history, pin=pin, execution=execution, execution_pin=execution_pin)
+        self.assertEqual((result['execution']['T19-01-required_skip'], result['execution_receipt']), ('passed', 'caller_pinned'))
+        self.assertNotIn('T19-01-required_skip', result['missing'])
+        run = strict_loads((attempt/'T19-01-required_skip.run.json').read_bytes(), s.LIMITS)
+        self.assertEqual((run['execution_sha256'], run['run']['artifacts'][s.LOG]), (execution_pin, raw_hash(log)))
+
+    def test_T19_06_adverse_replayed_or_borrowed_receipt_identical_transcript_not_fresh(self):
+        log = self.transcript()
+        history, pin = self.history_with(log)
+        execution, execution_pin = self.execution_for(log, 'placeholder-attested')
+        replay = self.publish(log, name='replay', attempt_id='placeholder-replay', history=history, pin=pin)
+        self.assertIn('historical artifact bytes claimed fresh',
+                      strict_loads((replay/'T19-01-required_skip.json').read_bytes(), s.LIMITS)['reason'])
+        borrowed = self.publish(log, name='borrowed', attempt_id='placeholder-borrowed', history=history, pin=pin,
+                                execution=execution, execution_pin=execution_pin)
+        receipt = strict_loads((borrowed/'T19-01-required_skip.json').read_bytes(), s.LIMITS)
+        self.assertEqual(receipt['execution'], 'error')
+        self.assertIn('does not attest this run: attempt_id', receipt['reason'])
+        self.forge_pass(borrowed, 'T19-01-required_skip')
+        with self.assertRaisesRegex(ContractError, 'does not attest this run'):
+            self.collect(borrowed, history=history, pin=pin, execution=execution, execution_pin=execution_pin)
+        attested = self.publish(log, name='attested', attempt_id='placeholder-attested', history=history, pin=pin,
+                                execution=execution, execution_pin=execution_pin)
+        with self.assertRaisesRegex(ContractError, 'different execution receipt'):
+            self.collect(attested, history=history, pin=pin)
+        with self.assertRaisesRegex(ContractError, 'pin without receipt'):
+            self.collect(attested, history=history, pin=pin, execution_pin=execution_pin)
+
     def test_T19_05_adverse_collector_reads_refuse_replaced_receipt_and_raced_transcript(self):
         attempt = self.publish(self.transcript())
         copy = self.outside/'receipt.json'
@@ -761,6 +851,39 @@ class Collector(Workspace):
                                     '--history-sha256', self.PIN)
         self.assertEqual((code, result['support']), (1, 'error'))
 
+    def cli_identical(self, attempt_id, with_receipt):
+        raw = self.transcript()
+        log, history_path, receipt_path = self.root/'suite.log', self.root/'history.json', self.root/'execution.json'
+        log.write_bytes(raw)
+        history, pin = self.history_with(raw)
+        history_path.write_text(json.dumps(history))
+        execution, execution_pin = self.execution_for(raw, 'placeholder-attested')
+        receipt_path.write_text(json.dumps(execution))
+        receipt = ['--execution', str(receipt_path), '--execution-sha256', execution_pin] if with_receipt else []
+        common = ['--history', str(history_path), '--history-sha256', pin, *receipt]
+        published = self.run_cli('publish', '--attempt', str(self.root/attempt_id), '--log', str(log), '--attempt-id', attempt_id,
+                                 '--exit-code', '0', '--argv-json', json.dumps(self.ARGV), *common)
+        return published, self.run_cli('check', '--receipts', str(self.root/attempt_id), *common)
+
+    def test_T19_06_positive_cli_attested_identical_transcript(self):
+        (code, published), checked = self.cli_identical('placeholder-attested', True)
+        self.assertEqual((code, published['execution']['T19-01-required_skip'], published['execution_receipt']),
+                         (1, 'passed', 'caller_pinned'))
+        self.assertNotIn('T19-01-required_skip', published['missing'])
+        self.assertEqual(checked, (1, published))
+
+    def test_T19_06_adverse_cli_replayed_identical_transcript(self):
+        (code, published), (check_code, checked) = self.cli_identical('placeholder-replay', False)
+        self.assertEqual((code, published['execution']['T19-01-required_skip']), (1, 'error'))
+        self.assertIn('T19-01-required_skip', checked['missing'])
+        code, borrowed = self.run_cli('publish', '--attempt', str(self.root/'borrowed'), '--log', str(self.root/'suite.log'),
+                                      '--attempt-id', 'placeholder-borrowed', '--exit-code', '0', '--argv-json',
+                                      json.dumps(self.ARGV), '--history', str(self.root/'history.json'), '--history-sha256',
+                                      self.history_with((self.root/'suite.log').read_bytes())[1], '--execution',
+                                      str(self.root/'execution.json'), '--execution-sha256',
+                                      scientific_hash(json.loads((self.root/'execution.json').read_text())))
+        self.assertEqual((code, borrowed['execution']['T19-01-required_skip']), (1, 'error'))
+
     def test_T19_01_adverse_cli_publish_partial_transcript_is_error(self):
         log = self.root/'partial.log'
         log.write_bytes(self.transcript(extra=False))
@@ -793,8 +916,11 @@ MUTANTS = {
         "        freshness = 'attempt history unavailable; freshness unproven'\n", "        freshness = None\n",
         ['Collector.test_T19_06_adverse_unavailable_or_historical_transcript_not_fresh']),
     'historical bytes accepted as fresh': (
-        "        require(not old_hashes & set(run['artifacts'].values()), 'historical artifact bytes claimed fresh')\n",
+        "        require(not identical or attested, 'historical artifact bytes claimed fresh')\n",
         "        pass\n", ['FreshVsReuse.test_T19_06_adverse_historical_evidence_claimed_fresh_rejected']),
+    'execution receipt binding ignored': (
+        "    return sorted(k for k, v in expected.items() if execution[k] != v)\n", "    return []\n",
+        ['FreshVsReuse.test_T19_06_adverse_unattested_or_unbound_identical_output_refused']),
     'collector credits without history': (
         "        if attempts is None:\n            continue\n",
         "        if attempts is None:\n            credited.add(record['case_id'])\n            continue\n",

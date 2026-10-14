@@ -9,6 +9,7 @@ never authorizes a release.
 """
 import argparse
 import ast
+from datetime import datetime
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -665,7 +666,42 @@ def validate_history(history, history_sha256):
     return history['attempts']
 
 
-def classify_run(run, current_input_sha256, history):
+UTC_STAMP = re.compile(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$')
+
+
+def validate_execution(execution, execution_sha256):
+    """A current-execution receipt from the trusted producer that ran the attempt, supplied and pinned by the
+    caller (never read from the attempt evidence). It binds producer, attempt, source input, argv, exit,
+    interval and artifact bytes; there is no self-declared executed flag."""
+    require(scientific_hash(execution) == digest(execution_sha256), 'execution receipt differs from its caller pin')
+    fields(execution, ['schema', 'producer', 'attempt_id', 'input_sha256', 'argv', 'exit_code', 'timed_out',
+                       'started_utc', 'ended_utc', 'artifacts'])
+    require(type(execution['schema']) is int and execution['schema'] == 1, 'unknown execution receipt schema')
+    identifier(execution['producer']); identifier(execution['attempt_id']); digest(execution['input_sha256'])
+    require(type(execution['argv']) is list and execution['argv'] and all(type(a) is str and a for a in execution['argv']),
+            'executed argv required')
+    require(type(execution['exit_code']) is int and type(execution['timed_out']) is bool, 'exit and timeout required')
+    stamps = [execution['started_utc'], execution['ended_utc']]
+    require(all(type(t) is str and UTC_STAMP.match(t) for t in stamps), 'UTC execution interval required')
+    started, ended = (datetime.fromisoformat(t[:-1] + '+00:00') for t in stamps)
+    require(started <= ended, 'execution interval reversed')
+    require(type(execution['artifacts']) is dict and execution['artifacts'], 'executed artifacts required')
+    for value in execution['artifacts'].values():
+        digest(value)
+    return execution
+
+
+def execution_binding(execution, run, argv, exit_code):
+    """Fields where the caller's execution receipt does not describe this run; empty when it attests it."""
+    expected = {'attempt_id': run['attempt_id'], 'input_sha256': run['input_sha256'], 'argv': list(argv or []),
+                'exit_code': exit_code, 'timed_out': False, 'artifacts': run['artifacts']}
+    return sorted(k for k, v in expected.items() if execution[k] != v)
+
+
+def classify_run(run, current_input_sha256, history, execution=None, execution_sha256=None, argv=None, exit_code=None):
+    """Fresh, attested-fresh or reuse. Output bytes equal to history are fresh only when the caller-pinned
+    execution receipt attests this exact run; otherwise they are a replay. A supplied receipt that does not
+    bind the run is refused rather than ignored."""
     fields(run, ['mode', 'attempt_id', 'input_sha256', 'artifacts', 'reused_from'])
     identifier(run['attempt_id']); digest(run['input_sha256'])
     require(type(run['artifacts']) is dict and run['artifacts'], 'artifact identities required')
@@ -676,8 +712,15 @@ def classify_run(run, current_input_sha256, history):
         require(run['reused_from'] is None, 'fresh run cannot name a reused source')
         require(run['attempt_id'] not in history, 'historical attempt relabeled fresh')
         require(run['input_sha256'] == current_input_sha256, 'fresh run on different inputs')
-        require(not old_hashes & set(run['artifacts'].values()), 'historical artifact bytes claimed fresh')
-        return {'mode': 'fresh', 'counts_as_fresh_execution': True}
+        attested = False
+        if execution is not None:
+            validate_execution(execution, execution_sha256)
+            unbound = execution_binding(execution, run, argv, exit_code)
+            require(not unbound, 'execution receipt does not attest this run: ' + ', '.join(unbound))
+            attested = True
+        identical = bool(old_hashes & set(run['artifacts'].values()))
+        require(not identical or attested, 'historical artifact bytes claimed fresh')
+        return {'mode': 'fresh', 'counts_as_fresh_execution': True, 'identical_to_history': identical, 'attested': attested}
     require(run['mode'] == 'reuse', 'unknown run mode')
     source = run['reused_from']
     fields(source, ['attempt_id', 'scope'])
@@ -816,13 +859,23 @@ def _write_new(directory_fd, name, data):
         os.close(fd)
 
 
-def publish_attempt(directory, catalog, log, argv, exit_code, attempt_id, expected, history, history_sha256):
+def _caller_execution(execution, execution_sha256):
+    if execution is None:
+        require(execution_sha256 is None, 'execution receipt pin without receipt')
+    else:
+        validate_execution(execution, execution_sha256)
+
+
+def publish_attempt(directory, catalog, log, argv, exit_code, attempt_id, expected, history, history_sha256,
+                    execution=None, execution_sha256=None):
     """Publish one immutable receipt per frozen case; pass/fail derives only from the transcript checked
-    against the trusted expected inventory. history=None means unavailable: every executed case is error."""
+    against the trusted expected inventory. history=None means unavailable: every executed case is error.
+    execution is the caller-pinned current-execution receipt, needed when output bytes equal history."""
     directory = Path(directory)
     require(not os.path.lexists(directory), 'fresh attempt directory required')
     require(type(log) is bytes and len(log) <= LIMITS['max_bytes'], 'raw transcript bytes required')
     expected = trusted_inventory(expected)
+    _caller_execution(execution, execution_sha256)
     parsed = collect_unittest(log.decode('utf-8'), expected)
     input_sha256 = catalog[0]['input_sha256']
     require(all(case['input_sha256'] == input_sha256 for case in catalog), 'catalog input identity differs')
@@ -835,14 +888,15 @@ def publish_attempt(directory, catalog, log, argv, exit_code, attempt_id, expect
     else:
         attempts = validate_history(history, history_sha256)
         try:
-            classify_run(run, input_sha256, attempts)
+            classify_run(run, input_sha256, attempts, execution, execution_sha256, argv, exit_code)
             freshness = None
         except ContractError as error:
             freshness = 'freshness refused: ' + str(error)
     context = (json.dumps({'schema': 1, 'attempt_id': attempt_id, 'expected_inventory': expected,
                            'expected_inventory_sha256': scientific_hash(expected), 'history_sha256': history_sha256,
                            'history': 'unavailable' if history is None else 'caller_pinned',
-                           'freshness_refusal': freshness}, sort_keys=True) + '\n').encode()
+                           'execution_sha256': execution_sha256, 'freshness_refusal': freshness},
+                          sort_keys=True) + '\n').encode()
     directory.mkdir(parents=True)
     directory_fd = os.open(directory, _DIR)
     try:
@@ -853,7 +907,8 @@ def publish_attempt(directory, catalog, log, argv, exit_code, attempt_id, expect
             controls = {c: control_state(tests, c) for c in case['controls']}
             record = (json.dumps({'case_id': case['id'], 'run': run, 'tests': tests, 'suite_problems': parsed['problems'],
                                   'expected_inventory_sha256': scientific_hash(expected), 'history_sha256': history_sha256,
-                                  'upstream': UPSTREAM.get(case['id'])}, sort_keys=True) + '\n').encode()
+                                  'execution_sha256': execution_sha256, 'upstream': UPSTREAM.get(case['id'])},
+                                 sort_keys=True) + '\n').encode()
             _write_new(directory_fd, case['id'] + '.run.json', record)
             artifacts = {LOG: log, CONTEXT: context, case['id'] + '.run.json': record}
             values = list(controls.values())
@@ -881,12 +936,14 @@ def publish_attempt(directory, catalog, log, argv, exit_code, attempt_id, expect
     return directory
 
 
-def collect(catalog, directory, expected, history, history_sha256):
+def collect(catalog, directory, expected, history, history_sha256, execution=None, execution_sha256=None):
     """Resolve frozen receipts through S01 and re-derive every pass from the raw transcript, the trusted
-    expected inventory and the caller-pinned history. history=None (unavailable) credits nothing."""
+    expected inventory, the caller-pinned history and any caller-pinned execution receipt.
+    history=None (unavailable) credits nothing."""
     directory = Path(directory).absolute()
     expected = trusted_inventory(expected)
     attempts = None if history is None else validate_history(history, history_sha256)
+    _caller_execution(execution, execution_sha256)
     names = list_owned(directory)
     receipts, artifacts = [], {}
     for name in names:
@@ -923,13 +980,16 @@ def collect(catalog, directory, expected, history, history_sha256):
         if attempts is None:
             continue
         require(run['history_sha256'] == history_sha256, 'attempt bound to a different history')
-        classify_run(run['run'], record['input_sha256'], attempts)
+        require(run['execution_sha256'] == execution_sha256, 'attempt bound to a different execution receipt')
+        classify_run(run['run'], record['input_sha256'], attempts, execution, execution_sha256,
+                     record['argv'], record['exit_code'])
         credited.add(record['case_id'])
     missing = sorted(set(inventory['expected_ids']) - credited)
     return {'schema': 1, 'unit': 'T19', 'expected_ids': inventory['expected_ids'],
             'denominator': len(inventory['expected_ids']), 'execution': execution,
             'findings': inventory['findings'], 'support': 'complete' if not missing else 'incomplete', 'missing': missing,
             'freshness': 'history_unavailable' if attempts is None else 'caller_pinned_history',
+            'execution_receipt': 'none' if execution is None else 'caller_pinned',
             'expected_tests': len(expected), 'upstream_not_run': sorted(set(UPSTREAM) & set(missing)),
             'tiers': {'T0_software': 'complete' if not missing else 'incomplete', 'T1_numerical': 'not_run_here',
                       'T2_laboratory': 'not_run_here', 'T3_research': 'not_activated'},
@@ -941,6 +1001,8 @@ def _history_arguments(parser):
     group.add_argument('--history', help='caller-pinned complete attempt history JSON')
     group.add_argument('--history-unavailable', action='store_true', help='record that history is unavailable')
     parser.add_argument('--history-sha256', help='scientific hash pin of the history, from the caller')
+    parser.add_argument('--execution', help='caller-pinned current-execution receipt JSON from the producing runner')
+    parser.add_argument('--execution-sha256', help='scientific hash pin of the execution receipt, from the caller')
 
 
 def _history(args):
@@ -949,6 +1011,14 @@ def _history(args):
         return None, None
     require(args.history_sha256 is not None, 'history pin required')
     return strict_loads(caller_file(args.history), LIMITS), args.history_sha256
+
+
+def _execution(args):
+    if args.execution is None:
+        require(args.execution_sha256 is None, 'execution receipt pin without receipt')
+        return None, None
+    require(args.execution_sha256 is not None, 'execution receipt pin required')
+    return strict_loads(caller_file(args.execution), LIMITS), args.execution_sha256
 
 
 def main(argv=None):
@@ -981,11 +1051,12 @@ def main(argv=None):
                 result, ok = {'expected_inventory': expected, 'sha256': scientific_hash(expected)}, True
             else:
                 history, pin = _history(args)
+                execution, execution_pin = _execution(args)
                 if args.command == 'publish':
                     publish_attempt(args.attempt, catalog, caller_file(args.log), strict_loads(args.argv_json, LIMITS),
-                                    args.exit_code, args.attempt_id, expected, history, pin)
+                                    args.exit_code, args.attempt_id, expected, history, pin, execution, execution_pin)
                 result = collect(catalog, args.attempt if args.command == 'publish' else args.receipts,
-                                 expected, history, pin)
+                                 expected, history, pin, execution, execution_pin)
                 ok = result['support'] == 'complete'
     except (ContractError, OSError, KeyError, TypeError, UnicodeError, SyntaxError) as error:
         print(json.dumps({'support': 'error', 'reason': str(error), 'release_authorized': False}))
