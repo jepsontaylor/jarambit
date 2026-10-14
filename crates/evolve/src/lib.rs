@@ -9,7 +9,7 @@
 //! Kirchhoff plate solve at 20 °C. The sample loop stays the beam surrogate and
 //! supplies the knockdown. A missed plate mesh is infeasible. Floors are unchanged.
 use jarambit_genotype::{Genotype, Rng, TiGrade};
-use jarambit_monte_carlo::{cut_margin, media_sample, run_cols};
+use jarambit_monte_carlo::{try_run_cols, CheckedCols, CheckedError, ThreadRequest};
 use jarambit_phenotype::Phenotype;
 use jarambit_physics::{calib, evaluate, fine, floors, material, plate_capacities, primary_fitness, Eval};
 use jarambit_physics::fine::FineCaps;
@@ -59,18 +59,19 @@ pub fn nominal(g: &Genotype) -> (Phenotype, Result<(), Vec<jarambit_redteam::Rej
     (p, rt, e)
 }
 
-/// One MC sample's columns: surrogate primary fitness, cut margin, sharpness,
-/// surrogate lateral strength (N), surrogate ring pull (N).
-fn sample_metrics(h: &Genotype, r: &mut Rng) -> [f64; 5] {
+/// One MC sample's columns: surrogate primary fitness, sharpness, surrogate lateral
+/// strength (N), surrogate ring pull (N). The cut-margin column is omitted.
+/// Active evaluation does not call `media_sample` or `cut_margin`.
+fn sample_metrics(h: &Genotype, r: &mut Rng) -> [f64; 4] {
     let mut p = Phenotype::from_genotype(h);
-    if jarambit_redteam::check(h, &p).is_err() { return [-1e3, -1.0, 0.0, 0.0, 0.0]; }
+    if jarambit_redteam::check(h, &p).is_err() { return [-1e3, 0.0, 0.0, 0.0]; }
     p.thickness = jarambit_monte_carlo::thickness_sample(h, r);
     let env = jarambit_monte_carlo::env_sample(r);
     let e = evaluate(&p, h.edge_angle_deg, (h.serr_inner.depth, h.serr_outer.depth), material(h.material), env.temp_c);
-    let margin = cut_margin(e.blade_lat_n, e.inplane_n, e.sharpness, e.serration_score, media_sample(r));
-    // column 0 (surrogate-only score) uses the calibrated surrogate so it cannot overstate the
-    // detailed plate (physics::calib); columns 3-4 feed ratios, where the factor cancels.
-    [primary_fitness(&calib::calibrated_surrogate(&e)), margin, e.sharpness, e.strength_n, e.ring_pull_n]
+    // column 0 uses the calibrated surrogate so it cannot overstate the detailed plate.
+    // columns 2-3 feed ratios, where the factor cancels. The 0.0 sharpness on a red-team
+    // sample is a real credited value when statistical credit is true.
+    [primary_fitness(&calib::calibrated_surrogate(&e)), e.sharpness, e.strength_n, e.ring_pull_n]
 }
 
 fn knocked(level: f64, nom: f64, p05: f64) -> f64 { level * (p05 / nom.max(1e-9)) }
@@ -99,20 +100,143 @@ fn robust_plate_eval(e: &Eval, plate_s: f64, plate_ring: f64, s_p05: f64, r_p05:
 /// One MC sample: red-team reject => -1e3 (dominates p05), else primary fitness at sampled temp/thickness.
 pub fn fitness_sample(h: &Genotype, r: &mut Rng) -> f64 { sample_metrics(h, r)[0] }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AbsenceReason {
+    EmptySample,
+    StatisticalCreditFalse,
+    MonteCarloError,
+    ThreadBudget,
+    WorkerPanic,
+    LostWorker,
+    NonFiniteAggregate,
+}
+
+impl AbsenceReason {
+    pub fn token(self) -> &'static str {
+        match self {
+            Self::EmptySample => "empty_sample",
+            Self::StatisticalCreditFalse => "statistical_credit_false",
+            Self::MonteCarloError => "monte_carlo_error",
+            Self::ThreadBudget => "thread_budget",
+            Self::WorkerPanic => "worker_panic",
+            Self::LostWorker => "lost_worker",
+            Self::NonFiniteAggregate => "non_finite_aggregate",
+        }
+    }
+    pub fn parse(token: &str) -> Result<Self, String> {
+        Ok(match token {
+            "empty_sample" => Self::EmptySample,
+            "statistical_credit_false" => Self::StatisticalCreditFalse,
+            "monte_carlo_error" => Self::MonteCarloError,
+            "thread_budget" => Self::ThreadBudget,
+            "worker_panic" => Self::WorkerPanic,
+            "lost_worker" => Self::LostWorker,
+            "non_finite_aggregate" => Self::NonFiniteAggregate,
+            _ => return Err("unknown_absence_reason".into()),
+        })
+    }
+}
+
+/// Requested-n mean and sharp tail. Direct `Credited` values can be non-finite;
+/// readers must use [`SampleStatistics::credited_pair`].
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum SampleStatistics {
+    Credited { mean: f64, sharp_p05: f64 },
+    Historical { mean_bits: u64, sharp_bits: u64 },
+    Unavailable { reason: AbsenceReason },
+}
+
+impl SampleStatistics {
+    pub fn credited(mean: f64, sharp_p05: f64) -> Result<Self, String> {
+        if mean.is_finite() && sharp_p05.is_finite() { Ok(Self::Credited { mean, sharp_p05 }) }
+        else { Err("nonfinite_credited_statistics".into()) }
+    }
+    pub fn historical(mean_bits: u64, sharp_bits: u64) -> Self { Self::Historical { mean_bits, sharp_bits } }
+    pub fn unavailable(reason: AbsenceReason) -> Self { Self::Unavailable { reason } }
+    pub fn credited_pair(self) -> Option<(f64, f64)> {
+        match self {
+            Self::Credited { mean, sharp_p05 } if mean.is_finite() && sharp_p05.is_finite() => Some((mean, sharp_p05)),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CutRetiredReason { ModelRetiredNotPrevalence }
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum CutAvailability {
+    Historical { value: f64 },
+    Retired { reason: CutRetiredReason },
+}
+
+impl CutAvailability {
+    pub const TOKEN: &'static str = "retired:model_retired_not_prevalence";
+    pub fn retired() -> Self { Self::Retired { reason: CutRetiredReason::ModelRetiredNotPrevalence } }
+}
+
 #[derive(Clone, Debug)]
 pub struct Indiv {
     pub g: Genotype,
     pub fit: f64,
-    pub mean: f64,
+    pub stats: SampleStatistics,
     pub strength_n: f64,
     pub mass_g: f64,
     pub floors_ok: bool,
-    pub cut_p05: f64,
-    pub sharp_p05: f64,
+    pub cut: CutAvailability,
 }
 impl Indiv {
-    /// Floor-feasible and red-team-clean on the nominal geometry, with a positive robust score.
-    pub fn feasible(&self) -> bool { self.floors_ok && self.fit > 0.0 }
+    /// Qualified only with floors, a positive score, and a finite credited pair.
+    pub fn feasible(&self) -> bool { self.floors_ok && self.fit > 0.0 && self.stats.credited_pair().is_some() }
+}
+
+pub enum SharpFormat { Csv4, Log2, Report3 }
+
+pub const CURRENT_HISTORY_COLUMNS: &[&str] = &[
+    "gen", "terminal", "best_p05_spg", "feasible_mean_p05", "n_feasible", "diversity",
+    "rejected_in_gen", "best_strength_n", "best_mass_g", "best_cut_availability",
+    "best_stats_mean", "best_stats_sharp_p05", "best_genotype_hash",
+];
+
+pub fn format_cut_for_current_log(cut: &CutAvailability) -> Result<String, String> {
+    match cut {
+        CutAvailability::Retired { .. } => Ok(CutAvailability::TOKEN.into()),
+        CutAvailability::Historical { .. } => Err("historical_cut_column_not_current".into()),
+    }
+}
+
+pub fn format_stats_mean_cell(stats: &SampleStatistics) -> Result<String, String> {
+    match *stats {
+        SampleStatistics::Credited { mean, sharp_p05 } => {
+            if !mean.is_finite() || !sharp_p05.is_finite() { return Err("nonfinite_credited_statistics".into()); }
+            Ok(format!("{mean:.5}"))
+        }
+        SampleStatistics::Unavailable { reason } => Ok(format!("unavailable:{}", reason.token())),
+        SampleStatistics::Historical { .. } => Err("historical_statistics_column_not_current".into()),
+    }
+}
+
+pub fn format_stats_sharp_cell(stats: &SampleStatistics, spec: SharpFormat) -> Result<String, String> {
+    match *stats {
+        SampleStatistics::Credited { mean, sharp_p05 } => {
+            if !mean.is_finite() || !sharp_p05.is_finite() { return Err("nonfinite_credited_statistics".into()); }
+            Ok(match spec {
+                SharpFormat::Csv4 => format!("{sharp_p05:.4}"),
+                SharpFormat::Log2 => format!("{sharp_p05:.2}"),
+                SharpFormat::Report3 => format!("{sharp_p05:.3}"),
+            })
+        }
+        SampleStatistics::Unavailable { reason } => Ok(format!("unavailable:{}", reason.token())),
+        SampleStatistics::Historical { .. } => Err("historical_statistics_column_not_current".into()),
+    }
+}
+
+/// Column equality is token equality. `best_sharp_p05` is not a prefix of `best_stats_sharp_p05`.
+pub fn history_header_status(existing_columns: &[&str], current_columns: &[&str]) -> Result<(), String> {
+    if existing_columns == current_columns { return Ok(()); }
+    if existing_columns.iter().any(|c| *c == "best_cut_p05") { return Err("historical_cut_column_not_current".into()); }
+    if existing_columns.iter().any(|c| *c == "best_sharp_p05") { return Err("historical_statistics_column_not_current".into()); }
+    Err("history_header_mismatch".into())
 }
 
 pub struct GenStats<'a> {
@@ -149,18 +273,51 @@ pub fn pareto(arch: &[Indiv]) -> Vec<Indiv> {
         .map(|a| (*a).clone()).collect()
 }
 
-fn obj(i: &Indiv, k: usize) -> f64 {
-    match k { 0 => i.fit, 1 => i.mass_g, _ => i.cut_p05 }
+fn current_obj(i: &Indiv, k: usize) -> Result<f64, String> {
+    match k {
+        0 => Ok(i.fit),
+        1 => Ok(i.mass_g),
+        _ => Err("retired objective has no third component".into()),
+    }
 }
 
-/// Constraint domination: any feasible design dominates any infeasible one.
-/// Feasible: max fit, min mass, max cut margin. Infeasible: less-negative primary penalty wins.
+fn historical_cut_value(i: &Indiv) -> Option<f64> {
+    match i.cut { CutAvailability::Historical { value } => Some(value), _ => None }
+}
+
+fn historical_obj(i: &Indiv, k: usize) -> Result<f64, String> {
+    match k {
+        0 => Ok(i.fit),
+        1 => Ok(i.mass_g),
+        2 => historical_cut_value(i).ok_or_else(|| "historical objective needs a historical cut".into()),
+        _ => Err("historical objective has no further component".into()),
+    }
+}
+
+/// Current domination. A historical cut or historical summary is not a current result.
+/// Feasible designs compare fit and mass only. Infeasible designs compare fit, including
+/// an explicit `Unavailable` summary.
 pub fn dominates(a: &Indiv, b: &Indiv) -> bool {
+    if historical_cut_value(a).is_some() || historical_cut_value(b).is_some() { return false; }
+    if matches!(a.stats, SampleStatistics::Historical { .. }) || matches!(b.stats, SampleStatistics::Historical { .. }) { return false; }
     let (fa, fb) = (a.feasible(), b.feasible());
     if fa != fb { return fa; }
     if !fa { return a.fit > b.fit + 1e-9; }
-    let ge = a.fit >= b.fit - 1e-9 && a.mass_g <= b.mass_g + 1e-9 && a.cut_p05 >= b.cut_p05 - 1e-9;
-    let gt = a.fit > b.fit + 1e-9 || a.mass_g < b.mass_g - 1e-9 || a.cut_p05 > b.cut_p05 + 1e-9;
+    let ge = a.fit >= b.fit - 1e-9 && a.mass_g <= b.mass_g + 1e-9;
+    let gt = a.fit > b.fit + 1e-9 || a.mass_g < b.mass_g - 1e-9;
+    ge && gt
+}
+
+/// Preserved three-objective predicate. It reads a historical cut value and is not current ranking.
+/// Feasibility here is the old floors-and-positive-fit test. It does not require a credited pair.
+pub fn dominates_historical_v1(a: &Indiv, b: &Indiv) -> bool {
+    let (Some(ca), Some(cb)) = (historical_cut_value(a), historical_cut_value(b)) else { return false; };
+    let old_feasible = |i: &Indiv| i.floors_ok && i.fit > 0.0;
+    let (fa, fb) = (old_feasible(a), old_feasible(b));
+    if fa != fb { return fa; }
+    if !fa { return a.fit > b.fit + 1e-9; }
+    let ge = a.fit >= b.fit - 1e-9 && a.mass_g <= b.mass_g + 1e-9 && ca >= cb - 1e-9;
+    let gt = a.fit > b.fit + 1e-9 || a.mass_g < b.mass_g - 1e-9 || ca > cb + 1e-9;
     ge && gt
 }
 
@@ -193,48 +350,61 @@ fn nondominated_sort(pop: &[Indiv]) -> Vec<Vec<usize>> {
     fronts
 }
 
-fn crowding(front: &[usize], pop: &[Indiv]) -> Vec<f64> {
+fn crowding_with(front: &[usize], pop: &[Indiv], axes: usize, obj: fn(&Indiv, usize) -> Result<f64, String>) -> Result<Vec<f64>, String> {
     let m = front.len();
-    if m <= 2 { return vec![f64::INFINITY; m]; }
+    if m <= 2 { return Ok(vec![f64::INFINITY; m]); }
     let mut cd = vec![0.0; m];
-    for k in 0..3 {
+    for k in 0..axes {
         let mut order: Vec<usize> = (0..m).collect();
-        order.sort_by(|&a, &b| obj(&pop[front[a]], k).partial_cmp(&obj(&pop[front[b]], k)).unwrap_or(std::cmp::Ordering::Equal));
+        order.sort_by(|&a, &b| obj(&pop[front[a]], k).and_then(|x| obj(&pop[front[b]], k).map(|y| x.partial_cmp(&y).unwrap_or(std::cmp::Ordering::Equal))).unwrap_or(std::cmp::Ordering::Equal));
         cd[order[0]] = f64::INFINITY;
         cd[order[m - 1]] = f64::INFINITY;
-        let lo = obj(&pop[front[order[0]]], k);
-        let hi = obj(&pop[front[order[m - 1]]], k);
+        let lo = obj(&pop[front[order[0]]], k)?;
+        let hi = obj(&pop[front[order[m - 1]]], k)?;
         let span = (hi - lo).abs().max(1e-12);
         for t in 1..m - 1 {
-            let prev = obj(&pop[front[order[t - 1]]], k);
-            let next = obj(&pop[front[order[t + 1]]], k);
+            let prev = obj(&pop[front[order[t - 1]]], k)?;
+            let next = obj(&pop[front[order[t + 1]]], k)?;
             cd[order[t]] += (next - prev).abs() / span;
         }
     }
-    cd
+    Ok(cd)
 }
 
-fn rank_crowd(pop: &[Indiv]) -> (Vec<usize>, Vec<f64>) {
+fn population_gate(pop: &[Indiv]) -> Result<(), String> {
+    for i in pop {
+        if let SampleStatistics::Credited { mean, sharp_p05 } = i.stats {
+            if !mean.is_finite() || !sharp_p05.is_finite() { return Err("nonfinite_credited_statistics".into()); }
+        }
+    }
+    for i in pop {
+        if matches!(i.stats, SampleStatistics::Historical { .. }) || matches!(i.cut, CutAvailability::Historical { .. }) {
+            return Err("HistoricalCutInCurrentPopulation".into());
+        }
+    }
+    Ok(())
+}
+
+fn rank_crowd(pop: &[Indiv]) -> Result<(Vec<usize>, Vec<f64>), String> {
+    population_gate(pop)?;
     let fronts = nondominated_sort(pop);
     let mut rank = vec![usize::MAX; pop.len()];
     let mut crowd = vec![0.0; pop.len()];
     for (r, front) in fronts.iter().enumerate() {
-        let cd = crowding(front, pop);
+        let cd = crowding_with(front, pop, 2, current_obj)?;
         for (k, &i) in front.iter().enumerate() { rank[i] = r; crowd[i] = cd[k]; }
     }
-    (rank, crowd)
+    Ok((rank, crowd))
 }
 
-/// Keep `n` individuals. Extremes of each objective sit on the first front and have
-/// infinite crowding, so the primary-best design is not dropped when it is unique.
-pub fn truncate(pop: Vec<Indiv>, n: usize) -> Vec<Indiv> {
-    if pop.len() <= n { return pop; }
-    let fronts = nondominated_sort(&pop);
+fn select_n(pop: Vec<Indiv>, n: usize, axes: usize, obj: fn(&Indiv, usize) -> Result<f64, String>, fronts_from: fn(&[Indiv]) -> Vec<Vec<usize>>) -> Result<Vec<Indiv>, String> {
+    if pop.len() <= n { return Ok(pop); }
+    let fronts = fronts_from(&pop);
     let mut chosen = Vec::with_capacity(n);
     for front in &fronts {
         if chosen.len() + front.len() <= n { chosen.extend(front.iter().copied()); }
         else {
-            let cd = crowding(front, &pop);
+            let cd = crowding_with(front, &pop, axes, obj)?;
             let mut order: Vec<usize> = (0..front.len()).collect();
             order.sort_by(|&a, &b| cd[b].partial_cmp(&cd[a]).unwrap_or(std::cmp::Ordering::Equal));
             let need = n - chosen.len();
@@ -244,7 +414,44 @@ pub fn truncate(pop: Vec<Indiv>, n: usize) -> Vec<Indiv> {
     }
     let mut keep = vec![false; pop.len()];
     for i in chosen { keep[i] = true; }
-    pop.into_iter().enumerate().filter_map(|(i, ind)| keep[i].then_some(ind)).collect()
+    Ok(pop.into_iter().enumerate().filter_map(|(i, ind)| keep[i].then_some(ind)).collect())
+}
+
+/// Keep `n` individuals. Malformed credited values and historical cuts or statistics
+/// are refused before the `len <= n` fast path.
+pub fn truncate(pop: Vec<Indiv>, n: usize) -> Result<Vec<Indiv>, String> {
+    population_gate(&pop)?;
+    select_n(pop, n, 2, current_obj, nondominated_sort)
+}
+
+fn nondominated_sort_historical(pop: &[Indiv]) -> Vec<Vec<usize>> {
+    let n = pop.len();
+    let mut n_p = vec![0usize; n];
+    let mut beats: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut fronts: Vec<Vec<usize>> = vec![Vec::new()];
+    for i in 0..n {
+        for j in 0..n {
+            if i == j { continue; }
+            if dominates_historical_v1(&pop[i], &pop[j]) { beats[i].push(j); }
+            else if dominates_historical_v1(&pop[j], &pop[i]) { n_p[i] += 1; }
+        }
+        if n_p[i] == 0 { fronts[0].push(i); }
+    }
+    let mut f = 0;
+    while !fronts[f].is_empty() {
+        let mut next = Vec::new();
+        for &i in &fronts[f] {
+            for &j in &beats[i] { n_p[j] -= 1; if n_p[j] == 0 { next.push(j); } }
+        }
+        f += 1;
+        fronts.push(next);
+    }
+    fronts.pop();
+    fronts
+}
+
+fn truncate_historical_v1(pop: Vec<Indiv>, n: usize) -> Result<Vec<Indiv>, String> {
+    select_n(pop, n, 3, historical_obj, nondominated_sort_historical)
 }
 
 fn tournament(pop: &[Indiv], rank: &[usize], crowd: &[f64], r: &mut Rng) -> usize {
@@ -258,29 +465,60 @@ fn tournament(pop: &[Indiv], rank: &[usize], crowd: &[f64], r: &mut Rng) -> usiz
 
 struct Island { rng: Rng, pop: Vec<Indiv> }
 
+fn absence_of(err: CheckedError) -> AbsenceReason {
+    match err {
+        CheckedError::EmptySample => AbsenceReason::EmptySample,
+        CheckedError::ThreadBudget => AbsenceReason::ThreadBudget,
+        CheckedError::WorkerPanic => AbsenceReason::WorkerPanic,
+        CheckedError::WorkerLost => AbsenceReason::LostWorker,
+        CheckedError::QuantileOverflow | CheckedError::UnrepresentableAggregate => AbsenceReason::NonFiniteAggregate,
+        _ => AbsenceReason::MonteCarloError,
+    }
+}
+
+fn checked_metrics(g: &Genotype, sample_seed: u64, mc: usize, threads: usize) -> (Option<CheckedCols<4>>, SampleStatistics) {
+    match try_run_cols(g, mc, ThreadRequest::Exact(threads), jarambit_monte_carlo::max_threads(), sample_seed, sample_metrics) {
+        Ok(cols) if cols.statistical_credit => {
+            let tails = cols.cols.unwrap();
+            match SampleStatistics::credited(tails[0].mean, tails[1].p05) {
+                Ok(stats) => (Some(cols), stats),
+                Err(_) => (None, SampleStatistics::unavailable(AbsenceReason::NonFiniteAggregate)),
+            }
+        }
+        Ok(_) => (None, SampleStatistics::unavailable(AbsenceReason::StatisticalCreditFalse)),
+        Err(err) => (None, SampleStatistics::unavailable(absence_of(err))),
+    }
+}
+
+fn retired(g: Genotype, fit: f64, stats: SampleStatistics, strength_n: f64, mass_g: f64, floors_ok: bool) -> Indiv {
+    Indiv { g, fit, stats, strength_n, mass_g, floors_ok, cut: CutAvailability::retired() }
+}
+
 fn evaluate_one(g: Genotype, sample_seed: u64, mc: usize, threads: usize, q: &mut Vec<(Genotype, String)>, fem: bool) -> Indiv {
     let (p, rt, e) = nominal(&g);
     let crazy = !e.mass_g.is_finite() || !(5.0..=250.0).contains(&e.mass_g);
     if let Err(v) = &rt { q.push((g.clone(), format!("{v:?}"))); }
     else if crazy { q.push((g.clone(), format!("crazy phenotype mass {:.2} g", e.mass_g))); }
-    let cols = run_cols(&g, mc, threads, sample_seed, sample_metrics);
+    let (cols, stats) = checked_metrics(&g, sample_seed, mc, threads);
+    let Some(cols) = cols else {
+        let strength = if !fem || rt.is_err() || crazy { e.strength_n } else { 0.0 };
+        return retired(g, -1e3, stats, strength, e.mass_g, false);
+    };
+    let tails = cols.cols.unwrap();
     if !fem {
-        let fit = if rt.is_err() || crazy { -1e3 } else { cols[0].p05 };
-        return Indiv { g, fit, mean: cols[0].mean, strength_n: e.strength_n, mass_g: e.mass_g, floors_ok: e.floors_ok() && rt.is_ok() && !crazy, cut_p05: cols[1].p05, sharp_p05: cols[2].p05 };
+        let fit = if rt.is_err() || crazy { -1e3 } else { tails[0].p05 };
+        return retired(g, fit, stats, e.strength_n, e.mass_g, e.floors_ok() && rt.is_ok() && !crazy);
     }
     if rt.is_err() || crazy {
-        return Indiv { g, fit: -1e3, mean: cols[0].mean, strength_n: e.strength_n, mass_g: e.mass_g, floors_ok: false, cut_p05: cols[1].p05, sharp_p05: cols[2].p05 };
+        return retired(g, -1e3, stats, e.strength_n, e.mass_g, false);
     }
     let Some(c) = plate_capacities(&p, material(g.material), 20.0, (g.serr_inner.depth, g.serr_outer.depth)) else {
         q.push((g.clone(), "plate mesh miss".into()));
-        return Indiv { g, fit: -1e3, mean: cols[0].mean, strength_n: 0.0, mass_g: e.mass_g, floors_ok: false, cut_p05: cols[1].p05, sharp_p05: cols[2].p05 };
+        return retired(g, -1e3, stats, 0.0, e.mass_g, false);
     };
     let ps = c.blade_lat_n.min(c.grip_lat_n);
-    let pe = robust_plate_eval(&e, ps, c.ring_pull_n, cols[3].p05, cols[4].p05);
-    Indiv {
-        g, fit: primary_fitness(&pe), mean: cols[0].mean, strength_n: ps, mass_g: e.mass_g,
-        floors_ok: plate_nominal_floors(ps, c.ring_pull_n), cut_p05: cols[1].p05, sharp_p05: cols[2].p05,
-    }
+    let pe = robust_plate_eval(&e, ps, c.ring_pull_n, tails[2].p05, tails[3].p05);
+    retired(g, primary_fitness(&pe), stats, ps, e.mass_g, plate_nominal_floors(ps, c.ring_pull_n))
 }
 
 /// Calibrated robust capacities from a detailed-plate solve: (lateral, ring) in N, each the min of
@@ -304,28 +542,30 @@ fn evaluate_fine(g: Genotype, sample_seed: u64, mc: usize, threads: usize, q: &m
     let crazy = !e.mass_g.is_finite() || !(5.0..=250.0).contains(&e.mass_g);
     if let Err(v) = &rt { q.push((g.clone(), format!("{v:?}"))); }
     else if crazy { q.push((g.clone(), format!("crazy phenotype mass {:.2} g", e.mass_g))); }
-    let cols = run_cols(&g, mc, threads, sample_seed, sample_metrics);
-    let bad = |g: Genotype, fit: f64| Indiv { g, fit, mean: cols[0].mean, strength_n: 0.0, mass_g: e.mass_g, floors_ok: false, cut_p05: cols[1].p05, sharp_p05: cols[2].p05 };
+    let (cols, stats) = checked_metrics(&g, sample_seed, mc, threads);
+    let bad = |g: Genotype, fit: f64| retired(g, fit, stats, 0.0, e.mass_g, false);
     if let Err(v) = &rt {
         // short-blade-only rejects are shaped by the shortfall so the search can climb into the
         // legal (>= 3.375 in on all three) region; they stay infeasible and are never winners.
         let fit = if jarambit_redteam::only_blade_short(v) { -50.0 - jarambit_redteam::blade_shortfall_mm(&p) } else { -1e3 };
         return bad(g, fit);
     }
-    if crazy { return bad(g, -1e3); }
+    if crazy || cols.is_none() { return bad(g, -1e3); }
+    let tails = cols.unwrap().cols.unwrap();
     let Some(c) = caps else { q.push((g.clone(), "detailed plate mesh miss".into())); return bad(g, -1e3); };
-    let (lat, ring) = calibrated_levels(&c, &e, cols[3].p05, cols[4].p05, material(g.material));
+    let (lat, ring) = calibrated_levels(&c, &e, tails[2].p05, tails[3].p05, material(g.material));
     let ok = calibrated_floors_ok(lat, ring);
     let fit = if ok { lat / e.mass_g.max(1e-6) } else {
-        // graded: nominal-hot deficit + robust deficit + share of MC draws the red team rejects
+        // graded: nominal-hot deficit + robust deficit + share of MC draws the red team rejects.
+        // rej runs only on this credited path.
         let m = material(g.material);
         let hot = m.yield_at(100.0) / m.yield_at(20.0);
         let (lh, rh) = (c.lateral_n / calib::MESH_BIAS_LAT_MAX * hot, c.ring_pull_n / calib::MESH_BIAS_RING_MAX * hot);
         let d = |l: f64, r: f64| (1.0 - l / floors::HUNTER_LATERAL_N).max(0.0) + (1.0 - r / floors::RING_PULL_N).max(0.0);
-        let rej = (-cols[0].mean / 1e3).clamp(0.0, 1.0);
+        let rej = (-tails[0].mean / 1e3).clamp(0.0, 1.0);
         -1.0 - 5.0 * d(lh, rh) - 5.0 * d(lat, ring) - 10.0 * rej
     };
-    Indiv { g, fit, mean: cols[0].mean, strength_n: lat, mass_g: e.mass_g, floors_ok: ok, cut_p05: cols[1].p05, sharp_p05: cols[2].p05 }
+    retired(g, fit, stats, lat, e.mass_g, ok)
 }
 
 /// Evaluate a batch. In calibrated (`fine`) mode the detailed-plate solves run in parallel first
@@ -379,13 +619,18 @@ fn parse_indiv(line: &str) -> Result<Indiv, String> {
     let cut_p05 = num(it.next())?;
     let sharp_p05 = num(it.next())?;
     let g = parse_genes(it.next().ok_or("genes")?)?;
-    Ok(Indiv { g, fit, mean, strength_n, mass_g, floors_ok, cut_p05, sharp_p05 })
+    Ok(Indiv {
+        g, fit, strength_n, mass_g, floors_ok,
+        stats: SampleStatistics::historical(mean.to_bits(), sharp_p05.to_bits()),
+        cut: CutAvailability::Historical { value: cut_p05 },
+    })
 }
 
 // ---- PR-0.29.2: lossless checkpoint (every f64 as its IEEE-754 bits in hex) bound to the run manifest ----
 
 /// The run manifest of the legacy NSGA-II search. Every field that changes the trajectory is in it; `threads`
 /// is not (results are thread-count stable). Resume refuses a checkpoint whose manifest sha differs.
+/// The five policy params name the retired cut and the typed-credit method. They do not qualify the run.
 pub fn manifest(cfg: &Config) -> jarambit_evidence::RunManifest {
     let seeds: Vec<String> = cfg.seeds.iter().map(genes_hex).collect();
     use jarambit_evidence::RunManifest;
@@ -396,6 +641,11 @@ pub fn manifest(cfg: &Config) -> jarambit_evidence::RunManifest {
         .param("floors_n", format!("{}/{}/{}", floors::HIKER_LATERAL_N, floors::HUNTER_LATERAL_N, floors::RING_PULL_N))
         .param("calib_mesh_bias", format!("{}/{}", calib::MESH_BIAS_LAT_MAX, calib::MESH_BIAS_RING_MAX))
         .param("search_area", fine::SEARCH_AREA)
+        .param("objective_id", "search_objective.v4_cut_retired_stats_typed")
+        .param("scenario_id", "scenario.active_no_cut_media_stats_typed")
+        .param("cut_availability", CutAvailability::TOKEN)
+        .param("objective_sha256", "688525497ed8a4a9be221f2c06e8eb9d64c0c370cd18a397c42651f2896eddb9")
+        .param("scenario_sha256", "17a33a835407f26a47be01a73c46add197b3be7bee4a6c610e19b32ccb521384")
 }
 fn sha2_256(b: &[u8]) -> Vec<u8> { use sha2::Digest; sha2::Sha256::digest(b).to_vec() }
 
@@ -410,37 +660,111 @@ fn parse_genes_hex(s: &str) -> Result<Genotype, String> {
     if g.to_vec().iter().map(|x| x.to_bits()).ne(v.iter().map(|x| x.to_bits())) { return Err("genome does not round-trip bit-exactly".into()); }
     Ok(g)
 }
-fn indiv_hex(i: &Indiv) -> String {
-    format!("{} {} {} {} {} {} {} {}", hx(i.fit), hx(i.mean), hx(i.strength_n), hx(i.mass_g), if i.floors_ok { 1 } else { 0 }, hx(i.cut_p05), hx(i.sharp_p05), genes_hex(&i.g))
-}
-fn parse_indiv_hex(line: &str) -> Result<Indiv, String> {
-    let f: Vec<&str> = line.splitn(8, ' ').collect(); if f.len() != 8 { return Err(format!("indiv fields {}", f.len())); }
-    Ok(Indiv { fit: unhx(f[0])?, mean: unhx(f[1])?, strength_n: unhx(f[2])?, mass_g: unhx(f[3])?, floors_ok: match f[4] { "1" => true, "0" => false, o => return Err(format!("floors {o}")) },
-        cut_p05: unhx(f[5])?, sharp_p05: unhx(f[6])?, g: parse_genes_hex(f[7])? })
+fn hex16(s: &str) -> Result<u64, String> {
+    if s.len() != 16 || !s.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("bad f64 bits {s:?}")); }
+    u64::from_str_radix(s, 16).map_err(|_| format!("bad f64 bits {s:?}"))
 }
 
-fn save_ckpt(path: &str, next_gen: usize, man: &jarambit_evidence::RunManifest, islands: &[Island], archive: &[Indiv]) {
+fn stats_token(stats: SampleStatistics) -> Result<String, String> {
+    match stats {
+        SampleStatistics::Credited { mean, sharp_p05 } => {
+            if !mean.is_finite() || !sharp_p05.is_finite() { return Err("nonfinite_credited_statistics".into()); }
+            Ok(format!("credited:{:016x}:{:016x}", mean.to_bits(), sharp_p05.to_bits()))
+        }
+        SampleStatistics::Unavailable { reason } => Ok(format!("unavailable:{}", reason.token())),
+        SampleStatistics::Historical { .. } => Err("historical_statistics_column_not_current".into()),
+    }
+}
+
+fn parse_stats_token(tok: &str) -> Result<SampleStatistics, String> {
+    if let Some(rest) = tok.strip_prefix("unavailable:") {
+        return Ok(SampleStatistics::unavailable(AbsenceReason::parse(rest)?));
+    }
+    if let Some(rest) = tok.strip_prefix("credited:") {
+        let mut parts = rest.split(':');
+        let mean_s = parts.next().unwrap_or("");
+        let sharp_s = parts.next().unwrap_or("");
+        if parts.next().is_some() || mean_s.len() != 16 || sharp_s.len() != 16 { return Err("statistics_token_not_credited".into()); }
+        let mean = f64::from_bits(hex16(mean_s)?);
+        let sharp = f64::from_bits(hex16(sharp_s)?);
+        if !mean.is_finite() || !sharp.is_finite() { return Err("nonfinite_credited_statistics".into()); }
+        return Ok(SampleStatistics::Credited { mean, sharp_p05: sharp });
+    }
+    Err("statistics_token_not_credited".into())
+}
+
+fn cut_token(cut: CutAvailability) -> Result<String, String> {
+    match cut {
+        CutAvailability::Retired { .. } => Ok(CutAvailability::TOKEN.into()),
+        CutAvailability::Historical { .. } => Err("HistoricalCutInCurrentPopulation".into()),
+    }
+}
+
+fn parse_cut_token(tok: &str) -> Result<CutAvailability, String> {
+    if tok == CutAvailability::TOKEN { Ok(CutAvailability::retired()) } else { Err("active cut value in current checkpoint".into()) }
+}
+
+fn floors_flag(ok: bool) -> u8 { if ok { 1 } else { 0 } }
+fn parse_floors(s: &str) -> Result<bool, String> { match s { "1" => Ok(true), "0" => Ok(false), o => Err(format!("floors {o}")) } }
+
+fn indiv_v3(i: &Indiv) -> Result<String, String> {
+    Ok(format!("{} {} {} {} {} {} {}", hx(i.fit), stats_token(i.stats)?, hx(i.strength_n), hx(i.mass_g), floors_flag(i.floors_ok), cut_token(i.cut)?, genes_hex(&i.g)))
+}
+
+fn parse_indiv_v3(line: &str) -> Result<Indiv, String> {
+    let f: Vec<&str> = line.splitn(7, ' ').collect();
+    if f.len() != 7 { return Err(format!("indiv fields {}", f.len())); }
+    Ok(Indiv {
+        fit: unhx(f[0])?, stats: parse_stats_token(f[1])?, strength_n: unhx(f[2])?, mass_g: unhx(f[3])?,
+        floors_ok: parse_floors(f[4])?, cut: parse_cut_token(f[5])?, g: parse_genes_hex(f[6])?,
+    })
+}
+
+/// Re-encode a v2 individual from the stored bits. A current save does not call this.
+fn indiv_v2_historical(i: &Indiv) -> Result<String, String> {
+    let SampleStatistics::Historical { mean_bits, sharp_bits } = i.stats else { return Err("historical checkpoint requires historical statistics".into()); };
+    let cut = historical_cut_value(i).ok_or("historical checkpoint requires historical cut")?;
+    Ok(format!("{} {:016x} {} {} {} {:016x} {:016x} {}", hx(i.fit), mean_bits, hx(i.strength_n), hx(i.mass_g), floors_flag(i.floors_ok), cut.to_bits(), sharp_bits, genes_hex(&i.g)))
+}
+
+fn parse_indiv_v2(line: &str) -> Result<Indiv, String> {
+    let f: Vec<&str> = line.splitn(8, ' ').collect();
+    if f.len() != 8 { return Err(format!("indiv fields {}", f.len())); }
+    if f[1].contains(':') || f[5].contains(':') || f[6].contains(':') { return Err("retired token in historical checkpoint".into()); }
+    let mean_bits = hex16(f[1])?;
+    let cut_bits = hex16(f[5])?;
+    let sharp_bits = hex16(f[6])?;
+    Ok(Indiv {
+        fit: unhx(f[0])?, stats: SampleStatistics::historical(mean_bits, sharp_bits), strength_n: unhx(f[2])?, mass_g: unhx(f[3])?,
+        floors_ok: parse_floors(f[4])?, cut: CutAvailability::Historical { value: f64::from_bits(cut_bits) }, g: parse_genes_hex(f[7])?,
+    })
+}
+
+fn save_ckpt(path: &str, next_gen: usize, man: &jarambit_evidence::RunManifest, islands: &[Island], archive: &[Indiv]) -> Result<(), String> {
+    for isl in islands { population_gate(&isl.pop)?; }
+    population_gate(archive)?;
     let mut s = String::new();
-    s.push_str("jarambit-ckpt 2\n");
+    s.push_str("jarambit-ckpt 3\n");
     s.push_str(&format!("manifest_sha256 {}\n", man.sha256()));
     s.push_str(&format!("manifest {}\n", man.canonical_json()));
     s.push_str(&format!("next_gen {next_gen}\n"));
     s.push_str(&format!("islands {}\n", islands.len()));
     for (i, isl) in islands.iter().enumerate() {
         s.push_str(&format!("island {i} rng {:016x} n {}\n", isl.rng.0, isl.pop.len()));
-        for ind in &isl.pop { s.push_str(&indiv_hex(ind)); s.push('\n'); }
+        for ind in &isl.pop { s.push_str(&indiv_v3(ind)?); s.push('\n'); }
     }
     s.push_str(&format!("archive {}\n", archive.len()));
-    for ind in archive { s.push_str(&indiv_hex(ind)); s.push('\n'); }
+    for ind in archive { s.push_str(&indiv_v3(ind)?); s.push('\n'); }
     s.push_str("end\n");
     if let Some(dir) = std::path::Path::new(path).parent() { let _ = std::fs::create_dir_all(dir); }
     let tmp = format!("{path}.tmp");
     { use std::io::Write; let mut f = std::fs::File::create(&tmp).unwrap_or_else(|e| panic!("checkpoint write {tmp}: {e}"));
       f.write_all(s.as_bytes()).and_then(|_| f.sync_all()).unwrap_or_else(|e| panic!("checkpoint write {tmp}: {e}")); }
     std::fs::rename(&tmp, path).unwrap_or_else(|e| panic!("checkpoint rename {path}: {e}"));
+    Ok(())
 }
 
-struct Loaded { next_gen: usize, manifest_sha: String, manifest_json: String, islands: Vec<Island>, archive: Vec<Indiv> }
+struct Loaded { format_version: u8, next_gen: usize, manifest_sha: String, manifest_json: String, islands: Vec<Island>, archive: Vec<Indiv> }
 
 fn kv<'a>(l: Option<&'a str>, key: &str) -> Result<&'a str, String> {
     let l = l.ok_or_else(|| format!("missing {key}"))?; l.strip_prefix(key).and_then(|r| r.strip_prefix(' ')).ok_or_else(|| format!("expected {key}, got {l:?}"))
@@ -449,7 +773,12 @@ fn kv<'a>(l: Option<&'a str>, key: &str) -> Result<&'a str, String> {
 fn load_ckpt(path: &str) -> Result<Loaded, String> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
     let mut lines = text.lines();
-    match lines.next() { Some("jarambit-ckpt 2") => {}, Some("jarambit-ckpt 1") => return Err("checkpoint format 1 is lossy (rounded decimals) and has no manifest; resume refused (use --fork to start from its best genomes via --seed-ckpt)".into()), m => return Err(format!("bad magic {m:?}")) }
+    let format_version = match lines.next() {
+        Some("jarambit-ckpt 3") => 3,
+        Some("jarambit-ckpt 2") => 2,
+        Some("jarambit-ckpt 1") => return Err("checkpoint format 1 is lossy (rounded decimals) and has no manifest; resume and fork are refused. Extract best genomes with --seed-ckpt and re-evaluate. --fork does not extract v1 genomes.".into()),
+        m => return Err(format!("bad magic {m:?}")),
+    };
     let manifest_sha = kv(lines.next(), "manifest_sha256")?.to_string();
     let manifest_json = kv(lines.next(), "manifest")?.to_string();
     let next_gen: usize = kv(lines.next(), "next_gen")?.parse().map_err(|_| "next_gen")?;
@@ -462,14 +791,20 @@ fn load_ckpt(path: &str) -> Result<Loaded, String> {
         let rng = Rng(u64::from_str_radix(p[3], 16).map_err(|_| "rng")?);
         let n: usize = p[5].parse().map_err(|_| "pop n")?;
         let mut pop = Vec::with_capacity(n);
-        for _ in 0..n { pop.push(parse_indiv_hex(lines.next().ok_or("truncated population")?)?); }
+        for _ in 0..n {
+            let line = lines.next().ok_or("truncated population")?;
+            pop.push(if format_version == 3 { parse_indiv_v3(line)? } else { parse_indiv_v2(line)? });
+        }
         islands.push(Island { rng, pop });
     }
     let an: usize = kv(lines.next(), "archive")?.parse().map_err(|_| "archive n")?;
     let mut archive = Vec::with_capacity(an);
-    for _ in 0..an { archive.push(parse_indiv_hex(lines.next().ok_or("truncated archive")?)?); }
+    for _ in 0..an {
+        let line = lines.next().ok_or("truncated archive")?;
+        archive.push(if format_version == 3 { parse_indiv_v3(line)? } else { parse_indiv_v2(line)? });
+    }
     if lines.next() != Some("end") { return Err("checkpoint not terminated (torn write?)".into()); }
-    Ok(Loaded { next_gen, manifest_sha, manifest_json, islands, archive })
+    Ok(Loaded { format_version, next_gen, manifest_sha, manifest_json, islands, archive })
 }
 
 /// Highest-fitness genotype in the saved island populations (format 2, or the legacy lossy format 1).
@@ -494,6 +829,45 @@ fn load_ckpt_v1_pop(path: &str) -> Result<Vec<Indiv>, String> {
     Ok(out)
 }
 
+/// Score and source identity of `raw` against the live manifest.
+/// Unknown keys are rejected before a typed decode, so a planted header cannot hide them.
+/// The returned tag does not contain the substring `manifest mismatch`.
+fn score_carry_ok(raw: &str, header_sha: &str, live: &jarambit_evidence::RunManifest) -> Result<(), String> {
+    let loaded_v = jarambit_evidence::identity::strict_json(raw.as_bytes()).map_err(|_| "manifest_json_rejected".to_string())?;
+    let live_v = jarambit_evidence::identity::strict_json(live.canonical_json().as_bytes()).map_err(|_| "manifest_json_rejected".to_string())?;
+    let loaded_obj = loaded_v.as_object().ok_or_else(|| "manifest_json_rejected".to_string())?;
+    let live_obj = live_v.as_object().ok_or_else(|| "manifest_json_rejected".to_string())?;
+    const TOP: &[&str] = &["schema", "tool", "tool_version", "requirement_set", "op_version", "command", "seed", "params", "scientific", "runtime"];
+    if loaded_obj.keys().any(|k| !TOP.contains(&k.as_str())) { return Err("unknown_manifest_field".into()); }
+    const ID: &[&str] = &["schema", "tool", "tool_version", "requirement_set", "op_version", "command"];
+    for key in ID {
+        if loaded_obj.get(*key) != live_obj.get(*key) { return Err("source_identity_mismatch".into()); }
+    }
+    let present = |v| match v { Some(x) => !x.is_null(), None => false };
+    if present(loaded_obj.get("scientific")) || present(live_obj.get("scientific")) || present(loaded_obj.get("runtime")) || present(live_obj.get("runtime")) {
+        return Err("source_identity_mismatch".into());
+    }
+    let loaded_params = loaded_obj.get("params").and_then(|v| v.as_object()).ok_or_else(|| "manifest_json_rejected".to_string())?;
+    let live_params = live_obj.get("params").and_then(|v| v.as_object()).ok_or_else(|| "manifest_json_rejected".to_string())?;
+    const SCORE: &[&str] = &["mc_samples", "fem", "fine", "floors_n", "calib_mesh_bias", "search_area", "objective_id", "scenario_id", "cut_availability", "objective_sha256", "scenario_sha256"];
+    const ALLOWED: &[&str] = &["pop", "gens", "islands", "migrate_every", "seeds_sha256"];
+    const ANNOT: &[&str] = &["forked_from_manifest_sha256", "forked_at_gen"];
+    for key in loaded_params.keys() {
+        let name = key.as_str();
+        if !SCORE.contains(&name) && !ALLOWED.contains(&name) && !ANNOT.contains(&name) { return Err("unknown_manifest_param".into()); }
+    }
+    for key in SCORE {
+        match (loaded_params.get(*key), live_params.get(*key)) {
+            (None, _) => return Err("missing_score_param".into()),
+            (Some(a), Some(b)) if a == b => {}
+            _ => return Err("score_config_mismatch".into()),
+        }
+    }
+    let parsed = jarambit_evidence::identity::strict_decode::<jarambit_evidence::RunManifest>(raw.as_bytes()).map_err(|_| "manifest_json_rejected".to_string())?;
+    if parsed.sha256() != header_sha { return Err("manifest_body_sha_mismatch".into()); }
+    Ok(())
+}
+
 /// Run the search; panics on a refused resume (see [`try_run`]).
 pub fn run(cfg: &Config, log: impl FnMut(&GenStats)) -> (Indiv, Vec<Indiv>) { try_run(cfg, log).unwrap_or_else(|e| panic!("{e}")) }
 
@@ -510,6 +884,15 @@ pub fn try_run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> Result<(Indiv, V
         let path = cfg.checkpoint.as_deref().ok_or("resume requested but no checkpoint path configured")?;
         if !std::path::Path::new(path).exists() { return Err(format!("resume requested but checkpoint {path} does not exist")); }
         let loaded = load_ckpt(path).map_err(|e| format!("resume {path}: {e}"))?;
+        if loaded.format_version != 3 {
+            return Err("historical checkpoint format 2 cannot resume or fork. Extract best genomes with --seed-ckpt and re-evaluate.".into());
+        }
+        if let Err(reason) = score_carry_ok(&loaded.manifest_json, &loaded.manifest_sha, &man) {
+            if cfg.fork { return Err(format!("resume {path}: seed-ckpt refusal ({reason})")); }
+            return Err(format!("manifest mismatch: {reason}"));
+        }
+        for isl in &loaded.islands { population_gate(&isl.pop)?; }
+        population_gate(&loaded.archive)?;
         if loaded.manifest_sha != man.sha256() {
             if !cfg.fork { return Err(format!("resume {path}: manifest mismatch (checkpoint {} != run {}); refusing. Checkpoint manifest: {}; this run: {}. Use --fork to branch deliberately.",
                 &loaded.manifest_sha[..12], &man.sha256()[..12], loaded.manifest_json, man.canonical_json())); }
@@ -557,7 +940,7 @@ pub fn try_run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> Result<(Indiv, V
         }
         let sigma = 0.10 * (1.0 - gen as f64 / (cfg.gens.max(1) as f64)) + 0.02;
         for isl in islands.iter_mut() {
-            let (rank, crowd) = rank_crowd(&isl.pop);
+            let (rank, crowd) = rank_crowd(&isl.pop)?;
             let mut items: Vec<(Genotype, u64)> = Vec::with_capacity(isl.pop.len());
             while items.len() < isl.pop.len() {
                 let g = if isl.rng.f64() < 0.1 { Genotype::random(&mut isl.rng) }
@@ -574,9 +957,9 @@ pub fn try_run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> Result<(Indiv, V
             let mut both = std::mem::take(&mut isl.pop);
             both.extend(kids);
             let keep = pop_n.min(both.len()).max(2);
-            isl.pop = truncate(both, keep);
+            isl.pop = truncate(both, keep)?;
         }
-        if let Some(path) = &cfg.checkpoint { save_ckpt(path, gen + 1, &man, &islands, &archive); }
+        if let Some(path) = &cfg.checkpoint { save_ckpt(path, gen + 1, &man, &islands, &archive)?; }
         if cfg.stop_after == Some(gen + 1) { stopped = true; break; }
     }
     // terminal snapshot: the final populations (the returned best is always in it); not emitted when interrupted
@@ -593,22 +976,281 @@ pub fn try_run(cfg: &Config, mut log: impl FnMut(&GenStats)) -> Result<(Indiv, V
 mod tests {
     use super::*;
 
-    fn bare(fit: f64, mass: f64, cut: f64, floors: bool) -> Indiv {
-        let g = Genotype::random(&mut Rng(1));
-        Indiv { g, fit, mean: fit, strength_n: fit.max(0.0) * mass, mass_g: mass, floors_ok: floors, cut_p05: cut, sharp_p05: 0.5 }
+    fn retired_ind(fit: f64, mass: f64, floors: bool) -> Indiv {
+        Indiv {
+            g: Genotype::random(&mut Rng(1)), fit,
+            stats: SampleStatistics::credited(fit, 0.5).expect("finite test stats"),
+            strength_n: fit.max(0.0) * mass, mass_g: mass, floors_ok: floors,
+            cut: CutAvailability::retired(),
+        }
+    }
+
+    fn historical_ind(fit: f64, mass: f64, cut: f64, floors: bool) -> Indiv {
+        Indiv {
+            g: Genotype::random(&mut Rng(1)), fit,
+            stats: SampleStatistics::credited(fit, 0.5).expect("finite test stats"),
+            strength_n: fit.max(0.0) * mass, mass_g: mass, floors_ok: floors,
+            cut: CutAvailability::Historical { value: cut },
+        }
+    }
+
+    fn direct(stats: SampleStatistics, cut: CutAvailability, fit: f64, floors: bool) -> Indiv {
+        Indiv { g: Genotype::random(&mut Rng(1)), fit, stats, strength_n: 10.0, mass_g: 30.0, floors_ok: floors, cut }
     }
 
     #[test] fn feasible_dominates_infeasible_and_front_keeps_extremes() {
-        let good = bare(10.0, 30.0, 0.2, true);
-        let heavy = bare(9.0, 40.0, 0.4, true);
-        let bad = bare(-3.0, 20.0, 0.9, false);
+        let good = retired_ind(10.0, 30.0, true);
+        let heavy = retired_ind(9.0, 40.0, true);
+        let bad = retired_ind(-3.0, 20.0, false);
         assert!(dominates(&good, &bad));
         assert!(!dominates(&bad, &good));
-        assert!(!dominates(&good, &heavy) && !dominates(&heavy, &good));
-        let pop = vec![good, heavy.clone(), bad, bare(8.0, 25.0, 0.1, true), bare(7.0, 50.0, 0.0, true)];
-        let kept = truncate(pop, 2);
+        assert!(dominates(&good, &heavy));
+        assert!(!dominates(&heavy, &good));
+        assert!(good.feasible() && good.stats.credited_pair().is_some());
+        let pop = vec![good, heavy, bad, retired_ind(8.0, 25.0, true), retired_ind(7.0, 50.0, true)];
+        let kept = truncate(pop, 2).expect("retired population");
         assert_eq!(kept.len(), 2);
         assert!(kept.iter().any(|i| (i.fit - 10.0).abs() < 1e-9), "unique primary best is an objective extreme");
+        assert!(kept.iter().any(|i| (i.fit - 8.0).abs() < 1e-9 && (i.mass_g - 25.0).abs() < 1e-9));
+        assert!(kept.iter().all(|i| (i.fit - 9.0).abs() > 1e-6));
+    }
+
+    #[test] fn historical_predicate_keeps_three_objectives_and_current_paths_refuse_it() {
+        let good = historical_ind(10.0, 30.0, 0.2, true);
+        let heavy = historical_ind(9.0, 40.0, 0.4, true);
+        let bad = historical_ind(-3.0, 20.0, 0.9, false);
+        assert!(!dominates(&good, &heavy) && !dominates(&heavy, &good));
+        assert!(!dominates_historical_v1(&good, &heavy) && !dominates_historical_v1(&heavy, &good));
+        assert!(dominates_historical_v1(&good, &bad));
+        assert!(!dominates_historical_v1(&bad, &good));
+        assert_eq!(current_obj(&good, 2).unwrap_err(), "retired objective has no third component");
+        let one = historical_ind(1.0, 30.0, 0.2, true);
+        assert_eq!(truncate(vec![one.clone()], 1).unwrap_err(), "HistoricalCutInCurrentPopulation");
+        assert_eq!(rank_crowd(&[one.clone()]).unwrap_err(), "HistoricalCutInCurrentPopulation");
+        assert_eq!(truncate(vec![one.clone(), historical_ind(2.0, 20.0, 0.1, true)], 1).unwrap_err(), "HistoricalCutInCurrentPopulation");
+        let pop = vec![good, heavy, bad, historical_ind(8.0, 25.0, 0.1, true), historical_ind(7.0, 50.0, 0.0, true)];
+        let kept = truncate_historical_v1(pop, 2).unwrap();
+        assert_eq!(kept.len(), 2);
+        assert!(kept.iter().any(|i| (i.fit - 10.0).abs() < 1e-9));
+    }
+
+    #[test] fn direct_nonfinite_credited_is_refused_before_the_fast_path() {
+        let nan = direct(SampleStatistics::Credited { mean: f64::NAN, sharp_p05: 0.5 }, CutAvailability::retired(), 4.0, true);
+        let inf = direct(SampleStatistics::Credited { mean: 1.0, sharp_p05: f64::INFINITY }, CutAvailability::retired(), 4.0, true);
+        assert!(nan.credited_pair().is_none() && inf.credited_pair().is_none());
+        assert!(!nan.feasible() && !inf.feasible());
+        assert_eq!(truncate(vec![nan.clone()], 1).unwrap_err(), "nonfinite_credited_statistics");
+        assert_eq!(rank_crowd(&[inf.clone()]).unwrap_err(), "nonfinite_credited_statistics");
+        assert_eq!(truncate(vec![nan.clone(), historical_ind(1.0, 20.0, 0.2, true)], 5).unwrap_err(), "nonfinite_credited_statistics");
+        assert_eq!(format_stats_mean_cell(&nan.stats).unwrap_err(), "nonfinite_credited_statistics");
+        assert_eq!(format_stats_sharp_cell(&inf.stats, SharpFormat::Log2).unwrap_err(), "nonfinite_credited_statistics");
+        assert_eq!(format_cut_for_current_log(&historical_ind(1.0, 1.0, 0.2, true).cut).unwrap_err(), "historical_cut_column_not_current");
+        assert_eq!(indiv_v3(&nan).unwrap_err(), "nonfinite_credited_statistics");
+        let finite = SampleStatistics::credited(-1000.0, 0.0).unwrap();
+        assert_eq!(finite.credited_pair().unwrap().0.to_bits(), (-1000.0f64).to_bits());
+        let ind = direct(finite, CutAvailability::retired(), -1000.0, false);
+        let line = indiv_v3(&ind).unwrap();
+        assert!(line.contains(&format!("credited:{:016x}:{:016x}", (-1000.0f64).to_bits(), 0.0f64.to_bits())));
+        match parse_indiv_v3(&line).unwrap().stats {
+            SampleStatistics::Credited { mean, sharp_p05 } => {
+                assert_eq!(mean.to_bits(), (-1000.0f64).to_bits());
+                assert_eq!(sharp_p05.to_bits(), 0.0f64.to_bits());
+            }
+            other => panic!("{other:?}"),
+        }
+        assert_eq!(format_stats_sharp_cell(&finite, SharpFormat::Csv4).unwrap(), "0.0000");
+        assert_eq!(format_stats_mean_cell(&SampleStatistics::credited(0.0, 0.5).unwrap()).unwrap(), "0.00000");
+        let unavailable = direct(SampleStatistics::unavailable(AbsenceReason::ThreadBudget), CutAvailability::retired(), -1e3, false);
+        let kept = truncate(vec![unavailable.clone()], 1).unwrap();
+        assert!(kept.iter().all(|i| !i.feasible()));
+        let token_line = indiv_v3(&unavailable).unwrap();
+        let token = token_line.split_whitespace().nth(1).unwrap();
+        assert_eq!(token, "unavailable:thread_budget");
+        assert!(token.parse::<f64>().is_err());
+        assert!(matches!(parse_indiv_v3(&token_line).unwrap().stats, SampleStatistics::Unavailable { reason: AbsenceReason::ThreadBudget }));
+        assert_eq!(parse_indiv_v3(&token_line.replacen("unavailable:thread_budget", "0000000000000000", 1)).unwrap_err(), "statistics_token_not_credited");
+        assert_eq!(parse_indiv_v3(&token_line.replacen("unavailable:thread_budget", "historical:0000000000000000:0000000000000000", 1)).unwrap_err(), "statistics_token_not_credited");
+        assert_eq!(parse_indiv_v3(&token_line.replacen(CutAvailability::TOKEN, "0000000000000000", 1)).unwrap_err(), "active cut value in current checkpoint");
+        assert_eq!(format_cut_for_current_log(&retired_ind(1.0, 1.0, true).cut).unwrap(), CutAvailability::TOKEN);
+        assert_eq!(format_stats_sharp_cell(&SampleStatistics::unavailable(AbsenceReason::EmptySample), SharpFormat::Report3).unwrap(), "unavailable:empty_sample");
+    }
+
+    #[test] fn v2_historical_bits_reencode_and_headers_are_token_equal() {
+        let bits = 0x3fc999999999999au64;
+        assert_eq!(0.2f64.to_bits(), bits);
+        let ind = direct(SampleStatistics::historical(bits, 0.5f64.to_bits()), CutAvailability::Historical { value: f64::from_bits(bits) }, 1.0, true);
+        let line = indiv_v2_historical(&ind).unwrap();
+        assert!(line.contains("3fc999999999999a"));
+        assert_eq!(indiv_v2_historical(&parse_indiv_v2(&line).unwrap()).unwrap(), line);
+        assert!(history_header_status(CURRENT_HISTORY_COLUMNS, CURRENT_HISTORY_COLUMNS).is_ok());
+        let mut old = CURRENT_HISTORY_COLUMNS.to_vec();
+        let i = old.iter().position(|c| *c == "best_cut_availability").unwrap();
+        old[i] = "best_cut_p05";
+        assert_eq!(history_header_status(&old, CURRENT_HISTORY_COLUMNS).unwrap_err(), "historical_cut_column_not_current");
+        old[i] = "best_sharp_p05";
+        assert_eq!(history_header_status(&old, CURRENT_HISTORY_COLUMNS).unwrap_err(), "historical_statistics_column_not_current");
+        assert!(history_header_status(&["best_stats_sharp_p05"], &["best_stats_sharp_p05"]).is_ok());
+        assert_eq!(history_header_status(&["best_stats_sharp_p05", "extra"], &["best_stats_sharp_p05"]).unwrap_err(), "history_header_mismatch");
+        let j = manifest(&Config::new(4, 2, 8, 1, 1)).canonical_json();
+        assert!(j.contains("\"objective_id\":\"search_objective.v4_cut_retired_stats_typed\""));
+        assert!(j.contains("\"scenario_id\":\"scenario.active_no_cut_media_stats_typed\""));
+        assert!(j.contains("\"cut_availability\":\"retired:model_retired_not_prevalence\""));
+        assert!(j.contains("\"objective_sha256\":\"688525497ed8a4a9be221f2c06e8eb9d64c0c370cd18a397c42651f2896eddb9\""));
+        assert!(j.contains("\"scenario_sha256\":\"17a33a835407f26a47be01a73c46add197b3be7bee4a6c610e19b32ccb521384\""));
+        assert!(j.contains("\"op_version\":1") && j.contains("\"floors_n\":\"180/260/1500\"") && j.contains("\"command\":\"evolve\"") && j.contains("\"search_area\":2.0"));
+        assert!(manifest(&Config::new(4, 2, 8, 1, 1)).scientific.is_none());
+    }
+
+    fn scratch(name: &str) -> String {
+        let d = std::env::temp_dir().join(format!("jarambit_s04_src_{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        d.join(name).to_string_lossy().into_owned()
+    }
+
+    fn write_current(path: &str, cfg: &Config, next_gen: usize) {
+        let islands = vec![Island { rng: Rng(1), pop: vec![retired_ind(3.0, 40.0, true)] }];
+        save_ckpt(path, next_gen, &manifest(cfg), &islands, &[]).unwrap();
+    }
+
+    fn refuse(cfg: &Config) -> String {
+        let mut n = 0usize;
+        let err = try_run(cfg, |_| n += 1).unwrap_err();
+        assert_eq!(n, 0, "{err}");
+        err
+    }
+
+    fn rewrite(text: &str, json: &str, sha: &str) -> String {
+        let mut out = String::new();
+        for line in text.lines() {
+            if line.starts_with("manifest_sha256 ") { out.push_str(&format!("manifest_sha256 {sha}\n")); }
+            else if line.starts_with("manifest ") { out.push_str(&format!("manifest {json}\n")); }
+            else { out.push_str(line); out.push('\n'); }
+        }
+        out
+    }
+
+    #[test] fn admission_refuses_score_carry_even_when_the_header_matches() {
+        let path = scratch("admit.ckpt");
+        let mut cfg = Config::new(4, 2, 8, 1, 99);
+        cfg.checkpoint = Some(path.clone());
+        write_current(&path, &cfg, cfg.gens);
+        cfg.resume = true;
+        let (best, _) = try_run(&cfg, |_| {}).unwrap();
+        assert!((best.fit - 3.0).abs() < 1e-9);
+        cfg.mc_samples = 9;
+        let e = refuse(&cfg);
+        assert!(e.contains("manifest mismatch") && e.contains("score_config_mismatch") && !e.contains("seed-ckpt"), "{e}");
+        cfg.mc_samples = 8;
+        cfg.fem = true;
+        cfg.resume = false;
+        cfg.fork = true;
+        let e = refuse(&cfg);
+        assert!(e.contains("seed-ckpt") && e.contains("score_config_mismatch") && !e.contains("manifest mismatch"), "{e}");
+        cfg.fem = false;
+        cfg.fine = true;
+        let e = refuse(&cfg);
+        assert!(e.contains("seed-ckpt") && !e.contains("manifest mismatch"), "{e}");
+        cfg.fine = false;
+        let original = std::fs::read_to_string(&path).unwrap();
+        let loaded = load_ckpt(&path).unwrap();
+        let live_sha = manifest(&cfg).sha256();
+        let plant = |json: &str| std::fs::write(&path, rewrite(&original, json, &live_sha)).unwrap();
+        plant(&loaded.manifest_json.replace("search_objective.v4_cut_retired_stats_typed", "search_objective.tampered"));
+        let e = refuse(&cfg);
+        assert!(e.contains("seed-ckpt") && e.contains("score_config_mismatch") && !e.contains("manifest mismatch"), "{e}");
+        plant(&loaded.manifest_json.replace("\"search_area\":2.0", "\"search_area\":4.0"));
+        let e = refuse(&cfg);
+        assert!(e.contains("seed-ckpt") && e.contains("score_config_mismatch") && !e.contains("manifest mismatch"), "{e}");
+        plant(&loaded.manifest_json.replace("\"command\":\"evolve\"", "\"command\":\"evolvx\""));
+        let e = refuse(&cfg);
+        assert!(e.contains("seed-ckpt") && e.contains("source_identity_mismatch") && !e.contains("manifest mismatch"), "{e}");
+        plant(&loaded.manifest_json.replace("\"op_version\":1", "\"op_version\":2"));
+        let e = refuse(&cfg);
+        assert!(e.contains("seed-ckpt") && e.contains("source_identity_mismatch") && !e.contains("manifest mismatch"), "{e}");
+        plant(&loaded.manifest_json.replace("\"params\":{", "\"params\":{\"not_a_score\":1,"));
+        let e = refuse(&cfg);
+        assert!(e.contains("seed-ckpt") && e.contains("unknown_manifest_param") && !e.contains("manifest mismatch"), "{e}");
+        cfg.fork = false;
+        cfg.resume = true;
+        let e = refuse(&cfg);
+        assert!(e.contains("manifest mismatch") && e.contains("unknown_manifest_param") && !e.contains("seed-ckpt"), "{e}");
+        let mut extra = loaded.manifest_json.clone();
+        extra.pop();
+        extra.push_str(",\"extra\":1}");
+        plant(&extra);
+        let e = refuse(&cfg);
+        assert!(e.contains("manifest mismatch") && e.contains("unknown_manifest_field"), "{e}");
+        cfg.fork = true;
+        cfg.resume = false;
+        let e = refuse(&cfg);
+        assert!(e.contains("seed-ckpt") && e.contains("unknown_manifest_field") && !e.contains("manifest mismatch"), "{e}");
+        let missing = loaded.manifest_json.replace("\"objective_sha256\":\"688525497ed8a4a9be221f2c06e8eb9d64c0c370cd18a397c42651f2896eddb9\",", "");
+        plant(&missing);
+        let e = refuse(&cfg);
+        assert!(e.contains("seed-ckpt") && e.contains("missing_score_param") && !e.contains("manifest mismatch"), "{e}");
+        std::fs::write(&path, rewrite(&original, &loaded.manifest_json.replace(&format!("\"seed\":{}", cfg.seed), &format!("\"seed\":{}", cfg.seed + 1)), &loaded.manifest_sha)).unwrap();
+        let e = refuse(&cfg);
+        assert!(e.contains("seed-ckpt") && e.contains("manifest_body_sha_mismatch") && !e.contains("manifest mismatch"), "{e}");
+        cfg.fork = false;
+        cfg.resume = true;
+        let e = refuse(&cfg);
+        assert!(e.contains("manifest mismatch") && e.contains("manifest_body_sha_mismatch") && !e.contains("seed-ckpt"), "{e}");
+        plant("[");
+        cfg.fork = true;
+        cfg.resume = false;
+        let e = refuse(&cfg);
+        assert!(e.contains("seed-ckpt") && e.contains("manifest_json_rejected") && !e.contains("manifest mismatch"), "{e}");
+        let path_g = scratch("gens0.ckpt");
+        let mut stored = Config::new(4, 1, 8, 1, 99);
+        stored.checkpoint = Some(path_g.clone());
+        write_current(&path_g, &stored, 2);
+        let mut live = Config::new(4, 2, 8, 1, 99);
+        live.checkpoint = Some(path_g.clone());
+        live.fork = true;
+        let (best, _) = try_run(&live, |_| {}).unwrap();
+        assert!((best.fit - 3.0).abs() < 1e-9);
+        let mut islands_only = original.replace("\nislands 1\n", "\nislands 2\n");
+        let row = original.lines().find(|l| l.split_whitespace().nth(1).map(|t| t.starts_with("credited:")).unwrap_or(false)).unwrap();
+        islands_only = islands_only.replace("archive 0\n", &format!("island 1 rng 0000000000000002 n 1\n{row}\narchive 0\n"));
+        std::fs::write(&path, &islands_only).unwrap();
+        cfg.fork = false;
+        cfg.resume = true;
+        cfg.gens = 2;
+        let e = refuse(&cfg);
+        assert!(e.contains("checkpoint has 2 islands") && !e.contains("manifest mismatch"), "{e}");
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(&path_g);
+    }
+
+    #[test] fn v1_and_v2_checkpoints_do_not_resume_or_fork() {
+        let v2 = scratch("v2.ckpt");
+        let ind = direct(SampleStatistics::historical(0.2f64.to_bits(), 0.5f64.to_bits()), CutAvailability::Historical { value: f64::from_bits(0x3fc999999999999a) }, 1.0, true);
+        let line = indiv_v2_historical(&ind).unwrap();
+        std::fs::write(&v2, format!("jarambit-ckpt 2\nmanifest_sha256 {}\nmanifest {{}}\nnext_gen 1\nislands 1\nisland 0 rng 0000000000000001 n 1\n{line}\narchive 0\nend\n", "ab".repeat(32))).unwrap();
+        assert_eq!(load_ckpt(&v2).unwrap().format_version, 2);
+        let mut cfg = Config::new(4, 1, 8, 1, 3);
+        cfg.checkpoint = Some(v2.clone());
+        cfg.resume = true;
+        let e = refuse(&cfg);
+        assert!(e.contains("format 2") && e.contains("seed-ckpt") && !e.contains("manifest mismatch"), "{e}");
+        cfg.resume = false;
+        cfg.fork = true;
+        let e = refuse(&cfg);
+        assert!(e.contains("format 2") && e.contains("seed-ckpt") && !e.contains("manifest mismatch"), "{e}");
+        let v1 = scratch("v1.ckpt");
+        let g = Genotype::random(&mut Rng(3));
+        let row = format!("1.5 1.5 10 40 1 0.2 0.5 {}", g.to_csv_row());
+        std::fs::write(&v1, format!("jarambit-ckpt 1\n0\nislands 1\n1\n1\nisland 0 rng 0000000000000001 n 1\n{row}\n")).unwrap();
+        let e = load_ckpt(&v1).unwrap_err();
+        assert!(e.contains("format 1") && e.contains("seed-ckpt") && e.contains("--fork does not extract v1 genomes."), "{e}");
+        assert_eq!(checkpoint_best(&v1).unwrap().to_vec().len(), 24);
+        cfg.checkpoint = Some(v1.clone());
+        cfg.fork = true;
+        cfg.resume = false;
+        let e = refuse(&cfg);
+        assert!(e.contains("format 1") && !e.contains("manifest mismatch"), "{e}");
+        let _ = std::fs::remove_file(&v2);
+        let _ = std::fs::remove_file(&v1);
     }
 
     #[test] fn checkpoint_roundtrip_and_short_search() {
@@ -629,14 +1271,18 @@ mod tests {
         let best_g = checkpoint_best(path).unwrap();
         assert_eq!(best_g.to_vec().len(), 24);
         assert_eq!(loaded.next_gen, 2);
+        assert_eq!(loaded.format_version, 3);
         assert_eq!(loaded.islands.len(), 2);
         assert!(!loaded.islands[0].pop.is_empty());
+        assert!(std::fs::read_to_string(path).unwrap().starts_with("jarambit-ckpt 3\n"));
         cfg.gens = 3;
         cfg.resume = true;
         assert!(try_run(&cfg, |_| {}).unwrap_err().contains("manifest mismatch"), "changing gens must refuse a plain resume");
         cfg.fork = true;
         let (best2, _) = run(&cfg, |_| {});
         assert!(best2.fit.is_finite());
+        let saved = std::fs::read_to_string(path).unwrap();
+        assert!(saved.contains("forked_from_manifest_sha256") && saved.contains("forked_at_gen"));
         let _ = std::fs::remove_file(path);
     }
 

@@ -1,7 +1,7 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc; // per-thread heaps: glibc malloc spent ~75% in kernel at >8 MC threads
 
-use jarambit_evolve::{nominal, Config, Indiv};
+use jarambit_evolve::{format_cut_for_current_log, format_stats_mean_cell, format_stats_sharp_cell, history_header_status, nominal, Config, Indiv, SharpFormat, CURRENT_HISTORY_COLUMNS};
 use jarambit_genotype::{limits, Genotype};
 use jarambit_physics::{material, plate_capacities};
 use std::fmt::Write;
@@ -117,21 +117,34 @@ fn main() {
     // PR-0.29.3: history / quarantine are STREAMED (appended + flushed every generation), so an interrupted run
     // keeps its log; the mean is over feasible() designs only; quarantine rows carry the genotype hash.
     let resuming = (cfg.resume || cfg.fork) && std::path::Path::new(&hist_path).exists();
+    if resuming {
+        let text = std::fs::read_to_string(&hist_path).unwrap_or_else(|e| panic!("{hist_path}: {e}"));
+        let header = text.lines().next().unwrap_or("");
+        let existing: Vec<&str> = header.split(',').collect();
+        let mut current: Vec<&str> = CURRENT_HISTORY_COLUMNS.to_vec();
+        current.extend(Genotype::CSV_HEADER.split(','));
+        if let Err(e) = history_header_status(&existing, &current) { eprintln!("evolve: {e}"); std::process::exit(2); }
+    }
     if !resuming {
-        std::fs::write(&hist_path, format!("gen,terminal,best_p05_spg,feasible_mean_p05,n_feasible,diversity,rejected_in_gen,best_strength_n,best_mass_g,best_cut_p05,best_sharp_p05,best_genotype_hash,{}\n", Genotype::CSV_HEADER)).unwrap();
+        std::fs::write(&hist_path, format!("{},{}\n", CURRENT_HISTORY_COLUMNS.join(","), Genotype::CSV_HEADER)).unwrap();
         std::fs::write(&q_path, "gen,genotype_hash,reasons\n").unwrap();
     }
     let open_app = |p: &str| std::fs::OpenOptions::new().append(true).open(p).unwrap_or_else(|e| panic!("{p}: {e}"));
     let (mut hf_w, mut qf_w) = (open_app(&hist_path), open_app(&q_path));
     let mut raw: Vec<(f64, f64)> = vec![];
+    let show = |r: Result<String, String>| match r { Ok(s) => s, Err(e) => { eprintln!("evolve: {e}"); std::process::exit(2); } };
     let res = jarambit_evolve::try_run(&cfg, |s| {
         let b = &s.pop[0];
         let mean = jarambit_evolve::feasible_mean(s.pop);
         let n_feas = s.pop.iter().filter(|i| i.feasible()).count();
         if !s.terminal { for i in s.pop { raw.push((s.gen as f64, i.fit.max(-20.0))); } }
-        println!("gen {:3}{}  best p05 spg {:.3} N/g  cut {:.3}  sharp {:.2}  S={:.0}N m={:.1}g  div={:.3}  rejected={}  islands={}  t={:.1}mm grip={:.1}", s.gen, if s.terminal { " (final)" } else { "" }, b.fit, b.cut_p05, b.sharp_p05, b.strength_n, b.mass_g, s.diversity, s.rejected, cfg.islands, b.g.thickness, b.g.grip_len);
+        let cut_log = show(format_cut_for_current_log(&b.cut));
+        let sharp_log = show(format_stats_sharp_cell(&b.stats, SharpFormat::Log2));
+        println!("gen {:3}{}  best p05 spg {:.3} N/g  cut {}  sharp {}  S={:.0}N m={:.1}g  div={:.3}  rejected={}  islands={}  t={:.1}mm grip={:.1}", s.gen, if s.terminal { " (final)" } else { "" }, b.fit, cut_log, sharp_log, b.strength_n, b.mass_g, s.diversity, s.rejected, cfg.islands, b.g.thickness, b.g.grip_len);
         if !s.terminal { rows.push((s.gen, b.fit, mean.unwrap_or(f64::NAN), s.diversity)); }
-        let line = format!("{},{},{:.5},{},{},{:.4},{},{:.1},{:.2},{:.4},{:.4},{},{}\n", s.gen, s.terminal, b.fit, mean.map_or(String::new(), |m| format!("{m:.5}")), n_feas, s.diversity, s.rejected, b.strength_n, b.mass_g, b.cut_p05, b.sharp_p05, jarambit_evolve::genotype_hash(&b.g), b.g.to_csv_row());
+        let mean_cell = show(format_stats_mean_cell(&b.stats));
+        let sharp_csv = show(format_stats_sharp_cell(&b.stats, SharpFormat::Csv4));
+        let line = format!("{},{},{:.5},{},{},{:.4},{},{:.1},{:.2},{},{},{},{},{}\n", s.gen, s.terminal, b.fit, mean.map_or(String::new(), |m| format!("{m:.5}")), n_feas, s.diversity, s.rejected, b.strength_n, b.mass_g, cut_log, mean_cell, sharp_csv, jarambit_evolve::genotype_hash(&b.g), b.g.to_csv_row());
         let mut q = String::new();
         for (g, why) in &s.quarantine { let _ = writeln!(q, "{},{},\"{}\"", s.gen, jarambit_evolve::genotype_hash(g), why.replace('"', "'")); }
         { use std::io::Write as _; hf_w.write_all(line.as_bytes()).and_then(|_| hf_w.flush()).expect("history.csv append"); qf_w.write_all(q.as_bytes()).and_then(|_| qf_w.flush()).expect("quarantine.csv append"); }
@@ -142,8 +155,10 @@ fn main() {
     let plate = plate_capacities(&p, material(best.g.material), 20.0, (best.g.serr_inner.depth, best.g.serr_outer.depth));
     let plate_s = plate.as_ref().map(|c| c.blade_lat_n.min(c.grip_lat_n)).unwrap_or(f64::NAN);
     let logged_s = if cfg.fem { best.strength_n } else { e.strength_n };
-    println!("final p05 spg {:.3} N/g  cut {:.3}  redteam={:?}  floors_ok={}  mass={:.1}g  S={:.0}N  plate={:.0}N  insert/draw {:.1}/{:.1} N  blade tip-heel/reach/arc = {:.1}/{:.1}/{:.1} mm (limit {:.3})",
-        best.fit, best.cut_p05, rt, best.floors_ok, e.mass_g, logged_s, plate_s, hf.insertion_n, hf.draw_n, p.blade.tip_to_heel, p.blade.horizontal_reach, p.blade.sharpened_arc, limits::BLADE_LIMIT_MM);
+    let best_cut = show(format_cut_for_current_log(&best.cut));
+    let best_sharp = show(format_stats_sharp_cell(&best.stats, SharpFormat::Report3));
+    println!("final p05 spg {:.3} N/g  cut {}  redteam={:?}  floors_ok={}  mass={:.1}g  S={:.0}N  plate={:.0}N  insert/draw {:.1}/{:.1} N  blade tip-heel/reach/arc = {:.1}/{:.1}/{:.1} mm (limit {:.3})",
+        best.fit, best_cut, rt, best.floors_ok, e.mass_g, logged_s, plate_s, hf.insertion_n, hf.draw_n, p.blade.tip_to_heel, p.blade.horizontal_reach, p.blade.sharpened_arc, limits::BLADE_LIMIT_MM);
     let w = |f: &str, s: String| std::fs::write(format!("{out}/{f}"), s).unwrap();
     let mut pc = format!("strength_n,mass_g,spg,p05_spg,{}\n", Genotype::CSV_HEADER);
     let mut fr: Vec<&Indiv> = front.iter().collect(); fr.sort_by(|a, b| a.mass_g.partial_cmp(&b.mass_g).unwrap());
@@ -170,9 +185,9 @@ fn main() {
     } else {
         "fitness model: beam surrogate (Monte Carlo). Plate check is one Kirchhoff solve at 20 C, not inside the sample loop."
     };
-    let _ = writeln!(rep, "grip (ring-neck to guard): {:.2} mm\nring ID: {:.2} mm\nholder: ricasso land {:.1} mm, shoulder {:.2} mm/side, detent {:.2} mm @ {:.0}% grip, friction {:.1} mm, drain {:.1} mm, shell {:.2} mm\nholder forces (proxy): insertion {:.1} N, draw {:.1} N\nMC p05 cut margin {:.3}  p05 sharpness {:.3}\nsearch: NSGA-II, {} island(s), {} samples/candidate\n{model}",
+    let _ = writeln!(rep, "grip (ring-neck to guard): {:.2} mm\nring ID: {:.2} mm\nholder: ricasso land {:.1} mm, shoulder {:.2} mm/side, detent {:.2} mm @ {:.0}% grip, friction {:.1} mm, drain {:.1} mm, shell {:.2} mm\nholder forces (proxy): insertion {:.1} N, draw {:.1} N\nMC p05 cut margin {}  p05 sharpness {}\nsearch: NSGA-II, {} island(s), {} samples/candidate\n{model}",
         p.grip_len, p.ring_id, best.g.holder.ricasso_len, best.g.holder.shoulder_w, best.g.holder.detent_depth, best.g.holder.detent_pos * 100.0, best.g.holder.friction_len, best.g.holder.drain_d, best.g.holder.holder_wall,
-        hf.insertion_n, hf.draw_n, best.cut_p05, best.sharp_p05, cfg.islands, cfg.mc_samples);
+        hf.insertion_n, hf.draw_n, best_cut, best_sharp, cfg.islands, cfg.mc_samples);
     match &plate {
         Some(c) => { let _ = writeln!(rep, "plate FEM: lateral {:.1} N (blade {:.1} / grip {:.1}), in-plane {:.0} N, ring pull {:.0} N, {} nodes / {} free dofs",
             c.blade_lat_n.min(c.grip_lat_n), c.blade_lat_n, c.grip_lat_n, c.inplane_n, c.ring_pull_n, c.nodes, c.free_dofs); }

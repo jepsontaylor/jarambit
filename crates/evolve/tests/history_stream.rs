@@ -1,8 +1,18 @@
 //! PR-0.29.3: feasible-only mean, terminal snapshot contains the returned best, genotype hash.
-use jarambit_evolve::{feasible_mean, genotype_hash, try_run, Config, Indiv};
+use jarambit_evolve::{feasible_mean, genotype_hash, try_run, Config, CutAvailability, Indiv, SampleStatistics};
 use jarambit_genotype::{Genotype, Rng};
 
-fn ind(fit: f64, floors: bool, seed: u64) -> Indiv { Indiv { g: Genotype::random(&mut Rng(seed)), fit, mean: fit, strength_n: 300.0, mass_g: 40.0, floors_ok: floors, cut_p05: 0.1, sharp_p05: 0.5 } }
+fn ind(fit: f64, floors: bool, seed: u64) -> Indiv {
+    Indiv {
+        g: Genotype::random(&mut Rng(seed)),
+        fit,
+        stats: SampleStatistics::credited(fit, 0.5).expect("finite test stats"),
+        strength_n: 300.0,
+        mass_g: 40.0,
+        floors_ok: floors,
+        cut: CutAvailability::Historical { value: 0.1 },
+    }
+}
 
 #[test]
 fn mixed_population_mean_is_over_feasible_only() {
