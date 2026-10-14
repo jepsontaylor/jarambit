@@ -745,9 +745,9 @@ fn parse_indiv_v2(line: &str) -> Result<Indiv, String> {
     let f: Vec<&str> = line.splitn(8, ' ').collect();
     if f.len() != 8 { return Err(format!("indiv fields {}", f.len())); }
     if f[1].contains(':') || f[5].contains(':') || f[6].contains(':') { return Err("retired token in historical checkpoint".into()); }
-    let mean_bits = hex16(f[1])?;
-    let cut_bits = hex16(f[5])?;
-    let sharp_bits = hex16(f[6])?;
+    let mean_bits = unhx(f[1])?.to_bits();
+    let cut_bits = unhx(f[5])?.to_bits();
+    let sharp_bits = unhx(f[6])?.to_bits();
     Ok(Indiv {
         fit: unhx(f[0])?, stats: SampleStatistics::historical(mean_bits, sharp_bits), strength_n: unhx(f[2])?, mass_g: unhx(f[3])?,
         floors_ok: parse_floors(f[4])?, cut: CutAvailability::Historical { value: f64::from_bits(cut_bits) }, g: parse_genes_hex(f[7])?,
@@ -1360,6 +1360,218 @@ mod tests {
         assert!(e.contains("format 1") && !e.contains("manifest mismatch"), "{e}");
         let _ = std::fs::remove_file(&v2);
         let _ = std::fs::remove_file(&v1);
+    }
+
+    #[test]
+    fn historical_v2_short_mean_cut_and_sharp_restore_radix_bits() {
+        let mean_canon = 0x3fc999999999999au64;
+        let cut_canon = 0x3ff0000000000000u64;
+        let sharp_canon = 0x3fe0000000000000u64;
+        let signed_zero = 0x8000000000000000u64;
+        let pos_inf = 0x7ff0000000000000u64;
+        let neg_inf = 0xfff0000000000000u64;
+        let nan_payload = 0x7ff8000000000001u64;
+        assert_eq!(0.2f64.to_bits(), mean_canon);
+        assert_eq!(1.0f64.to_bits(), cut_canon);
+        assert_eq!(0.5f64.to_bits(), sharp_canon);
+        assert_eq!((-0.0f64).to_bits(), signed_zero);
+        assert_eq!(f64::INFINITY.to_bits(), pos_inf);
+        assert_eq!(f64::NEG_INFINITY.to_bits(), neg_inf);
+        assert_eq!(f64::from_bits(nan_payload).to_bits(), nan_payload);
+
+        let seed = direct(
+            SampleStatistics::historical(mean_canon, sharp_canon),
+            CutAvailability::Historical { value: f64::from_bits(cut_canon) },
+            1.5,
+            true,
+        );
+        let canonical = indiv_v2_historical(&seed).unwrap();
+        let base: Vec<String> = canonical.splitn(8, ' ').map(str::to_string).collect();
+        assert_eq!(base.len(), 8);
+        let with_fields = |edits: &[(usize, &str)]| {
+            let mut owned = base.clone();
+            for (index, token) in edits {
+                owned[*index] = (*token).to_string();
+            }
+            owned.join(" ")
+        };
+        let parse_v2 = |line: &str| parse_indiv_v2(line).unwrap_or_else(|err| panic!("parse {line}: {err}"));
+        let historical_bits = |ind: &Indiv| {
+            let (mean_bits, sharp_bits) = match ind.stats {
+                SampleStatistics::Historical { mean_bits, sharp_bits } => (mean_bits, sharp_bits),
+                other => panic!("expected historical statistics, got {other:?}"),
+            };
+            let cut_bits = match ind.cut {
+                CutAvailability::Historical { value } => value.to_bits(),
+                other => panic!("expected historical cut, got {other:?}"),
+            };
+            assert!(ind.stats.credited_pair().is_none());
+            (mean_bits, cut_bits, sharp_bits)
+        };
+        let reencoded_field = |ind: &Indiv, index: usize| {
+            indiv_v2_historical(ind).unwrap().splitn(8, ' ').nth(index).unwrap().to_string()
+        };
+
+        let canonical_ind = parse_v2(&canonical);
+        let (mean_bits, cut_bits, sharp_bits) = historical_bits(&canonical_ind);
+        assert_eq!(mean_bits, mean_canon);
+        assert_eq!(cut_bits, cut_canon);
+        assert_eq!(sharp_bits, sharp_canon);
+        assert_eq!(canonical_ind.fit.to_bits(), 1.5f64.to_bits());
+        assert_eq!(indiv_v2_historical(&canonical_ind).unwrap(), canonical);
+        assert_eq!(reencoded_field(&canonical_ind, 1), format!("{mean_canon:016x}"));
+        assert_eq!(reencoded_field(&canonical_ind, 5), format!("{cut_canon:016x}"));
+        assert_eq!(reencoded_field(&canonical_ind, 6), format!("{sharp_canon:016x}"));
+
+        let short_mean = parse_v2(&with_fields(&[(1, "0")]));
+        let (mean_bits, cut_bits, sharp_bits) = historical_bits(&short_mean);
+        assert_eq!(mean_bits, 0);
+        assert_eq!(cut_bits, cut_canon);
+        assert_eq!(sharp_bits, sharp_canon);
+        assert_eq!(short_mean.fit.to_bits(), 1.5f64.to_bits());
+        assert_eq!(short_mean.strength_n.to_bits(), seed.strength_n.to_bits());
+        assert_eq!(short_mean.mass_g.to_bits(), seed.mass_g.to_bits());
+        assert!(short_mean.floors_ok);
+        assert_eq!(reencoded_field(&short_mean, 1), "0000000000000000");
+        assert_eq!(reencoded_field(&short_mean, 5), format!("{cut_canon:016x}"));
+        assert_eq!(reencoded_field(&short_mean, 6), format!("{sharp_canon:016x}"));
+
+        let short_cut = parse_v2(&with_fields(&[(5, "0")]));
+        let (mean_bits, cut_bits, sharp_bits) = historical_bits(&short_cut);
+        assert_eq!(mean_bits, mean_canon);
+        assert_eq!(cut_bits, 0);
+        assert_eq!(sharp_bits, sharp_canon);
+        assert_eq!(reencoded_field(&short_cut, 5), "0000000000000000");
+        assert_eq!(reencoded_field(&short_cut, 1), format!("{mean_canon:016x}"));
+        assert_eq!(reencoded_field(&short_cut, 6), format!("{sharp_canon:016x}"));
+
+        let short_sharp = parse_v2(&with_fields(&[(6, "0")]));
+        let (mean_bits, cut_bits, sharp_bits) = historical_bits(&short_sharp);
+        assert_eq!(mean_bits, mean_canon);
+        assert_eq!(cut_bits, cut_canon);
+        assert_eq!(sharp_bits, 0);
+        assert_eq!(reencoded_field(&short_sharp, 6), "0000000000000000");
+        assert_eq!(reencoded_field(&short_sharp, 1), format!("{mean_canon:016x}"));
+        assert_eq!(reencoded_field(&short_sharp, 5), format!("{cut_canon:016x}"));
+
+        let all_short_line = with_fields(&[(1, "0"), (5, "0"), (6, "0")]);
+        let all_short = parse_v2(&all_short_line);
+        let (mean_bits, cut_bits, sharp_bits) = historical_bits(&all_short);
+        assert_eq!(mean_bits, 0);
+        assert_eq!(cut_bits, 0);
+        assert_eq!(sharp_bits, 0);
+        assert_eq!(all_short.fit.to_bits(), seed.fit.to_bits());
+        assert_eq!(all_short.g.to_vec().len(), seed.g.to_vec().len());
+        for (got, want) in all_short.g.to_vec().iter().zip(seed.g.to_vec()) {
+            assert_eq!(got.to_bits(), want.to_bits());
+        }
+        assert_eq!(all_short.g.material.name(), seed.g.material.name());
+        assert_eq!(reencoded_field(&all_short, 1), "0000000000000000");
+        assert_eq!(reencoded_field(&all_short, 5), "0000000000000000");
+        assert_eq!(reencoded_field(&all_short, 6), "0000000000000000");
+
+        let signed_mean = parse_v2(&with_fields(&[(1, "8000000000000000")]));
+        let (mean_bits, cut_bits, sharp_bits) = historical_bits(&signed_mean);
+        assert_eq!(mean_bits, signed_zero);
+        assert_eq!(cut_bits, cut_canon);
+        assert_eq!(sharp_bits, sharp_canon);
+        assert_eq!(reencoded_field(&signed_mean, 1), "8000000000000000");
+        let signed_cut = parse_v2(&with_fields(&[(5, "8000000000000000")]));
+        assert_eq!(historical_bits(&signed_cut).1, signed_zero);
+        assert_eq!(historical_bits(&signed_cut).0, mean_canon);
+        assert_eq!(historical_bits(&signed_cut).2, sharp_canon);
+        let signed_sharp = parse_v2(&with_fields(&[(6, "8000000000000000")]));
+        assert_eq!(historical_bits(&signed_sharp).2, signed_zero);
+        assert_eq!(historical_bits(&signed_sharp).0, mean_canon);
+        assert_eq!(historical_bits(&signed_sharp).1, cut_canon);
+
+        let inf_mean = parse_v2(&with_fields(&[(1, "7ff0000000000000")]));
+        assert_eq!(historical_bits(&inf_mean).0, pos_inf);
+        assert_eq!(historical_bits(&inf_mean).1, cut_canon);
+        assert_eq!(historical_bits(&inf_mean).2, sharp_canon);
+        assert_eq!(reencoded_field(&inf_mean, 1), "7ff0000000000000");
+        let neg_inf_cut = parse_v2(&with_fields(&[(5, "fff0000000000000")]));
+        assert_eq!(historical_bits(&neg_inf_cut).1, neg_inf);
+        assert_eq!(historical_bits(&neg_inf_cut).0, mean_canon);
+        assert_eq!(historical_bits(&neg_inf_cut).2, sharp_canon);
+        let nan_sharp = parse_v2(&with_fields(&[(6, "7ff8000000000001")]));
+        assert_eq!(historical_bits(&nan_sharp).2, nan_payload);
+        assert_eq!(historical_bits(&nan_sharp).0, mean_canon);
+        assert_eq!(historical_bits(&nan_sharp).1, cut_canon);
+        assert_eq!(reencoded_field(&nan_sharp, 6), "7ff8000000000001");
+
+        for (index, label) in [(1usize, "mean"), (5, "cut"), (6, "sharp")] {
+            let non_hex = with_fields(&[(index, "zz")]);
+            let err = parse_indiv_v2(&non_hex).unwrap_err();
+            assert!(err.contains("bad f64 bits"), "{label} non-hex: {err}");
+            let overflow = with_fields(&[(index, "00000000000000000")]);
+            let err = parse_indiv_v2(&overflow).unwrap_err();
+            assert!(err.contains("bad f64 bits"), "{label} overflow: {err}");
+            let colon = with_fields(&[(index, "0:0")]);
+            let err = parse_indiv_v2(&colon).unwrap_err();
+            assert!(err.contains("retired token in historical checkpoint"), "{label} colon: {err}");
+        }
+
+        let v2 = scratch("v2-radix-all-short.ckpt");
+        std::fs::write(&v2, format!("jarambit-ckpt 2\nmanifest_sha256 {}\nmanifest {{}}\nnext_gen 1\nislands 1\nisland 0 rng 1 n 1\n{all_short_line}\narchive 0\nend\n", "ab".repeat(32))).unwrap();
+        let loaded = load_ckpt(&v2).unwrap();
+        assert_eq!(loaded.format_version, 2);
+        assert_eq!(loaded.archive.len(), 0);
+        assert_eq!(loaded.islands[0].rng.0, 1);
+        let loaded_ind = &loaded.islands[0].pop[0];
+        let (mean_bits, cut_bits, sharp_bits) = historical_bits(loaded_ind);
+        assert_eq!(mean_bits, 0);
+        assert_eq!(cut_bits, 0);
+        assert_eq!(sharp_bits, 0);
+        assert_eq!(rank_crowd(&loaded.islands[0].pop).unwrap_err(), "HistoricalCutInCurrentPopulation");
+        let extracted = checkpoint_best(&v2).unwrap();
+        assert_eq!(extracted.to_vec().len(), loaded_ind.g.to_vec().len());
+        for (got, want) in extracted.to_vec().iter().zip(loaded_ind.g.to_vec()) {
+            assert_eq!(got.to_bits(), want.to_bits());
+        }
+        assert_eq!(extracted.material.name(), loaded_ind.g.material.name());
+        let mut cfg = Config::new(4, 1, 8, 1, 3);
+        cfg.checkpoint = Some(v2.clone());
+        cfg.resume = true;
+        let err = refuse(&cfg);
+        assert!(err.contains("format 2") && err.contains("seed-ckpt") && !err.contains("manifest mismatch"), "{err}");
+        cfg.resume = false;
+        cfg.fork = true;
+        let err = refuse(&cfg);
+        assert!(err.contains("format 2") && err.contains("seed-ckpt") && !err.contains("manifest mismatch"), "{err}");
+
+        let current = scratch("v3-radix-counterparts.ckpt");
+        let mut current_cfg = Config::new(4, 2, 8, 1, 42);
+        current_cfg.checkpoint = Some(current.clone());
+        write_current(&current, &current_cfg, current_cfg.gens);
+        let original = std::fs::read_to_string(&current).unwrap();
+        let credited = original.lines().find(|line| line.split(' ').nth(1).is_some_and(|token| token.starts_with("credited:"))).unwrap();
+        let retoken = |index: usize, token: &str| {
+            let mut parts: Vec<&str> = credited.splitn(7, ' ').collect();
+            parts[index] = token;
+            original.replace(credited, &parts.join(" "))
+        };
+        let refuse_current = |name: &str, body: String| {
+            let path = scratch(name);
+            std::fs::write(&path, body).unwrap();
+            match load_ckpt(&path) {
+                Err(err) => err,
+                Ok(_) => panic!("{name}: short current checkpoint returned Loaded"),
+            }
+        };
+        let short_fit = retoken(0, "0");
+        let short_fit_line = short_fit.lines().find(|line| line.split(' ').next() == Some("0")).unwrap();
+        assert!(parse_indiv_v3(short_fit_line).unwrap_err().contains("bad f64 bits"));
+        assert!(refuse_current("v3-short-fit", short_fit).contains("bad f64 bits"));
+        assert!(refuse_current("v3-short-strength", retoken(2, "0")).contains("bad f64 bits"));
+        assert!(refuse_current("v3-short-mass", retoken(3, "0")).contains("bad f64 bits"));
+        let short_stat = retoken(1, "credited:0:0000000000000000");
+        let short_stat_line = short_stat.lines().find(|line| line.contains("credited:0:")).unwrap();
+        assert!(parse_indiv_v3(short_stat_line).unwrap_err().contains("statistics_token_not_credited"));
+        assert!(refuse_current("v3-short-stat", short_stat).contains("statistics_token_not_credited"));
+        assert!(refuse_current("v3-short-rng", original.replace("rng 0000000000000001", "rng 0")).contains("bad f64 bits"));
+        let _ = std::fs::remove_file(&v2);
+        let _ = std::fs::remove_file(&current);
     }
 
     #[test]
