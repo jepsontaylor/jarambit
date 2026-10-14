@@ -138,9 +138,9 @@ def main():
     stop = lambda st: a.until == st
 
     # ---- ingest
-    mesh = work / 'ingest' / 'mesh'; bundle = mesh / 'bundle.json'   # ingest.py writes <out>/mesh/
+    mesh = work / 'mesh'; bundle = mesh / 'bundle.json'   # ingest.py --out WORK writes WORK/mesh/
     if not (bundle.is_file() and json.loads(bundle.read_text())['source']['sha256'] == man['step']['sha256']):
-        run([os.environ.get('JR_CAD_PY', py), REPO / 'ops/render/marketing/ingest.py', Path(man['design_dir']) / man['step']['path'], '--out', mesh.parent,
+        run([os.environ.get('JR_CAD_PY', py), REPO / 'ops/render/marketing/ingest.py', Path(man['design_dir']) / man['step']['path'], '--out', work,
              *([] if man['step']['path'].lower().endswith(('.step', '.stp')) else ['--units', 'mm']),   # STEP: units from header
              '--expected-sha256', man['step']['sha256']], logs / 'ingest.log', cwd=REPO / 'ops/render/marketing')
     need(json.loads(bundle.read_text())['source']['sha256'] == man['step']['sha256'], 'mesh bundle is not from the manifest STEP')
