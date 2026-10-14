@@ -2,6 +2,7 @@
 from dataclasses import replace
 from fractions import Fraction
 import hashlib
+import json
 import math
 import sys
 import unittest
@@ -105,6 +106,30 @@ class GCI(unittest.TestCase):
             changed = replace(original[1], observable=replace(original[1].observable, **{key:'different'}))
             result = compute_gci(100.5, 102, 108, 2, levels=(original[0], changed, original[2]))
             self.assertEqual(result.reason, 'observable_mismatch'); self.assertFalse(result.admitted)
+
+    def test_unicode_identity_boundary(self):
+        observable = Observable('应力-é', '兆帕', '尖端', '节点', '最大值')
+        original = tuple(replace(x, mesh=replace(x.mesh, id='网格-'+str(i), revision='修订-é'),
+                                 observable=observable) for i, x in enumerate(levels()))
+        surrogate = json.loads('"\\ud800"')
+        for section, fields in [('mesh', ('id', 'revision')),
+                                ('observable', ('id', 'units', 'region', 'projection', 'metric'))]:
+            for field in fields:
+                with self.subTest(identity=section+'.'+field):
+                    positive = compute_gci(100.5, 102, 108, 2, levels=original)
+                    self.assertEqual(positive.fit_status, FitStatus.VALID)
+                    self.assertTrue(positive.admitted)
+                    json.dumps(positive.to_dict(), allow_nan=False, ensure_ascii=False).encode('utf-8')
+                    changed = replace(original[1], **{section: replace(getattr(original[1], section),
+                                                                      **{field: surrogate})})
+                    result = compute_gci(100.5, 102, 108, 2, levels=(original[0], changed, original[2]))
+                    self.assertEqual(result.fit_status, FitStatus.UNSUPPORTED)
+                    self.assertEqual(result.reason, 'invalid_unicode_identity')
+                    self.assertFalse(result.admitted)
+                    self.assertFalse(result.sequence_valid)
+                    self.assertFalse(result.observable_valid)
+                    self.assertIsNone(result.gci_fine)
+                    json.dumps(result.to_dict(), allow_nan=False, ensure_ascii=False).encode('utf-8')
 
     def test_T01_18_peak_singularity(self):
         global_result = self.positive(); local = compute_gci(10, 12, 13, 2, levels=levels())

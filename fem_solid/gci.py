@@ -83,10 +83,13 @@ def validate_sequence(levels, r):
         if finite(r) <= 1: return 'invalid_refinement_ratio'
         if not all(isinstance(x.mesh, MeshRef) and isinstance(x.observable, Observable) for x in levels):
             return 'invalid_mesh_or_observable'
-        unique_ids(x.mesh.id for x in levels)
-        for x in levels:
-            unique_ids([x.mesh.revision]); digest(x.mesh.sha256)
-            for field in asdict(x.observable).values(): unique_ids([field])
+        try:
+            unique_ids(x.mesh.id for x in levels)
+            for x in levels:
+                unique_ids([x.mesh.revision]); digest(x.mesh.sha256)
+                for field in asdict(x.observable).values(): unique_ids([field])
+        except UnicodeError:
+            return 'invalid_unicode_identity'
         if len({x.mesh.sha256 for x in levels}) != 3: return 'duplicate_mesh_content'
         h = [finite(x.h) for x in levels]
         if not 0 < h[0] < h[1] < h[2]: return 'invalid_level_order'
