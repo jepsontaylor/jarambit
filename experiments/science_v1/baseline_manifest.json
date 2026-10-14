@@ -1,0 +1,358 @@
+{
+  "schema": "jarambit.science.baseline.v1",
+  "frozen_utc": "2026-10-14T02:41:17.048652+00:00",
+  "source_commit": "b81aa99d43cc56b9338969f76e3214785fa7559a",
+  "source_tree": "0f89fb644ed8fad741b00baaa2431eb443e1f67b",
+  "baseline_id": "science-v1.de2b3683ea873e99bc0520cec6d16047f136774cea02621cf57765b6539617e6",
+  "identity_hash_contract": "sorted-compact-ascii-json.v1",
+  "planning": {
+    "commit": "75bc76b01d403ebaf44e6980f38adc050ddd5233",
+    "files": [
+      {
+        "path": "docs/v1/science/RELEASE_PLAN.md",
+        "sha256": "86313d0d9464df29db0cd6dd27887ae117383b2159534ccd2119bd41c6f7fc7d"
+      },
+      {
+        "path": "docs/v1/science/WORK_PACKETS.json",
+        "sha256": "fa7082607e650c9bfc45b7cca6de1da31fd17616ec7e5e1b2f4f39da98a6f06d"
+      },
+      {
+        "path": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "sha256": "95eb4c6f652cac1479f69076f54ee9dfdf5ad4c2cd91091add211eb5e9682159"
+      },
+      {
+        "path": "docs/v1/science/tests/TEST_WORK_PACKETS.json",
+        "sha256": "a114894dea0c81063c3abfae279df13e0792e94bd197b7291e2ad8a2c7560268"
+      },
+      {
+        "path": "docs/v1/science/tests/TEST_CASE_CATALOG.json",
+        "sha256": "63d31d9d75de872369c4373f5c0be7fc537d921df0f5df13970fd9964e77d89d"
+      },
+      {
+        "path": "docs/v1/science/tests/CI_GATE_POLICY.json",
+        "sha256": "9b3f73151d5ebc1ac4293f8c466b7d3a31b97ea6de8924457e3f0bff20986a68"
+      }
+    ],
+    "role": "planning reference; not execution or qualification evidence"
+  },
+  "release_policy": {
+    "path": "assurance/policies/release-v1.json",
+    "sha256": "c2ff841cced11070c87f226a677d00c906cf7f4a11c6af31958bd642e27b5cd9",
+    "bytes": 11615
+  },
+  "requirements": [
+    {
+      "path": "requirements/RS-karambit-v1.toml",
+      "sha256": "ed3d61ab386e8e6c52c96d15d44e00b2542532f6898374706ef376cef742fff3",
+      "bytes": 2296,
+      "id": "RS-karambit-v1",
+      "declared_revision": 2,
+      "inherits": null,
+      "revision_status": "declared"
+    },
+    {
+      "path": "requirements/RS-karambit-v2.toml",
+      "sha256": "3d73b27cac953eae7f4d334a13351efd20dfe799d4f3c8d2584edef8d803cecc",
+      "bytes": 4850,
+      "id": "RS-karambit-v2",
+      "declared_revision": 2,
+      "inherits": "RS-karambit-v1",
+      "revision_status": "declared"
+    },
+    {
+      "path": "requirements/RS-sheath-runner-v1.toml",
+      "sha256": "8abd26ac8ce64f51783c38ca46b797d6914d7a09f839a9e813d2c21f811a354f",
+      "bytes": 1312,
+      "id": "RS-sheath-runner-v1",
+      "declared_revision": null,
+      "inherits": null,
+      "revision_status": "not_declared_in_file"
+    }
+  ],
+  "evaluator": {
+    "id": "baseline.evaluator.source.v1",
+    "source_files": {
+      "Cargo.lock": "6524ffdba55e5a620873aca0314f6ac1e2d441723639e640703ce7ee5ad3ccb4",
+      "Cargo.toml": "aa338525eac815da0ddf6557d150c0932f10c170985e9e7ff1cef1b4bcc50a1e",
+      "crates/cli/Cargo.toml": "be4282631bd8747ad295b497fcb5fedde6088967488d7f1fd7aa1c011fbe8f74",
+      "crates/cli/src/bench.rs": "61ea4a46e97aca76d49803664447390483515b61c18ab0ceefd747d7e3cadbfc",
+      "crates/cli/src/calib.rs": "c5401539b1b750857cc7743488cc279c5bb981d61de69463605961e6c6c27e9a",
+      "crates/cli/src/crescent.rs": "b7e0325142ce50288f45c5ddf12fe4baa5f03aada52436ea7cd7a9378e789265",
+      "crates/cli/src/fem_smoke.rs": "e679dae2b8eaa7a9c724e0a0ea55da559705280c71eb79ac102168e4c6d48f56",
+      "crates/cli/src/main.rs": "7040e440e90d966527d8dc853cd0eaef58bd5aef70c3029fd01b5ed2f3db14cd",
+      "crates/crescent/Cargo.toml": "62512d1952d855c1865d9406324a91655246a6007f7943320a046be2f5c8072d",
+      "crates/crescent/examples/export_step.rs": "5b6a82cdfa71049a9e42870997e7011f59e478c5ac3cc8e70c6bb07113692273",
+      "crates/crescent/src/aesthetic.rs": "30404b5e898613fd36b6ea534d501a57ddf1898567ee545807bd2206c7b5282a",
+      "crates/crescent/src/c4_ref.rs": "54cfcb3fbcd0b726be444d29d830b8cb180f97e1d3d56e78b621d16e2fea7c02",
+      "crates/crescent/src/c5_ref.rs": "3b57f41e01b82954a4d4e1b6597ae605469d08170688d72875c6a91514576c39",
+      "crates/crescent/src/c6_ref.rs": "44a1c899cd5c0b3a7a5e753d2f67b41a0c3ca50e1dd3ebff7f4a992915406a27",
+      "crates/crescent/src/export.rs": "0dcb5b1794ea387c5b16059b324184d99da0aeb295028f48de107db11b955913",
+      "crates/crescent/src/fem.rs": "7bd0db5fac25eba30b47231ee61a1533d55987d0932878487743247243325b1c",
+      "crates/crescent/src/gates.rs": "0e364aab4d5d16d43d4e2c95c2e393707edb35b614f35d4b9eaf11c4303f28d7",
+      "crates/crescent/src/genome.rs": "74733a827888922f4a90598770aa2114c510d75d38b67c9a18afc11723ffee6e",
+      "crates/crescent/src/geom.rs": "cfd85e7d7225aaf54717efda7a78b8884c49f1e801f43805bd3c618732a1ac3c",
+      "crates/crescent/src/lib.rs": "cc4daeaa275a4aca15e301f0cc02463ff7a4797f2afac4af504a821bc6566528",
+      "crates/crescent/src/pheno.rs": "eade9f9bdb3eeb0b5a22d35a1fd48717e47411b13774c18a8c77d413f7324e56",
+      "crates/crescent/src/qd.rs": "f004e540fb0b18ebad1166c335619842e9cde20be21bf5f8df4137954b107ec9",
+      "crates/crescent/src/record.rs": "5cf69d38d9d78766e045ee66427b143e063c5e9e25b6b4adb777582826ecbccb",
+      "crates/crescent/src/tests.rs": "b3c6a39fb828cac581ca3810a545853b2c650eb41f101dac46e14a834b80dd79",
+      "crates/crescent/tests/evidence_lineage.rs": "8287a04ebad8eb1a1cc35e63442c3877b1ca444f6346bd6e50cbe34aace83f3c",
+      "crates/crescent/tests/fitness_capfree.rs": "4d66e0a7b5ebf58838d911f0b8cc0b3fc95f8df562a27043090fcf2dd9d20471",
+      "crates/crescent/tests/rec_json.rs": "4d615557b7ed311ff6fad77d00b844b451cf02b9fab75bcd0f928a1737a73f5c",
+      "crates/crescent/tests/tiptwist_term.rs": "9959699bb4bd73692a47a64c2673ccec676d8e6800de90fdda4c5b4ecb561227",
+      "crates/docs/Cargo.toml": "43fb035ddd464a871c42bb84d86c66f5fb9b7b6f77f4b12bbe89c8f05f43cc94",
+      "crates/docs/src/lib.rs": "0078d34d6388f25c273e7c89ec58441e2dd2b5e7d9ec0c572b3ceb178f61c9e7",
+      "crates/evidence/Cargo.toml": "2f3453ee176d4a1fb895e5b5524a344119acac7fdd239628c8a95f70702cf661",
+      "crates/evidence/src/lib.rs": "e734a25387d31b663f27bba6a5a5eb3096895f8e027f29afd5168b5c9d0328de",
+      "crates/evidence/tests/log.rs": "59aaa24e54977acc7729bc09f011798b5752fa3054e6c6dd7c80c0a185fef99b",
+      "crates/evolve/Cargo.toml": "0dcb86df2ec5963c9e40687427126c368521c559b6f015667b1c57897d0db866",
+      "crates/evolve/src/lib.rs": "4bbc1dc1501d91d8a5f2322994d08d650d74afeb25f3cee81c2726c782f10ec8",
+      "crates/evolve/tests/history_stream.rs": "35ea8a12cea4643fdea4ca52d8ac2c2e32420818f7658233f22a4ec253a029d3",
+      "crates/evolve/tests/replay.rs": "11a5dda7f77363da2bb9218925eb47be44383be0997a615fa4ba5ffac2855905",
+      "crates/genotype/Cargo.toml": "5c95bb1aeb4871de5e23479fb4e420224d499d1d826fde033100b3efdb48da27",
+      "crates/genotype/src/lib.rs": "f4cbf3c277c4b7aa7d2acce877984c82fe74c747f0764409f30b94197729db20",
+      "crates/monte_carlo/Cargo.toml": "aad883b07f303ccd98812c0d51e8e6f877b374594cd5ba4afaaa3f4c020e2137",
+      "crates/monte_carlo/src/lib.rs": "022158adeca8e8485d81d5fb81f549ad5e088886c6fe6e01581b81009a7a7d1d",
+      "crates/phenotype/Cargo.toml": "2662eac30c48eee8d638a9f86a6758f2eafd4e6aae2b368bdfd6365d4cc7af71",
+      "crates/phenotype/src/lib.rs": "25179aae64b9f8b5bfb454bc4f040b52cf6c92abc2fce4ca25fae519094f3f5d",
+      "crates/phenotype/src/mesh.rs": "83ab440a9098e37966db5e5aa73c60134b37ae2a0eaeba03d87a4cf685f9784e",
+      "crates/physics/Cargo.toml": "ea2d9a0e999c279e168d48df3825315157131399e48f31c16b35d4061caf4fff",
+      "crates/physics/benches/t1_plate.rs": "03b3edd49bea1a3dc9f80f9ad1adec0341039843e355f34aea609d64c934aa75",
+      "crates/physics/src/calib.rs": "e182e09de6bb18e3decd2c3a5fc5bd1b20d413a863d201313e7bb62e4b1ef3c8",
+      "crates/physics/src/fem.rs": "f3e33f629b7f509a48989a9c993fd4b65f63b47ac808f9e1211fd116ee2e2903",
+      "crates/physics/src/fine.rs": "b8762847e7452d3bcbfde718e55e13c42d4ac61d9a23abf5a75d2d5c38343096",
+      "crates/physics/src/lib.rs": "ec42b1cbc8d4001620e73d8c4308836e334b8dda2e1700a1e2b56f11246fba60",
+      "crates/physics/src/verify.rs": "1ab970350f6cf897d5a633acbca13265bc50da18bde26c4bcaae7df1263af119",
+      "crates/physics/tests/fem_verify_failclosed.rs": "0a7ee19f8959d508195d5050cf926e6f8beb0909c09b628ba90f54ffba387b75",
+      "crates/physics/tests/solver_parity.rs": "4e095bb500478512f777cf0efb4f6f340f2d4927b9b9c356bf397160fde3ec6f",
+      "crates/redteam/Cargo.toml": "4708f2ca769c6978729d4583974f8d6f4b121bbee8f58aa908c5e14eea13063c",
+      "crates/redteam/src/lib.rs": "01003176acf8e27c07d7ed3b14e136032cadb965bd6937dc14ed3f6829dd21a0",
+      "docs/VERSION": "8c4f709e958791f38fd4d06c953c9182f61a05abbc45508e281b907f08b52210",
+      "fem_solid/Dockerfile": "c836dea46c9eb0e6c26a49e0298e299b81b15c871e53598c333786b0c9802d0b",
+      "fem_solid/convergence.py": "70e953877cd0004567722a786f3a2f0f0a41b6e9d6b262dc227ac36591431e38",
+      "fem_solid/cross_check.py": "faaae75d7998a116723c3fa3636c5d127b38e823149d9203b7aaac6373a11cd6",
+      "fem_solid/gci.py": "d5c18764742df68de49ec6bdbfe1a70ae1fb79e7ef370943fd58b5e93705cf15",
+      "fem_solid/gci_report.py": "eced8e130352f877149734f028c32f0e1761fa337582722eb39746c9e73d3867",
+      "fem_solid/mesh.py": "ec42f18c30dcb692e6cfe9a4b9df874b058c08d55775ae6885e5db5e57b64f86",
+      "fem_solid/requirements.txt": "f56082fef0060b7e3904b3b087fd8cf68be5e1ed52988dd4ccf88a9e950a755b",
+      "fem_solid/run_tip.py": "98f4f73fe33d72449a290ceb0017c8329c330f06dd5f0224048ee3aacc1a9fd3",
+      "fem_solid/solve_dolfinx.py": "f5081516c98ff2886fd8886d5a208967db436360a8e1ddd65348e30fce029f38",
+      "fem_solid/step_mesh_smoke.py": "b79d97ae0346913b6dfd47bc538de4cad77dbe8d66c9ca12523737293e0968f1",
+      "fem_solid/tests/test_dolfinx_verification_record.py": "686d7e890f3c717b214dd4470524c75715d69df32cf175ca5d7484ab9fc71a93",
+      "fem_solid/tests/test_gci.py": "0ae3818cca53ec10c3752b1635d60c56a50d6369f3c263d4e7d87418b475a368",
+      "fem_solid/tests/test_gci_evidence.py": "53c7d4db82aef125a8d49e084c19f0a9ba186bfd1a7c20664f7013c427ca7717",
+      "fem_solid/tests/test_run_tip_inputs.py": "e436319510c7cf2fbe421b552af731162061d0653dd8506dc4dbc7e5492349d1",
+      "fem_solid/tests/test_tip_regression.py": "499a0349822c47f7ea5cb69bde12df4fd82d6e6799b7844ce1a6629a0bc511e9",
+      "fem_solid/tests/verify_analytic.py": "3e7d497f4d076b1f830da2b723d030c4280e09b4f049a9ac9ba8a3f7e2d09892",
+      "fem_solid/tip_solid.py": "c241ac2a4a747dda6b2ace135049b7fae4cd2043b5358d815e2ef445901ef313",
+      "rust-toolchain.toml": "ad71865d103fde1926aae4b608bad01a186d581378cbff163fe5f6a9ee1ec712"
+    },
+    "sha256": "1b81d5e829702756f4fa5a7e10776e0fbb8f900cc1d0294a89af2267c3017690",
+    "hash_contract": "sorted-compact-ascii-json.v1 of source_files; raw file SHA-256"
+  },
+  "scenario": {
+    "id": "baseline.scenarios.source.v1",
+    "source_files": {
+      "crates/crescent/src/fem.rs": "7bd0db5fac25eba30b47231ee61a1533d55987d0932878487743247243325b1c",
+      "crates/evolve/src/lib.rs": "4bbc1dc1501d91d8a5f2322994d08d650d74afeb25f3cee81c2726c782f10ec8",
+      "crates/monte_carlo/src/lib.rs": "022158adeca8e8485d81d5fb81f549ad5e088886c6fe6e01581b81009a7a7d1d",
+      "requirements/RS-karambit-v1.toml": "ed3d61ab386e8e6c52c96d15d44e00b2542532f6898374706ef376cef742fff3",
+      "requirements/RS-karambit-v2.toml": "3d73b27cac953eae7f4d334a13351efd20dfe799d4f3c8d2584edef8d803cecc",
+      "requirements/RS-sheath-runner-v1.toml": "8abd26ac8ce64f51783c38ca46b797d6914d7a09f839a9e813d2c21f811a354f"
+    },
+    "sha256": "5e21fd4732f0071f0940537dc457e2caf3e12d5542f0ad22682687738b7ae665",
+    "hash_contract": "sorted-compact-ascii-json.v1 of source_files; raw file SHA-256"
+  },
+  "objective": {
+    "id": "baseline.objectives.source.v1",
+    "source_files": {
+      "crates/crescent/src/fem.rs": "7bd0db5fac25eba30b47231ee61a1533d55987d0932878487743247243325b1c",
+      "crates/crescent/src/qd.rs": "f004e540fb0b18ebad1166c335619842e9cde20be21bf5f8df4137954b107ec9",
+      "crates/evolve/src/lib.rs": "4bbc1dc1501d91d8a5f2322994d08d650d74afeb25f3cee81c2726c782f10ec8",
+      "docs/GLOBAL_METRIC.md": "55f62a292319616f0c00af9e21931a75cac4cf51515b501247687db55eda5959",
+      "metrics/global_metric.py": "fc8d4cee369550413db640982b07054fd42e026e453ed5a020426aaf59be04e9",
+      "requirements/RS-karambit-v2.toml": "3d73b27cac953eae7f4d334a13351efd20dfe799d4f3c8d2584edef8d803cecc"
+    },
+    "sha256": "699a97ca93a83e82ba6950163f5c24f37cc776022f5336e910dca259fc15fdae",
+    "hash_contract": "sorted-compact-ascii-json.v1 of source_files; raw file SHA-256"
+  },
+  "descriptor": {
+    "id": "baseline.descriptors.source.v1",
+    "source_files": {
+      "crates/crescent/src/aesthetic.rs": "30404b5e898613fd36b6ea534d501a57ddf1898567ee545807bd2206c7b5282a",
+      "crates/crescent/src/c6_ref.rs": "44a1c899cd5c0b3a7a5e753d2f67b41a0c3ca50e1dd3ebff7f4a992915406a27",
+      "crates/crescent/src/genome.rs": "74733a827888922f4a90598770aa2114c510d75d38b67c9a18afc11723ffee6e",
+      "crates/crescent/src/pheno.rs": "eade9f9bdb3eeb0b5a22d35a1fd48717e47411b13774c18a8c77d413f7324e56",
+      "crates/crescent/src/qd.rs": "f004e540fb0b18ebad1166c335619842e9cde20be21bf5f8df4137954b107ec9"
+    },
+    "sha256": "c0c5c95c9d10564fa745667cb2f7bb9f49c97e87fac39da702ae2ec6073be8ae",
+    "hash_contract": "sorted-compact-ascii-json.v1 of source_files; raw file SHA-256"
+  },
+  "material": {
+    "id": "baseline.material.screening.v1",
+    "source_files": {
+      "crates/crescent/src/fem.rs": "7bd0db5fac25eba30b47231ee61a1533d55987d0932878487743247243325b1c",
+      "crates/physics/src/lib.rs": "ec42b1cbc8d4001620e73d8c4308836e334b8dda2e1700a1e2b56f11246fba60",
+      "designs/switchback/C10a/data/cad_revC9_c10a.json": "37b009c3bc4771d4916a45f9afd065ac4d8670375fffb689d1c8d0d317b4e998",
+      "fem_solid/tip_solid.py": "c241ac2a4a747dda6b2ace135049b7fae4cd2043b5358d815e2ef445901ef313"
+    },
+    "sha256": "e56e7f39fb06435b343d0d348dc971ac47ceac95f7213632e3b03e7324ab2da8",
+    "hash_contract": "sorted-compact-ascii-json.v1 of source_files; raw file SHA-256",
+    "state_class": "screening_assumptions",
+    "specimen": null,
+    "lot": null,
+    "process_qualification": "unknown; wrought machining is planning default only",
+    "physical_validation": "not_performed",
+    "finish_structural_credit": false
+  },
+  "candidate": {
+    "id": "native_cad.SWITCHBACK.C10a.rc4",
+    "role": "comparison_baseline_only",
+    "artifacts": {
+      "designs/switchback/C10a/README.md": "61c7a10896fa0adccef59eb9a4e27e162dff90262ae9c170fb3cc4d50d385551",
+      "designs/switchback/C10a/SHA256SUMS": "276a3123d685861d07b6f02a00247143f317c18b17d3fdd6d47edf717acf0b2d",
+      "designs/switchback/C10a/cad/switchback_revC10a_ground.step": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "designs/switchback/C10a/cad/switchback_revC10a_ground.stl": "0bcadad61bff550d9c527266e183440e8242c3a0222b9a89755cdc682b214411",
+      "designs/switchback/C10a/data/cad_revC9_c10a.json": "37b009c3bc4771d4916a45f9afd065ac4d8670375fffb689d1c8d0d317b4e998",
+      "designs/switchback/C10a/data/outline_c10a.json": "6cd5f1a3665ec77e990f5002833c2e070f88eff19bbc6fbba627717fbacaa7eb",
+      "designs/switchback/C10a/data/ricasso_check.json": "4247eb2f48a80983214f23e0810b21d8152e691ff7acdbfca7b6c9874dc7150c",
+      "designs/switchback/C10a/data/sharp_C10a_recal.json": "566e1ee8aa1c45e79f1fd85f7d9a0c8e03aa886c3a12c76a33ed94a72c3dec59",
+      "designs/switchback/C10a/data/sharp_c10a_s2.json": "590c7cbfcd92a4754239ce939175cd75dc7e541f3fc6fc82be3d1b04abc63eed",
+      "designs/switchback/C10a/data/v6_c10a.json": "7a7d67e1cc4d6cdef4fe719dfc20f81c1277976d7222243fcbb5ca2ee41a89b8",
+      "designs/switchback/C10a/data/v7_c10a.json": "55047c66096bd4140f35778cfbc1c7d41fa4f6bcb30b4d8a49ae503fe67f62ee",
+      "designs/switchback/C10a/data/w79_results_c10a_g2.json": "9bb7df9aeaee519da46b0ee75c23772bc1b7e136fe8cb9bc408c27905a72ab36",
+      "designs/switchback/C10a/data/w79_results_c10a_t0p15.json": "f0c6a4c6e6d6197ba3bddfa0c612dc9ca0f04ea021744a5492e39ce45bb85775",
+      "designs/switchback/C10a/data/w79_results_c10a_t0p22.json": "2d6982eb5d9aee58533ef4074547a8fd4a991ad96d00a8f4c407b07f5c94da47",
+      "designs/switchback/C10a/data/w79_results_c10a_t0p35.json": "238f3cd3d90ce12cfa35c439236f6eef7dfe326b9144a1aebd33aca3729c3795",
+      "designs/switchback/C10a/data/w80d_rc5_verify.json": "3b815dff679ee7fc6b9a16a3b1bec928fcea2b5d20d6381dd8905a48b77dfc96"
+    },
+    "sha256": "b8eb6097e10a9f645664f6cd9d0fdf7b68a37fd2f24fa833a96e422c3d72e5b4",
+    "genome_binding": null,
+    "requirement_verdict": "INCOMPLETE",
+    "physical_validation": "not_performed",
+    "reported_mass_g": 64.841,
+    "reported_fitness": 2.673,
+    "reported_values_are_new_tests": false,
+    "holds": [
+      "S08 exact native CAD/evaluator/per-case binding absent",
+      "V3 reopened W84",
+      "V4 ring-refined result not fully converged",
+      "No measured material/proof/handling qualification",
+      "Native-study cases and thresholds do not establish RS-v2 equivalence"
+    ]
+  },
+  "configuration": {
+    "resolved_evaluator_env": {
+      "JARAMBIT_ANCHOR": null,
+      "JARAMBIT_BENCH_DUMP": null,
+      "JARAMBIT_CERT_STRICT": null,
+      "JARAMBIT_FAER_REFINE": null,
+      "JARAMBIT_FEM": null,
+      "JARAMBIT_FINE": null,
+      "JARAMBIT_MAX_THREADS": null,
+      "JARAMBIT_MIN_THROUGH": null,
+      "JARAMBIT_P1": null,
+      "JARAMBIT_P1_SFMAP": null,
+      "JARAMBIT_SOLVER": null,
+      "JARAMBIT_TIPTWIST_GATE": null,
+      "JARAMBIT_T_MAX": null
+    },
+    "env_null_means": "unset: use source-pinned default; no default guessed from a missing variable",
+    "plate_search_area_mm2": 2,
+    "plate_cert_areas_mm2": [
+      "0.25",
+      "0.125"
+    ],
+    "plate_strict_area_mm2": "0.0625",
+    "reference_tier_aliases": {
+      "T2_calibration": "fine_plate",
+      "T2_master": "solid"
+    },
+    "solid_image": {
+      "declared_tag": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+      "verified_digest": null,
+      "qualification": "unavailable until exact admitted environment is pinned"
+    },
+    "scenarios": "Actual code/RS definitions pinned above; legacy CutMedia still present and not qualified utility replacement"
+  },
+  "configuration_sha256": "b6ddcf8aa3c0d91d275d31b258024b9a852ac303dd7ecf19e0a6d3995994e69f",
+  "review_dependency_sources": [
+    {
+      "path": "ops/render/pro/fem_cases.json",
+      "sha256": "21f2ca332f890b06b4eed2376e87fbcb9015b538954853d9fc28a84750e75b63",
+      "bytes": 1611
+    }
+  ],
+  "seeds": [
+    {
+      "path": "bench/fixed_1k/genomes.csv",
+      "sha256": "de55bac18eeab2c788a24f390c2dc1cad5861ca9ae8ffea8c1c043f9ddd81922",
+      "bytes": 978564
+    },
+    {
+      "path": "bench/fixed_1k/SHA256SUMS",
+      "sha256": "d08beab37c882d813755f4f33e6e326e8259e6d4908c28f34d63ee6b7dd15d5e",
+      "bytes": 93
+    },
+    {
+      "path": "docs/d1/wave15_16_collect/wave14_c03_genome.csv",
+      "sha256": "d092481ad8faa2a8fd862257d2d6d811fc3f7bfc1ecb7fd09c9e12b1eb15b3e9",
+      "bytes": 1809
+    }
+  ],
+  "historical_source_reconciliation": {
+    "study_commit": "97af59cf14299af583b344aeaefb4594d089465a",
+    "selected_files": 48,
+    "unchanged": 47,
+    "changed": [
+      {
+        "path": ".github/workflows/render-marketing-smoke.yml",
+        "historical_sha256": "b71e1d6922fbc03aef458bdcf6857ea76b2f935fca7edbc188a4ff896d60a28e",
+        "current_sha256": "85fc464804b2477ce5b3f165534f985a391eb682e824f4b97ca5b81e2a622bf8"
+      }
+    ]
+  },
+  "merge_queue": {
+    "observed_utc": "2026-10-14T02:41:17.052765+00:00",
+    "open_PRs": [],
+    "revert_68_main": "b81aa99d43cc56b9338969f76e3214785fa7559a",
+    "PR_owner": "existing executor/steward; integration does not take merge slot"
+  },
+  "ownership": {
+    "integration": [
+      "S00",
+      "S01/T00"
+    ],
+    "cad": "jr_grok; disjoint ops/science_tests/native_cad",
+    "CAD_review": "coordinator changes requested on dd020b9; diagnostic tests do not qualify product",
+    "review": "independent existing reviewer after actual PR; no self-review",
+    "live_main_COORD": "read-only; no lock change",
+    "farm": "unmodified"
+  },
+  "archived": {
+    "C10c": {
+      "source_commit": "b088667019be4630dcbc57053815f92ef1c78c40",
+      "disposition": "removed by OWNER/#68; diagnostic-only; no restoration or pipeline promotion",
+      "reported_fitness_is_not_RS_qualification": true
+    }
+  },
+  "resource_policy": {
+    "one_heavy_lane": true,
+    "cpu": 4,
+    "memory_gib": 8,
+    "swap": 0,
+    "native_pools": 1,
+    "gpu": false,
+    "output_cap_bytes": 5000000000
+  },
+  "environment": {
+    "rustc": "rustc 1.85.1 (4eb161250 2025-03-15)",
+    "cargo": "cargo 1.85.1 (d73d2caf9 2024-12-31)",
+    "python": "Python 3.12.3"
+  },
+  "acceptance": {
+    "S00_core": "frozen pending source/identity receipt checks",
+    "T00": "not_implemented; not a predecessor cycle for S00",
+    "physical_release": "INCOMPLETE; no amendment inferred"
+  }
+}
