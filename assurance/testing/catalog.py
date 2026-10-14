@@ -18,6 +18,10 @@ def source_bundle(root):
              'assurance/policies/evidence-v1.json', 'assurance/schemas/evidence.v2.json',
              'assurance/schemas/test_case.v1.json', 'assurance/schemas/study_record.v1.json',
              'assurance/schemas/observation_record.v1.json', 'assurance/schemas/qualification_result.v1.json']
+    # The schema control reads the complete shipped schema inventory. New
+    # record schemas must withdraw old receipts when their bytes change, too.
+    paths.extend(path.relative_to(root).as_posix()
+                 for path in (root/'assurance/schemas').glob('*.json'))
     python_paths = {'ops/ci/test_inventory.py'}
     require((root/'assurance').is_dir(), 'assurance source root missing')
     for path in (root/'assurance').rglob('*'):

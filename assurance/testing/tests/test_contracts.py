@@ -343,7 +343,11 @@ class Contracts(unittest.TestCase):
     def test_schemas_are_closed_and_actual_case_roundtrip(self):
         import jsonschema
         schemas = list((ROOT/'assurance/schemas').glob('*.json'))
-        self.assertEqual(len(schemas), 5)
+        core = {'evidence.v2.json', 'observation_record.v1.json',
+                'qualification_result.v1.json', 'study_record.v1.json', 'test_case.v1.json'}
+        records = {'exposure_history.v1.json', 'material_state.v1.json',
+                   'measurement_intervention.v1.json', 'specimen.v1.json', 'test_plan.v1.json'}
+        self.assertEqual({path.name for path in schemas}, core | records)
         for path in schemas:
             jsonschema.Draft202012Validator.check_schema(json.loads(path.read_text()))
         schema = json.loads((ROOT/'assurance/schemas/test_case.v1.json').read_text())
@@ -401,6 +405,19 @@ else:
             self.assertNotEqual(source_bundle(root), frozen)
             with mock.patch('ops.ci.test_inventory.ROOT', root), self.assertRaisesRegex(c.ContractError, 'source/input'):
                 check(root/'catalog.json', root/'receipts', root/'assurance/testing/policy.json')
+            # Valid schema metadata edits still change a real test input. The
+            # healthy copied inventory passes in fixture(); old receipts cannot
+            # qualify any changed record schema, even if it remains valid JSON.
+            for name in ['exposure_history.v1.json', 'material_state.v1.json',
+                         'measurement_intervention.v1.json', 'specimen.v1.json', 'test_plan.v1.json']:
+                root = fixture('schema-'+name)
+                target = root/'assurance/schemas'/name
+                schema = json.loads(target.read_bytes())
+                schema['$comment'] = 'owned schema-identity adverse control'
+                target.write_text(json.dumps(schema))
+                self.assertNotEqual(source_bundle(root), frozen)
+                with mock.patch('ops.ci.test_inventory.ROOT', root), self.assertRaisesRegex(c.ContractError, 'source/input'):
+                    check(root/'catalog.json', root/'receipts', root/'assurance/testing/policy.json')
             root = fixture('escape')
             (root/'assurance/testing/escape.py').symlink_to(ROOT/'assurance/testing/contracts.py')
             with self.assertRaisesRegex(c.ContractError, 'symlink'): source_bundle(root)
