@@ -63,7 +63,8 @@ struct ReportContext {
     physical_validation: String, mass_scope: String,
     #[serde(rename = "G1")]
     g1: BTreeMap<String, Value>,
-    historical_D1: Option<Value>,
+    #[serde(rename = "historical_D1")]
+    historical_d1: Option<Value>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -106,7 +107,7 @@ fn context(context: &ReportContext) -> Result<(), String> {
     require(context.g1.keys().all(|k| keys.contains(k.as_str())), "metric_context_keys")?;
     // G1 is reporting-only. Ops validates its numeric domains without changing
     // this unrelated SF Resolution (including invalid AES or missing inputs).
-    if let Some(history) = &context.historical_D1 {
+    if let Some(history) = &context.historical_d1 {
         closed(history, &["label", "strict_lateral_N", "strict_tip_sf", "seq_ratio", "promote_eligible", "scope"])?;
     }
     Ok(())
