@@ -703,6 +703,14 @@ mod tests {
             pass27: bool,
             pass28: bool,
             returned: u64,
+            worker: std::thread::ThreadId,
+        }
+        // ThreadId::as_u64 is unstable. Debug prints parentheses, which the case
+        // alphabet rejects, so the emitted token keeps letters and digits only.
+        fn worker_token(id: std::thread::ThreadId) -> String {
+            let token: String = format!("{id:?}").chars().filter(|c| c.is_ascii_alphanumeric()).collect();
+            assert!(!token.is_empty(), "worker token");
+            token
         }
         for threads in [1usize, 2, 4] {
             let calls = Arc::new(AtomicUsize::new(0));
@@ -716,6 +724,7 @@ mod tests {
                 let i = SAMPLE_INDEX.with(|slot| slot.get()).expect("sample index");
                 let slot = WORKER_SLOT.with(|cell| cell.get()).expect("worker slot");
                 let (i0, i1) = WORKER_RANGE.with(|cell| cell.get());
+                let worker = std::thread::current().id();
                 let u27 = r.f64();
                 let u28 = r.f64();
                 let m27 = 2.0 * u27 - 1.0;
@@ -734,6 +743,7 @@ mod tests {
                     pass27: pass_a,
                     pass28: pass_b,
                     returned: m27.to_bits(),
+                    worker,
                 });
                 [m27]
             }).unwrap();
@@ -745,6 +755,7 @@ mod tests {
             for (slot, id) in order.lock().unwrap().iter().copied() {
                 by_slot[slot].push(id);
             }
+            let mut slot_worker: Vec<Option<std::thread::ThreadId>> = vec![None; threads];
             let mut joint_ids = Vec::new();
             for i in 0..n {
                 let obs = recorded[i].clone().expect("callback row");
@@ -752,6 +763,10 @@ mod tests {
                 assert_eq!((obs.i0, obs.i1), (i0, i1), "recorded range {i}");
                 assert!(i >= obs.i0 && i < obs.i1, "sample {i} slot {}", obs.slot);
                 assert_eq!(by_slot[obs.slot].iter().filter(|id| **id == i).count(), 1);
+                match slot_worker[obs.slot] {
+                    None => slot_worker[obs.slot] = Some(obs.worker),
+                    Some(bound) => assert_eq!(bound, obs.worker, "slot {} changed worker", obs.slot),
+                }
                 let mut fresh = Rng(mix_seed(seed, i as u64));
                 let observed_draw1 = fresh.f64().to_bits();
                 assert_eq!(observed_draw1, draw1[i], "draw1 {i}");
@@ -767,8 +782,9 @@ mod tests {
                 assert_eq!(obs.pass28, pass28[i]);
                 assert_eq!(obs.returned, margin27[i]);
                 if obs.pass27 && obs.pass28 { joint_ids.push(i); }
+                let token = worker_token(obs.worker);
                 println!(
-                    "S04_CASE id=T03-08-indexed sample={i} threads={threads} slot={} range={i0}-{i1} draw1={observed_draw1:016x} draw27={:016x} draw28={:016x} margin27={:016x} margin28={:016x} pass27={} pass28={} returned={:016x}",
+                    "S04_CASE id=T03-08-indexed sample={i} threads={threads} slot={} range={i0}-{i1} draw1={observed_draw1:016x} draw27={:016x} draw28={:016x} margin27={:016x} margin28={:016x} pass27={} pass28={} returned={:016x} worker={token}",
                     obs.slot, obs.draw27, obs.draw28, obs.margin27, obs.margin28, u8::from(obs.pass27), u8::from(obs.pass28), obs.returned
                 );
             }
@@ -776,13 +792,27 @@ mod tests {
                 let expected: Vec<usize> = (i0..i1).collect();
                 assert_eq!(by_slot[t], expected, "batch order slot {t}");
             }
-            let actual = by_slot.iter().filter(|ids| !ids.is_empty()).count();
+            // `actual` is distinct callback ThreadIds for this run. `logical_slots` counts
+            // populated job labels. Identities stay inside this requested count: they are
+            // not compared with the other 1/2/4 runs or with the constant-callback test.
+            let logical_slots = by_slot.iter().filter(|ids| !ids.is_empty()).count();
+            let mut distinct_workers = std::collections::HashSet::new();
+            let mut distinct_tokens = std::collections::HashSet::new();
+            for bound in slot_worker.iter().flatten().copied() {
+                assert!(distinct_workers.insert(bound), "logical slots share one worker");
+                assert!(distinct_tokens.insert(worker_token(bound)), "worker token collision");
+            }
+            let actual = distinct_workers.len();
+            assert_eq!(logical_slots, threads);
             assert_eq!(actual, threads);
+            let slot_workers = slot_worker.iter().enumerate().map(|(t, bound)| {
+                format!("{t}:{}", worker_token(bound.expect("slot worker")))
+            }).collect::<Vec<_>>().join(",");
             assert_eq!(joint_ids, vec![2, 5]);
             assert_eq!(pass27.iter().filter(|p| **p).count(), 5);
             assert_eq!(pass28.iter().filter(|p| **p).count(), 3);
             println!(
-                "S04_CASE id=T03-08-masks threads={threads} requested={threads} admitted={admitted} actual={actual} pass27=5 pass28=3 joint=2 joint_ids=2,5 product_num=15 product_den=64 calls={n}"
+                "S04_CASE id=T03-08-masks threads={threads} requested={threads} admitted={admitted} actual={actual} logical_slots={logical_slots} slot_workers={slot_workers} pass27=5 pass28=3 joint=2 joint_ids=2,5 product_num=15 product_den=64 calls={n}"
             );
         }
     }
