@@ -138,7 +138,13 @@ pub fn max_threads() -> usize {
 /// wall time above 32 threads (sys time in clone/spawn). Do not call
 /// `run_cols` from inside a sample: that worker would wait on itself.
 /// Checked [`try_run_cols`] refuses that nesting with [`CheckedError::ReentrantPool`].
-struct Pool { tx: Mutex<Vec<mpsc::Sender<Box<dyn FnOnce() + Send>>>> }
+struct Pool {
+    tx: Mutex<Vec<mpsc::Sender<Box<dyn FnOnce() + Send>>>>,
+    /// Test-only budget on this pool instance. Zero in production. A positive
+    /// value makes the next checked spawn return the real error arm.
+    #[cfg(test)]
+    spawn_failures: std::sync::atomic::AtomicUsize,
+}
 
 thread_local! {
     static IN_MC_WORKER: Cell<bool> = Cell::new(false);
@@ -159,17 +165,18 @@ fn worker_loop(recv: mpsc::Receiver<Box<dyn FnOnce() + Send>>) {
     }
 }
 
-#[cfg(test)]
-static FAIL_NEXT_WORKER_SETUP: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-
-#[cfg(test)]
-fn arm_worker_setup_fault() {
-    FAIL_NEXT_WORKER_SETUP.store(true, std::sync::atomic::Ordering::SeqCst);
-}
-
 fn pool() -> &'static Pool {
     static POOL: OnceLock<Pool> = OnceLock::new();
-    POOL.get_or_init(|| Pool { tx: Mutex::new(Vec::new()) })
+    POOL.get_or_init(|| Pool {
+        tx: Mutex::new(Vec::new()),
+        #[cfg(test)]
+        spawn_failures: std::sync::atomic::AtomicUsize::new(0),
+    })
+}
+
+#[cfg(test)]
+fn private_pool() -> Pool {
+    Pool { tx: Mutex::new(Vec::new()), spawn_failures: std::sync::atomic::AtomicUsize::new(0) }
 }
 
 impl Pool {
@@ -182,23 +189,44 @@ impl Pool {
         }
     }
 
+    /// Checked spawn. A test budget on this instance returns `Err` before a thread
+    /// exists. A real `spawn` error returns the same `Err`. Legacy [`Self::ensure`]
+    /// does not use this seam.
+    fn spawn_owned_worker(&self) -> Result<mpsc::Sender<Box<dyn FnOnce() + Send>>, ()> {
+        #[cfg(test)]
+        {
+            let mut left = self.spawn_failures.load(std::sync::atomic::Ordering::SeqCst);
+            while left > 0 {
+                match self.spawn_failures.compare_exchange(
+                    left,
+                    left - 1,
+                    std::sync::atomic::Ordering::SeqCst,
+                    std::sync::atomic::Ordering::SeqCst,
+                ) {
+                    Ok(_) => return Err(()),
+                    Err(seen) => left = seen,
+                }
+            }
+        }
+        let (send, recv) = mpsc::channel::<Box<dyn FnOnce() + Send>>();
+        match std::thread::Builder::new().name("jarambit-mc".into()).spawn(move || worker_loop(recv)) {
+            Ok(_) => Ok(send),
+            Err(_) => Err(()),
+        }
+    }
+
     /// Fallible setup for [`try_run_cols`]. A spawn error or a poisoned pool mutex
     /// returns [`CheckedError::WorkerSetup`] and drops the guard without panicking.
     /// Workers created on an earlier call stay in the pool. There is no retry.
     fn try_ensure(&self, n: usize) -> Result<(), CheckedError> {
-        #[cfg(test)]
-        if FAIL_NEXT_WORKER_SETUP.swap(false, std::sync::atomic::Ordering::SeqCst) {
-            return Err(CheckedError::WorkerSetup);
-        }
         let mut tx = match self.tx.lock() {
             Ok(guard) => guard,
             Err(_) => return Err(CheckedError::WorkerSetup),
         };
         while tx.len() < n {
-            let (send, recv) = mpsc::channel::<Box<dyn FnOnce() + Send>>();
-            match std::thread::Builder::new().name("jarambit-mc".into()).spawn(move || worker_loop(recv)) {
-                Ok(_) => tx.push(send),
-                Err(_) => return Err(CheckedError::WorkerSetup),
+            match self.spawn_owned_worker() {
+                Ok(send) => tx.push(send),
+                Err(()) => return Err(CheckedError::WorkerSetup),
             }
         }
         Ok(())
@@ -503,22 +531,22 @@ mod tests {
         assert_eq!(distinct.len(), 4);
     }
     #[test]
-    fn checked_setup_fault_returns_before_the_callback() {
-        use std::sync::atomic::{AtomicUsize, Ordering};
-        use std::sync::Arc;
-        let g = Genotype::random(&mut Rng(5));
-        arm_worker_setup_fault();
-        let calls = Arc::new(AtomicUsize::new(0));
-        let seen = calls.clone();
-        let err = try_run_cols::<1, _>(&g, 2, ThreadRequest::Exact(1), 1, 13, move |_, _| {
-            seen.fetch_add(1, Ordering::SeqCst);
-            [1.0]
-        });
-        assert_eq!(err, Err(CheckedError::WorkerSetup));
-        assert_eq!(calls.load(Ordering::SeqCst), 0);
-        let ok = try_run_cols::<1, _>(&g, 2, ThreadRequest::Exact(1), 1, 13, |_, _| [1.0]).unwrap();
-        assert!(ok.statistical_credit);
-        assert_eq!(ok.cols.unwrap()[0].mean, 1.0);
+    fn private_pool_setup_failure_keeps_the_worker_and_the_mutex() {
+        let pool = private_pool();
+        pool.try_ensure(1).unwrap();
+        assert_eq!(pool.tx.lock().unwrap().len(), 1);
+        pool.spawn_failures.store(1, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(pool.try_ensure(2), Err(CheckedError::WorkerSetup));
+        assert_eq!(pool.tx.lock().unwrap().len(), 1);
+        pool.spawn_failures.store(0, std::sync::atomic::Ordering::SeqCst);
+        pool.try_ensure(2).unwrap();
+        assert_eq!(pool.tx.lock().unwrap().len(), 2);
+        let poisoned = private_pool();
+        let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = poisoned.tx.lock().unwrap();
+            panic!("poison this private pool only");
+        }));
+        assert_eq!(poisoned.try_ensure(1), Err(CheckedError::WorkerSetup));
     }
     #[test]
     fn nested_checked_call_is_refused_before_the_pool() {
@@ -538,6 +566,18 @@ mod tests {
         let g = Genotype::random(&mut Rng(4));
         let n = 8usize;
         let seed = 99u64;
+        // Frozen independent reference for seed 99, callback draw after perturb.
+        // Controller closed form at head 3c9c3ee. Not an executed T03 group.
+        let stage27 = [
+            0x3feb_d436_3fad_a11eu64,
+            0x3fea_c088_b75e_2652,
+            0x3feb_c530_75fc_8b7e,
+            0x3fe4_5fcb_a420_2be3,
+            0x3fb5_30d9_8d6f_2fd0,
+            0x3fe1_70f6_5814_1b61,
+            0x3fd7_0995_5edd_d904,
+            0x3fcd_1537_359a_15c8,
+        ];
         for threads in [1usize, 2, 4] {
             let bits = Arc::new(Mutex::new(vec![None; n]));
             let ids = Arc::new(Mutex::new(Vec::new()));
@@ -559,6 +599,7 @@ mod tests {
                 let _sample = perturb(&g, &mut oracle);
                 let after = oracle.f64().to_bits();
                 assert_eq!(recorded[i], Some(after), "index {i} threads {threads}");
+                assert_eq!(after, stage27[i], "frozen reference index {i}");
                 let mut fresh = Rng(mix_seed(seed, i as u64));
                 if fresh.f64().to_bits() != after {
                     stage_differs = true;
