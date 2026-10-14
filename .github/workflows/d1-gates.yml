@@ -20,6 +20,9 @@ env:
 
 jobs:
   test:
+    defaults:
+      run:
+        shell: bash ops/ci/run_bounded.sh d1 {0}
     name: cargo test --release + D1 gate smoke
     runs-on: [self-hosted, linux, x64, jarambit]  # dedicated jarambit-xbabe2 / jarambit-xbabe3 runners (PR-0.30.0c); the shared neverhuman-lan pool queued for capacity
     timeout-minutes: 45
