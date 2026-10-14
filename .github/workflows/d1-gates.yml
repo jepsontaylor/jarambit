@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: d1-gates-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'codex/science-v1-foundation-publication-cd31377' }}
 
 env:
   CARGO_TERM_COLOR: always
