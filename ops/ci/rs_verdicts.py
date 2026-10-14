@@ -96,9 +96,13 @@ class ReportingContext:
         self.last_resolution = None; self.last_report = None
         request_raw = claims.read_bounded(self.request_path)
         authority_raw = claims.read_bounded(self.authority_path)
-        request, authority, _, _ = claims.admission_binding(request_raw, authority_raw, self.caller)
+        request, authority, binding, descriptor = claims.admission_binding(request_raw, authority_raw, self.caller)
         claims.require(request['claim']['id'] == claim_id, 'claim_registration_mismatch')
         result = claims.resolve_provider(self.request_path, self.authority_path, self.caller)
+        # The provider re-reads paths. Its actual binding must authenticate the
+        # complete retained inputs before any report value/cache can consume them.
+        claims.validate_output(result.output, binding, claim_id)
+        claims.require(result.input_sha256 == scientific_hash(descriptor), 'provider_input_identity_mismatch')
         self.last_resolution = result
         registry = claims.validate_registry(claims.decode(claims.raw_root(authority['roots']['registry'])))
         context = authority['report_context']
