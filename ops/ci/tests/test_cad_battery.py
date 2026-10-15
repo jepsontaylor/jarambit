@@ -85,6 +85,24 @@ class Records(unittest.TestCase):
             tip = next(case for case in self.records[name]['cases'] if case['id'] == 'solid.tip')
             self.assertNotEqual(tip['status'], 'pass')
             self.assertNotIn('solid_tip_sf_nodal_max', self.records[name]['global_fitness']['inputs'])
+        self.assertAlmostEqual(self.records['g3']['global_fitness']['G'], 1.0036274369238576, places=12)
+        self.assertAlmostEqual(self.records['w271b_11772']['global_fitness']['G'], 0.7505798795492734, places=12)
+        self.assertEqual(self.records['g3']['solver_run_count'], 1)
+        self.assertEqual(self.records['w271b_11772']['solver_run_count'], 1)
+        for name in ('c92', 'c93'):
+            tip = next(case for case in self.records[name]['cases'] if case['id'] == 'solid.tip')
+            self.assertEqual(tip['status'], 'blocked')
+            self.assertFalse(tip['detail']['entered_as_solver_run'])
+            self.assertIn('n_dof', tip['detail']['missing_fields'])
+            self.assertIn('ksp_its', tip['detail']['missing_fields'])
+        c10a_tip = next(case for case in self.records['c10a']['cases'] if case['id'] == 'solid.tip')
+        self.assertEqual(c10a_tip['status'], 'blocked')
+        self.assertEqual(c10a_tip['detail']['inventory_solver_runs'], 0)
+        for name in ('w271b_11860', 'w271c_11522'):
+            tip = next(case for case in self.records[name]['cases'] if case['id'] == 'solid.tip')
+            self.assertEqual(tip['status'], 'incomplete')
+            self.assertFalse(tip['detail']['found'])
+            self.assertTrue(any(name in item for item in tip['detail']['searched']))
 
     def test_g3_sequence_stays_failed_and_c10c_is_not_restored(self):
         seq = next(case for case in self.records['g3']['cases'] if case['id'] == 'plate.seq')
@@ -114,8 +132,21 @@ class Records(unittest.TestCase):
                 self.assertEqual(again, later)
 
     def test_native_subjects_do_not_inherit_g3_areas(self):
-        for name in ('c10a', 'c93', 'c92', 'w271b_11772', 'w271b_11860', 'w271c_11522'):
+        for name in ('c10a', 'c93', 'c92', 'w271b_11860', 'w271c_11522'):
             for case_id in ('side.a1', 'side.a2', 'side.a3'):
                 case = next(row for row in self.records[name]['cases'] if row['id'] == case_id)
                 self.assertNotEqual(case['status'], 'pass')
                 self.assertNotIn('3e419ac1', json.dumps(case))
+        for case_id in ('side.a1', 'side.a2', 'side.a3'):
+            case = next(row for row in self.records['w271b_11772']['cases'] if row['id'] == case_id)
+            self.assertEqual(case['status'], 'pass')
+            self.assertNotIn('3e419ac1', json.dumps(case))
+            self.assertIn('w271b_11772', case['evidence_path'])
+        seq = next(row for row in self.records['w271b_11772']['cases'] if row['id'] == 'plate.seq')
+        self.assertEqual(seq['status'], 'fail')
+        self.assertEqual(seq['detail']['seq_ratio'], 0.8823392882835103)
+        a4 = next(row for row in self.records['g3']['cases'] if row['id'] == 'side.a4')
+        self.assertEqual(a4['status'], 'incomplete')
+        self.assertEqual(a4['reason'], 'run_b default BC is the certified model')
+        self.assertEqual(a4['detail']['buckling_eigenvalue'], 'absent')
+        self.assertFalse(a4['detail']['partial_solver_edit'])

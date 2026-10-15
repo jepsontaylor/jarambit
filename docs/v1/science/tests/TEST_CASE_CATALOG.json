@@ -217,7 +217,7 @@
     {
       "id": "T01-01-analytic_order",
       "work_unit": "T01",
-      "status": "proposed; not implemented or executed",
+      "status": "executed; fem_solid/tests/test_gci.py; version-check 38662560217",
       "title": "analytic order",
       "challenge": "f_exact+C*h^p at known positive p and ordered levels",
       "oracle": "Independent textbook order/error estimate within stated tolerance",
@@ -236,7 +236,7 @@
     {
       "id": "T01-02-divergent_order",
       "work_unit": "T01",
-      "status": "proposed; not implemented or executed",
+      "status": "executed; fem_solid/tests/test_gci.py; version-check 38662560217",
       "title": "divergent order",
       "challenge": "Archived (10,12,13,r=2) and an analytic divergent family",
       "oracle": "Nonpassing validity; negative GCI cannot qualify",
@@ -255,7 +255,7 @@
     {
       "id": "T01-03-zero_order",
       "work_unit": "T01",
-      "status": "proposed; not implemented or executed",
+      "status": "executed; fem_solid/tests/test_gci.py; version-check 38662560217",
       "title": "zero order",
       "challenge": "Sequence (10,11,12,r=2) produces observed p=0",
       "oracle": "Invalid/undetermined, no divide-by-zero or PASS",
@@ -274,7 +274,7 @@
     {
       "id": "T01-04-plateau",
       "work_unit": "T01",
-      "status": "proposed; not implemented or executed",
+      "status": "executed; fem_solid/tests/test_gci.py; version-check 38662560217",
       "title": "plateau",
       "challenge": "Equal coarse/mid with changed fine, including (10,10,100)",
       "oracle": "Undetermined/invalid, never zero-GCI PASS",
@@ -293,7 +293,7 @@
     {
       "id": "T01-05-oscillatory",
       "work_unit": "T01",
-      "status": "proposed; not implemented or executed",
+      "status": "executed; fem_solid/tests/test_gci.py; version-check 38662560217",
       "title": "oscillatory",
       "challenge": "Alternating levels and archived w271b_11772 record",
       "oracle": "Oscillatory/undetermined, not asymptotic PASS",
@@ -312,7 +312,7 @@
     {
       "id": "T01-06-exact_equal",
       "work_unit": "T01",
-      "status": "proposed; not implemented or executed",
+      "status": "executed; fem_solid/tests/test_gci.py; version-check 38662560217",
       "title": "exact equal",
       "challenge": "Three equal values without independent convergence support",
       "oracle": "Undetermined, not automatic qualification",
@@ -331,7 +331,7 @@
     {
       "id": "T01-07-invalid_ratio",
       "work_unit": "T01",
-      "status": "proposed; not implemented or executed",
+      "status": "executed; fem_solid/tests/test_gci.py; version-check 38662560217",
       "title": "invalid ratio",
       "challenge": "r<=1, zero/negative/nonfinite ratio, or nonfinite/boolean coarse/mid/fine quantity or observed-order input",
       "oracle": "Structured invalid input; no divide exception publication",
@@ -350,7 +350,7 @@
     {
       "id": "T01-08-zero_reference",
       "work_unit": "T01",
-      "status": "proposed; not implemented or executed",
+      "status": "executed; fem_solid/tests/test_gci.py; version-check 38662560217",
       "title": "zero reference",
       "challenge": "Zero reference/fine normalization and legitimate zero observable",
       "oracle": "Explicit absolute-error/undetermined rule; no arbitrary ratio",
@@ -369,7 +369,7 @@
     {
       "id": "T01-09-precision_floor",
       "work_unit": "T01",
-      "status": "proposed; not implemented or executed",
+      "status": "executed; fem_solid/tests/test_gci.py; version-check 38662560217",
       "title": "precision floor",
       "challenge": "Near-equal values and log/roundoff instability",
       "oracle": "Validity/uncertainty reason, no fabricated order",
@@ -388,7 +388,7 @@
     {
       "id": "T01-10-mesh_sequence",
       "work_unit": "T01",
-      "status": "proposed; not implemented or executed",
+      "status": "executed; fem_solid/tests/test_gci.py; version-check 38662560217",
       "title": "mesh sequence",
       "challenge": "Wrong ordering, repeated mesh, anisotropic unqualified r",
       "oracle": "Invalid/unsupported refinement sequence",
@@ -407,7 +407,7 @@
     {
       "id": "T01-11-observable_identity",
       "work_unit": "T01",
-      "status": "proposed; not implemented or executed",
+      "status": "executed; fem_solid/tests/test_gci.py; version-check 38662560217",
       "title": "observable identity",
       "challenge": "Different units, region, projection or metric among levels",
       "oracle": "Reject incompatible observable sequence",
@@ -559,7 +559,7 @@
     {
       "id": "T02-01-contradictory_block",
       "work_unit": "T02",
-      "status": "proposed; not implemented or executed",
+      "status": "not_run; independent B/C/D runtime admission required",
       "title": "contradictory block",
       "challenge": "Canonical FAIL followed by appended scoped PASS",
       "oracle": "Exact canonical/scoped integrity rejects contradiction",
@@ -578,7 +578,7 @@
     {
       "id": "T02-02-missing_reopened",
       "work_unit": "T02",
-      "status": "proposed; not implemented or executed",
+      "status": "not_run; independent B/C/D runtime admission required",
       "title": "missing reopened",
       "challenge": "Delete V4 or reopen V3 approval",
       "oracle": "Current promotion incomplete; historical result readable",
@@ -597,7 +597,7 @@
     {
       "id": "T02-03-wrong_candidate",
       "work_unit": "T02",
-      "status": "proposed; not implemented or executed",
+      "status": "not_run; independent B/C/D runtime admission required",
       "title": "wrong candidate",
       "challenge": "C9.3 heading backed by C10a or another genome",
       "oracle": "Reject identity borrowing",
@@ -616,7 +616,7 @@
     {
       "id": "T02-04-requirement_content",
       "work_unit": "T02",
-      "status": "proposed; not implemented or executed",
+      "status": "not_run; independent B/C/D runtime admission required",
       "title": "requirement content",
       "challenge": "Same RS-id but modified TOML bytes or hard/soft crosswalk",
       "oracle": "Hash mismatch or explicit new reviewed requirement version",
@@ -635,7 +635,7 @@
     {
       "id": "T02-05-wrong_physics",
       "work_unit": "T02",
-      "status": "proposed; not implemented or executed",
+      "status": "not_run; independent B/C/D runtime admission required",
       "title": "wrong physics",
       "challenge": "Wrong material/ROI/observable/mesh/geometry role",
       "oracle": "Bound claim incomplete",
@@ -654,7 +654,7 @@
     {
       "id": "T02-06-revoked_review",
       "work_unit": "T02",
-      "status": "proposed; not implemented or executed",
+      "status": "not_run; independent B/C/D runtime admission required",
       "title": "revoked review",
       "challenge": "Approval predates changed dependency or reopened record",
       "oracle": "Review invalidated for current claim",
@@ -673,7 +673,7 @@
     {
       "id": "T02-07-presentation_noise",
       "work_unit": "T02",
-      "status": "proposed; not implemented or executed",
+      "status": "not_run; independent B/C/D runtime admission required",
       "title": "presentation noise",
       "challenge": "Duplicate blocks, HTML/markdown/comment/token noise",
       "oracle": "No substring-based false PASS; canonical valid control survives",
@@ -692,7 +692,7 @@
     {
       "id": "T02-08-nonfinite_scalar",
       "work_unit": "T02",
-      "status": "proposed; not implemented or executed",
+      "status": "not_run; independent B/C/D runtime admission required",
       "title": "nonfinite scalar",
       "challenge": "Nonfinite, boolean, negative SF or invalid fraction",
       "oracle": "Typed invalid observation, no qualifying value",
@@ -711,7 +711,7 @@
     {
       "id": "T02-09-mass_scope",
       "work_unit": "T02",
-      "status": "proposed; not implemented or executed",
+      "status": "not_run; independent B/C/D runtime admission required",
       "title": "mass scope",
       "challenge": "Soft/record mass target reported as hard certification",
       "oracle": "Reject scope upgrade",
@@ -730,7 +730,7 @@
     {
       "id": "T02-10-physical_missing",
       "work_unit": "T02",
-      "status": "proposed; not implemented or executed",
+      "status": "not_run; independent B/C/D runtime admission required",
       "title": "physical missing",
       "challenge": "Simulation presented as physical validation",
       "oracle": "Reject evidence-class promotion",
@@ -749,7 +749,7 @@
     {
       "id": "T02-11-g1_delete",
       "work_unit": "T02",
-      "status": "proposed; not implemented or executed",
+      "status": "not_run; independent B/C/D runtime admission required",
       "title": "g1 delete",
       "challenge": "Remove any G1 input from valid fixture, preserve genuine zero",
       "oracle": "Completeness cannot improve; zero remains measured",
@@ -768,7 +768,7 @@
     {
       "id": "T02-12-truthful_negative",
       "work_unit": "T02",
-      "status": "proposed; not implemented or executed",
+      "status": "not_run; independent B/C/D runtime admission required",
       "title": "truthful negative",
       "challenge": "Known-negative D1 reported correctly and historical adapter loaded",
       "oracle": "Integrity execution passes while qualification remains negative",

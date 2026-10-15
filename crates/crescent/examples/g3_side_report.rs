@@ -301,7 +301,7 @@ fn load_split(f: &Fem, cases: &serde_json::Value) -> serde_json::Value {
             "published_safety_factor": published_sf,
             "shakedown_upper_indicator_twice_first_yield": indicator,
             "collapse_load": null,
-            "shakedown_note": "twice this first-yield load. Elastic-perfectly plastic upper indicator on a monotonic yield. Not a safety factor. Null when the load reverses. Collapse stays null. This row is g3's plate model, not the w80d B-rep V3 result.",
+            "shakedown_note": "twice this first-yield load. Elastic-perfectly plastic upper indicator on a monotonic yield. Not a safety factor. Null when the load reverses. Collapse stays null. This row is the plate model of the genome on the command line, not a B-rep V3 result. committed_g3_seq_ratio is g3's certify value and is not this mesh's sequence.",
             "area_within_90pct_of_global_peak_mm2_exclusion_4mm": area90,
             "peak_class": label
         })

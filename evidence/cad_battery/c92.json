@@ -2,7 +2,7 @@
  "schema": "jarambit.cad_battery.subject.v1",
  "subject": "c92",
  "role": "native_cad",
- "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+ "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
  "cases": [
   {
    "id": "build.analytic",
@@ -10,7 +10,7 @@
    "status": "pass",
    "solver": "analytic",
    "geometry_sha256": null,
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "crates/physics/tests/invariance.rs",
    "fresh_this_lane": false
   },
@@ -20,7 +20,7 @@
    "status": "pass",
    "solver": "gci",
    "geometry_sha256": null,
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "fem_solid/tests/test_gci.py",
    "fresh_this_lane": false
   },
@@ -30,7 +30,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": null,
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "ops/ci/check_claims.py",
    "fresh_this_lane": false,
    "detail": {
@@ -44,13 +44,24 @@
    "status": "blocked",
    "solver": "solid_dolfinx",
    "geometry_sha256": null,
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "ModuleNotFoundError: No module named dolfinx",
    "detail": {
-    "interpreter": "system and venv-cad",
-    "modules_on_default_discovery": false
+    "interpreters_checked": [
+     "python3",
+     "/home/ubuntu/jarambit_render/venv-cad/bin/python",
+     "/home/ubuntu/.venv/bin/python",
+     "/home/ubuntu/.venvs/doug-tests/bin/python",
+     "/home/ubuntu/.venvs/innovationzero-v5-tabpfn/bin/python",
+     "/home/ubuntu/.venvs/jope-asm-training/bin/python",
+     "/home/ubuntu/.venvs/jope-dltrain-v1/bin/python",
+     "/home/ubuntu/.venvs/resemble-enhance/bin/python"
+    ],
+    "import_error": "ModuleNotFoundError",
+    "modules_on_default_discovery": false,
+    "pip_install": false
    }
   },
   {
@@ -59,7 +70,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "designs/switchback/C9.2/cad/switchback_revC9_2_ground.step",
    "fresh_this_lane": false,
    "detail": {
@@ -73,7 +84,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "designs/switchback/C9.2/cad/switchback_revC9_2_ground.step",
    "fresh_this_lane": false,
    "detail": {
@@ -86,7 +97,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "designs/switchback/C9.2/cad/switchback_revC9_2_ground.step",
    "fresh_this_lane": false,
    "detail": {
@@ -114,7 +125,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "designs/switchback/C9.2/cad/switchback_revC9_2_ground.step",
    "fresh_this_lane": false,
    "detail": {
@@ -128,7 +139,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "designs/switchback/C9.2/cad/switchback_revC9_2_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -139,7 +150,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "designs/switchback/C9.2/cad/switchback_revC9_2_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -150,7 +161,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "designs/switchback/C9.2/cad/switchback_revC9_2_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -161,7 +172,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "designs/switchback/C9.2/cad/switchback_revC9_2_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -172,7 +183,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "designs/switchback/C9.2/cad/switchback_revC9_2_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -183,7 +194,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "designs/switchback/C9.2/cad/switchback_revC9_2_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -194,7 +205,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "designs/switchback/C9.2/cad/switchback_revC9_2_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -205,7 +216,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "designs/switchback/C9.2/cad/switchback_revC9_2_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -216,10 +227,26 @@
    "status": "blocked",
    "solver": "solid_dolfinx",
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": null,
    "fresh_this_lane": false,
-   "reason": "no solid tip bound to this B-rep"
+   "reason": "no solid tip bound to this B-rep",
+   "detail": {
+    "entered_as_solver_run": false,
+    "missing_fields": [
+     "n_dof",
+     "ksp_its"
+    ],
+    "files": [
+     {
+      "path": "designs/switchback/C9.2/data/w75_1_results.json",
+      "sha16": "2ad2a8ecaf4fca67",
+      "names_full_step_sha256": false,
+      "objects_with_n_tet_and_SF": 12,
+      "objects_with_SF_only": 5
+     }
+    ]
+   }
   },
   {
    "id": "gate.rs_v2",
@@ -227,7 +254,7 @@
    "status": "blocked",
    "solver": null,
    "geometry_sha256": "2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "B-rep is not an RS-karambit-v2 genome"

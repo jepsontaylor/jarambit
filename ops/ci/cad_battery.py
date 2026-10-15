@@ -36,7 +36,42 @@ G_SOURCE = {
 }
 SIDE_REPORT = Path('/home/ubuntu/jarambit_review_custody/disposition-20261014/report-a1/g3_a1a3.json')
 SIDE_SHA = '3e419ac1cbd2576b9b2f92296862d937e763abe27cc2a065c4937ff6ec4a85f9'
+W271_SIDE = ROOT / 'evidence' / 'cad_battery' / 'side' / 'w271b_11772_a1a3.json'
 SOLVER_FIELDS = ('n_tet', 'n_dof', 'ksp_its')
+# Stored ladders that name a STEP only by sha16, and that omit n_dof and ksp_its.
+# They stay out of solid.tip. The numbers are the object counts read from those files.
+LADDER_BLOCKED = {
+    'c92': {
+        'entered_as_solver_run': False,
+        'missing_fields': ['n_dof', 'ksp_its'],
+        'files': [{
+            'path': 'designs/switchback/C9.2/data/w75_1_results.json',
+            'sha16': '2ad2a8ecaf4fca67',
+            'names_full_step_sha256': False,
+            'objects_with_n_tet_and_SF': 12,
+            'objects_with_SF_only': 5,
+        }],
+    },
+    'c93': {
+        'entered_as_solver_run': False,
+        'missing_fields': ['n_dof', 'ksp_its'],
+        'files': [
+            {
+                'path': 'designs/switchback/C9.3/data/w76_results.json',
+                'names_c93_step_sha256': False,
+                'base_line_names_c92_sha16': '2ad2a8ecaf4fca67',
+                'objects_with_n_tet_and_SF': 48,
+            },
+            {
+                'path': 'designs/switchback/C9.3/data/w77_results.json',
+                'sha16': '3a818183bcb5b9a9',
+                'names_full_step_sha256': False,
+                'objects_with_n_tet': 8,
+                'objects_with_numeric_SF': 0,
+            },
+        ],
+    },
+}
 
 
 def _sha256(path):
@@ -134,7 +169,21 @@ def _shared_build(commit, probes):
         _case('build.dolfinx', 'software_contract', 'blocked', solver='solid_dolfinx',
               geometry_sha256=None, source_commit=commit, evidence_path=None,
               reason='ModuleNotFoundError: No module named dolfinx',
-              detail={'interpreter': 'system and venv-cad', 'modules_on_default_discovery': False}),
+              detail={
+                  'interpreters_checked': [
+                      'python3',
+                      '/home/ubuntu/jarambit_render/venv-cad/bin/python',
+                      '/home/ubuntu/.venv/bin/python',
+                      '/home/ubuntu/.venvs/doug-tests/bin/python',
+                      '/home/ubuntu/.venvs/innovationzero-v5-tabpfn/bin/python',
+                      '/home/ubuntu/.venvs/jope-asm-training/bin/python',
+                      '/home/ubuntu/.venvs/jope-dltrain-v1/bin/python',
+                      '/home/ubuntu/.venvs/resemble-enhance/bin/python',
+                  ],
+                  'import_error': 'ModuleNotFoundError',
+                  'modules_on_default_discovery': False,
+                  'pip_install': False,
+              }),
     ]
     return {row['id']: row for row in rows}
 
@@ -293,8 +342,17 @@ def _side_cases(spec, commit, sha):
             rows[case_id] = _case(case_id, 'derived', 'incomplete', solver='plate_cst_dkt',
                                   geometry_sha256=sha, source_commit=commit, evidence_path=None,
                                   reason='not inherited from another subject')
-    rows['side.a4'] = _case('side.a4', 'derived', 'incomplete', solver='plate_cst_dkt', geometry_sha256=sha,
-                            source_commit=commit, evidence_path=None, reason='support variants and buckling not run')
+    rows['side.a4'] = _case(
+        'side.a4', 'derived', 'incomplete', solver='plate_cst_dkt', geometry_sha256=sha,
+        source_commit=commit, evidence_path=None,
+        reason='run_b default BC is the certified model',
+        detail={
+            'bore_support': 'absent',
+            'grip_foundation_stiffness': 'absent',
+            'buckling_eigenvalue': 'absent',
+            'default_clamp': 'ring-hole nodes fixed in all 5 dofs inside run_b',
+            'partial_solver_edit': False,
+        })
     return rows
 
 
@@ -302,8 +360,11 @@ def _solid_tip(spec, commit, rs, sha):
     source = rs.get('solid_tip_source')
     payload = _load(source) if source else None
     if not payload:
+        searched = spec.get('d1_searched')
+        detail = {'searched': list(searched), 'found': False} if searched else None
         return _case('solid.tip', 'solver_run', 'incomplete', solver='solid_skfem_p2', geometry_sha256=sha,
-                     source_commit=commit, evidence_path=source, reason='no solid tip bound to this genome')
+                     source_commit=commit, evidence_path=source, reason='no solid tip bound to this genome',
+                     detail=detail)
     levels = payload.get('levels') or []
     finest = dict(levels[-1]) if levels else {}
     counted = _load(spec.get('tip_mesh')) if spec.get('tip_mesh') else None
@@ -350,6 +411,14 @@ def _g_from_cases(cases):
     return inputs
 
 
+def _d1_searched(name):
+    return [
+        f'/home/ubuntu/fs4/d1/{name}_D1.json',
+        f'ubuntu@192.168.68.54:/home/ubuntu/fs4/d1/{name}_D1.json',
+        f'evidence/ has the RS json and the genome csv for {name}, and no {name}_D1.json',
+    ]
+
+
 def subject_catalog():
     side = None
     side_seq = None
@@ -357,6 +426,13 @@ def subject_catalog():
         side = str(SIDE_REPORT)
         payload = json.loads(SIDE_REPORT.read_text(encoding='utf-8'))
         side_seq = payload.get('seq_ratio_this_mesh')
+    w271_side = None
+    w271_sha = None
+    w271_seq = None
+    if W271_SIDE.is_file():
+        w271_sha = _sha256(W271_SIDE)
+        w271_side = 'evidence/cad_battery/side/w271b_11772_a1a3.json'
+        w271_seq = json.loads(W271_SIDE.read_text(encoding='utf-8')).get('seq_ratio_this_mesh')
     native = {
         'c10a': 'C10a', 'c93': 'C93', 'c92': 'C92', 'c10c': 'C10c',
     }
@@ -372,14 +448,17 @@ def subject_catalog():
             'rs': 'evidence/rs_v2/w271b_11772.json', 'd1': None,
             'genome': 'evidence/rs_v2/genomes/w271b_11772_genome.csv',
             'tip_mesh': 'evidence/cad_battery/tip_mesh/w271b_11772.json',
+            'side_path': w271_side, 'side_sha': w271_sha, 'side_seq': w271_seq,
         },
         'w271b_11860': {
             'rs': 'evidence/rs_v2/w271b_11860.json', 'd1': None,
             'genome': 'evidence/rs_v2/genomes/w271b_11860_genome.csv',
+            'd1_searched': _d1_searched('w271b_11860'),
         },
         'w271c_11522': {
             'rs': 'evidence/rs_v2/w271c_11522.json', 'd1': None,
             'genome': 'evidence/rs_v2/genomes/w271c_11522.csv',
+            'd1_searched': _d1_searched('w271c_11522'),
         },
     }
     return native, genomes
@@ -406,6 +485,13 @@ def build_subject(subject_id, commit, probes, *, geometry=None, measure=False):
             cases.update(_blocked_plate(spec, commit, sha, 'no mesh bound'))
             # geom cases already set; blocked_plate must not overwrite them.
             # _blocked_plate does not include geom.*, so this is safe.
+        if subject_id in LADDER_BLOCKED:
+            cases['solid.tip']['detail'] = LADDER_BLOCKED[subject_id]
+        elif subject_id == 'c10a':
+            cases['solid.tip']['detail'] = {
+                'inventory_solver_runs': 0,
+                'cite': 'no file names this STEP sha256 with n_tet, n_dof, ksp_its, and a numeric nodal-max SF',
+            }
         role = 'archived_not_on_main' if spec.get('archived') else 'native_cad'
     elif subject_id in genomes:
         spec = genomes[subject_id]

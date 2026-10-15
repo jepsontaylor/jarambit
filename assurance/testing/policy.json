@@ -6,7 +6,7 @@
   "max_depth": 64,
   "max_nodes": 100000,
   "authority": "offline software support only; Rust resolves product claims",
-  "release_policy_sha256": "c2ff841cced11070c87f226a677d00c906cf7f4a11c6af31958bd642e27b5cd9",
+  "release_policy_sha256": "c58b0b30da87e902db4da01502ddbeff95749732d45b8a8e91c353f349762b17",
   "source_input_sha256": "646faaf3c96a752335ebeb78bd1ecf8bb448c38f6e89a7905e786f19dca4f5f6",
   "source_bundle": {
     "Cargo.lock": "a7d57f542f3233c99e86bd0973f79ea894ce007c982fddf9bd5a30414035e41b",

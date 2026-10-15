@@ -2,7 +2,7 @@
  "schema": "jarambit.cad_battery.subject.v1",
  "subject": "w271b_11860",
  "role": "genome",
- "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+ "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
  "cases": [
   {
    "id": "build.analytic",
@@ -10,7 +10,7 @@
    "status": "pass",
    "solver": "analytic",
    "geometry_sha256": null,
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "crates/physics/tests/invariance.rs",
    "fresh_this_lane": false
   },
@@ -20,7 +20,7 @@
    "status": "pass",
    "solver": "gci",
    "geometry_sha256": null,
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "fem_solid/tests/test_gci.py",
    "fresh_this_lane": false
   },
@@ -30,7 +30,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": null,
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "ops/ci/check_claims.py",
    "fresh_this_lane": false,
    "detail": {
@@ -44,13 +44,24 @@
    "status": "blocked",
    "solver": "solid_dolfinx",
    "geometry_sha256": null,
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "ModuleNotFoundError: No module named dolfinx",
    "detail": {
-    "interpreter": "system and venv-cad",
-    "modules_on_default_discovery": false
+    "interpreters_checked": [
+     "python3",
+     "/home/ubuntu/jarambit_render/venv-cad/bin/python",
+     "/home/ubuntu/.venv/bin/python",
+     "/home/ubuntu/.venvs/doug-tests/bin/python",
+     "/home/ubuntu/.venvs/innovationzero-v5-tabpfn/bin/python",
+     "/home/ubuntu/.venvs/jope-asm-training/bin/python",
+     "/home/ubuntu/.venvs/jope-dltrain-v1/bin/python",
+     "/home/ubuntu/.venvs/resemble-enhance/bin/python"
+    ],
+    "import_error": "ModuleNotFoundError",
+    "modules_on_default_discovery": false,
+    "pip_install": false
    }
   },
   {
@@ -59,7 +70,7 @@
    "status": "blocked",
    "solver": null,
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "evidence/rs_v2/genomes/w271b_11860_genome.csv",
    "fresh_this_lane": false,
    "reason": "no step bound"
@@ -70,7 +81,7 @@
    "status": "blocked",
    "solver": null,
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "evidence/rs_v2/genomes/w271b_11860_genome.csv",
    "fresh_this_lane": false,
    "reason": "no step bound"
@@ -81,7 +92,7 @@
    "status": "pass",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "evidence/rs_v2/w271b_11860.json",
    "fresh_this_lane": false,
    "detail": {
@@ -98,7 +109,7 @@
    "status": "blocked",
    "solver": null,
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "evidence/rs_v2/genomes/w271b_11860_genome.csv",
    "fresh_this_lane": false,
    "reason": "genome is not a native CAD pin"
@@ -109,7 +120,7 @@
    "status": "fail",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "evidence/rs_v2/w271b_11860.json",
    "fresh_this_lane": false,
    "detail": {
@@ -153,7 +164,7 @@
    "status": "fail",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "evidence/rs_v2/w271b_11860.json",
    "fresh_this_lane": false,
    "reason": "below 1.2",
@@ -172,7 +183,7 @@
    "status": "fail",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "evidence/rs_v2/w271b_11860.json",
    "fresh_this_lane": false,
    "detail": {
@@ -189,7 +200,7 @@
    "status": "incomplete",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "evidence/rs_v2/w271b_11860.json",
    "fresh_this_lane": false,
    "reason": "no three-mesh plate family stored"
@@ -200,7 +211,7 @@
    "status": "incomplete",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "not inherited from another subject"
@@ -211,7 +222,7 @@
    "status": "incomplete",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "not inherited from another subject"
@@ -222,7 +233,7 @@
    "status": "incomplete",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "not inherited from another subject"
@@ -233,10 +244,17 @@
    "status": "incomplete",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": null,
    "fresh_this_lane": false,
-   "reason": "support variants and buckling not run"
+   "reason": "run_b default BC is the certified model",
+   "detail": {
+    "bore_support": "absent",
+    "grip_foundation_stiffness": "absent",
+    "buckling_eigenvalue": "absent",
+    "default_clamp": "ring-hole nodes fixed in all 5 dofs inside run_b",
+    "partial_solver_edit": false
+   }
   },
   {
    "id": "solid.tip",
@@ -244,10 +262,18 @@
    "status": "incomplete",
    "solver": "solid_skfem_p2",
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": null,
    "fresh_this_lane": false,
-   "reason": "no solid tip bound to this genome"
+   "reason": "no solid tip bound to this genome",
+   "detail": {
+    "searched": [
+     "/home/ubuntu/fs4/d1/w271b_11860_D1.json",
+     "ubuntu@192.168.68.54:/home/ubuntu/fs4/d1/w271b_11860_D1.json",
+     "evidence/ has the RS json and the genome csv for w271b_11860, and no w271b_11860_D1.json"
+    ],
+    "found": false
+   }
   },
   {
    "id": "gate.rs_v2",
@@ -255,7 +281,7 @@
    "status": "fail",
    "solver": null,
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
-   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "evidence/rs_v2/w271b_11860.json",
    "fresh_this_lane": false,
    "reason": "does not pass every hard gate",
