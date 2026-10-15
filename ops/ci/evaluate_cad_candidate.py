@@ -447,7 +447,8 @@ def evaluate_candidate(
 
     # 5. Run side.a1..a3 and side.a4
     a1a3_path = out_dir / f'{label}_a1a3.json'
-    subprocess.run([str(side_bin), str(canon_genome), str(a1a3_path)], cwd=ROOT, check=True)
+    rel_genome = str(canon_genome.relative_to(ROOT)) if canon_genome.is_relative_to(ROOT) else str(canon_genome)
+    subprocess.run([str(side_bin), rel_genome, str(a1a3_path)], cwd=ROOT, check=True)
     a4_path = out_dir / f'{label}_a4.json'
     a4_doc = eval_side_a4(label, d1_path, rs_path, a1a3_path)
     a4_path.write_text(json.dumps(a4_doc, indent=2, sort_keys=True) + '\n', encoding='utf-8')

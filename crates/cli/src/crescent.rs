@@ -235,16 +235,23 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     // ---- certification: LEGAL+under-cap first (by fit), then lightest LEGAL, then most novel; distinct genomes ----
     let mut cand: Vec<&qd::Rec> = ro.all.iter().filter(|r| r.aes.pass && r.rejects.is_empty() && r.fem.is_some()).collect();
     cand.sort_by(|a, b| { let ka = (a.legal() && qd::feasible(a), a.legal(), a.fit); let kb = (b.legal() && qd::feasible(b), b.legal(), b.fit); kb.partial_cmp(&ka).unwrap() });
-    let mut light: Vec<&qd::Rec> = ro.all.iter().filter(|r| r.legal()).collect(); light.sort_by(|a, b| a.mass_g.partial_cmp(&b.mass_g).unwrap());
+    let mut light: Vec<&qd::Rec> = ro.all.iter().filter(|r| r.legal()).collect();
+    light.sort_by(|a, b| (!qd::feasible(a)).cmp(&(!qd::feasible(b))).then_with(|| a.mass_g.partial_cmp(&b.mass_g).unwrap()));
     let mut novel: Vec<&qd::Rec> = ro.all.iter().filter(|r| r.legal()).collect(); novel.sort_by(|a, b| b.novelty.partial_cmp(&a.novelty).unwrap());
     let mut order: Vec<(&str, &qd::Rec)> = Vec::new();
-    for (i, r) in cand.iter().enumerate() { if i < 30 { order.push(("fit", r)); } }
-    for r in light.iter().take(20) { order.push(("light", r)); }
-    for r in novel.iter().take(10) { order.push(("novel", r)); }
+    if qd::all_gates_env() {
+        for r in light.iter().take(16) { order.push(("light", r)); }
+        for r in cand.iter().take(16) { order.push(("fit", r)); }
+        for r in novel.iter().take(4) { order.push(("novel", r)); }
+    } else {
+        for (i, r) in cand.iter().enumerate() { if i < 30 { order.push(("fit", r)); } }
+        for r in light.iter().take(20) { order.push(("light", r)); }
+        for r in novel.iter().take(10) { order.push(("novel", r)); }
+    }
     let mut picked: Vec<(String, qd::Rec, fem::Fem, fem::Fields)> = Vec::new(); let (mut n_try, mut n_fail) = (0usize, 0usize);
     let mut seen: Vec<Genome> = Vec::new(); let mut cert_rows = String::from("kind,id,gen,mass_g,t,search_lat_rob,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,twist_sf_1p82_joint3d,floors_ok_cert,spg_cert,aes,novelty,relief_frac,n_win,n_perf,strict_lat_rob_0p0625,strict_ok,seq_ratio_cert,seq_case,seq_ok,twist_tip_sf_default_hard,twist_body_sf,twist_tipzone_sf_strict,t_joint,cert_pass_all,twist_floor_ok_body_and_tipsub,mass_band_74_77,blade_min_in,promote_eligible_pending_aesthetic_signoff\n");
     let mut queue: Vec<(&str, &qd::Rec)> = Vec::new();
-    let q_cap = if qd::all_gates_env() { (4 * n_cert).max(24) } else { (2 * n_cert).max(12) };
+    let q_cap = if qd::all_gates_env() { (5 * n_cert).max(32) } else { (2 * n_cert).max(12) };
     for (kind, r) in order { if queue.len() >= q_cap { break; } // P1: floors-OK designs that miss only the seq>=1.2 proxy are still certified + plated (labelled FAIL), so the wave is documented
         let floors_only = r.g.p1() && r.rejects.is_empty() && r.aes.pass && r.fem.as_ref().map_or(false, |f| f.floors_ok);
         if seen.contains(&r.g) || !(r.legal() || floors_only) { continue; } seen.push(r.g.clone()); queue.push((kind, r)); }
@@ -277,7 +284,10 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
             fem::twist_floor_ok(cf.twist_body_sf, tz16), r.mass_g >= fem::MASS_BAND.0 && r.mass_g <= fem::MASS_BAND.1, blade_min_in(r), prom);
         if !cf.floors_ok || (qd::all_gates_env() && !(prom && cf.twist_sf >= 1.0)) { n_fail += 1; let _ = writeln!(rep, "- certification FAIL id {} ({kind}, {:.1} g): search lat_rob {:.0} -> certified {:.0} N, strict {:.0} N, seq {:.2}, tip_sf {:.2}, tipz_strict {:.2}", r.id, r.mass_g, r.fem.as_ref().unwrap().lat_rob, cf.lat_rob, s_lat, cf.seq_ratio, cf.twist_sf, tz16); continue; }
         if picked.len() >= n_cert { continue; }
-        let mut rr = (*r).clone(); rr.spg = cf.lat_rob / rr.mass_g; rr.fem = Some(cf.clone()); rr.fit = qd::fitness(&rr);
+        let mut rr = (*r).clone(); rr.spg = cf.lat_rob / rr.mass_g;
+        let mut cf_fit = cf.clone();
+        if qd::all_gates_env() { if s_lat.is_finite() { cf_fit.lat_rob = cf_fit.lat_rob.min(s_lat); } if tz16.is_finite() { cf_fit.twist_tipzone_sf = cf_fit.twist_tipzone_sf.min(tz16); } }
+        rr.fem = Some(cf_fit); rr.fit = qd::fitness(&rr); rr.fem = Some(cf.clone());
         picked.push((kind.to_string(), rr, cf, fl));
     }
     std::fs::write(format!("{out}/certification.csv"), cert_rows).unwrap();

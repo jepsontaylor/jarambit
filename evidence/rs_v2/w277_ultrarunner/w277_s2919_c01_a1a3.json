@@ -1,0 +1,1042 @@
+{
+  "cases": {
+    "chord_twist": {
+      "15": {
+        "global_peak_mpa_per_unit": 0.08295368763928215,
+        "peak_distance_outside_bore_mm": 167.32895465830774,
+        "peak_distance_to_groove_annulus_mm": 163.72815782801126,
+        "peak_radius_mm": 179.77895465830773,
+        "peak_xy_mm": [
+          176.17594388984173,
+          -35.81213945797152
+        ],
+        "peak_zone": "blade",
+        "tip_exclusion_mm": 15.0,
+        "zones": {
+          "blade": {
+            "a_eff_mm2": {
+              "10": 10.879286776844168,
+              "20": 2.453001947512829,
+              "30": 1.0844841729550247
+            },
+            "area_mm2": 1310.7083794593425,
+            "area_within_90pct_of_global_peak_mm2": 4.599487293699541,
+            "peak_mpa_per_unit": 0.08295368763928215,
+            "share_of_a_eff": {
+              "10": 0.9999996126017853,
+              "20": 0.9999999999990865,
+              "30": 1.0
+            }
+          },
+          "bore_rim": {
+            "a_eff_mm2": {
+              "10": 6.570133387581326e-10,
+              "20": 9.890716570124179e-20,
+              "30": 2.3128125585373998e-29
+            },
+            "area_mm2": 133.95615314424424,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.009335355157582869,
+            "share_of_a_eff": {
+              "10": 6.039119086655078e-11,
+              "20": 4.0320867173153415e-20,
+              "30": 2.1326383696641702e-29
+            }
+          },
+          "groove": {
+            "a_eff_mm2": {
+              "10": 1.6876107733164974e-9,
+              "20": 3.708652822297121e-19,
+              "30": 1.3873196356144626e-28
+            },
+            "area_mm2": 188.02346001313322,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.009866610601682296,
+            "share_of_a_eff": {
+              "10": 1.5512139298791732e-10,
+              "20": 1.511883358288421e-19,
+              "30": 1.279243782631023e-28
+            }
+          },
+          "neck": {
+            "a_eff_mm2": {
+              "10": 5.67822949849989e-9,
+              "20": 3.1009923134896298e-18,
+              "30": 3.439926648243157e-27
+            },
+            "area_mm2": 229.5840322886969,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.011227807866219833,
+            "share_of_a_eff": {
+              "10": 5.219301058273089e-10,
+              "20": 1.26416218977363e-18,
+              "30": 3.1719473036383503e-27
+            }
+          },
+          "other": {
+            "a_eff_mm2": {
+              "10": 4.206595101112622e-6,
+              "20": 2.248866701647411e-12,
+              "30": 3.4314482765395955e-18
+            },
+            "area_mm2": 1865.196400033203,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.023482302652477926,
+            "share_of_a_eff": {
+              "10": 3.8666077636988495e-7,
+              "20": 9.167814578889955e-13,
+              "30": 3.1641294194174497e-18
+            }
+          }
+        }
+      },
+      "4": {
+        "global_peak_mpa_per_unit": 0.30191751437293174,
+        "peak_distance_outside_bore_mm": 180.90897293870782,
+        "peak_distance_to_groove_annulus_mm": 177.30817610841135,
+        "peak_radius_mm": 193.3589729387078,
+        "peak_xy_mm": [
+          186.89895882880754,
+          -49.56280464844215
+        ],
+        "peak_zone": "blade",
+        "tip_exclusion_mm": 4.0,
+        "zones": {
+          "blade": {
+            "a_eff_mm2": {
+              "10": 0.5736449979189734,
+              "20": 0.39397040127290905,
+              "30": 0.3377306017184346
+            },
+            "area_mm2": 1418.8353405150694,
+            "area_within_90pct_of_global_peak_mm2": 0.5583160338218959,
+            "peak_mpa_per_unit": 0.30191751437293174,
+            "share_of_a_eff": {
+              "10": 0.9999999999821275,
+              "20": 1.0,
+              "30": 1.0
+            }
+          },
+          "bore_rim": {
+            "a_eff_mm2": {
+              "10": 1.6108239679917787e-15,
+              "20": 5.945324303386867e-31,
+              "30": 3.408490796283078e-46
+            },
+            "area_mm2": 133.95615314424424,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.009335355157582869,
+            "share_of_a_eff": {
+              "10": 2.8080502293345476e-15,
+              "20": 1.5090789267868004e-30,
+              "30": 1.0092336255406108e-45
+            }
+          },
+          "groove": {
+            "a_eff_mm2": {
+              "10": 4.137577918033861e-15,
+              "20": 2.229276675850651e-30,
+              "30": 2.044552288528318e-45
+            },
+            "area_mm2": 188.02346001313322,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.009866610601682296,
+            "share_of_a_eff": {
+              "10": 7.21278479367886e-15,
+              "20": 5.658487715442355e-30,
+              "30": 6.053796363507673e-45
+            }
+          },
+          "neck": {
+            "a_eff_mm2": {
+              "10": 1.3921525838775583e-14,
+              "20": 1.8640110486731228e-29,
+              "30": 5.069567041714974e-44
+            },
+            "area_mm2": 229.5840322886969,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.011227807866219833,
+            "share_of_a_eff": {
+              "10": 2.4268538711276566e-14,
+              "20": 4.731347945557705e-29,
+              "30": 1.50106831182016e-43
+            }
+          },
+          "other": {
+            "a_eff_mm2": {
+              "10": 1.0313465211097498e-11,
+              "20": 1.3517970878639652e-23,
+              "30": 5.057072102679578e-35
+            },
+            "area_mm2": 1865.196400033203,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.023482302652477926,
+            "share_of_a_eff": {
+              "10": 1.7978828802356148e-11,
+              "20": 3.431214841257975e-23,
+              "30": 1.497368635518451e-34
+            }
+          }
+        }
+      }
+    },
+    "lateral": {
+      "15": {
+        "global_peak_mpa_per_unit": 2.671124794774706,
+        "peak_distance_outside_bore_mm": 113.30706837311787,
+        "peak_distance_to_groove_annulus_mm": 109.70627154282141,
+        "peak_radius_mm": 125.75706837311787,
+        "peak_xy_mm": [
+          125.5872433925335,
+          -6.533340865560103
+        ],
+        "peak_zone": "blade",
+        "tip_exclusion_mm": 15.0,
+        "zones": {
+          "blade": {
+            "a_eff_mm2": {
+              "10": 49.24771444896044,
+              "20": 10.373598837504312,
+              "30": 3.5790790673071657
+            },
+            "area_mm2": 1310.7083794593425,
+            "area_within_90pct_of_global_peak_mm2": 20.64473315211025,
+            "peak_mpa_per_unit": 2.671124794774706,
+            "share_of_a_eff": {
+              "10": 0.9141422897855883,
+              "20": 0.9931354705069061,
+              "30": 0.9991525800967794
+            }
+          },
+          "bore_rim": {
+            "a_eff_mm2": {
+              "10": 0.13073337219810865,
+              "20": 0.0024749290179346094,
+              "30": 0.00007234465792078129
+            },
+            "area_mm2": 133.95615314424424,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 1.9786619853933427,
+            "share_of_a_eff": {
+              "10": 0.002426689350963237,
+              "20": 0.0002369418591560859,
+              "30": 0.000020196075654777925
+            }
+          },
+          "groove": {
+            "a_eff_mm2": {
+              "10": 0.43316281154301073,
+              "20": 0.019075436043443854,
+              "30": 0.0013829649491377014
+            },
+            "area_mm2": 188.02346001313322,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 2.190838734947496,
+            "share_of_a_eff": {
+              "10": 0.008040422765289356,
+              "20": 0.001826221781551723,
+              "30": 0.00038607501290939116
+            }
+          },
+          "neck": {
+            "a_eff_mm2": {
+              "10": 0.16004420472280065,
+              "20": 0.002037435532016733,
+              "30": 0.00008690667985582857
+            },
+            "area_mm2": 229.5840322886969,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 2.092404590999547,
+            "share_of_a_eff": {
+              "10": 0.0029707607227913244,
+              "20": 0.0001950576195795643,
+              "30": 0.00002426127832680923
+            }
+          },
+          "other": {
+            "a_eff_mm2": {
+              "10": 3.901483949877068,
+              "20": 0.04811427559294186,
+              "30": 0.0014933389398717875
+            },
+            "area_mm2": 1865.196400033203,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 2.1312057191300244,
+            "share_of_a_eff": {
+              "10": 0.07241983737536939,
+              "20": 0.004606308232812979,
+              "30": 0.0004168875363389205
+            }
+          }
+        }
+      },
+      "4": {
+        "global_peak_mpa_per_unit": 2.671124794774706,
+        "peak_distance_outside_bore_mm": 113.30706837311787,
+        "peak_distance_to_groove_annulus_mm": 109.70627154282141,
+        "peak_radius_mm": 125.75706837311787,
+        "peak_xy_mm": [
+          125.5872433925335,
+          -6.533340865560103
+        ],
+        "peak_zone": "blade",
+        "tip_exclusion_mm": 4.0,
+        "zones": {
+          "blade": {
+            "a_eff_mm2": {
+              "10": 49.2491688025177,
+              "20": 10.373598955875229,
+              "30": 3.579079067321053
+            },
+            "area_mm2": 1418.8353405150694,
+            "area_within_90pct_of_global_peak_mm2": 20.64473315211025,
+            "peak_mpa_per_unit": 2.671124794774706,
+            "share_of_a_eff": {
+              "10": 0.9141446075286838,
+              "20": 0.9931354705846978,
+              "30": 0.9991525800967828
+            }
+          },
+          "bore_rim": {
+            "a_eff_mm2": {
+              "10": 0.13073337219810865,
+              "20": 0.0024749290179346094,
+              "30": 0.00007234465792078129
+            },
+            "area_mm2": 133.95615314424424,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 1.9786619853933427,
+            "share_of_a_eff": {
+              "10": 0.0024266238420826273,
+              "20": 0.00023694185647095257,
+              "30": 0.00002019607565469963
+            }
+          },
+          "groove": {
+            "a_eff_mm2": {
+              "10": 0.43316281154301073,
+              "20": 0.019075436043443854,
+              "30": 0.0013829649491377014
+            },
+            "area_mm2": 188.02346001313322,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 2.190838734947496,
+            "share_of_a_eff": {
+              "10": 0.00804020571274624,
+              "20": 0.0018262217608561438,
+              "30": 0.0003860750129078944
+            }
+          },
+          "neck": {
+            "a_eff_mm2": {
+              "10": 0.16004420472280065,
+              "20": 0.002037435532016733,
+              "30": 0.00008690667985582857
+            },
+            "area_mm2": 229.5840322886969,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 2.092404590999547,
+            "share_of_a_eff": {
+              "10": 0.0029706805266139966,
+              "20": 0.0001950576173690823,
+              "30": 0.00002426127832671517
+            }
+          },
+          "other": {
+            "a_eff_mm2": {
+              "10": 3.901483949877068,
+              "20": 0.04811427559294186,
+              "30": 0.0014933389398717875
+            },
+            "area_mm2": 1865.196400033203,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 2.1312057191300244,
+            "share_of_a_eff": {
+              "10": 0.07241788238987507,
+              "20": 0.004606308180612191,
+              "30": 0.00041688753633730433
+            }
+          }
+        }
+      }
+    },
+    "pry": {
+      "15": {
+        "global_peak_mpa_per_unit": 1.2546674181758073,
+        "peak_distance_outside_bore_mm": 118.74840918177323,
+        "peak_distance_to_groove_annulus_mm": 115.14761235147677,
+        "peak_radius_mm": 131.19840918177323,
+        "peak_xy_mm": [
+          131.1969269762445,
+          0.6236375694005486
+        ],
+        "peak_zone": "blade",
+        "tip_exclusion_mm": 15.0,
+        "zones": {
+          "blade": {
+            "a_eff_mm2": {
+              "10": 0.5593744233466011,
+              "20": 0.06573043744244363,
+              "30": 0.032600356189277896
+            },
+            "area_mm2": 1310.7083794593425,
+            "area_within_90pct_of_global_peak_mm2": 0.07340586593247282,
+            "peak_mpa_per_unit": 1.2546674181758073,
+            "share_of_a_eff": {
+              "10": 0.9992003519293405,
+              "20": 0.9999968882855464,
+              "30": 0.999999994660081
+            }
+          },
+          "bore_rim": {
+            "a_eff_mm2": {
+              "10": 1.4589525554377598e-7,
+              "20": 1.8167525714204783e-15,
+              "30": 3.4912644511127135e-23
+            },
+            "area_mm2": 133.95615314424424,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.22442522926890252,
+            "share_of_a_eff": {
+              "10": 2.606100397154453e-7,
+              "20": 2.763935535642927e-14,
+              "30": 1.0709283089421903e-21
+            }
+          },
+          "groove": {
+            "a_eff_mm2": {
+              "10": 5.454381592893337e-7,
+              "20": 1.983094680526478e-14,
+              "30": 9.625494795649821e-22
+            },
+            "area_mm2": 188.02346001313322,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.2406896260280564,
+            "share_of_a_eff": {
+              "10": 9.743062570808644e-7,
+              "20": 3.017001843991339e-13,
+              "30": 2.952573489800163e-20
+            }
+          },
+          "neck": {
+            "a_eff_mm2": {
+              "10": 0.00002388877453655974,
+              "20": 9.560466093143097e-11,
+              "30": 6.105306501464256e-16
+            },
+            "area_mm2": 229.5840322886969,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.3964085230725092,
+            "share_of_a_eff": {
+              "10": 0.00004267208318407681,
+              "20": 1.4544915134748796e-9,
+              "30": 1.8727729333431087e-14
+            }
+          },
+          "other": {
+            "a_eff_mm2": {
+              "10": 0.0004230805414283988,
+              "20": 2.0443936433266376e-7,
+              "30": 1.7408269337606074e-10
+            },
+            "area_mm2": 1865.196400033203,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.6317902031774995,
+            "share_of_a_eff": {
+              "10": 0.000755741071178314,
+              "20": 3.110259662500408e-6,
+              "30": 5.33990154695697e-9
+            }
+          }
+        }
+      },
+      "4": {
+        "global_peak_mpa_per_unit": 1.2546674181758073,
+        "peak_distance_outside_bore_mm": 118.74840918177323,
+        "peak_distance_to_groove_annulus_mm": 115.14761235147677,
+        "peak_radius_mm": 131.19840918177323,
+        "peak_xy_mm": [
+          131.1969269762445,
+          0.6236375694005486
+        ],
+        "peak_zone": "blade",
+        "tip_exclusion_mm": 4.0,
+        "zones": {
+          "blade": {
+            "a_eff_mm2": {
+              "10": 0.5593745479518036,
+              "20": 0.0657304374424467,
+              "30": 0.032600356189277896
+            },
+            "area_mm2": 1418.8353405150694,
+            "area_within_90pct_of_global_peak_mm2": 0.07340586593247282,
+            "peak_mpa_per_unit": 1.2546674181758073,
+            "share_of_a_eff": {
+              "10": 0.9992003521073262,
+              "20": 0.9999968882855464,
+              "30": 0.999999994660081
+            }
+          },
+          "bore_rim": {
+            "a_eff_mm2": {
+              "10": 1.4589525554377598e-7,
+              "20": 1.8167525714204783e-15,
+              "30": 3.4912644511127135e-23
+            },
+            "area_mm2": 133.95615314424424,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.22442522926890252,
+            "share_of_a_eff": {
+              "10": 2.6060998170887413e-7,
+              "20": 2.763935535642798e-14,
+              "30": 1.0709283089421903e-21
+            }
+          },
+          "groove": {
+            "a_eff_mm2": {
+              "10": 5.454381592893337e-7,
+              "20": 1.983094680526478e-14,
+              "30": 9.625494795649821e-22
+            },
+            "area_mm2": 188.02346001313322,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.2406896260280564,
+            "share_of_a_eff": {
+              "10": 9.743060402198207e-7,
+              "20": 3.017001843991199e-13,
+              "30": 2.952573489800163e-20
+            }
+          },
+          "neck": {
+            "a_eff_mm2": {
+              "10": 0.00002388877453655974,
+              "20": 9.560466093143097e-11,
+              "30": 6.105306501464256e-16
+            },
+            "area_mm2": 229.5840322886969,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.3964085230725092,
+            "share_of_a_eff": {
+              "10": 0.000042672073686126415,
+              "20": 1.4544915134748118e-9,
+              "30": 1.8727729333431087e-14
+            }
+          },
+          "other": {
+            "a_eff_mm2": {
+              "10": 0.0004230805414283988,
+              "20": 2.0443936433266376e-7,
+              "30": 1.7408269337606074e-10
+            },
+            "area_mm2": 1865.196400033203,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.6317902031774995,
+            "share_of_a_eff": {
+              "10": 0.0007557409029654997,
+              "20": 3.110259662500263e-6,
+              "30": 5.33990154695697e-9
+            }
+          }
+        }
+      }
+    },
+    "ring_pull": {
+      "15": {
+        "global_peak_mpa_per_unit": 0.04343414828949048,
+        "peak_distance_outside_bore_mm": 0.13331463343067895,
+        "peak_distance_to_groove_annulus_mm": 1.4666853665693207,
+        "peak_radius_mm": 12.583314633430678,
+        "peak_xy_mm": [
+          0.31217370522115245,
+          -12.579441750001434
+        ],
+        "peak_zone": "bore_rim",
+        "tip_exclusion_mm": 15.0,
+        "zones": {
+          "blade": {
+            "a_eff_mm2": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0
+            },
+            "area_mm2": 0.0,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.0,
+            "share_of_a_eff": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0
+            }
+          },
+          "bore_rim": {
+            "a_eff_mm2": {
+              "10": 2.744356530509713,
+              "20": 1.1990288443829804,
+              "30": 0.7634739689639073
+            },
+            "area_mm2": 133.95615314424424,
+            "area_within_90pct_of_global_peak_mm2": 2.8152208371398033,
+            "peak_mpa_per_unit": 0.04343414828949048,
+            "share_of_a_eff": {
+              "10": 0.7741294211210884,
+              "20": 0.9329604115182922,
+              "30": 0.9787302961947502
+            }
+          },
+          "groove": {
+            "a_eff_mm2": {
+              "10": 0.6692432756904417,
+              "20": 0.08297321414284071,
+              "30": 0.016460738289985614
+            },
+            "area_mm2": 188.02346001313322,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.038868021837473406,
+            "share_of_a_eff": {
+              "10": 0.18878046778535687,
+              "20": 0.06456118580828268,
+              "30": 0.021101732235881254
+            }
+          },
+          "neck": {
+            "a_eff_mm2": {
+              "10": 0.115372329584997,
+              "20": 0.0031710101756048954,
+              "30": 0.00013100382887741346
+            },
+            "area_mm2": 229.5840322886969,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.03256906248551706,
+            "share_of_a_eff": {
+              "10": 0.032544282684158723,
+              "20": 0.002467352618096056,
+              "30": 0.0001679394733180466
+            }
+          },
+          "other": {
+            "a_eff_mm2": {
+              "10": 0.016115359449632476,
+              "20": 0.000014201390482467877,
+              "30": 2.5037034467231452e-8
+            },
+            "area_mm2": 1150.7512510955294,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.02438971261078341,
+            "share_of_a_eff": {
+              "10": 0.004545828409395911,
+              "20": 0.000011050055359988682,
+              "30": 3.209605717560495e-8
+            }
+          }
+        }
+      },
+      "4": {
+        "global_peak_mpa_per_unit": 0.04343414828949048,
+        "peak_distance_outside_bore_mm": 0.13331463343067895,
+        "peak_distance_to_groove_annulus_mm": 1.4666853665693207,
+        "peak_radius_mm": 12.583314633430678,
+        "peak_xy_mm": [
+          0.31217370522115245,
+          -12.579441750001434
+        ],
+        "peak_zone": "bore_rim",
+        "tip_exclusion_mm": 4.0,
+        "zones": {
+          "blade": {
+            "a_eff_mm2": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0
+            },
+            "area_mm2": 0.0,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.0,
+            "share_of_a_eff": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0
+            }
+          },
+          "bore_rim": {
+            "a_eff_mm2": {
+              "10": 2.744356530509713,
+              "20": 1.1990288443829804,
+              "30": 0.7634739689639073
+            },
+            "area_mm2": 133.95615314424424,
+            "area_within_90pct_of_global_peak_mm2": 2.8152208371398033,
+            "peak_mpa_per_unit": 0.04343414828949048,
+            "share_of_a_eff": {
+              "10": 0.7741294211210884,
+              "20": 0.9329604115182922,
+              "30": 0.9787302961947502
+            }
+          },
+          "groove": {
+            "a_eff_mm2": {
+              "10": 0.6692432756904417,
+              "20": 0.08297321414284071,
+              "30": 0.016460738289985614
+            },
+            "area_mm2": 188.02346001313322,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.038868021837473406,
+            "share_of_a_eff": {
+              "10": 0.18878046778535687,
+              "20": 0.06456118580828268,
+              "30": 0.021101732235881254
+            }
+          },
+          "neck": {
+            "a_eff_mm2": {
+              "10": 0.115372329584997,
+              "20": 0.0031710101756048954,
+              "30": 0.00013100382887741346
+            },
+            "area_mm2": 229.5840322886969,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.03256906248551706,
+            "share_of_a_eff": {
+              "10": 0.032544282684158723,
+              "20": 0.002467352618096056,
+              "30": 0.0001679394733180466
+            }
+          },
+          "other": {
+            "a_eff_mm2": {
+              "10": 0.016115359449632476,
+              "20": 0.000014201390482467877,
+              "30": 2.5037034467231452e-8
+            },
+            "area_mm2": 1150.7512510955294,
+            "area_within_90pct_of_global_peak_mm2": 0.0,
+            "peak_mpa_per_unit": 0.02438971261078341,
+            "share_of_a_eff": {
+              "10": 0.004545828409395911,
+              "20": 0.000011050055359988682,
+              "30": 3.209605717560495e-8
+            }
+          }
+        }
+      }
+    }
+  },
+  "committed_g3_seq_ratio": 0.9590825616164743,
+  "committed_seq_note": "evidence/rs_v2/g3_tip+00_t60_tt3.json seq_ratio is fem::certify, the minimum of 0.25 mm^2 and 0.125 mm^2. This file is the 0.25 mm^2 field only.",
+  "flaw_map": {
+    "basis": "code L7, lateral 0 to 180 N, R = 0. Delta sigma = 180 * lateral MPa-per-newton. Not spec L7.",
+    "delta_k_note": "sensitivity range, not a measured threshold for this lot",
+    "delta_k_th_mpa_sqrt_m": [
+      2.0,
+      4.0,
+      6.0
+    ],
+    "formula": "a = (1/pi) * (DeltaK_th / (1.12 * Delta_sigma))^2, metres, reported in mm",
+    "geometry_factor": 1.12,
+    "not_a_drawing_zone": true,
+    "not_the_additive_manufacturing_murakami_curve": true,
+    "zones": {
+      "blade": {
+        "a_allow_at_hottest_mm": {
+          "2": 0.004390770176481005,
+          "4": 0.01756308070592402,
+          "6": 0.039516931588329036
+        },
+        "elements_with_a_allow_below_0.040_mm": {
+          "2": {
+            "area_mm2": 1175.8941574037622,
+            "n_elem": 7450
+          },
+          "4": {
+            "area_mm2": 462.67268740596654,
+            "n_elem": 2883
+          },
+          "6": {
+            "area_mm2": 0.1488142179599327,
+            "n_elem": 1
+          }
+        },
+        "hottest_delta_sigma_mpa": 480.80246305944706,
+        "hottest_xy_mm": [
+          125.5872433925335,
+          -6.533340865560103
+        ],
+        "n_elem": 10053,
+        "n_elem_with_a_allow_below_0.010_mm": {
+          "2": 2883,
+          "4": 0,
+          "6": 0
+        }
+      },
+      "bore_rim": {
+        "a_allow_at_hottest_mm": {
+          "2": 0.008001765927016928,
+          "4": 0.03200706370806771,
+          "6": 0.07201589334315234
+        },
+        "elements_with_a_allow_below_0.040_mm": {
+          "2": {
+            "area_mm2": 22.418477591108648,
+            "n_elem": 137
+          },
+          "4": {
+            "area_mm2": 2.159322407101321,
+            "n_elem": 13
+          },
+          "6": {
+            "area_mm2": 0.0,
+            "n_elem": 0
+          }
+        },
+        "hottest_delta_sigma_mpa": 356.15915737080167,
+        "hottest_xy_mm": [
+          12.751589798130446,
+          -1.325565922916607
+        ],
+        "n_elem": 819,
+        "n_elem_with_a_allow_below_0.010_mm": {
+          "2": 13,
+          "4": 0,
+          "6": 0
+        }
+      },
+      "groove": {
+        "a_allow_at_hottest_mm": {
+          "2": 0.006526919275745609,
+          "4": 0.026107677102982434,
+          "6": 0.05874227348171048
+        },
+        "elements_with_a_allow_below_0.040_mm": {
+          "2": {
+            "area_mm2": 39.65821387836077,
+            "n_elem": 248
+          },
+          "4": {
+            "area_mm2": 8.322270849732888,
+            "n_elem": 57
+          },
+          "6": {
+            "area_mm2": 0.0,
+            "n_elem": 0
+          }
+        },
+        "hottest_delta_sigma_mpa": 394.3509722905493,
+        "hottest_xy_mm": [
+          14.564994937363759,
+          -1.0813860105160231
+        ],
+        "n_elem": 1157,
+        "n_elem_with_a_allow_below_0.010_mm": {
+          "2": 57,
+          "4": 0,
+          "6": 0
+        }
+      },
+      "neck": {
+        "a_allow_at_hottest_mm": {
+          "2": 0.007155462904451955,
+          "4": 0.02862185161780782,
+          "6": 0.06439916614006759
+        },
+        "elements_with_a_allow_below_0.040_mm": {
+          "2": {
+            "area_mm2": 192.58364797555728,
+            "n_elem": 1217
+          },
+          "4": {
+            "area_mm2": 1.5475502655660114,
+            "n_elem": 15
+          },
+          "6": {
+            "area_mm2": 0.0,
+            "n_elem": 0
+          }
+        },
+        "hottest_delta_sigma_mpa": 376.6328263799184,
+        "hottest_xy_mm": [
+          25.47758976321843,
+          -1.9800681274772416
+        ],
+        "n_elem": 1446,
+        "n_elem_with_a_allow_below_0.010_mm": {
+          "2": 15,
+          "4": 0,
+          "6": 0
+        }
+      },
+      "other": {
+        "a_allow_at_hottest_mm": {
+          "2": 0.006897287311685895,
+          "4": 0.02758914924674358,
+          "6": 0.06207558580517305
+        },
+        "elements_with_a_allow_below_0.040_mm": {
+          "2": {
+            "area_mm2": 1403.8157621778464,
+            "n_elem": 9051
+          },
+          "4": {
+            "area_mm2": 23.119576923224997,
+            "n_elem": 168
+          },
+          "6": {
+            "area_mm2": 0.0,
+            "n_elem": 0
+          }
+        },
+        "hottest_delta_sigma_mpa": 383.6170294434044,
+        "hottest_xy_mm": [
+          27.022435107490526,
+          -2.4902542272263015
+        ],
+        "n_elem": 12058,
+        "n_elem_with_a_allow_below_0.010_mm": {
+          "2": 168,
+          "4": 0,
+          "6": 0
+        }
+      }
+    }
+  },
+  "genome": "evidence/rs_v2/w277_ultrarunner/w277_s2919_c01_genome.csv",
+  "groove_depth_per_face_mm": 0.6,
+  "groove_radii_mm": [
+    14.049999999999999,
+    16.050796830296463
+  ],
+  "heel_x_mm": 100.57165432215243,
+  "load_split": [
+    {
+      "area_within_90pct_of_global_peak_mm2_exclusion_4mm": 20.64473315211025,
+      "case": "lateral",
+      "collapse_load": null,
+      "direction": "reversing",
+      "first_yield_load": 309.981773079171,
+      "first_yield_load_field": "lat20, plate peak to 828 MPa",
+      "peak_class": "spread",
+      "published_safety_factor": 1.050774711499965,
+      "requirement": 260.0,
+      "shakedown_note": "twice this first-yield load. Elastic-perfectly plastic upper indicator on a monotonic yield. Not a safety factor. Null when the load reverses. Collapse stays null. This row is the plate model of the genome on the command line, not a B-rep V3 result. committed_g3_seq_ratio is g3's certify value and is not this mesh's sequence.",
+      "shakedown_upper_indicator_twice_first_yield": null,
+      "unit": "N",
+      "why": "tip load that reverses in use"
+    },
+    {
+      "area_within_90pct_of_global_peak_mm2_exclusion_4mm": 0.5583160338218959,
+      "case": "chord_twist",
+      "collapse_load": null,
+      "direction": "reversing",
+      "first_yield_load": 2088.503429633444,
+      "first_yield_load_field": "hm_twist_nmm, joint and 3D factor",
+      "peak_class": "local_concentration",
+      "published_safety_factor": 0.1289199647921879,
+      "requirement": 16200.0,
+      "shakedown_note": "twice this first-yield load. Elastic-perfectly plastic upper indicator on a monotonic yield. Not a safety factor. Null when the load reverses. Collapse stays null. This row is the plate model of the genome on the command line, not a B-rep V3 result. committed_g3_seq_ratio is g3's certify value and is not this mesh's sequence.",
+      "shakedown_upper_indicator_twice_first_yield": null,
+      "unit": "N*mm",
+      "why": "tip load that reverses in use"
+    },
+    {
+      "area_within_90pct_of_global_peak_mm2_exclusion_4mm": 0.07340586593247282,
+      "case": "pry",
+      "collapse_load": null,
+      "direction": "reversing",
+      "first_yield_load": 589.84231689175,
+      "first_yield_load_field": "pry20, in-plane peak to 828 MPa",
+      "peak_class": "local_concentration",
+      "published_safety_factor": 2.2686242957375,
+      "requirement": 260.0,
+      "shakedown_note": "twice this first-yield load. Elastic-perfectly plastic upper indicator on a monotonic yield. Not a safety factor. Null when the load reverses. Collapse stays null. This row is the plate model of the genome on the command line, not a B-rep V3 result. committed_g3_seq_ratio is g3's certify value and is not this mesh's sequence.",
+      "shakedown_upper_indicator_twice_first_yield": null,
+      "unit": "N",
+      "why": "tip load that reverses in use"
+    },
+    {
+      "area_within_90pct_of_global_peak_mm2_exclusion_4mm": 2.8152208371398033,
+      "case": "ring_pull",
+      "collapse_load": null,
+      "direction": "one_directional",
+      "first_yield_load": 17277.479275175036,
+      "first_yield_load_field": "ring20, plate peak to 828 MPa, before the joint factor",
+      "peak_class": "local_concentration",
+      "published_safety_factor": 10.326661511182586,
+      "requirement": 1500.0,
+      "shakedown_note": "twice this first-yield load. Elastic-perfectly plastic upper indicator on a monotonic yield. Not a safety factor. Null when the load reverses. Collapse stays null. This row is the plate model of the genome on the command line, not a B-rep V3 result. committed_g3_seq_ratio is g3's certify value and is not this mesh's sequence.",
+      "shakedown_upper_indicator_twice_first_yield": 34554.95855035007,
+      "unit": "N",
+      "why": "bore traction, grip band seated"
+    },
+    {
+      "area_within_90pct_of_global_peak_mm2_exclusion_4mm": null,
+      "case": "spine",
+      "collapse_load": null,
+      "direction": "one_directional",
+      "first_yield_load": 1439.0662320936024,
+      "first_yield_load_field": "hm_spine_n",
+      "peak_class": "field_not_kept",
+      "published_safety_factor": 0.41992011441307336,
+      "requirement": 3427.0,
+      "shakedown_note": "twice this first-yield load. Elastic-perfectly plastic upper indicator on a monotonic yield. Not a safety factor. Null when the load reverses. Collapse stays null. This row is the plate model of the genome on the command line, not a B-rep V3 result. committed_g3_seq_ratio is g3's certify value and is not this mesh's sequence.",
+      "shakedown_upper_indicator_twice_first_yield": 2878.1324641872047,
+      "unit": "N",
+      "why": "distributed in-plane traction on the spine, toward the edge, ring held"
+    },
+    {
+      "area_within_90pct_of_global_peak_mm2_exclusion_4mm": null,
+      "case": "ring_back",
+      "collapse_load": null,
+      "direction": "one_directional",
+      "first_yield_load": 6955.937456647372,
+      "first_yield_load_field": "hm_ringback_n",
+      "peak_class": "field_not_kept",
+      "published_safety_factor": 2.318645818882457,
+      "requirement": 3000.0,
+      "shakedown_note": "twice this first-yield load. Elastic-perfectly plastic upper indicator on a monotonic yield. Not a safety factor. Null when the load reverses. Collapse stays null. This row is the plate model of the genome on the command line, not a B-rep V3 result. committed_g3_seq_ratio is g3's certify value and is not this mesh's sequence.",
+      "shakedown_upper_indicator_twice_first_yield": 13911.874913294743,
+      "unit": "N",
+      "why": "static equivalent on the outer ring back, grip band seated. The 3000 N requirement already includes the provisional factor 2"
+    },
+    {
+      "area_within_90pct_of_global_peak_mm2_exclusion_4mm": null,
+      "case": "tip_inplane",
+      "collapse_load": null,
+      "direction": "one_directional",
+      "first_yield_load": 528.8186304119663,
+      "first_yield_load_field": "hm_tip_inplane_n",
+      "peak_class": "field_not_kept",
+      "published_safety_factor": 0.5288186304119663,
+      "requirement": 1000.0,
+      "shakedown_note": "twice this first-yield load. Elastic-perfectly plastic upper indicator on a monotonic yield. Not a safety factor. Null when the load reverses. Collapse stays null. This row is the plate model of the genome on the command line, not a B-rep V3 result. committed_g3_seq_ratio is g3's certify value and is not this mesh's sequence.",
+      "shakedown_upper_indicator_twice_first_yield": 1057.6372608239326,
+      "unit": "N",
+      "why": "in-plane tip load, record only, not a human-max gate"
+    }
+  ],
+  "local_concentration_rule": "reporter label only: area within 90% of the global peak < 10 mm^2. Not a material length.",
+  "mass_g": 79.5094905062415,
+  "mesh_max_area_mm2": 0.25,
+  "n_elem": 25533,
+  "n_node": 13649,
+  "ring_id_mm": 24.9,
+  "ring_od_mm": 35.30159366059293,
+  "role": "side report. seq_ratio, gates, and fitness are unchanged",
+  "schema": "jarambit.side_report.a1a3.v1",
+  "search_bias": "none",
+  "seq_case_this_mesh": "lateral",
+  "seq_matches_run_unbiased": true,
+  "seq_ratio_this_mesh": 1.2192247435495156,
+  "stress_unit": "von Mises, MPa per unit load. Lateral and chord twist are plate bending surface stress. Pry and ring pull are in-plane centroid stress.",
+  "tip_xy_mm": [
+    187.85756541875034,
+    -53.46749383291025
+  ],
+  "weibull_note": "A_eff = sum area * (sigma/sigma_global_max)^m over non-excluded elements. m is a sensitivity, not a fit. Shares use all non-excluded elements.",
+  "zone_rules": {
+    "blade": "centroid x >= heel, and not already bore, groove, or neck",
+    "bore_rim": "centroid radius in [bore radius, bore radius + 1.6 mm)",
+    "groove": "centroid radius in [bore radius + 1.6 mm, outer radius - 1.6 mm]",
+    "neck": "centroid outside the ring OD by at most 8 mm, x > 0, and x < heel",
+    "other": "everything else",
+    "priority": "bore_rim, groove, neck, blade, other"
+  }
+}

@@ -125,7 +125,7 @@ pub fn fitness(r: &Rec) -> f64 {
         // through-lattice experiment lane: feasible but too few through-features ranks below every feasible design that has them
         Some(_) if r.n_win + r.n_perf < min_through() => -0.09 + 0.08 * ((r.n_win + r.n_perf) as f64 / min_through() as f64),
         Some(_) => {
-            let (mw, ms) = if ag { (0.02, 0.03) } else { (MARGIN_W, MARGIN_SCALE) };
+            let (mw, ms) = if ag { (0.025, 0.05) } else { (MARGIN_W, MARGIN_SCALE) };
             1.0 + mass_reward(r.mass_g) - mass_over_penalty(r.mass_g) + mw * (1.0 - (-strength_margin(r) / ms).exp())
                 + 0.02 * r.aes.score.clamp(0.0, 1.0) + 0.02 * r.novelty.clamp(0.0, 1.0) } }
 }
