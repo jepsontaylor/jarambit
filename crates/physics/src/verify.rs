@@ -227,27 +227,67 @@ pub fn parse_expected(src: &str) -> Result<Expected, String> {
     if inq { return Err("manifest: unterminated string in checks".into()); }
     let e = Expected { id: unq(&get("id")?)?, max_err_pct: num(&get("max_err_pct")?)?,
         levels: arr(get("levels")?)?.iter().map(|x| num(x)).collect::<Result<_, _>>()?, gate_levels: arr(get("gate_levels")?)?.iter().map(|x| num(x)).collect::<Result<_, _>>()?, checks };
-    if e.checks.is_empty() || e.levels.is_empty() || e.gate_levels.is_empty() { return Err("manifest: empty checks/levels/gate_levels".into()); }
-    let mut s = std::collections::HashSet::new(); for c in &e.checks { if !s.insert(c) { return Err(format!("manifest: duplicate check {c:?}")); } }
-    for g in &e.gate_levels { if !e.levels.iter().any(|l| (l - g).abs() < 1e-9) { return Err(format!("manifest: gate level {g} not in levels")); } }
+    let bad = validate_expected(&e);
+    if !bad.is_empty() { return Err(format!("manifest: {}", bad.join("; "))); }
     Ok(e)
 }
 
-/// Fail-closed theory gate: Ok(()) only if every expected (check, level) is present exactly once with a
-/// finite ratio, nothing unexpected is present, and every gate-level error is < max_err_pct. Otherwise
-/// Err(reasons) listing every problem found.
+/// Name contract for the manifest id, check names and observation names: nonempty and free of control
+/// characters. Any other Unicode is valid and is compared exactly (no normalization).
+fn name_problem(what: &str, s: &str) -> Option<String> {
+    if s.is_empty() { Some(format!("empty {what} name")) } else if s.chars().any(char::is_control) { Some(format!("control character in {what} name {s:?}")) } else { None }
+}
+
+/// The `Expected` contract shared by `parse_expected` and `theory_gate`, so a directly constructed public
+/// `Expected` cannot bypass what the parser enforces. Returns every violation (empty = valid). Levels match
+/// under the gate's existing absolute `< 1e-9` relation, so entries closer than that are ambiguous.
+fn validate_expected(e: &Expected) -> Vec<String> {
+    let mut why = Vec::new();
+    if let Some(w) = name_problem("manifest id", &e.id) { why.push(w); }
+    if !(e.max_err_pct.is_finite() && e.max_err_pct > 0.0) { why.push(format!("max_err_pct {} is not finite and positive", e.max_err_pct)); }
+    if e.checks.is_empty() { why.push("empty checks".into()); }
+    let mut seen = std::collections::HashSet::new();
+    for c in &e.checks {
+        if let Some(w) = name_problem("check", c) { why.push(w); }
+        if !seen.insert(c.as_str()) { why.push(format!("duplicate check {c:?}")); }
+    }
+    for (what, v) in [("levels", &e.levels), ("gate_levels", &e.gate_levels)] {
+        if v.is_empty() { why.push(format!("empty {what}")); }
+        for (i, x) in v.iter().enumerate() {
+            if !(x.is_finite() && *x > 0.0) { why.push(format!("{what} entry {x} is not finite and positive")); }
+            for y in &v[..i] { if (x - y).abs() < 1e-9 { why.push(format!("{what} entries {y} and {x} are duplicate or ambiguous (|a - b| < 1e-9)")); } }
+        }
+    }
+    for g in &e.gate_levels {
+        let n = e.levels.iter().filter(|l| (*l - g).abs() < 1e-9).count();
+        if n != 1 { why.push(format!("gate level {g} matches {n} levels (exactly one required)")); }
+    }
+    why
+}
+
+/// Fail-closed theory gate: Ok(()) only if `exp` is a valid manifest, every expected (check, level) is
+/// present exactly once with a finite ratio, nothing unexpected or malformed is present, and every
+/// gate-level error is < max_err_pct. Otherwise Err(reasons) listing every problem found; an invalid
+/// manifest is reported alone, before any observation is counted.
 pub fn theory_gate(exp: &Expected, obs: &[Obs]) -> Result<(), Vec<String>> {
+    let bad = validate_expected(exp);
+    if !bad.is_empty() { return Err(bad.into_iter().map(|w| format!("invalid expected manifest: {w}")).collect()); }
     let mut why = Vec::new();
     if obs.is_empty() { why.push("no theory checks ran (all missing)".to_string()); }
     let lvl = |a: f64| exp.levels.iter().position(|l| (l - a).abs() < 1e-9);
     let mut count: std::collections::HashMap<(String, usize), usize> = std::collections::HashMap::new();
     for o in obs {
+        if let Some(w) = name_problem("observation", &o.name) { why.push(format!("{w} at {}", o.max_area)); continue; }
+        if !(o.max_area.is_finite() && o.max_area > 0.0) { why.push(format!("invalid observation level {} for {:?}", o.max_area, o.name)); continue; }
         let Some(li) = lvl(o.max_area) else { why.push(format!("unexpected level {} for {:?}", o.max_area, o.name)); continue; };
         if !exp.checks.contains(&o.name) { why.push(format!("unexpected check {:?} at {}", o.name, o.max_area)); continue; }
         *count.entry((o.name.clone(), li)).or_default() += 1;
         if !o.ratio.is_finite() { why.push(format!("non-finite ratio for {:?} at {}", o.name, o.max_area)); continue; }
         let err = (o.ratio - 1.0).abs() * 100.0;
-        if exp.gate_levels.iter().any(|g| (g - o.max_area).abs() < 1e-9) && err >= exp.max_err_pct { why.push(format!("{:?} at {} err {:.2} % >= {} %", o.name, o.max_area, err, exp.max_err_pct)); }
+        if !exp.gate_levels.iter().any(|g| (g - o.max_area).abs() < 1e-9) { continue; }
+        // a finite ratio can still overflow the percent error; that is never a passing gate value
+        if !err.is_finite() { why.push(format!("{:?} at {} err overflows (ratio {})", o.name, o.max_area, o.ratio)); }
+        else if err >= exp.max_err_pct { why.push(format!("{:?} at {} err {:.2} % >= {} %", o.name, o.max_area, err, exp.max_err_pct)); }
     }
     for c in &exp.checks { for (li, l) in exp.levels.iter().enumerate() { match count.get(&(c.clone(), li)).copied().unwrap_or(0) {
         0 => why.push(format!("missing check {c:?} at {l}")), 1 => {}, n => why.push(format!("duplicate check {c:?} at {l} (x{n})")) } } }

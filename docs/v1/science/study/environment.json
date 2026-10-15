@@ -1,0 +1,21 @@
+{
+  "source_commit": "97af59cf14299af583b344aeaefb4594d089465a",
+  "host": "xbabe2",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "affinity": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "selected_env": {
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_TARGET_DIR": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-plan/target/science-audit",
+    "JARAMBIT_MAX_THREADS": "4",
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "XDG_RUNTIME_DIR": "/run/user/1000",
+    "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus"
+  },
+  "requirements_sha256": "3d73b27cac953eae7f4d334a13351efd20dfe799d4f3c8d2584edef8d803cecc"
+}

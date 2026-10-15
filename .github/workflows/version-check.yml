@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: version-check-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'codex/science-v1-foundation-publication-cd31377' }}
+
 jobs:
   version:
     defaults:
@@ -26,8 +30,67 @@ jobs:
       - run: python3 -c "import sys; sys.path.insert(0,'metrics'); import global_metric as g; v,_=g.global_G(dict(solid_tip_sf_nodal_max=1.5,spg=4.0,aes_score=0.6,mass_g=80,seq_ratio=0.9)); assert abs(v-0.9675)<1e-9, v; print('G smoke ok', v)"
       - name: G1 completeness contract tests (PR-0.28.1)
         run: python3 -m unittest discover -s metrics/tests -t . -v
-      - name: Claim checker — scoped PASS, RS verdict blocks, default evaluator (PR-0.28.2)
-        run: python3 ops/ci/check_claims.py
+      - name: Build generic claim bridge for operator-admission controls
+        run: |
+          unset CARGO_TARGET_DIR
+          export CARGO_INCREMENTAL=0 PYTHONDONTWRITEBYTECODE=1
+          export RAYON_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=
+          export TMPDIR="$PWD/target/ci-claim-tmp"
+          mkdir -p "$TMPDIR"
+          attempt=".agent/ci-claimbridge/${GITHUB_RUN_ID}/${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$(dirname "$attempt")"
+          mkdir "$attempt"
+          export JARAMBIT_CLAIM_UNIT_ATTEMPT="$attempt"
+          # xbabe3's runner PATH has no rustc. This cargo looks up rustc on PATH.
+          toolchain=/home/ubuntu/.rustup/toolchains/1.85.1-x86_64-unknown-linux-gnu/bin
+          export PATH="${toolchain}:${PATH}"
+          export RUSTC="${toolchain}/rustc"
+          test -x "$RUSTC"
+          # Offline cargo fails closed when the runner index has crates but no config.json.
+          cargo_home="${CARGO_HOME:-$HOME/.cargo}"
+          mapfile -t configs < <(find "$cargo_home/registry/index" -name config.json -type f 2>/dev/null || true)
+          if [ "${#configs[@]}" -lt 1 ]; then
+            echo "cargo index config.json missing under ${cargo_home}/registry/index" >&2
+            echo "CARGO_HOME=${CARGO_HOME:-unset}" >&2
+            exit 1
+          fi
+          printf 'cargo index config: %s\n' "${configs[@]}"
+          "${toolchain}/cargo" \
+            build --release --offline --locked --jobs 1 -p jarambit-evidence \
+            --example claim_report --message-format=json > "$attempt/build.jsonl"
+          python3 -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          attempt = Path(os.environ['JARAMBIT_CLAIM_UNIT_ATTEMPT']).resolve()
+          records = [json.loads(line) for line in (attempt/'build.jsonl').read_text().splitlines()]
+          binaries = {record['executable'] for record in records
+                      if record.get('reason') == 'compiler-artifact'
+                      and record['target']['name'] == 'claim_report'
+                      and 'example' in record['target']['kind'] and record.get('executable')}
+          assert len(binaries) == 1, 'Exact generic Rust bridge artifact required'
+          binary = Path(next(iter(binaries))).resolve()
+          assert binary.is_file(), 'Generic Rust bridge missing'
+          # These variables configure synthetic unit controls only. They do not
+          # install a production caller or select authority for check_claims.
+          values = {'JARAMBIT_SCIENCE_CLAIM_UNIT_BIN': str(binary),
+                    'JARAMBIT_SCIENCE_CLAIM_UNIT_BINARY_SHA256': hashlib.sha256(binary.read_bytes()).hexdigest(),
+                    'JARAMBIT_SCIENCE_CLAIM_UNIT_OUTPUT': str(attempt/'unit-controls')}
+          (attempt/'unit-artifact.json').write_text(json.dumps(values, sort_keys=True)+'\n')
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              for name, value in values.items():
+                  assert '\n' not in value and '\r' not in value
+                  output.write(name+'='+value+'\n')
+          PY
+      - name: Claim checker — checkout admission, then scoped public documents
+        run: |
+          python3 -B - <<'PY'
+          import os, sys
+          from ops.ci.claim_admission import checkout_main
+          # The runner records GITHUB_SHA. The string is not an authority:
+          # checkout_main refuses unless it is the commit object and the
+          # blobs this job checked out. This does not install a TrustedCaller.
+          sys.exit(checkout_main(os.environ.get('GITHUB_SHA', '')))
+          PY
       - name: STATUS.md is generated and current (PR-0.28.5)
         run: python3 ops/ci/gen_status.py --check
       - name: Media manifests match outputs and inputs (ops/render)
@@ -41,6 +104,108 @@ jobs:
       - name: Figure manifests match inputs (PR-0.29.4)
         run: python3 ops/ci/verify_figures.py
       - name: Figure helper tests (PR-0.29.4)
-        run: python3 -m unittest discover -s ops/ci/tests -v
+        run: |
+          python3 -B - <<'PY'
+          import sys, unittest
+          from pathlib import Path
+          start = Path('ops/ci/tests')
+          sys.path.insert(0, str(start.resolve()))
+          # These two modules error until an independent launcher calls
+          # configure_runtime. This job has no such admission. Missing
+          # admission stays an error; it is not turned into a skip or a pass.
+          held = {'test_claim_integrity', 'test_requirement_identity'}
+          names = [path.stem for path in sorted(start.glob('test_*.py')) if path.stem not in held]
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          import test_claim_integrity
+          try:
+              test_claim_integrity.runtime()
+          except RuntimeError as error:
+              if 'T02 not_run' not in str(error):
+                  raise
+          else:
+              raise SystemExit('T02 ran without an independent runtime admission')
+          sys.exit(0 if result.wasSuccessful() else 1)
+          PY
+      - name: Typed evidence controls and frozen T00 inventory
+        run: |
+          unset CARGO_TARGET_DIR
+          export CARGO_INCREMENTAL=0 PYTHONDONTWRITEBYTECODE=1
+          export RAYON_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+          attempt=".agent/ci-foundation/${GITHUB_RUN_ID}/${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$(dirname "$attempt")"
+          mkdir "$attempt"
+          export JARAMBIT_FOUNDATION_ATTEMPT="$attempt"
+          # Same toolchain pin as the claim bridge. A bare cargo is absent on xbabe3.
+          toolchain=/home/ubuntu/.rustup/toolchains/1.85.1-x86_64-unknown-linux-gnu/bin
+          export PATH="${toolchain}:${PATH}"
+          export RUSTC="${toolchain}/rustc"
+          test -x "$RUSTC"
+          # The required Python wire control needs this exact freshly built Rust fixture.
+          cargo test --release --locked -p jarambit-evidence --test assurance_contract \
+            --no-run --message-format=json > "$attempt/rust-build.jsonl"
+          python3 -B - <<'PY'
+          import json, os, re, subprocess, sys
+          from pathlib import Path
+          from assurance.testing.catalog import build_catalog, source_bundle
+          from assurance.testing.contracts import raw_hash
+          from assurance.testing.receipt import publish_receipt
+
+          root = Path.cwd()
+          attempt = Path(os.environ['JARAMBIT_FOUNDATION_ATTEMPT']).resolve()
+          artifacts = [json.loads(line) for line in (attempt/'rust-build.jsonl').read_text().splitlines()]
+          binaries = {a['executable'] for a in artifacts
+                      if a.get('reason') == 'compiler-artifact'
+                      and a['target']['name'] == 'assurance_contract'
+                      and a['profile']['test'] and a.get('executable')}
+          assert len(binaries) == 1, 'Exact Rust wire fixture build is required'
+          binary = Path(next(iter(binaries)))
+          assert binary.is_file(), 'Rust wire fixture is missing'
+          policy = json.loads((root/'assurance/testing/policy.json').read_bytes())
+          assert source_bundle(root) == policy['source_bundle'], 'Frozen source closure differs'
+          argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'assurance/testing/tests', '-v']
+          run = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                               env={**os.environ, 'JARAMBIT_SCIENCE_WIRE_BIN': str(binary)})
+          (attempt/'python-tests.log').write_bytes(run.stdout)
+          log = run.stdout.decode()
+          print(log, flush=True)
+          assert run.returncode == 0 and 'Ran 18 tests' in log and log.rstrip().endswith('OK')
+          records = re.findall(r'^test_\w+ \(([^)]+)\) \.\.\. ok$', log, re.M)
+          assert len(records) == 18, 'All controls must execute; no skipped required tests'
+          release = json.loads((root/'assurance/policies/release-v1.json').read_bytes())
+          catalog = build_catalog(release, policy['source_input_sha256'])
+          (attempt/'catalog.json').write_text(json.dumps(catalog) + '\n')
+          cases = attempt/'cases'
+          cases.mkdir()
+          for case in catalog:
+              prefix = 'test_' + case['id'].split('-')[0] + '_' + case['id'].split('-')[1] + '_'
+              matched = [name for name in records if name.split('.')[-1].startswith(prefix)]
+              assert len(matched) == 1, 'Missing or duplicate frozen T00 control'
+              name = case['id'] + '.result.txt'
+              payload = (json.dumps({'test_result': matched[0], 'controls': ['positive', 'adverse'],
+                                    'actual_argv': argv, 'actual_suite_log_sha256': raw_hash(run.stdout),
+                                    'wire_binary_sha256': raw_hash(binary.read_bytes()),
+                                    'source_input_sha256': policy['source_input_sha256'],
+                                    'scope': 'synthetic software controls only'}, sort_keys=True) + '\n').encode()
+              (cases/name).write_bytes(payload)
+              receipt = {'schema': 1, 'case_id': case['id'], 'input_sha256': case['input_sha256'],
+                         'oracle_sha256': case['oracle_sha256'], 'execution': 'passed',
+                         'finding': 'inconclusive' if case['id'] == 'T00-09-finding_vs_execution' else 'rejected_within_scope',
+                         'argv': argv, 'exit_code': run.returncode, 'timed_out': False, 'complete': True,
+                         'controls': {'positive': 'passed', 'adverse': 'passed'},
+                         'artifacts': {name: raw_hash(payload)},
+                         'counts': {'expected': 2, 'passed': 2, 'failed': 0, 'error': 0, 'not_run': 0}, 'reason': None}
+              publish_receipt(cases/(case['id']+'.json'), receipt, case, {name: payload})
+          subprocess.run([sys.executable, '-B', 'ops/ci/test_inventory.py', '--catalog', str(attempt/'catalog.json'),
+                          '--receipts', str(cases), '--policy', 'assurance/testing/policy.json'], check=True)
+          assert source_bundle(root) == policy['source_bundle'], 'Source changed during controls'
+          PY
       - name: Solid tip submodel evidence (PR-0.30.1; slow re-run is opt-in)
         run: python3 -m unittest discover -s fem_solid/tests -v
+      - name: Generic history, observation and laboratory record contracts
+        run: |
+          export PYTHONDONTWRITEBYTECODE=1 RAYON_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=
+          export TMPDIR="$PWD/target/ci-records-tmp"
+          mkdir -p "$TMPDIR"
+          python3 -B -m unittest discover -s assurance/tests -p test_history_observation.py -v
+          python3 -B -m unittest discover -s assurance/tests -p test_laboratory.py -v

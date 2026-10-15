@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "qualification_result.v1.json",
+  "description": "Strict ingestion and checked Rust eligibility are required; a schema match grants no qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "producer",
+    "canonical_wire",
+    "identity_sha256",
+    "requirements",
+    "outcome",
+    "reasons",
+    "publication_eligible",
+    "release_authorized"
+  ],
+  "properties": {
+    "schema": {
+      "const": 1
+    },
+    "producer": {
+      "const": "jarambit-evidence"
+    },
+    "canonical_wire": {
+      "const": "jarambit.science.canonical.v1"
+    },
+    "identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "revision",
+          "sha256"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "outcome": {
+      "enum": [
+        "pass",
+        "fail",
+        "incomplete"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "publication_eligible": {
+      "type": "boolean"
+    },
+    "release_authorized": {
+      "const": false
+    }
+  }
+}

@@ -1,0 +1,1861 @@
+{
+  "schema": "jarambit.test_plan.work_units.v1",
+  "target_version": "1.0.0",
+  "status": "planned; not dispatched",
+  "base_commit": "bae2a3dac3e3962a37f3058439220bb933ad6f67",
+  "reconcile_before_dispatch": true,
+  "protocol": "TEST_UPGRADE_PLAN.md",
+  "case_catalog": "TEST_CASE_CATALOG.json",
+  "parent_plan": "../WORK_PACKETS.json",
+  "common_read_first": [
+    "/home/ubuntu/jarambit/COORD.md",
+    "docs/v1/JARAMBIT_V1_ENGINEERING_SPEC.md",
+    "docs/v1/jarambit_v1_roadmap.json",
+    "docs/v1/science/RELEASE_PLAN.md",
+    "docs/v1/science/WORKTREE_RUNBOOK.md",
+    "docs/v1/science/tests/TEST_UPGRADE_PLAN.md"
+  ],
+  "max_parallel_workers": 3,
+  "parallel_write_groups": [
+    [
+      "T01",
+      "T03",
+      "T07"
+    ],
+    [
+      "T02",
+      "T04",
+      "T05"
+    ],
+    [
+      "T06",
+      "T12"
+    ],
+    [
+      "T08",
+      "T09",
+      "T17"
+    ]
+  ],
+  "parallel_group_phase_limits": {
+    "T04": "S05 closes before S06 writes shared qd.rs",
+    "T05": "Only S07 numerical-contract portion overlaps T04; S08 binding integration waits for S04/S05/S06/S07 completion"
+  },
+  "conditional_research_parallel_scopes": [
+    "T09",
+    "T10",
+    "T11",
+    "T12",
+    "T13",
+    "T14",
+    "T15",
+    "T16",
+    "T17",
+    "T18"
+  ],
+  "parallel_rule": "Only after dependencies/interfaces frozen; at most three workers and one admitted heavy lane; parent S shared writes always sequential",
+  "runtime_edits_forbidden_to_test_only_workers": true,
+  "integrator_only": [
+    "Cargo.toml",
+    "Cargo.lock",
+    "docs/VERSION",
+    "README.md",
+    "STATUS.md",
+    "docs/WHITEPAPER.md",
+    "COORD.md",
+    "crates/cli/src/main.rs",
+    ".github/workflows/*"
+  ],
+  "read_only": [
+    "historical evidence/wave27/**",
+    "historical evidence/fem_solid/**",
+    "bench/fixed_1k/**",
+    "current native CAD/render bundles",
+    "other worktrees/screens/processes"
+  ],
+  "packets": [
+    {
+      "id": "T00",
+      "title": "Inventory and record control harness",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S00",
+        "S01"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [],
+      "parent_interface_barriers": [
+        "S00",
+        "S01"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "assurance/testing/__init__.py",
+        "assurance/testing/contracts.py",
+        "assurance/testing/catalog.py",
+        "assurance/testing/receipt.py",
+        "assurance/testing/policy.json",
+        "assurance/testing/tests/test_contracts.py",
+        "assurance/schemas/test_case.v1.json",
+        "assurance/schemas/study_record.v1.json",
+        "assurance/schemas/observation_record.v1.json",
+        "assurance/schemas/qualification_result.v1.json",
+        "ops/ci/test_inventory.py"
+      ],
+      "read_first": [
+        {
+          "path": "crates/evidence/src/lib.rs",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "crates/evidence/tests/log.rs",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "metrics/global_metric.py",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "ops/ci/check_json_strict.py",
+          "availability": "existing_in_frozen_source"
+        }
+      ],
+      "case_ids": [
+        "T00-01-inventory_delete",
+        "T00-02-inventory_duplicate",
+        "T00-03-optional_skip",
+        "T00-04-strict_json",
+        "T00-05-receipt_tamper",
+        "T00-06-receipt_crash",
+        "T00-07-schema_bounds",
+        "T00-08-controls_missing",
+        "T00-09-finding_vs_execution",
+        "T00-10-claim_mutant",
+        "T00-11-standard_scope"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T00",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "assurance/testing/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s00/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "required_software_contract",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T01",
+      "title": "GCI and fresh-attempt regressions",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S02"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T00"
+      ],
+      "parent_interface_barriers": [
+        "S02"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "fem_solid/tests/test_gci.py",
+        "fem_solid/tests/test_gci_evidence.py",
+        "fem_solid/tests/test_fresh_attempts.py"
+      ],
+      "read_first": [
+        {
+          "path": "fem_solid/gci.py",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "fem_solid/gci_report.py",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "fem_solid/convergence.py",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "fem_solid/run_tip.py",
+          "availability": "existing_in_frozen_source"
+        }
+      ],
+      "case_ids": [
+        "T01-01-analytic_order",
+        "T01-02-divergent_order",
+        "T01-03-zero_order",
+        "T01-04-plateau",
+        "T01-05-oscillatory",
+        "T01-06-exact_equal",
+        "T01-07-invalid_ratio",
+        "T01-08-zero_reference",
+        "T01-09-precision_floor",
+        "T01-10-mesh_sequence",
+        "T01-11-observable_identity",
+        "T01-12-threshold_edge",
+        "T01-13-negative_error_band",
+        "T01-14-inventory_empty",
+        "T01-15-stale_noop",
+        "T01-16-cache_identity",
+        "T01-17-partial_atomic",
+        "T01-18-peak_singularity"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T01",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "fem_solid/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s02/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "required_software_contract",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T02",
+      "title": "Exact claim and requirement mutations",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S03"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T00",
+        "T01"
+      ],
+      "parent_interface_barriers": [
+        "S03"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "ops/ci/tests/test_claim_integrity.py",
+        "ops/ci/tests/test_requirement_identity.py"
+      ],
+      "read_first": [
+        {
+          "path": "ops/ci/check_claims.py",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "ops/ci/rs_verdicts.py",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "metrics/global_metric.py",
+          "availability": "existing_in_frozen_source"
+        }
+      ],
+      "case_ids": [
+        "T02-01-contradictory_block",
+        "T02-02-missing_reopened",
+        "T02-03-wrong_candidate",
+        "T02-04-requirement_content",
+        "T02-05-wrong_physics",
+        "T02-06-revoked_review",
+        "T02-07-presentation_noise",
+        "T02-08-nonfinite_scalar",
+        "T02-09-mass_scope",
+        "T02-10-physical_missing",
+        "T02-11-g1_delete",
+        "T02-12-truthful_negative"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T02",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "ops/ci/tests",
+          "-p",
+          "test_claim_integrity.py",
+          "-v"
+        ],
+        [
+          "python3",
+          "ops/ci/check_claims.py"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s03/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "required_software_contract",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T03",
+      "title": "Checked MC and joint population tests",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S04"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T00"
+      ],
+      "parent_interface_barriers": [
+        "S04"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "crates/monte_carlo/tests/checked_reduction.rs",
+        "crates/monte_carlo/tests/joint_scenarios.rs",
+        "crates/monte_carlo/tests/population_sensitivity.rs"
+      ],
+      "read_first": [
+        {
+          "path": "crates/monte_carlo/src/lib.rs",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "crates/evolve/src/lib.rs",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "crates/evolve/tests/replay.rs",
+          "availability": "existing_in_frozen_source"
+        }
+      ],
+      "case_ids": [
+        "T03-01-empty_count",
+        "T03-02-quantile_boundary",
+        "T03-03-finite_reduction",
+        "T03-04-invalid_sample",
+        "T03-05-worker_panic",
+        "T03-06-joint_correlation",
+        "T03-07-independence_control",
+        "T03-08-thread_replay",
+        "T03-09-population_shift",
+        "T03-10-media_retirement"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T03",
+      "validation_argv_after_implementation": [
+        [
+          "cargo",
+          "test",
+          "--release",
+          "--locked",
+          "-p",
+          "jarambit-monte-carlo"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s04/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "required_software_contract",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T04",
+      "title": "Search and checkpoint replay tests",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S05",
+        "S06"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T00"
+      ],
+      "parent_interface_barriers": [
+        "S05",
+        "S06"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "crates/crescent/tests/search_contract.rs",
+        "crates/crescent/tests/checkpoint_replay.rs",
+        "crates/crescent/tests/evidence_lineage.rs"
+      ],
+      "read_first": [
+        {
+          "path": "crates/crescent/src/qd.rs",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "crates/evolve/tests/replay.rs",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "crates/evidence/tests/log.rs",
+          "availability": "existing_in_frozen_source"
+        }
+      ],
+      "case_ids": [
+        "T04-01-all_infeasible",
+        "T04-02-legal_vs_feasible",
+        "T04-03-partial_nonfinite",
+        "T04-04-novelty_context",
+        "T04-05-ties_duplicates",
+        "T04-06-invalid_config",
+        "T04-07-checkpoint_matrix",
+        "T04-08-checkpoint_corrupt",
+        "T04-09-resume_identity",
+        "T04-10-durability_boundary",
+        "T04-11-duplicate_resume",
+        "T04-12-lineage_orphan"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T04",
+      "validation_argv_after_implementation": [
+        [
+          "cargo",
+          "test",
+          "--release",
+          "--locked",
+          "-p",
+          "jarambit-crescent"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s05/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "required_software_contract",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T05",
+      "title": "Solver metamorphic and field binding tests",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S07",
+        "S08"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T00",
+        "T01"
+      ],
+      "parent_interface_barriers": [
+        "S07",
+        "S08"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "crates/physics/tests/invariance.rs",
+        "fem_solid/tests/test_representation_invariants.py",
+        "fem_solid/tests/test_field_semantics.py",
+        "crates/crescent/tests/certified_bindings.rs"
+      ],
+      "read_first": [
+        {
+          "path": "crates/physics/src/verify.rs",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "fem_solid/solve_dolfinx.py",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "fem_solid/tests/verify_analytic.py",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "crates/crescent/src/fem.rs",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "crates/cli/src/bench.rs",
+          "availability": "existing_in_frozen_source"
+        }
+      ],
+      "case_ids": [
+        "T05-01-linear_scaling",
+        "T05-02-rigid_transform",
+        "T05-03-unit_consistency",
+        "T05-04-analytic_balance",
+        "T05-05-bc_failure",
+        "T05-06-mesh_failure",
+        "T05-07-field_semantics",
+        "T05-08-localized_peak",
+        "T05-09-certificate_field",
+        "T05-10-native_binding",
+        "T05-11-calibration_failures",
+        "T05-12-tier_collision"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T05",
+      "validation_argv_after_implementation": [
+        [
+          "cargo",
+          "test",
+          "--release",
+          "--locked",
+          "-p",
+          "jarambit-physics"
+        ],
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "fem_solid/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s07/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "required_software_contract",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T06",
+      "title": "Scientific budgets, statistics and splits",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S09",
+        "S11"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T00"
+      ],
+      "parent_interface_barriers": [
+        "S09",
+        "S11"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "assurance/testing/statistics.py",
+        "assurance/testing/splits.py",
+        "assurance/testing/tests/test_statistics.py",
+        "assurance/testing/tests/test_splits.py",
+        "ops/bench/tests/test_science_protocol.py"
+      ],
+      "read_first": [
+        {
+          "path": "ops/bench/run.py",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "ops/calibration/t1_t2.py",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "docs/calibration/t1_t2.json",
+          "availability": "existing_in_frozen_source"
+        }
+      ],
+      "case_ids": [
+        "T06-01-cpu_accounting",
+        "T06-02-workload_collision",
+        "T06-03-equal_budget",
+        "T06-04-related_split",
+        "T06-05-session_shortcut",
+        "T06-06-preprocessing_leak",
+        "T06-07-single_specimen",
+        "T06-08-uncertainty_censor",
+        "T06-09-null_benchmark",
+        "T06-10-surrogate_gate"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T06",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "assurance/testing/tests",
+          "-v"
+        ],
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "ops/bench/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s09/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "required_software_contract",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T07",
+      "title": "History and observation schema contracts",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S13"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T00"
+      ],
+      "parent_interface_barriers": [
+        "S13"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "assurance/laboratory/records.py",
+        "assurance/laboratory/history.py",
+        "assurance/laboratory/observation.py",
+        "assurance/schemas/exposure_history.v1.json",
+        "assurance/schemas/measurement_intervention.v1.json",
+        "assurance/tests/test_history_observation.py",
+        "assurance/tests/test_laboratory.py"
+      ],
+      "read_first": [
+        {
+          "path": "crates/evidence/src/lib.rs",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "docs/validation/science_v1/PROTOCOL.md",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        },
+        {
+          "path": "assurance/schemas/specimen.v1.json",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        }
+      ],
+      "case_ids": [
+        "T07-01-specimen_identity",
+        "T07-02-unapproved_transfer",
+        "T07-03-history_prefix",
+        "T07-04-clock_segments",
+        "T07-05-raw_calibration",
+        "T07-06-lab_reduction",
+        "T07-07-finished_mass",
+        "T07-08-frame_unit",
+        "T07-09-censored_zero",
+        "T07-10-chemistry_scope",
+        "T07-11-measurement_lineage",
+        "T07-12-interpretation_unknown",
+        "T07-13-historical_adapter"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T07",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "assurance/tests",
+          "-p",
+          "test_history_observation.py",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s13/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "required_software_contract",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T08",
+      "title": "Bounded multimodal method benchmark",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S13"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T06",
+        "T07"
+      ],
+      "parent_interface_barriers": [
+        "S13"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "research/science_v1/multimodal/",
+        "docs/validation/science_v1/MULTIMODAL_METHOD.md"
+      ],
+      "read_first": [
+        {
+          "path": "docs/v1/science/tests/LITERATURE_LEDGER.json",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        },
+        {
+          "path": "assurance/laboratory/observation.py",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        }
+      ],
+      "case_ids": [
+        "T08-01-bounded_download",
+        "T08-02-units_metadata",
+        "T08-03-registration_truth",
+        "T08-04-orientation_symmetry",
+        "T08-05-matched_slip_missing",
+        "T08-06-group_acquisition"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T08",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "research/science_v1/multimodal/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s13/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "conditional_research_with_mandatory_contracts_if_shipped",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T09",
+      "title": "Hidden-state collision study",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S13"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T06",
+        "T07"
+      ],
+      "parent_interface_barriers": [
+        "S13"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "research/science_v1/state/",
+        "docs/validation/science_v1/HIDDEN_STATE.md"
+      ],
+      "read_first": [
+        {
+          "path": "assurance/laboratory/history.py",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        },
+        {
+          "path": "assurance/testing/splits.py",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        }
+      ],
+      "case_ids": [
+        "T09-01-latent_collision",
+        "T09-02-sufficient_null",
+        "T09-03-matching_bias",
+        "T09-04-early_irreversible",
+        "T09-05-lot_confirmation",
+        "T09-06-low_power_null"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T09",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "research/science_v1/state/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s13/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "conditional_research_with_mandatory_contracts_if_shipped",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T10",
+      "title": "Spatial neighborhood study",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S13"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T08",
+        "T09"
+      ],
+      "parent_interface_barriers": [
+        "S13"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "research/science_v1/neighborhood/",
+        "docs/validation/science_v1/MICROSTRUCTURE.md"
+      ],
+      "read_first": [
+        {
+          "path": "research/science_v1/multimodal/registration.py",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        },
+        {
+          "path": "research/science_v1/state/protocol.json",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        }
+      ],
+      "case_ids": [
+        "T10-01-same_marginals_graph",
+        "T10-02-physical_rotation",
+        "T10-03-shuffle_control",
+        "T10-04-resolution_boundary",
+        "T10-05-chemistry_organization"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T10",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "research/science_v1/neighborhood/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s13/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "conditional_research_with_mandatory_contracts_if_shipped",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T11",
+      "title": "History clocks and acceleration",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S13",
+        "S14"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T07",
+        "T09"
+      ],
+      "parent_interface_barriers": [
+        "S13",
+        "S14"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "research/science_v1/history/",
+        "docs/validation/science_v1/HISTORY_ORDER.md",
+        "docs/validation/science_v1/ACCELERATION.md"
+      ],
+      "read_first": [
+        {
+          "path": "assurance/laboratory/history.py",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        },
+        {
+          "path": "research/science_v1/state/protocol.json",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        }
+      ],
+      "case_ids": [
+        "T11-01-sequence_controls",
+        "T11-02-order_null",
+        "T11-03-order_positive",
+        "T11-04-cycle_time_clock",
+        "T11-05-hold_redistribution",
+        "T11-06-acceleration_mode",
+        "T11-07-competing_censor"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T11",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "research/science_v1/history/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s13/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "conditional_research_with_mandatory_contracts_if_shipped",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T12",
+      "title": "Observer-effect controls",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S13"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T07"
+      ],
+      "parent_interface_barriers": [
+        "S13"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "research/science_v1/observer/",
+        "docs/validation/science_v1/OBSERVER_EFFECTS.md"
+      ],
+      "read_first": [
+        {
+          "path": "assurance/laboratory/observation.py",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        },
+        {
+          "path": "assurance/schemas/measurement_intervention.v1.json",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        }
+      ],
+      "case_ids": [
+        "T12-01-observation_arms",
+        "T12-02-created_erased",
+        "T12-03-drift_only",
+        "T12-04-true_nuisance",
+        "T12-05-prep_transfer"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T12",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "research/science_v1/observer/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s13/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "conditional_research_with_mandatory_contracts_if_shipped",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T13",
+      "title": "Surface history and balance",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S14"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T07",
+        "T11",
+        "T12"
+      ],
+      "parent_interface_barriers": [
+        "S14"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "research/science_v1/surfaces/",
+        "docs/validation/science_v1/SURFACE_HISTORY.md"
+      ],
+      "read_first": [
+        {
+          "path": "docs/validation/science_v1/SURFACES.md",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        },
+        {
+          "path": "research/science_v1/history/protocol.json",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        }
+      ],
+      "case_ids": [
+        "T13-01-process_vs_film",
+        "T13-02-coupling_null",
+        "T13-03-topology_average",
+        "T13-04-segmentation_bias",
+        "T13-05-balance_reservoir",
+        "T13-06-charge_not_loss",
+        "T13-07-barrier_vs_structure"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T13",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "research/science_v1/surfaces/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s14/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "conditional_research_with_mandatory_contracts_if_shipped",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T14",
+      "title": "Inspectability and external diagnostics",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S14"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T00",
+        "T06",
+        "T07",
+        "T12"
+      ],
+      "parent_interface_barriers": [
+        "S14"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "research/science_v1/inspection/",
+        "assurance/qualification/inspection.py",
+        "docs/validation/science_v1/ACOUSTIC_INSPECTION.md"
+      ],
+      "read_first": [
+        {
+          "path": "docs/validation/science_v1/INSPECTION.md",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        },
+        {
+          "path": "assurance/testing/statistics.py",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        }
+      ],
+      "case_ids": [
+        "T14-01-truth_independent",
+        "T14-02-silent_damage",
+        "T14-03-healthy_nuisance",
+        "T14-04-instrument_nonlinearity",
+        "T14-05-lot_session_holdout",
+        "T14-06-pod_prevalence",
+        "T14-07-blind_zone",
+        "T14-08-warning_censor",
+        "T14-09-shared_sensor_bias"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T14",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "research/science_v1/inspection/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s14/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "conditional_research_with_mandatory_contracts_if_shipped",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T15",
+      "title": "Optical witness and warning validity",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S14"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T13",
+        "T14"
+      ],
+      "parent_interface_barriers": [
+        "S14"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "research/science_v1/witness/",
+        "docs/validation/science_v1/DAMAGE_WITNESS.md"
+      ],
+      "read_first": [
+        {
+          "path": "research/science_v1/inspection/protocol.json",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        },
+        {
+          "path": "docs/validation/science_v1/HANDLING.md",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        }
+      ],
+      "case_ids": [
+        "T15-01-strain_vs_damage",
+        "T15-02-witness_invalid",
+        "T15-03-shared_selftest",
+        "T15-04-warning_persistence",
+        "T15-05-reader_environment",
+        "T15-06-mass_coupling"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T15",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "research/science_v1/witness/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s14/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "conditional_research_with_mandatory_contracts_if_shipped",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T16",
+      "title": "Recovery discrimination and isotope forensics",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S14"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T12",
+        "T13"
+      ],
+      "parent_interface_barriers": [
+        "S14"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "research/science_v1/recovery/",
+        "docs/validation/science_v1/RECOVERY_CLAIMS.md"
+      ],
+      "read_first": [
+        {
+          "path": "research/science_v1/surfaces/balance.py",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        },
+        {
+          "path": "research/science_v1/observer/protocol.json",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        }
+      ],
+      "case_ids": [
+        "T16-01-closure_false_heal",
+        "T16-02-recovery_positive",
+        "T16-03-failure_migration",
+        "T16-04-isotope_exchange",
+        "T16-05-source_ambiguity",
+        "T16-06-nanoscale_transfer"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T16",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "research/science_v1/recovery/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s14/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "conditional_research_with_mandatory_contracts_if_shipped",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T17",
+      "title": "Atomistic domain and kinetic boundary",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S11"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T06",
+        "T07"
+      ],
+      "parent_interface_barriers": [
+        "S11"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "research/science_v1/atomistic/",
+        "docs/validation/science_v1/ATOMISTIC_BOUNDARY.md"
+      ],
+      "read_first": [
+        {
+          "path": "docs/v1/science/tests/LITERATURE_LEDGER.json",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        },
+        {
+          "path": "assurance/testing/statistics.py",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        }
+      ],
+      "case_ids": [
+        "T17-01-model_domain",
+        "T17-02-transition_error",
+        "T17-03-ensemble_shared_bias",
+        "T17-04-rate_sensitivity",
+        "T17-05-time_bridge",
+        "T17-06-holdout_reference"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T17",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "research/science_v1/atomistic/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s11/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "conditional_research_with_mandatory_contracts_if_shipped",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T18",
+      "title": "Offline mechanism-falsification agent",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S10",
+        "S11"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T06",
+        "T07",
+        "T09"
+      ],
+      "parent_interface_barriers": [
+        "S10",
+        "S11"
+      ],
+      "conditional_dependencies": [],
+      "write_allowlist": [
+        "research/science_v1/falsification/",
+        "docs/validation/science_v1/FALSIFICATION.md"
+      ],
+      "read_first": [
+        {
+          "path": "research/science_v1/state/protocol.json",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        },
+        {
+          "path": "assurance/testing/receipt.py",
+          "availability": "create_by_parent_or_prior_T_then_read"
+        }
+      ],
+      "case_ids": [
+        "T18-01-mixed_none_models",
+        "T18-02-nonidentifiable",
+        "T18-03-audit_independent",
+        "T18-04-budget_menu",
+        "T18-05-strategy_comparison",
+        "T18-06-failed_acquisition",
+        "T18-07-authority_boundary"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T18",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "research/science_v1/falsification/tests",
+          "-v"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s10/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "conditional_research_with_mandatory_contracts_if_shipped",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    },
+    {
+      "id": "T19",
+      "title": "CI capability gates and reconstruction",
+      "status": "planned; undispatched",
+      "parent_S_owners": [
+        "S16"
+      ],
+      "implementation_ownership": "acceptance overlay; S owner edits runtime; no independent concurrent runtime writer",
+      "depends_on": [
+        "T00",
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07"
+      ],
+      "parent_interface_barriers": [
+        "S00 policy",
+        "S01 evidence",
+        "S02-S08 numerical/evaluator",
+        "S09/S11 capability tests",
+        "S13/S14 lab requirements"
+      ],
+      "conditional_dependencies": [
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T18"
+      ],
+      "write_allowlist": [
+        "ops/ci/science_suite.py",
+        "ops/ci/tests/test_science_suite.py",
+        ".github/workflows/science-contracts.yml",
+        ".github/workflows/science-numerical.yml",
+        "docs/CI.md",
+        "assurance/reporting/check_release.py"
+      ],
+      "read_first": [
+        {
+          "path": ".github/workflows/d1-gates.yml",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": ".github/workflows/version-check.yml",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": ".github/workflows/render-marketing-smoke.yml",
+          "availability": "existing_in_frozen_source"
+        },
+        {
+          "path": "docs/v1/JARAMBIT_V1_ENGINEERING_SPEC.md",
+          "availability": "existing_in_frozen_source"
+        }
+      ],
+      "case_ids": [
+        "T19-01-required_skip",
+        "T19-02-path_filter",
+        "T19-03-capability_omission",
+        "T19-04-runner_escape",
+        "T19-05-upload_missing",
+        "T19-06-fresh_vs_reuse",
+        "T19-07-dossier_mismatch",
+        "T19-08-render_finish_metadata",
+        "T19-09-protective_interface",
+        "T19-10-final_policy"
+      ],
+      "steps_reference": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md §5 T19",
+      "validation_argv_after_implementation": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "ops/ci/tests",
+          "-p",
+          "test_science_suite.py",
+          "-v"
+        ],
+        [
+          "cargo",
+          "test",
+          "--release",
+          "--locked",
+          "--workspace"
+        ]
+      ],
+      "command_context": "inside assigned admitted remote worktree; invoke from desktop via rtk proxy ssh; commands proposed, not executed",
+      "receipt": ".agent/science-s16/<attempt>/receipt.json",
+      "resources": {
+        "cpu": 4,
+        "memory_gib": 8,
+        "native_threads": 1,
+        "cargo_jobs": 4,
+        "gpu": false,
+        "output_limit_gb": 5,
+        "heavy_lanes_initial": 1
+      },
+      "release_class": "required_software_contract",
+      "stop_conditions": [
+        "ownership conflict",
+        "source/input/policy mismatch",
+        "circular/unavailable oracle",
+        "missing required controls",
+        "resource/durability failure",
+        "unsupported applicability"
+      ],
+      "handoff": [
+        "exact tested source SHA and dirty diff hash",
+        "hand-back commit",
+        "executed case/control/mutant receipts",
+        "unexecuted/missing IDs and claim limitations",
+        "artifact hashes/sizes",
+        "latest COORD reconciliation; no PR opened by worker"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,358 @@
+{
+  "schema": "jarambit.test_plan.gate_policy.v1",
+  "status": "proposed policy; S00/S16 must reconcile and implement",
+  "target_version": "1.0.0",
+  "required_software_case_groups": [
+    "T00-01-inventory_delete",
+    "T00-02-inventory_duplicate",
+    "T00-03-optional_skip",
+    "T00-04-strict_json",
+    "T00-05-receipt_tamper",
+    "T00-06-receipt_crash",
+    "T00-07-schema_bounds",
+    "T00-08-controls_missing",
+    "T00-09-finding_vs_execution",
+    "T00-10-claim_mutant",
+    "T00-11-standard_scope",
+    "T01-01-analytic_order",
+    "T01-02-divergent_order",
+    "T01-03-zero_order",
+    "T01-04-plateau",
+    "T01-05-oscillatory",
+    "T01-06-exact_equal",
+    "T01-07-invalid_ratio",
+    "T01-08-zero_reference",
+    "T01-09-precision_floor",
+    "T01-10-mesh_sequence",
+    "T01-11-observable_identity",
+    "T01-12-threshold_edge",
+    "T01-13-negative_error_band",
+    "T01-14-inventory_empty",
+    "T01-15-stale_noop",
+    "T01-16-cache_identity",
+    "T01-17-partial_atomic",
+    "T01-18-peak_singularity",
+    "T02-01-contradictory_block",
+    "T02-02-missing_reopened",
+    "T02-03-wrong_candidate",
+    "T02-04-requirement_content",
+    "T02-05-wrong_physics",
+    "T02-06-revoked_review",
+    "T02-07-presentation_noise",
+    "T02-08-nonfinite_scalar",
+    "T02-09-mass_scope",
+    "T02-10-physical_missing",
+    "T02-11-g1_delete",
+    "T02-12-truthful_negative",
+    "T03-01-empty_count",
+    "T03-02-quantile_boundary",
+    "T03-03-finite_reduction",
+    "T03-04-invalid_sample",
+    "T03-05-worker_panic",
+    "T03-06-joint_correlation",
+    "T03-07-independence_control",
+    "T03-08-thread_replay",
+    "T03-09-population_shift",
+    "T03-10-media_retirement",
+    "T04-01-all_infeasible",
+    "T04-02-legal_vs_feasible",
+    "T04-03-partial_nonfinite",
+    "T04-04-novelty_context",
+    "T04-05-ties_duplicates",
+    "T04-06-invalid_config",
+    "T04-07-checkpoint_matrix",
+    "T04-08-checkpoint_corrupt",
+    "T04-09-resume_identity",
+    "T04-10-durability_boundary",
+    "T04-11-duplicate_resume",
+    "T04-12-lineage_orphan",
+    "T05-01-linear_scaling",
+    "T05-02-rigid_transform",
+    "T05-03-unit_consistency",
+    "T05-04-analytic_balance",
+    "T05-05-bc_failure",
+    "T05-06-mesh_failure",
+    "T05-07-field_semantics",
+    "T05-08-localized_peak",
+    "T05-09-certificate_field",
+    "T05-10-native_binding",
+    "T05-11-calibration_failures",
+    "T05-12-tier_collision",
+    "T06-01-cpu_accounting",
+    "T06-02-workload_collision",
+    "T06-03-equal_budget",
+    "T06-04-related_split",
+    "T06-05-session_shortcut",
+    "T06-06-preprocessing_leak",
+    "T06-07-single_specimen",
+    "T06-08-uncertainty_censor",
+    "T06-09-null_benchmark",
+    "T06-10-surrogate_gate",
+    "T07-01-specimen_identity",
+    "T07-02-unapproved_transfer",
+    "T07-03-history_prefix",
+    "T07-04-clock_segments",
+    "T07-05-raw_calibration",
+    "T07-06-lab_reduction",
+    "T07-07-finished_mass",
+    "T07-08-frame_unit",
+    "T07-09-censored_zero",
+    "T07-10-chemistry_scope",
+    "T07-11-measurement_lineage",
+    "T07-12-interpretation_unknown",
+    "T07-13-historical_adapter",
+    "T19-01-required_skip",
+    "T19-02-path_filter",
+    "T19-03-capability_omission",
+    "T19-04-runner_escape",
+    "T19-05-upload_missing",
+    "T19-06-fresh_vs_reuse",
+    "T19-07-dossier_mismatch",
+    "T19-08-render_finish_metadata",
+    "T19-09-protective_interface",
+    "T19-10-final_policy"
+  ],
+  "required_software_group_count": 108,
+  "tiers": {
+    "T0": "per-PR deterministic/evidence/analysis plus existing Rust/G1/D1 owner gates",
+    "T1": "admitted analytic/metamorphic/fresh numerical lane; mandatory for numerical claims",
+    "T2": "laboratory evidence ingestion and actual policy-required validation; no instrument control",
+    "T3": "explicitly activated bounded research with mandatory shipped-feature contracts"
+  },
+  "capabilities": {
+    "multimodal_method": {
+      "unit": "T08",
+      "required_case_ids": [
+        "T08-01-bounded_download",
+        "T08-02-units_metadata",
+        "T08-03-registration_truth",
+        "T08-04-orientation_symmetry",
+        "T08-05-matched_slip_missing",
+        "T08-06-group_acquisition"
+      ],
+      "additional_evidence": [
+        "hash-bound bounded raw subset",
+        "conventions/registration qualified",
+        "matched data for any slip reproduction claim"
+      ],
+      "claim_limit": "method-only; no Ti6 allowables",
+      "if_disabled": "explicit reason; no feature/qualification claim",
+      "if_shipped": "synthetic/import/analysis contracts mandatory; claimed physical capability additionally needs actual qualified data"
+    },
+    "history_state_model": {
+      "unit": "T09",
+      "required_case_ids": [
+        "T09-01-latent_collision",
+        "T09-02-sufficient_null",
+        "T09-03-matching_bias",
+        "T09-04-early_irreversible",
+        "T09-05-lot_confirmation",
+        "T09-06-low_power_null"
+      ],
+      "additional_evidence": [
+        "preregistered pilot/confirmation separation",
+        "whole-stock/lot holdout",
+        "selection bias and adequate power"
+      ],
+      "claim_limit": "prediction scope only; no universal sufficient state",
+      "if_disabled": "explicit reason; no feature/qualification claim",
+      "if_shipped": "synthetic/import/analysis contracts mandatory; claimed physical capability additionally needs actual qualified data"
+    },
+    "spatial_material_model": {
+      "unit": "T10",
+      "required_case_ids": [
+        "T10-01-same_marginals_graph",
+        "T10-02-physical_rotation",
+        "T10-03-shuffle_control",
+        "T10-04-resolution_boundary",
+        "T10-05-chemistry_organization"
+      ],
+      "additional_evidence": [
+        "3D/ROI/phase/orientation conventions",
+        "histogram/shuffle baselines",
+        "heldout independent specimens"
+      ],
+      "claim_limit": "no chemistry organization from composition",
+      "if_disabled": "explicit reason; no feature/qualification claim",
+      "if_shipped": "synthetic/import/analysis contracts mandatory; claimed physical capability additionally needs actual qualified data"
+    },
+    "history_acceleration": {
+      "unit": "T11",
+      "required_case_ids": [
+        "T11-01-sequence_controls",
+        "T11-02-order_null",
+        "T11-03-order_positive",
+        "T11-04-cycle_time_clock",
+        "T11-05-hold_redistribution",
+        "T11-06-acceleration_mode",
+        "T11-07-competing_censor"
+      ],
+      "additional_evidence": [
+        "sequence/time controls",
+        "mechanism comparability",
+        "mode-specific uncertainty"
+      ],
+      "claim_limit": "no unverified service-year conversion",
+      "if_disabled": "explicit reason; no feature/qualification claim",
+      "if_shipped": "synthetic/import/analysis contracts mandatory; claimed physical capability additionally needs actual qualified data"
+    },
+    "observer_correction": {
+      "unit": "T12",
+      "required_case_ids": [
+        "T12-01-observation_arms",
+        "T12-02-created_erased",
+        "T12-03-drift_only",
+        "T12-04-true_nuisance",
+        "T12-05-prep_transfer"
+      ],
+      "additional_evidence": [
+        "observation/preparation arms",
+        "independent route or explicit uncertainty",
+        "training-only nuisance calibration"
+      ],
+      "claim_limit": "outside tested nuisance bounds unknown",
+      "if_disabled": "explicit reason; no feature/qualification claim",
+      "if_shipped": "synthetic/import/analysis contracts mandatory; claimed physical capability additionally needs actual qualified data"
+    },
+    "surface_history": {
+      "unit": "T13",
+      "required_case_ids": [
+        "T13-01-process_vs_film",
+        "T13-02-coupling_null",
+        "T13-03-topology_average",
+        "T13-04-segmentation_bias",
+        "T13-05-balance_reservoir",
+        "T13-06-charge_not_loss",
+        "T13-07-barrier_vs_structure"
+      ],
+      "additional_evidence": [
+        "sham/process controls",
+        "spatial resolution",
+        "reservoir balance uncertainty"
+      ],
+      "claim_limit": "barrier function separate from structure",
+      "if_disabled": "explicit reason; no feature/qualification claim",
+      "if_shipped": "synthetic/import/analysis contracts mandatory; claimed physical capability additionally needs actual qualified data"
+    },
+    "acoustic_inspection": {
+      "unit": "T14",
+      "required_case_ids": [
+        "T14-01-truth_independent",
+        "T14-02-silent_damage",
+        "T14-03-healthy_nuisance",
+        "T14-04-instrument_nonlinearity",
+        "T14-05-lot_session_holdout",
+        "T14-06-pod_prevalence",
+        "T14-07-blind_zone",
+        "T14-08-warning_censor",
+        "T14-09-shared_sensor_bias"
+      ],
+      "additional_evidence": [
+        "independent damage reference",
+        "whole-lot/session holdout",
+        "POD/false-call intervals and blind zones"
+      ],
+      "claim_limit": "no safe or remaining-life verdict",
+      "if_disabled": "explicit reason; no feature/qualification claim",
+      "if_shipped": "synthetic/import/analysis contracts mandatory; claimed physical capability additionally needs actual qualified data"
+    },
+    "optical_witness": {
+      "unit": "T15",
+      "required_case_ids": [
+        "T15-01-strain_vs_damage",
+        "T15-02-witness_invalid",
+        "T15-03-shared_selftest",
+        "T15-04-warning_persistence",
+        "T15-05-reader_environment",
+        "T15-06-mass_coupling"
+      ],
+      "additional_evidence": [
+        "witness validity/self-test",
+        "persistence and margin",
+        "mass/coupling/readability evidence"
+      ],
+      "claim_limit": "reports own exposure until coupling qualified",
+      "if_disabled": "explicit reason; no feature/qualification claim",
+      "if_shipped": "synthetic/import/analysis contracts mandatory; claimed physical capability additionally needs actual qualified data"
+    },
+    "recovery_claims": {
+      "unit": "T16",
+      "required_case_ids": [
+        "T16-01-closure_false_heal",
+        "T16-02-recovery_positive",
+        "T16-03-failure_migration",
+        "T16-04-isotope_exchange",
+        "T16-05-source_ambiguity",
+        "T16-06-nanoscale_transfer"
+      ],
+      "additional_evidence": [
+        "separate recovery levels",
+        "independent mechanical/structural evidence",
+        "subsequent history and failure migration"
+      ],
+      "claim_limit": "no nanoscale-to-bulk strength transfer",
+      "if_disabled": "explicit reason; no feature/qualification claim",
+      "if_shipped": "synthetic/import/analysis contracts mandatory; claimed physical capability additionally needs actual qualified data"
+    },
+    "atomistic_mechanism": {
+      "unit": "T17",
+      "required_case_ids": [
+        "T17-01-model_domain",
+        "T17-02-transition_error",
+        "T17-03-ensemble_shared_bias",
+        "T17-04-rate_sensitivity",
+        "T17-05-time_bridge",
+        "T17-06-holdout_reference"
+      ],
+      "additional_evidence": [
+        "domain/reference/transition challenge",
+        "independent family holdout",
+        "explicit time bridge"
+      ],
+      "claim_limit": "mechanism-specific, not a material allowable",
+      "if_disabled": "explicit reason; no feature/qualification claim",
+      "if_shipped": "synthetic/import/analysis contracts mandatory; claimed physical capability additionally needs actual qualified data"
+    },
+    "offline_falsification_agent": {
+      "unit": "T18",
+      "required_case_ids": [
+        "T18-01-mixed_none_models",
+        "T18-02-nonidentifiable",
+        "T18-03-audit_independent",
+        "T18-04-budget_menu",
+        "T18-05-strategy_comparison",
+        "T18-06-failed_acquisition",
+        "T18-07-authority_boundary"
+      ],
+      "additional_evidence": [
+        "finite approved menu",
+        "independent fixed audit",
+        "equal-total-cost baselines"
+      ],
+      "claim_limit": "offline analysis only; no physical authority",
+      "if_disabled": "explicit reason; no feature/qualification claim",
+      "if_shipped": "synthetic/import/analysis contracts mandatory; claimed physical capability additionally needs actual qualified data"
+    }
+  },
+  "inherited_qualification_contracts": [
+    "S13 material/process/surface transfer binding",
+    "S13 physical-evidence label integrity",
+    "S14 named-standard scope",
+    "S15 render finish metadata cannot populate structural properties"
+  ],
+  "all_19_original_regressions_remain_required": true,
+  "final_release": "Existing master specification §19 plus reconciled S00 policy; unmet required physical gate means scoped RC, not final 1.0.0",
+  "required_skip_policy": "not_run/error/unavailable cannot pass a required claim",
+  "scientific_null_policy": "valid execution can pass with scoped rejected/null/inconclusive finding",
+  "new_thresholds": "No proposed sample counts, POD level or paper value silently becomes a release requirement",
+  "reuse_policy": "Compatibility checked hash-bound reuse labeled reuse; never fresh execution",
+  "mutations_required": [
+    "expected case deletion",
+    "identity/hash bypass",
+    "nonfinite acceptance",
+    "unknown-to-healthy",
+    "claim contradiction",
+    "capability evidence omission"
+  ],
+  "baseline_retained": "111 Rust pass/1 existing ignored and 23 Python pass/1 slow skip are historical source97af results only"
+}

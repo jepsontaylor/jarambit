@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "test_case.v1.json",
+  "description": "Strict ingestion and checked Rust eligibility are required; a schema match grants no qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "id",
+    "required",
+    "evidence_class",
+    "input_sha256",
+    "oracle_sha256",
+    "controls",
+    "disabled_reason",
+    "claim_enabled"
+  ],
+  "properties": {
+    "schema": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required": {
+      "type": "boolean"
+    },
+    "evidence_class": {
+      "enum": [
+        "deterministic_contract",
+        "numerical_verification",
+        "physical_validation",
+        "research"
+      ]
+    },
+    "input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "oracle_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "controls": {
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "enum": [
+          "positive",
+          "adverse"
+        ]
+      }
+    },
+    "disabled_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "claim_enabled": {
+      "type": "boolean"
+    }
+  }
+}

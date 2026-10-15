@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "measurement_intervention.v1",
+  "description": "One measurement or intervention frame. A schema match is not a physical result. Derived components stay explicit.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "specimen", "time_utc", "role"],
+  "properties": {
+    "schema": {"const": "measurement_intervention.v1"},
+    "id": {"type": "string", "minLength": 1},
+    "specimen": {"type": "string", "minLength": 1},
+    "history_prefix_events": {"type": "array", "items": {"type": "string"}},
+    "time_utc": {"type": "string"},
+    "method": {"type": "string"},
+    "raw_sha256": {"type": "string"},
+    "calibration": {"type": "object"},
+    "unit": {"type": "string"},
+    "frame": {"type": "object"},
+    "support": {"type": "object"},
+    "value": {},
+    "components": {"type": "object"},
+    "component_roles": {"type": "object"},
+    "censoring": {},
+    "uncertainty": {"type": "array"},
+    "covariance_ref": {"type": "object"},
+    "experimental_unit": {"type": "object"},
+    "role": {"type": "string"},
+    "parents": {"type": "array", "items": {"type": "string"}},
+    "preparation": {"type": "array", "items": {"type": "string"}},
+    "kind": {"type": "string"},
+    "may_introduce": {"type": "array", "items": {"type": "string"}}
+  }
+}

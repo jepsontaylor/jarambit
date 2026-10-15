@@ -1,0 +1,318 @@
+{
+  "argv": [
+    "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-cad-validation/ops/science_tests/native_cad/attempt.py",
+    "ops/science_tests/native_cad/receipts/attempt-003"
+  ],
+  "attempt_dir": "ops/science_tests/native_cad/receipts/attempt-003",
+  "candidate_counts": {
+    "C10a": "INCOMPLETE",
+    "C10c": "FAIL"
+  },
+  "code_git_head": "2855896d4f566e106098a4313ac947a288368c91",
+  "code_module_sha256": {
+    "__init__.py": "272a9ea931154d93447357a6afad5f3330de40f697395d5881a2bfd3c26cee1e",
+    "attempt.py": "1d0a0e7c584c4b28d66348bc588d6efe43ef42cb9f07fca87d3cbfae622c6629",
+    "evaluate.py": "f12d484b751a9b7d110802825dc2a21c716bcebacc3b2c270499289b0c40989a",
+    "fixtures.py": "02efe184fda7034ba38987d4283320c0fb746a2e2a7f9dcceb2d67d60911a2ee",
+    "geometry.py": "358cbcd8b9dcfc30a888854bf03adb3424903a8e200801afb725e4ecc69d2ac6",
+    "pins.py": "ec1eedf7c179f406ca75705eb3fddfa0d9dc9c47f5848f3d5cb756e156ed4d92",
+    "provenance.py": "56d2756845a605ab71c932fffc5c337744d8a036bf10f6ebe2de742bf5fb6eca",
+    "test_native_cad.py": "67011ed82cbc71fa3fdbd1a2b8bf55ae5cd217481e7e8e5ebe0d69b212025701"
+  },
+  "code_status_porcelain": "",
+  "data_pin": "e150bb906e8b8a265077de60ee148f6ba773a83a",
+  "environment": {
+    "executable": "/home/ubuntu/jarambit_render/venv-cad/bin/python",
+    "mkl_num_threads": "1",
+    "numpy": "2.2.6",
+    "ocp": "7.8.1.1",
+    "omp_num_threads": "1",
+    "openblas_num_threads": "1",
+    "python": "3.12.3",
+    "trimesh": "4.7.4"
+  },
+  "exit_code": 0,
+  "finite_output": true,
+  "historical_receipt": "ops/science_tests/native_cad/receipts/native_cad_e150bb9.json",
+  "historical_receipt_sha256": "d4f8bf474af0cd18426021e44cfb668abd0308aedbbd85344a1309f78cb514d0",
+  "input_sha256": {
+    "C10a": {
+      "step": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "stl": "0bcadad61bff550d9c527266e183440e8242c3a0222b9a89755cdc682b214411"
+    },
+    "C10c": {
+      "step": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
+      "stl": "ac64a65dd653194d563a2026ffa42213846a9bda7cce7c52f80327da4c6e4700"
+    }
+  },
+  "pin_access": "An approved runner obtains a pinned file with `git show e150bb906e8b8a265077de60ee148f6ba773a83a:<path>` from a repository that already has that commit. This diagnostic does not fetch from a remote and does not treat a missing object as a pass.",
+  "pin_commit": "e150bb906e8b8a265077de60ee148f6ba773a83a",
+  "subjects": [
+    {
+      "archived": false,
+      "candidate_status": "INCOMPLETE",
+      "fitness_status": "REPORTED_NOT_QUALIFIED",
+      "genome_binding": "INCOMPLETE",
+      "geometry_flags": [],
+      "geometry_status": "PASS",
+      "identity_ok": true,
+      "mass": {
+        "density_g_per_cc": 4.43,
+        "density_is_material_qualification": false,
+        "readme_g": 64.841,
+        "step_g": 64.84116307039213,
+        "step_vs_readme": {
+          "rel": 2.5149271623446703e-06,
+          "status": "PASS",
+          "tolerance": 0.001
+        },
+        "stl_g": 64.8483944338768,
+        "stl_vs_readme": {
+          "rel": 0.00011403947929260022,
+          "status": "PASS",
+          "tolerance": 0.01
+        }
+      },
+      "physical_qualification": false,
+      "pin_commit": "e150bb906e8b8a265077de60ee148f6ba773a83a",
+      "pipeline_eligible": false,
+      "product_claim": false,
+      "provenance": [],
+      "reported_fitness": 2.673,
+      "role": "comparison_baseline",
+      "s08_gap": "S08 native CAD adapter is not established. This diagnostic does not bind a genome, mesh, load, material, or observable, and it does not run fresh FEM. Integration owns assurance/adapters and the certified evaluator. No physical qualification is claimed.",
+      "step": {
+        "bounds_compared": {
+          "extents": [
+            209.490944351461,
+            72.99964243036956,
+            10.0
+          ],
+          "method": "BRepBndLib.AddOptimal_s",
+          "use_for_comparison": true
+        },
+        "bounds_loose": {
+          "extents": [
+            214.27605525754737,
+            76.36138364545737,
+            10.000292450362002
+          ],
+          "method": "BRepBndLib.Add_s",
+          "note": "Add_s includes control and tessellation enlargement. It is not a dimension discrepancy against the STL.",
+          "use_for_comparison": false
+        },
+        "declared_length_unit": "millimetre",
+        "declared_units": "mm",
+        "declared_units_source": "step_declaration",
+        "normalized_system_length_unit": 1.0,
+        "path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+        "read_status": 1,
+        "reader_length_units": [
+          "millimetre"
+        ],
+        "sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+        "solids": 1,
+        "units": "mm",
+        "units_agree": true,
+        "units_source": "step_declaration",
+        "valid": true,
+        "volume_mm3": 14636.83139286504,
+        "volume_positive": true
+      },
+      "stl": {
+        "components_exact": 1,
+        "coordinates_moved": false,
+        "degenerate_faces_exact": 0,
+        "edges_exact": {
+          "boundary_edges": 0,
+          "manifold_edges": 140412,
+          "nonmanifold_edges": 0
+        },
+        "edges_raw": {
+          "boundary_edges": 280824,
+          "manifold_edges": 0,
+          "nonmanifold_edges": 0
+        },
+        "extents_mm": [
+          209.49093627929688,
+          72.99964141845703,
+          10.0
+        ],
+        "faces": 93608,
+        "finite": true,
+        "hole_fill": false,
+        "merge_method": "exact_coordinate",
+        "path": "designs/switchback/C10a/cad/switchback_revC10a_ground.stl",
+        "rounded_merge": false,
+        "sha256": "0bcadad61bff550d9c527266e183440e8242c3a0222b9a89755cdc682b214411",
+        "vertices_exact": 46798,
+        "vertices_raw": 280824,
+        "volume_signed_mm3": 14638.463754825463,
+        "volume_used_for_mass": true,
+        "watertight_exact": true,
+        "winding_consistent_exact": true
+      },
+      "subject": "C10a"
+    },
+    {
+      "archived": true,
+      "candidate_status": "FAIL",
+      "fitness_status": "REPORTED_NOT_QUALIFIED",
+      "genome_binding": "INCOMPLETE",
+      "geometry_flags": [
+        "stl",
+        "boundary",
+        "mass"
+      ],
+      "geometry_status": "FAIL",
+      "identity_ok": true,
+      "mass": {
+        "density_g_per_cc": 4.43,
+        "density_is_material_qualification": false,
+        "readme_g": 67.089,
+        "step_g": 67.089034015996,
+        "step_vs_readme": {
+          "rel": 5.070279182503399e-07,
+          "status": "PASS",
+          "tolerance": 0.001
+        },
+        "stl_g": null,
+        "stl_vs_readme": {
+          "reason": "volume_not_a_mass_input",
+          "rel": null,
+          "status": "UNAVAILABLE",
+          "tolerance": 0.01
+        }
+      },
+      "physical_qualification": false,
+      "pin_commit": "e150bb906e8b8a265077de60ee148f6ba773a83a",
+      "pipeline_eligible": false,
+      "product_claim": false,
+      "provenance": [
+        {
+          "case": "GateS",
+          "reported_class": "reported_direct_unverified",
+          "source": "B-rep ray probe",
+          "verified_native_measurement": false
+        },
+        {
+          "case": "V1",
+          "reported_class": "reported_carried_or_ratio",
+          "source": "w80d g2 carry",
+          "verified_native_measurement": false
+        },
+        {
+          "case": "V2",
+          "reported_class": "reported_carried_or_ratio",
+          "source": "record (C.10a 0.738)",
+          "verified_native_measurement": false
+        },
+        {
+          "case": "V3",
+          "reported_class": "reported_direct_unverified",
+          "source": "direct r0p2",
+          "verified_native_measurement": false
+        },
+        {
+          "case": "V4",
+          "reported_class": "reported_carried_or_ratio",
+          "source": "ring-refined \u00d7 g2 ratio",
+          "verified_native_measurement": false
+        },
+        {
+          "case": "V5",
+          "reported_class": "reported_carried_or_ratio",
+          "source": "g2",
+          "verified_native_measurement": false
+        },
+        {
+          "case": "V6",
+          "reported_class": "reported_carried_or_ratio",
+          "source": "w80d submodel \u00d7 g2 ratio",
+          "verified_native_measurement": false
+        },
+        {
+          "case": "V7",
+          "reported_class": "reported_carried_or_ratio",
+          "source": "w80d nose submodel",
+          "verified_native_measurement": false
+        }
+      ],
+      "reported_fitness": 2.786,
+      "role": "archived_diagnostic",
+      "s08_gap": "S08 native CAD adapter is not established. This diagnostic does not bind a genome, mesh, load, material, or observable, and it does not run fresh FEM. Integration owns assurance/adapters and the certified evaluator. No physical qualification is claimed.",
+      "step": {
+        "bounds_compared": {
+          "extents": [
+            210.95026352011098,
+            72.99964243036956,
+            10.0
+          ],
+          "method": "BRepBndLib.AddOptimal_s",
+          "use_for_comparison": true
+        },
+        "bounds_loose": {
+          "extents": [
+            214.04040341472054,
+            78.45649922044055,
+            10.189632170925167
+          ],
+          "method": "BRepBndLib.Add_s",
+          "note": "Add_s includes control and tessellation enlargement. It is not a dimension discrepancy against the STL.",
+          "use_for_comparison": false
+        },
+        "declared_length_unit": "millimetre",
+        "declared_units": "mm",
+        "declared_units_source": "step_declaration",
+        "normalized_system_length_unit": 1.0,
+        "path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
+        "read_status": 1,
+        "reader_length_units": [
+          "millimetre"
+        ],
+        "sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
+        "solids": 1,
+        "units": "mm",
+        "units_agree": true,
+        "units_source": "step_declaration",
+        "valid": true,
+        "volume_mm3": 15144.251470879459,
+        "volume_positive": true
+      },
+      "stl": {
+        "components_exact": 1,
+        "coordinates_moved": false,
+        "degenerate_faces_exact": 0,
+        "edges_exact": {
+          "boundary_edges": 40,
+          "manifold_edges": 248290,
+          "nonmanifold_edges": 0
+        },
+        "edges_raw": {
+          "boundary_edges": 496620,
+          "manifold_edges": 0,
+          "nonmanifold_edges": 0
+        },
+        "extents_mm": [
+          210.95025634765625,
+          72.99964141845703,
+          10.0
+        ],
+        "faces": 165540,
+        "finite": true,
+        "hole_fill": false,
+        "merge_method": "exact_coordinate",
+        "path": "designs/switchback/C10c/cad/switchback_revC10c_ground.stl",
+        "rounded_merge": false,
+        "sha256": "ac64a65dd653194d563a2026ffa42213846a9bda7cce7c52f80327da4c6e4700",
+        "vertices_exact": 82779,
+        "vertices_raw": 496620,
+        "volume_signed_mm3": 15143.724905266672,
+        "volume_used_for_mass": false,
+        "watertight_exact": false,
+        "winding_consistent_exact": true
+      },
+      "subject": "C10c"
+    }
+  ]
+}

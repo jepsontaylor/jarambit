@@ -1,0 +1,1583 @@
+{
+  "schema": "jarambit.science.work_packets.v1",
+  "target_version": "1.0.0",
+  "base_commit": "97af59cf14299af583b344aeaefb4594d089465a",
+  "status": "planning complete; implementation packets not dispatched",
+  "protocol": "docs/v1/science/RELEASE_PLAN.md",
+  "runbook": "docs/v1/science/WORKTREE_RUNBOOK.md",
+  "common_read_first": [
+    "COORD.md",
+    "docs/v1/science/RELEASE_PLAN.md",
+    "docs/v1/science/WORKTREE_RUNBOOK.md",
+    "docs/v1/science/FINDINGS.md"
+  ],
+  "shared_integrator_only": [
+    "Cargo.toml",
+    "Cargo.lock",
+    "docs/VERSION",
+    "README.md",
+    "STATUS.md",
+    "docs/WHITEPAPER.md",
+    "COORD.md",
+    "crates/cli/src/main.rs",
+    ".github/workflows/*"
+  ],
+  "read_only_zones": [
+    "existing evidence/wave27/*",
+    "existing evidence/fem_solid/*",
+    "bench/fixed_1k/genomes.csv",
+    "bench/fixed_1k/SHA256SUMS",
+    "designs/*/cad/*",
+    "other worktrees",
+    "live render/sheath stores",
+    "historical outputs"
+  ],
+  "common_stop_conditions": [
+    "write scope overlaps live ownership",
+    "known-negative turns positive without owner requirement decision",
+    "required input identity changes",
+    "resource admission or durability fails",
+    "required evidence or applicability missing"
+  ],
+  "default_resources": {
+    "cpu_slots": 4,
+    "memory_gib": 8,
+    "max_cargo_jobs": 4,
+    "nice": 19,
+    "native_math_threads": 1,
+    "gpu": false,
+    "heavy_lanes_initial": 1,
+    "packet_output_limit_gb": 5
+  },
+  "max_parallel_workers": 3,
+  "parallel_write_groups": [
+    [
+      "S02",
+      "S04",
+      "S05"
+    ],
+    [
+      "S03",
+      "S06",
+      "S07",
+      "S13"
+    ],
+    [
+      "S09",
+      "S10",
+      "S14"
+    ]
+  ],
+  "packets": [
+    {
+      "id": "S00",
+      "title": "Release reconciliation and baseline freeze",
+      "status": "planned",
+      "owner_role": "integration owner",
+      "branch": "codex/science-v1-integration",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-integration",
+      "depends_on": [],
+      "read_first": [
+        "docs/v1/JARAMBIT_V1_ENGINEERING_SPEC.md",
+        "docs/v1/jarambit_v1_roadmap.json",
+        "COORD.md",
+        "requirements/RS-karambit-v2.toml"
+      ],
+      "write_allowlist": [
+        "docs/v1/science/ROADMAP_AMENDMENT.md",
+        "assurance/policies/release-v1.json",
+        "experiments/science_v1/baseline_manifest.json"
+      ],
+      "ordered_steps": [
+        "Classify old roadmap implementation from current source and evidence",
+        "Freeze evaluator/scenario/objective/descriptor/requirements identities",
+        "Record pending owner policy amendments and active ownership",
+        "Publish immutable baseline and interface contract"
+      ],
+      "acceptance": [
+        "Baseline source and all identity hashes fixed",
+        "No conflicting active path claim",
+        "No old completed feature mislabeled missing",
+        "Test upgrade: execute the owned core phase of T00 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s00/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T00"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [],
+      "pre_test_upgrade_write_allowlist": [
+        "docs/v1/science/ROADMAP_AMENDMENT.md",
+        "assurance/policies/release-v1.json",
+        "experiments/science_v1/baseline_manifest.json"
+      ]
+    },
+    {
+      "id": "S01",
+      "title": "Typed evidence identity and assurance core",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s01",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s01",
+      "depends_on": [
+        "S00"
+      ],
+      "read_first": [
+        "crates/evidence/src/lib.rs",
+        "crates/evidence/tests/log.rs",
+        "crates/crescent/src/record.rs"
+      ],
+      "write_allowlist": [
+        "crates/evidence/src/lib.rs",
+        "crates/evidence/src/identity.rs",
+        "crates/evidence/src/assurance.rs",
+        "crates/evidence/tests/assurance_contract.rs",
+        "assurance/schemas/evidence*.json",
+        "assurance/policies/evidence-v1.json",
+        "assurance/testing/__init__.py",
+        "assurance/testing/contracts.py",
+        "assurance/testing/catalog.py",
+        "assurance/testing/receipt.py",
+        "assurance/testing/policy.json",
+        "assurance/testing/tests/test_contracts.py",
+        "assurance/schemas/test_case.v1.json",
+        "assurance/schemas/study_record.v1.json",
+        "assurance/schemas/observation_record.v1.json",
+        "assurance/schemas/qualification_result.v1.json",
+        "ops/ci/test_inventory.py"
+      ],
+      "ordered_steps": [
+        "Extend RunManifest scientific identity while separating runtime metadata",
+        "Implement checked observations, dependency resolution, review revocation and expected inventory",
+        "Add strict ingest and schema/version adapters preserving historical JEV1 reads",
+        "Run negative provenance/coverage/cycle/nonfinite tests and existing crash tests"
+      ],
+      "acceptance": [
+        "All invalid/reopened required evidence nonpassing",
+        "No synthetic physical-validation label from simulation",
+        "Existing event and log contracts retained",
+        "Test upgrade: execute the owned core phase of T00 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s01/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T00"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "assurance/testing/__init__.py",
+        "assurance/testing/contracts.py",
+        "assurance/testing/catalog.py",
+        "assurance/testing/receipt.py",
+        "assurance/testing/policy.json",
+        "assurance/testing/tests/test_contracts.py",
+        "assurance/schemas/test_case.v1.json",
+        "assurance/schemas/study_record.v1.json",
+        "assurance/schemas/observation_record.v1.json",
+        "assurance/schemas/qualification_result.v1.json",
+        "ops/ci/test_inventory.py"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "crates/evidence/src/lib.rs",
+        "crates/evidence/src/identity.rs",
+        "crates/evidence/src/assurance.rs",
+        "crates/evidence/tests/assurance_contract.rs",
+        "assurance/schemas/evidence*.json",
+        "assurance/policies/evidence-v1.json"
+      ]
+    },
+    {
+      "id": "S02",
+      "title": "GCI admissibility and fresh solver outputs",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s02",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s02",
+      "depends_on": [
+        "S01"
+      ],
+      "read_first": [
+        "fem_solid/gci.py",
+        "fem_solid/gci_report.py",
+        "fem_solid/convergence.py",
+        "fem_solid/tests/test_gci_evidence.py",
+        "docs/v1/science/inputs/NUMERICAL_AND_EVIDENCE_REGRESSION_CASES.json"
+      ],
+      "write_allowlist": [
+        "fem_solid/gci.py",
+        "fem_solid/gci_report.py",
+        "fem_solid/convergence.py",
+        "fem_solid/run_tip.py",
+        "fem_solid/tests/test_gci*.py",
+        "fem_solid/tests/test_run_tip_inputs.py",
+        "assurance/numerical/gci_inventory.json",
+        "fem_solid/tests/test_gci.py",
+        "fem_solid/tests/test_gci_evidence.py",
+        "fem_solid/tests/test_fresh_attempts.py"
+      ],
+      "ordered_steps": [
+        "Return typed fit/validity status and checked error estimates",
+        "Refactor pure report builder and expected nonempty inventory",
+        "Replace filename reuse with input/code/config/image/observable identity and atomic fresh attempt outputs",
+        "Execute all GCI fixtures and positive controls",
+        "Generate historical reclassification diff without editing raw evidence"
+      ],
+      "acceptance": [
+        "Negative, plateau, oscillatory and empty cases never PASS",
+        "Zero-order/ratio/reference inputs handled structurally",
+        "No stale output accepted as new execution",
+        "Test upgrade: execute the owned core phase of T01 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s02/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T01"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "fem_solid/tests/test_gci.py",
+        "fem_solid/tests/test_gci_evidence.py",
+        "fem_solid/tests/test_fresh_attempts.py"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "fem_solid/gci.py",
+        "fem_solid/gci_report.py",
+        "fem_solid/convergence.py",
+        "fem_solid/run_tip.py",
+        "fem_solid/tests/test_gci*.py",
+        "fem_solid/tests/test_run_tip_inputs.py",
+        "assurance/numerical/gci_inventory.json"
+      ]
+    },
+    {
+      "id": "S03",
+      "title": "Exact scoped claims and current-candidate registry",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s03",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s03",
+      "depends_on": [
+        "S01",
+        "S02"
+      ],
+      "read_first": [
+        "ops/ci/check_claims.py",
+        "ops/ci/rs_verdicts.py",
+        "designs/switchback/C10a/README.md",
+        "ops/render/pro/fem_cases.json"
+      ],
+      "write_allowlist": [
+        "ops/ci/check_claims.py",
+        "ops/ci/rs_verdicts.py",
+        "ops/ci/gen_readme.py",
+        "ops/ci/gen_status.py",
+        "ops/ci/gen_whitepaper.py",
+        "ops/ci/tests/test_claim_integrity.py",
+        "ops/ci/tests/test_requirement_identity.py",
+        "assurance/reporting/*",
+        "assurance/registry/*"
+      ],
+      "ordered_steps": [
+        "Require exact canonical generated verdict block",
+        "Resolve claims with finite values and complete required inventories",
+        "Create candidate registry and explicit C-study/RS crosswalk",
+        "Add wrong-design/hash/role/reopened/contradictory-heading mutations",
+        "Hand generated output diffs to integrator"
+      ],
+      "acceptance": [
+        "Contradictory appended PASS rejected",
+        "Current status never inferred from stale heading",
+        "Missing/invalid required promotion evidence incomplete",
+        "Test upgrade: execute the owned core phase of T02 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s03/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T02"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "ops/ci/tests/test_claim_integrity.py",
+        "ops/ci/tests/test_requirement_identity.py"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "ops/ci/check_claims.py",
+        "ops/ci/rs_verdicts.py",
+        "ops/ci/gen_readme.py",
+        "ops/ci/gen_status.py",
+        "ops/ci/gen_whitepaper.py",
+        "ops/ci/tests/test_claim_integrity.py",
+        "ops/ci/tests/test_requirement_identity.py",
+        "assurance/reporting/*",
+        "assurance/registry/*"
+      ]
+    },
+    {
+      "id": "S04",
+      "title": "Checked MC reduction and joint scenarios",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s04",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s04",
+      "depends_on": [
+        "S01"
+      ],
+      "read_first": [
+        "crates/monte_carlo/src/lib.rs",
+        "crates/evolve/src/lib.rs",
+        "crates/evolve/tests/replay.rs"
+      ],
+      "write_allowlist": [
+        "crates/monte_carlo/src/lib.rs",
+        "crates/monte_carlo/src/stats.rs",
+        "crates/monte_carlo/src/scenario.rs",
+        "crates/monte_carlo/tests/*",
+        "crates/evolve/src/lib.rs",
+        "crates/monte_carlo/tests/checked_reduction.rs",
+        "crates/monte_carlo/tests/joint_scenarios.rs",
+        "crates/monte_carlo/tests/population_sensitivity.rs"
+      ],
+      "ordered_steps": [
+        "Implement try_run_cols with counts, sample IDs and typed worker/data errors",
+        "Preserve deterministic indexed streams and quantile convention",
+        "Compute joint truth before marginal sorting, label distribution evidence",
+        "Retire CutMedia active lookup with historical read policy",
+        "Adapt legacy call sites and test zero/nonfinite/overflow/panic/correlation/thread cases"
+      ],
+      "acceptance": [
+        "No zero-to-one coercion",
+        "No invalid sample sorted as equal",
+        "Thread-stable valid samples and preserved counts",
+        "Marginals never claimed joint success",
+        "Test upgrade: execute the owned core phase of T03 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s04/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T03"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "crates/monte_carlo/tests/checked_reduction.rs",
+        "crates/monte_carlo/tests/joint_scenarios.rs",
+        "crates/monte_carlo/tests/population_sensitivity.rs"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "crates/monte_carlo/src/lib.rs",
+        "crates/monte_carlo/src/stats.rs",
+        "crates/monte_carlo/src/scenario.rs",
+        "crates/monte_carlo/tests/*",
+        "crates/evolve/src/lib.rs"
+      ]
+    },
+    {
+      "id": "S05",
+      "title": "Feasible QD and context-free elite quality",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s05",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s05",
+      "depends_on": [
+        "S01"
+      ],
+      "read_first": [
+        "crates/crescent/src/qd.rs",
+        "crates/crescent/src/record.rs",
+        "crates/crescent/tests/fitness_capfree.rs"
+      ],
+      "write_allowlist": [
+        "crates/crescent/src/qd.rs",
+        "crates/crescent/src/record.rs",
+        "crates/crescent/tests/search_contract.rs",
+        "experiments/science_v1/contracts/*"
+      ],
+      "ordered_steps": [
+        "Split exploratory/search-feasible/certified/release predicates",
+        "Implement archive_quality without novelty context",
+        "Version descriptors/cells and deterministic tie/duplicate policies",
+        "Log archive changes and full-precision scientific observations",
+        "Test legal-feasible mismatch, nonfinite descriptors, all-infeasible and config edge cases"
+      ],
+      "acceptance": [
+        "No infeasible record in feasible/certified archive",
+        "Novelty-context-only change cannot replace elite",
+        "Presentation rounding never drives decisions",
+        "Test upgrade: execute the owned core phase of T04 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s05/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T04"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "crates/crescent/tests/search_contract.rs"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "crates/crescent/src/qd.rs",
+        "crates/crescent/src/record.rs",
+        "crates/crescent/tests/search_contract.rs",
+        "experiments/science_v1/contracts/*"
+      ]
+    },
+    {
+      "id": "S06",
+      "title": "Crescent checkpoint and durable logging",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s06",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s06",
+      "depends_on": [
+        "S01",
+        "S05"
+      ],
+      "read_first": [
+        "crates/evolve/tests/replay.rs",
+        "crates/evidence/tests/log.rs",
+        "crates/crescent/src/qd.rs",
+        "crates/cli/src/crescent.rs"
+      ],
+      "write_allowlist": [
+        "crates/crescent/src/checkpoint.rs",
+        "crates/crescent/src/qd.rs",
+        "crates/crescent/tests/checkpoint_replay.rs",
+        "crates/crescent/tests/evidence_lineage.rs"
+      ],
+      "ordered_steps": [
+        "Capture complete RNG/population/archive/novelty/event state",
+        "Implement checksum plus atomic/fsynced checkpoint barrier",
+        "Refuse mismatched source/requirements/operator/descriptor identity",
+        "Make qualified runs fail publication after logging/durability errors",
+        "Test 3 seeds x generation 3/7/12, worker changes, torn writes, corruption and fork"
+      ],
+      "acceptance": [
+        "Same-host scientific state and counters replay exactly",
+        "No duplicate accepted evaluation after resume",
+        "Old/missing provenance retained only as historical",
+        "Test upgrade: execute the owned core phase of T04 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s06/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T04"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "crates/crescent/tests/checkpoint_replay.rs",
+        "crates/crescent/tests/evidence_lineage.rs"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "crates/crescent/src/checkpoint.rs",
+        "crates/crescent/src/qd.rs",
+        "crates/crescent/tests/checkpoint_replay.rs",
+        "crates/crescent/tests/evidence_lineage.rs"
+      ]
+    },
+    {
+      "id": "S07",
+      "title": "Field semantics and solver invariants",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s07",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s07",
+      "depends_on": [
+        "S01",
+        "S02"
+      ],
+      "read_first": [
+        "crates/physics/src/verify.rs",
+        "crates/physics/tests/fem_verify_failclosed.rs",
+        "fem_solid/solve_dolfinx.py"
+      ],
+      "write_allowlist": [
+        "crates/physics/src/verify.rs",
+        "crates/physics/tests/invariance.rs",
+        "fem_solid/solve_dolfinx.py",
+        "fem_solid/tests/test_representation_invariants.py",
+        "fem_solid/tests/test_field_semantics.py",
+        "assurance/numerical/observable_catalog.json"
+      ],
+      "ordered_steps": [
+        "Catalog field basis, units, region, frame and recovery",
+        "Correct DG interpolation metadata and test manufactured tensor fields",
+        "Extend existing elementary invariants without duplicate cases",
+        "Verify load scaling, balance/energy, units, transforms, ordering, invalid BC/elements",
+        "Freeze benchmark-specific tolerances and applicability"
+      ],
+      "acceptance": [
+        "Actual extraction matches declared semantics",
+        "Invalid elementary models diagnostic nonpassing",
+        "Verification never grants physical validation",
+        "Test upgrade: execute the owned core phase of T05 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s07/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T05"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "crates/physics/tests/invariance.rs",
+        "fem_solid/tests/test_representation_invariants.py",
+        "fem_solid/tests/test_field_semantics.py"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "crates/physics/src/verify.rs",
+        "crates/physics/tests/invariance.rs",
+        "fem_solid/solve_dolfinx.py",
+        "fem_solid/tests/test_representation_invariants.py",
+        "fem_solid/tests/test_field_semantics.py",
+        "assurance/numerical/observable_catalog.json"
+      ]
+    },
+    {
+      "id": "S08",
+      "title": "Per-case tier provenance and native CAD evidence",
+      "status": "planned",
+      "owner_role": "integration owner",
+      "branch": "codex/science-v1-integration",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-integration",
+      "depends_on": [
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07"
+      ],
+      "read_first": [
+        "crates/crescent/src/fem.rs",
+        "crates/cli/src/bench.rs",
+        "docs/calibration/t1_t2.md",
+        "designs/switchback/C10a/README.md"
+      ],
+      "write_allowlist": [
+        "crates/crescent/src/fem.rs",
+        "crates/cli/src/bench.rs",
+        "crates/cli/src/crescent.rs",
+        "assurance/adapters/*",
+        "crates/crescent/tests/certified_bindings.rs"
+      ],
+      "ordered_steps": [
+        "Validate solid_tip_sf GCI/review/hash/applicability dependencies",
+        "Return per-case CertifiedEvaluation with exact governing scalar and field meshes",
+        "Name formulations explicitly instead of ambiguous T2 tier",
+        "Add native CAD subject adapter and inventory external source/solver dependencies",
+        "Integrate worker interfaces in CLI without widening scopes"
+      ],
+      "acceptance": [
+        "Exact genome identity check retained and strengthened",
+        "No wrong-field/mesh scalar association",
+        "No fabricated genome for B-rep evidence",
+        "Test upgrade: execute the owned core phase of T05 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s08/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T05"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "crates/crescent/tests/certified_bindings.rs"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "crates/crescent/src/fem.rs",
+        "crates/cli/src/bench.rs",
+        "crates/cli/src/crescent.rs",
+        "assurance/adapters/*",
+        "crates/crescent/tests/certified_bindings.rs"
+      ]
+    },
+    {
+      "id": "S09",
+      "title": "Equal-budget scientific benchmarking harness",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s09",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s09",
+      "depends_on": [
+        "S08"
+      ],
+      "read_first": [
+        "ops/bench/run.py",
+        "crates/cli/src/bench.rs",
+        "docs/calibration/t1_t2.md",
+        "bench/fixed_1k/README.md"
+      ],
+      "write_allowlist": [
+        "ops/bench/run.py",
+        "ops/bench/science.py",
+        "ops/bench/tests/*",
+        "experiments/science_v1/protocol.json",
+        "experiments/science_v1/baselines.json",
+        "experiments/science_v1/splits.json",
+        "experiments/science_v1/seeds.json",
+        "docs/results/science_v1/*",
+        "ops/ci/tests/test_bench_workload.py",
+        "assurance/testing/statistics.py",
+        "assurance/testing/splits.py",
+        "assurance/testing/tests/test_statistics.py",
+        "assurance/testing/tests/test_splits.py",
+        "ops/bench/tests/test_science_protocol.py"
+      ],
+      "ordered_steps": [
+        "Measure real CPU/wall/per-attempt memory, counters and keyed result parity",
+        "Freeze stratified corpus, splits, seeds, reference points and analysis",
+        "Implement generic/mocked harness fixtures and pilot cost/variance protocol",
+        "Wait for S10 adapters before main same-representation algorithm trials",
+        "Analyze all run-level outcomes/holdouts including failures and negative findings"
+      ],
+      "acceptance": [
+        "No rounded checksum sum hides changed success masks",
+        "Algorithm effects unconfounded by representation/evaluator",
+        "Tables reconstruct from immutable receipts",
+        "Test upgrade: execute the owned core phase of T06 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s09/<attempt>/receipt.json",
+      "external_barriers": [
+        "S10 adapters merged before main comparison runs"
+      ],
+      "test_upgrade_overlay": {
+        "units": [
+          "T06"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "assurance/testing/statistics.py",
+        "assurance/testing/splits.py",
+        "assurance/testing/tests/test_statistics.py",
+        "assurance/testing/tests/test_splits.py",
+        "ops/bench/tests/test_science_protocol.py"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "ops/bench/run.py",
+        "ops/bench/science.py",
+        "ops/bench/tests/*",
+        "experiments/science_v1/protocol.json",
+        "experiments/science_v1/baselines.json",
+        "experiments/science_v1/splits.json",
+        "experiments/science_v1/seeds.json",
+        "docs/results/science_v1/*",
+        "ops/ci/tests/test_bench_workload.py"
+      ]
+    },
+    {
+      "id": "S10",
+      "title": "Generic interfaces and shared-evaluator algorithms",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s10",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s10",
+      "depends_on": [
+        "S08"
+      ],
+      "read_first": [
+        "crates/crescent/src/qd.rs",
+        "crates/evolve/src/lib.rs",
+        "docs/v1/JARAMBIT_V1_ENGINEERING_SPEC.md"
+      ],
+      "write_allowlist": [
+        "crates/core/Cargo.toml",
+        "crates/core/src/*",
+        "crates/core/tests/*",
+        "docs/v1/science/capabilities/*"
+      ],
+      "ordered_steps": [
+        "Define SubjectAdapter/Evaluator/RequirementPolicy/DescriptorSpec/EvaluationBudget",
+        "Implement random/LHS, constrained NSGA-II and fixed-quality MAP-Elites on shared adapter",
+        "Test known fronts/crowding/constraints/ties/budgets/invalid output",
+        "Request serial integrator registration and crescent wrapper hookup",
+        "Prove baseline parity and benign bracket/coupon generality; publish capability cards"
+      ],
+      "acceptance": [
+        "No part-specific imports in core",
+        "Baseline decisions equivalent through adapter",
+        "Generic algorithms correct before costly experiments",
+        "Test upgrade: execute the owned core phase of T18 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s10/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T18"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [],
+      "pre_test_upgrade_write_allowlist": [
+        "crates/core/Cargo.toml",
+        "crates/core/src/*",
+        "crates/core/tests/*",
+        "docs/v1/science/capabilities/*"
+      ]
+    },
+    {
+      "id": "S11",
+      "title": "Multi-fidelity surrogate and experiment selection",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s11",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s11",
+      "depends_on": [
+        "S07",
+        "S09",
+        "S10"
+      ],
+      "read_first": [
+        "docs/calibration/t1_t2.md",
+        "experiments/science_v1/protocol.json",
+        "assurance/numerical/observable_catalog.json"
+      ],
+      "write_allowlist": [
+        "surrogate/science_v1/*",
+        "experiments/science_v1/surrogate_protocol.json",
+        "research/science_v1/atomistic/",
+        "docs/validation/science_v1/ATOMISTIC_BOUNDARY.md",
+        "research/science_v1/falsification/",
+        "docs/validation/science_v1/FALSIFICATION.md"
+      ],
+      "ordered_steps": [
+        "Freeze family/ancestry/duplicate/time/lot grouped splits",
+        "Compare simple model baselines before a GNN",
+        "Track false-feasible cases, OOD and group uncertainty coverage",
+        "Charge random/stratified audits and reference labels to budget",
+        "Test selected and rejected proposals, adaptive shift and final model snapshots"
+      ],
+      "acceptance": [
+        "Surrogate cannot issue qualified PASS",
+        "No ancestry/mesh-resolution leakage",
+        "Reference-verified benefit demonstrated or reference-only retained",
+        "Test upgrade: execute the owned core phase of T06, T17, T18 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s11/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T06",
+          "T17",
+          "T18"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "research/science_v1/atomistic/",
+        "docs/validation/science_v1/ATOMISTIC_BOUNDARY.md",
+        "research/science_v1/falsification/",
+        "docs/validation/science_v1/FALSIFICATION.md"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "surrogate/science_v1/*",
+        "experiments/science_v1/surrogate_protocol.json"
+      ]
+    },
+    {
+      "id": "S12",
+      "title": "Profiled caching and resilient compute",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s12",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s12",
+      "depends_on": [
+        "S10",
+        "S11"
+      ],
+      "read_first": [
+        "ops/bench/science.py",
+        "crates/physics/src/fine.rs",
+        "fem_solid/solve_dolfinx.py",
+        "COORD.md"
+      ],
+      "write_allowlist": [
+        "ops/science_workers/*",
+        "crates/core/src/cache.rs",
+        "fem_solid/perf/*",
+        "docs/perf/science_v1/*"
+      ],
+      "ordered_steps": [
+        "Profile validated evaluator and admitted hardware",
+        "Implement complete content keys and distinguish raw solve from verdict cache",
+        "Verify factorization reuse identity and candidate-level admission",
+        "Test worker/retry/duplicate/partial/disk/memory failures",
+        "Attempt optional distributed/GPU route only after measured need and parity protocol"
+      ],
+      "acceptance": [
+        "Reference results and gate decisions preserved",
+        "Failed/reopened/stale results cannot cache-pass",
+        "Measured end-to-end gain and bounded resources"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s12/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [],
+      "pre_test_upgrade_write_allowlist": [
+        "ops/science_workers/*",
+        "crates/core/src/cache.rs",
+        "fem_solid/perf/*",
+        "docs/perf/science_v1/*"
+      ]
+    },
+    {
+      "id": "S13",
+      "title": "Material passport and laboratory data integrity",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s13",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s13",
+      "depends_on": [
+        "S01"
+      ],
+      "read_first": [
+        "crates/physics/src/lib.rs",
+        "requirements/RS-karambit-v2.toml",
+        "docs/v1/science/INPUT_COVERAGE.md"
+      ],
+      "write_allowlist": [
+        "materials/states/*",
+        "assurance/laboratory/*",
+        "assurance/tests/test_laboratory.py",
+        "assurance/schemas/material_state*.json",
+        "assurance/schemas/specimen*.json",
+        "assurance/schemas/test_plan*.json",
+        "docs/validation/science_v1/PROTOCOL.md",
+        "assurance/laboratory/records.py",
+        "assurance/laboratory/history.py",
+        "assurance/laboratory/observation.py",
+        "assurance/schemas/exposure_history.v1.json",
+        "assurance/schemas/measurement_intervention.v1.json",
+        "assurance/tests/test_history_observation.py",
+        "research/science_v1/multimodal/",
+        "docs/validation/science_v1/MULTIMODAL_METHOD.md",
+        "research/science_v1/state/",
+        "docs/validation/science_v1/HIDDEN_STATE.md",
+        "research/science_v1/neighborhood/",
+        "docs/validation/science_v1/MICROSTRUCTURE.md",
+        "research/science_v1/history/",
+        "docs/validation/science_v1/HISTORY_ORDER.md",
+        "docs/validation/science_v1/ACCELERATION.md",
+        "research/science_v1/observer/",
+        "docs/validation/science_v1/OBSERVER_EFFECTS.md"
+      ],
+      "ordered_steps": [
+        "Create conditional lot/process/surface/property-source passports",
+        "Freeze calibrated raw-data import and reduction identity",
+        "Separate calibration/validation/exploratory datasets and specimen independence",
+        "Preserve censoring, invalid standards conditions and measurement uncertainty",
+        "Prepare blinded coupon protocols and route-specific dependencies without commissioning"
+      ],
+      "acceptance": [
+        "Synthetic incomplete/invalid lab records nonpassing",
+        "No AM-to-wrought or finish transfer by alloy name",
+        "No physical data invented",
+        "Test upgrade: execute the owned core phase of T07, T08, T09, T10, T11, T12 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s13/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T07",
+          "T08",
+          "T09",
+          "T10",
+          "T11",
+          "T12"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "assurance/laboratory/records.py",
+        "assurance/laboratory/history.py",
+        "assurance/laboratory/observation.py",
+        "assurance/schemas/exposure_history.v1.json",
+        "assurance/schemas/measurement_intervention.v1.json",
+        "assurance/tests/test_history_observation.py",
+        "assurance/tests/test_laboratory.py",
+        "research/science_v1/multimodal/",
+        "docs/validation/science_v1/MULTIMODAL_METHOD.md",
+        "research/science_v1/state/",
+        "docs/validation/science_v1/HIDDEN_STATE.md",
+        "research/science_v1/neighborhood/",
+        "docs/validation/science_v1/MICROSTRUCTURE.md",
+        "research/science_v1/history/",
+        "docs/validation/science_v1/HISTORY_ORDER.md",
+        "docs/validation/science_v1/ACCELERATION.md",
+        "research/science_v1/observer/",
+        "docs/validation/science_v1/OBSERVER_EFFECTS.md"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "materials/states/*",
+        "assurance/laboratory/*",
+        "assurance/tests/test_laboratory.py",
+        "assurance/schemas/material_state*.json",
+        "assurance/schemas/specimen*.json",
+        "assurance/schemas/test_plan*.json",
+        "docs/validation/science_v1/PROTOCOL.md"
+      ]
+    },
+    {
+      "id": "S14",
+      "title": "Metrology, inspection, surfaces and inert handling",
+      "status": "planned",
+      "owner_role": "assigned implementation worker",
+      "branch": "codex/science-v1-s14",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s14",
+      "depends_on": [
+        "S13"
+      ],
+      "read_first": [
+        "docs/sheath/SHEATH_V1_PLAN.md",
+        "requirements/RS-sheath-runner-v1.toml",
+        "designs/switchback/C10a/README.md"
+      ],
+      "write_allowlist": [
+        "assurance/qualification/*",
+        "assurance/tests/test_qualification.py",
+        "docs/validation/science_v1/INSPECTION.md",
+        "docs/validation/science_v1/SURFACES.md",
+        "docs/validation/science_v1/HANDLING.md",
+        "evidence/qualification/*",
+        "research/science_v1/surfaces/",
+        "docs/validation/science_v1/SURFACE_HISTORY.md",
+        "research/science_v1/inspection/",
+        "assurance/qualification/inspection.py",
+        "docs/validation/science_v1/ACOUSTIC_INSPECTION.md",
+        "research/science_v1/witness/",
+        "docs/validation/science_v1/DAMAGE_WITNESS.md",
+        "research/science_v1/recovery/",
+        "docs/validation/science_v1/RECOVERY_CLAIMS.md"
+      ],
+      "ordered_steps": [
+        "Define CAD/mesh/physical registration and mass measurement contracts",
+        "Prepare blind detection/false-call/coverage studies",
+        "Define untreated/sham/coated and fresh/aged/worn/sequence controls",
+        "Specify inert/guarded protective-system endpoints and unresolved hazard states",
+        "Keep chemistry hypotheses and surface measurements outside unsupported structural claims"
+      ],
+      "acceptance": [
+        "Volume or scan resolution cannot qualify local geometry/defect freedom",
+        "No coating hardness/color/repassivation becomes bulk strength/repair",
+        "Protective endpoints cannot borrow structural PASS",
+        "Test upgrade: execute the owned core phase of T11, T13, T14, T15, T16 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s14/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T11",
+          "T13",
+          "T14",
+          "T15",
+          "T16"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "research/science_v1/surfaces/",
+        "docs/validation/science_v1/SURFACE_HISTORY.md",
+        "research/science_v1/inspection/",
+        "assurance/qualification/inspection.py",
+        "docs/validation/science_v1/ACOUSTIC_INSPECTION.md",
+        "research/science_v1/witness/",
+        "docs/validation/science_v1/DAMAGE_WITNESS.md",
+        "research/science_v1/recovery/",
+        "docs/validation/science_v1/RECOVERY_CLAIMS.md"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "assurance/qualification/*",
+        "assurance/tests/test_qualification.py",
+        "docs/validation/science_v1/INSPECTION.md",
+        "docs/validation/science_v1/SURFACES.md",
+        "docs/validation/science_v1/HANDLING.md",
+        "evidence/qualification/*"
+      ]
+    },
+    {
+      "id": "S15",
+      "title": "Media manifest evidence consumers",
+      "status": "planned",
+      "owner_role": "existing render owner after scope release",
+      "branch": "codex/science-v1-s15",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-s15",
+      "depends_on": [
+        "S03",
+        "S08"
+      ],
+      "read_first": [
+        "ops/render/pro/design_manifest.py",
+        "ops/render/pro/fem_cases.json",
+        "COORD.md"
+      ],
+      "write_allowlist": [
+        "ops/render/pro/design_manifest.py",
+        "ops/render/pro/fem_cases.json",
+        "ops/render/pro/tests/test_science_manifest.py",
+        "ops/render/pro/tests/test_design_manifest.py"
+      ],
+      "ordered_steps": [
+        "Wait for existing render claim release and exact-head train reconciliation",
+        "Replace missing-certification favorable default with unknown",
+        "Validate mandatory cases and structured V4 supersession",
+        "Consume resolved claim identity/status and invalidate dependent render metadata cache",
+        "Run W84/deleted-gate/finish/source/unit/field mutations and existing render regressions"
+      ],
+      "acceptance": [
+        "Missing metadata never PASS/converged",
+        "All current media states match claim graph",
+        "Existing mark/raw-grind/resource/host-drain invariants preserved"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s15/<attempt>/receipt.json",
+      "external_barriers": [
+        "render owner claim release and current PR train disposition"
+      ],
+      "test_upgrade_overlay": {
+        "units": [],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [],
+      "pre_test_upgrade_write_allowlist": [
+        "ops/render/pro/design_manifest.py",
+        "ops/render/pro/fem_cases.json",
+        "ops/render/pro/tests/test_science_manifest.py",
+        "ops/render/pro/tests/test_design_manifest.py"
+      ]
+    },
+    {
+      "id": "S16",
+      "title": "Independent reconstruction and release",
+      "status": "planned",
+      "owner_role": "integration owner",
+      "branch": "codex/science-v1-integration",
+      "worktree": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-integration",
+      "depends_on": [
+        "S00",
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15"
+      ],
+      "read_first": [
+        "docs/v1/JARAMBIT_V1_ENGINEERING_SPEC.md",
+        "docs/v1/science/RELEASE_PLAN.md",
+        ".github/workflows/d1-gates.yml",
+        ".github/workflows/version-check.yml"
+      ],
+      "write_allowlist": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/*/Cargo.toml",
+        "crates/cli/src/main.rs",
+        ".github/workflows/*",
+        "docs/VERSION",
+        "docs/RELEASES.md",
+        "docs/WHITEPAPER.md",
+        "README.md",
+        "STATUS.md",
+        "TECHNOLOGY_MAP.md",
+        "fem/README.md",
+        "docs/v1/jarambit_v1_roadmap.json",
+        "docs/v1/JARAMBIT_V1_ENGINEERING_SPEC.md",
+        "COORD.md",
+        "assurance/reporting/check_release.py",
+        "docs/v1/science/HANDOFF.md",
+        "ops/ci/science_suite.py",
+        "ops/ci/tests/test_science_suite.py",
+        ".github/workflows/science-contracts.yml",
+        ".github/workflows/science-numerical.yml",
+        "docs/CI.md"
+      ],
+      "ordered_steps": [
+        "Integrate shared outputs and reconcile all owner amendments",
+        "Run exact-head relevant gates and fresh independent reconstruction",
+        "Verify current and legacy replay plus historical status diff",
+        "Synchronize deliberate package/release versions and prerelease tag checks",
+        "Produce RC/final release manifest distinguishing physical review/authorization and preserve stricter master gates"
+      ],
+      "acceptance": [
+        "Green exact-head tests and independent review",
+        "All required physical/final gates satisfied or explicit owner amendment",
+        "No automatic manufacturing promotion",
+        "Test upgrade: execute the owned core phase of T19 with immutable receipts; conditional research is gated at S16, not predecessor completion"
+      ],
+      "full_instructions": "docs/v1/science/RELEASE_PLAN.md",
+      "receipt_path": ".agent/science-s16/<attempt>/receipt.json",
+      "external_barriers": [],
+      "test_upgrade_overlay": {
+        "units": [
+          "T19"
+        ],
+        "instructions": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+        "core_completion_gate": "Only required contracts for this S-owned phase/files. T04 search S05 closes before checkpoint S06; T05 numerical S07 closes before binding S08. T00 gates S01, not S00 policy review.",
+        "research_completion_gate": "Research runs after core interfaces close; activated capability qualification gates S16 release, not predecessor S core closure. Deferred research has claims disabled.",
+        "ownership": "Runtime writes stay with S owner; scopes supplement actual allowlist; no concurrent broad S/T writer"
+      },
+      "test_scope_supplement": [
+        "ops/ci/science_suite.py",
+        "ops/ci/tests/test_science_suite.py",
+        ".github/workflows/science-contracts.yml",
+        ".github/workflows/science-numerical.yml",
+        "docs/CI.md",
+        "assurance/reporting/check_release.py"
+      ],
+      "pre_test_upgrade_write_allowlist": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/*/Cargo.toml",
+        "crates/cli/src/main.rs",
+        ".github/workflows/*",
+        "docs/VERSION",
+        "docs/RELEASES.md",
+        "docs/WHITEPAPER.md",
+        "README.md",
+        "STATUS.md",
+        "TECHNOLOGY_MAP.md",
+        "fem/README.md",
+        "docs/v1/jarambit_v1_roadmap.json",
+        "docs/v1/JARAMBIT_V1_ENGINEERING_SPEC.md",
+        "COORD.md",
+        "assurance/reporting/check_release.py",
+        "docs/v1/science/HANDOFF.md"
+      ]
+    }
+  ],
+  "regression_mapping": {
+    "divergent_monotone": [
+      "S02"
+    ],
+    "zero_observed_order": [
+      "S02"
+    ],
+    "fine_pair_plateau": [
+      "S02"
+    ],
+    "invalid_refinement_ratio": [
+      "S02"
+    ],
+    "nonfinite_input": [
+      "S02"
+    ],
+    "zero_reference_quantity": [
+      "S02"
+    ],
+    "empty_expected_inventory": [
+      "S02"
+    ],
+    "nonfinite_monte_carlo_sample_is_not_sorted_as_equal": [
+      "S04"
+    ],
+    "zero_samples_is_rejected_explicitly": [
+      "S04"
+    ],
+    "invalid_sample_counts_are_preserved": [
+      "S04"
+    ],
+    "joint_requirement_outcomes_preserve_sample_identity": [
+      "S04"
+    ],
+    "requirement_hash_mismatch_rejects_claim": [
+      "S01",
+      "S03"
+    ],
+    "superseded_candidate_cannot_become_current_from_stale_heading": [
+      "S01",
+      "S03"
+    ],
+    "material_process_or_surface_change_invalidates_unapproved_transfer": [
+      "S13"
+    ],
+    "missing_physical_evidence_cannot_produce_physically_validated_label": [
+      "S13"
+    ],
+    "render_finish_metadata_cannot_populate_structural_properties": [
+      "S15"
+    ],
+    "negative_uncertainty_cannot_pass_upper_threshold": [
+      "S02"
+    ],
+    "interpolated_field_is_not_labeled_as_l2_projection": [
+      "S07"
+    ],
+    "out_of_scope_coating_test_cannot_claim_standard_compliance": [
+      "S14"
+    ]
+  },
+  "test_upgrade": {
+    "target_version": "1.0.0",
+    "work_units": 20,
+    "planned_challenge_groups": 178,
+    "catalog": "docs/v1/science/tests/TEST_CASE_CATALOG.json",
+    "protocol": "docs/v1/science/tests/TEST_UPGRADE_PLAN.md",
+    "ownership_assignments": {
+      "assurance/testing/__init__.py": {
+        "T": "T00",
+        "S": "S01"
+      },
+      "assurance/testing/contracts.py": {
+        "T": "T00",
+        "S": "S01"
+      },
+      "assurance/testing/catalog.py": {
+        "T": "T00",
+        "S": "S01"
+      },
+      "assurance/testing/receipt.py": {
+        "T": "T00",
+        "S": "S01"
+      },
+      "assurance/testing/policy.json": {
+        "T": "T00",
+        "S": "S01"
+      },
+      "assurance/testing/tests/test_contracts.py": {
+        "T": "T00",
+        "S": "S01"
+      },
+      "assurance/schemas/test_case.v1.json": {
+        "T": "T00",
+        "S": "S01"
+      },
+      "assurance/schemas/study_record.v1.json": {
+        "T": "T00",
+        "S": "S01"
+      },
+      "assurance/schemas/observation_record.v1.json": {
+        "T": "T00",
+        "S": "S01"
+      },
+      "assurance/schemas/qualification_result.v1.json": {
+        "T": "T00",
+        "S": "S01"
+      },
+      "ops/ci/test_inventory.py": {
+        "T": "T00",
+        "S": "S01"
+      },
+      "fem_solid/tests/test_gci.py": {
+        "T": "T01",
+        "S": "S02"
+      },
+      "fem_solid/tests/test_gci_evidence.py": {
+        "T": "T01",
+        "S": "S02"
+      },
+      "fem_solid/tests/test_fresh_attempts.py": {
+        "T": "T01",
+        "S": "S02"
+      },
+      "ops/ci/tests/test_claim_integrity.py": {
+        "T": "T02",
+        "S": "S03"
+      },
+      "ops/ci/tests/test_requirement_identity.py": {
+        "T": "T02",
+        "S": "S03"
+      },
+      "crates/monte_carlo/tests/checked_reduction.rs": {
+        "T": "T03",
+        "S": "S04"
+      },
+      "crates/monte_carlo/tests/joint_scenarios.rs": {
+        "T": "T03",
+        "S": "S04"
+      },
+      "crates/monte_carlo/tests/population_sensitivity.rs": {
+        "T": "T03",
+        "S": "S04"
+      },
+      "crates/crescent/tests/search_contract.rs": {
+        "T": "T04",
+        "S": "S05"
+      },
+      "crates/crescent/tests/checkpoint_replay.rs": {
+        "T": "T04",
+        "S": "S06"
+      },
+      "crates/crescent/tests/evidence_lineage.rs": {
+        "T": "T04",
+        "S": "S06"
+      },
+      "crates/physics/tests/invariance.rs": {
+        "T": "T05",
+        "S": "S07"
+      },
+      "fem_solid/tests/test_representation_invariants.py": {
+        "T": "T05",
+        "S": "S07"
+      },
+      "fem_solid/tests/test_field_semantics.py": {
+        "T": "T05",
+        "S": "S07"
+      },
+      "crates/crescent/tests/certified_bindings.rs": {
+        "T": "T05",
+        "S": "S08"
+      },
+      "assurance/testing/statistics.py": {
+        "T": "T06",
+        "S": "S09"
+      },
+      "assurance/testing/splits.py": {
+        "T": "T06",
+        "S": "S09"
+      },
+      "assurance/testing/tests/test_statistics.py": {
+        "T": "T06",
+        "S": "S09"
+      },
+      "assurance/testing/tests/test_splits.py": {
+        "T": "T06",
+        "S": "S09"
+      },
+      "ops/bench/tests/test_science_protocol.py": {
+        "T": "T06",
+        "S": "S09"
+      },
+      "assurance/laboratory/records.py": {
+        "T": "T07",
+        "S": "S13"
+      },
+      "assurance/laboratory/history.py": {
+        "T": "T07",
+        "S": "S13"
+      },
+      "assurance/laboratory/observation.py": {
+        "T": "T07",
+        "S": "S13"
+      },
+      "assurance/schemas/exposure_history.v1.json": {
+        "T": "T07",
+        "S": "S13"
+      },
+      "assurance/schemas/measurement_intervention.v1.json": {
+        "T": "T07",
+        "S": "S13"
+      },
+      "assurance/tests/test_history_observation.py": {
+        "T": "T07",
+        "S": "S13"
+      },
+      "assurance/tests/test_laboratory.py": {
+        "T": "T07",
+        "S": "S13"
+      },
+      "research/science_v1/multimodal/": {
+        "T": "T08",
+        "S": "S13"
+      },
+      "docs/validation/science_v1/MULTIMODAL_METHOD.md": {
+        "T": "T08",
+        "S": "S13"
+      },
+      "research/science_v1/state/": {
+        "T": "T09",
+        "S": "S13"
+      },
+      "docs/validation/science_v1/HIDDEN_STATE.md": {
+        "T": "T09",
+        "S": "S13"
+      },
+      "research/science_v1/neighborhood/": {
+        "T": "T10",
+        "S": "S13"
+      },
+      "docs/validation/science_v1/MICROSTRUCTURE.md": {
+        "T": "T10",
+        "S": "S13"
+      },
+      "research/science_v1/history/": {
+        "T": "T11",
+        "S": "S13"
+      },
+      "docs/validation/science_v1/HISTORY_ORDER.md": {
+        "T": "T11",
+        "S": "S13"
+      },
+      "docs/validation/science_v1/ACCELERATION.md": {
+        "T": "T11",
+        "S": "S13"
+      },
+      "research/science_v1/observer/": {
+        "T": "T12",
+        "S": "S13"
+      },
+      "docs/validation/science_v1/OBSERVER_EFFECTS.md": {
+        "T": "T12",
+        "S": "S13"
+      },
+      "research/science_v1/surfaces/": {
+        "T": "T13",
+        "S": "S14"
+      },
+      "docs/validation/science_v1/SURFACE_HISTORY.md": {
+        "T": "T13",
+        "S": "S14"
+      },
+      "research/science_v1/inspection/": {
+        "T": "T14",
+        "S": "S14"
+      },
+      "assurance/qualification/inspection.py": {
+        "T": "T14",
+        "S": "S14"
+      },
+      "docs/validation/science_v1/ACOUSTIC_INSPECTION.md": {
+        "T": "T14",
+        "S": "S14"
+      },
+      "research/science_v1/witness/": {
+        "T": "T15",
+        "S": "S14"
+      },
+      "docs/validation/science_v1/DAMAGE_WITNESS.md": {
+        "T": "T15",
+        "S": "S14"
+      },
+      "research/science_v1/recovery/": {
+        "T": "T16",
+        "S": "S14"
+      },
+      "docs/validation/science_v1/RECOVERY_CLAIMS.md": {
+        "T": "T16",
+        "S": "S14"
+      },
+      "research/science_v1/atomistic/": {
+        "T": "T17",
+        "S": "S11"
+      },
+      "docs/validation/science_v1/ATOMISTIC_BOUNDARY.md": {
+        "T": "T17",
+        "S": "S11"
+      },
+      "research/science_v1/falsification/": {
+        "T": "T18",
+        "S": "S11"
+      },
+      "docs/validation/science_v1/FALSIFICATION.md": {
+        "T": "T18",
+        "S": "S11"
+      },
+      "ops/ci/science_suite.py": {
+        "T": "T19",
+        "S": "S16"
+      },
+      "ops/ci/tests/test_science_suite.py": {
+        "T": "T19",
+        "S": "S16"
+      },
+      ".github/workflows/science-contracts.yml": {
+        "T": "T19",
+        "S": "S16"
+      },
+      ".github/workflows/science-numerical.yml": {
+        "T": "T19",
+        "S": "S16"
+      },
+      "docs/CI.md": {
+        "T": "T19",
+        "S": "S16"
+      },
+      "assurance/reporting/check_release.py": {
+        "T": "T19",
+        "S": "S16"
+      }
+    },
+    "status": "planned; not implemented",
+    "dependency_model": "T units are internal acceptance overlays. Parent S DAG and T dependency DAG validate separately. Close owned core phases only; later research qualification gates S16, not predecessor S closure. Never add parent-completion dependencies that create an internal cycle."
+  }
+}

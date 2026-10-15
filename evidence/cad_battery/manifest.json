@@ -1,0 +1,46 @@
+{
+ "schema": "jarambit.cad_battery.manifest.v1",
+ "metric": "G1",
+ "case_ids": [
+  "build.analytic",
+  "build.gci_contracts",
+  "build.claims",
+  "build.dolfinx",
+  "geom.unit",
+  "geom.one_solid",
+  "geom.mass",
+  "geom.pin",
+  "plate.loads",
+  "plate.seq",
+  "plate.l7",
+  "plate.gci",
+  "side.a1",
+  "side.a2",
+  "side.a3",
+  "side.a4",
+  "solid.tip",
+  "gate.rs_v2"
+ ],
+ "subjects": [
+  "c10a",
+  "c93",
+  "c92",
+  "c10c",
+  "g3",
+  "w271b_11772",
+  "w271b_11860",
+  "w271c_11522"
+ ],
+ "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+ "search_fitness": "unchanged",
+ "files": [
+  "evidence/cad_battery/c10a.json",
+  "evidence/cad_battery/c93.json",
+  "evidence/cad_battery/c92.json",
+  "evidence/cad_battery/c10c.json",
+  "evidence/cad_battery/g3.json",
+  "evidence/cad_battery/w271b_11772.json",
+  "evidence/cad_battery/w271b_11860.json",
+  "evidence/cad_battery/w271c_11522.json"
+ ]
+}

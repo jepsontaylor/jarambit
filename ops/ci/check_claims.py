@@ -1,91 +1,198 @@
 #!/usr/bin/env python3
-"""Claim checker (PR-0.28.2). Exit 1 on any violation. Author: Jepson Taylor.
-1. No unscoped PASS in current public docs (README.md, docs/PROVISIONAL.md, docs/WHITEPAPER.md before Appendix A):
-   a PASS token (outside `code`, link/image targets and file names) is allowed only on a line that names a
-   requirement set (RS-karambit-vN) or in a table whose header row names one.
-2. The verdict block between <!-- RS:BEGIN --> and <!-- RS:END --> in README.md and docs/PROVISIONAL.md must
-   equal ops/ci/rs_verdicts.py output for the provisional record named in that block.
-3. README's description of the default evaluator must match crates/cli/src/main.rs (JARAMBIT_FEM opt-in)."""
-import os, re, subprocess, sys
+"""Check exact registered report bodies and separate scoped assertions.
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RS = re.compile(r'RS-karambit-v\d+')
-errs = []
+Exit0 includes truthful scientific FAIL/INCOMPLETE. Integrity/scope errors exit1;
+provider/admission/protocol refusal exits2 without a reusable Resolution.
+--root selects document/evidence data only, never authority or a binary.
+"""
+import argparse
+from dataclasses import dataclass, field
+from pathlib import Path
+import re
+import sys
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from ops.ci import rs_verdicts
+from assurance.reporting import blocks, claims
+from assurance.testing.contracts import ContractError
+
+RS = re.compile(r'\bRS-[A-Za-z0-9_-]+\b')
+ASSERTION = re.compile(r'(?P<rs>\bRS-[A-Za-z0-9_-]+\b):\s*(?P<fields>[^;\n|]+?)\s+(?P<outcome>PASS|FAIL|INCOMPLETE)\b\.?\s*(?=;|$|\|)')
+CURRENT_HEADING = re.compile(r'^\s*#{1,6}\s+(?P<candidate>[^\s;]+)\s+(?:CURRENT(?:\s+RELEASE\s+CANDIDATE)?|RELEASE\s+CANDIDATE)(?=\s|;|$)', re.I)
+CURRENT_MARKER_HEADING = re.compile(r'^\s*#{1,6}\s+(?:CURRENT(?:\s+RELEASE\s+CANDIDATE)?|RELEASE\s+CANDIDATE)\s*:\s*(?P<candidate>[^\s;]+)(?=\s|;|$)', re.I)
 
 
-def read(rel):
-    with open(os.path.join(ROOT, rel), encoding='utf-8') as fh:
-        return fh.read()
+@dataclass
+class CheckResult:
+    exit_code: int
+    violations: list = field(default_factory=list)
+    provider: object = None
+
+
+def read(rel, root=ROOT):
+    path = (Path(root) / rel).resolve()
+    if not path.is_relative_to(Path(root).resolve()):
+        raise claims.Refusal('document_path_escape')
+    return claims.read_bounded(path).decode('utf-8', errors='strict')
 
 
 def strip_noise(line):
-    line = re.sub(r'`[^`]*`', '', line)            # inline code
-    line = re.sub(r'\]\([^)]*\)', ']', line)        # link / image targets
-    line = re.sub(r'\S+\.(png|svg|json|csv|md|stl|step)\b', '', line)
-    return line
+    return next((s for _, s in blocks.editorial_lines(line)), '')
 
 
-def scan_pass(rel, text, stop=None):
+def assertion_errors(assertion, report, registration):
+    """Supported syntax: RS-id: group [candidate=id] [class=id] outcome.
+
+    group=id is also accepted. Every explicitly asserted field is compared to
+    the actual provider or independently admitted caller, never to prose aliases.
+    """
+    tokens = assertion['fields'].split()
+    fields = {}
+    if tokens and '=' not in tokens[0]:
+        fields['group'] = tokens.pop(0)
+    for token in tokens:
+        key, separator, value = token.partition('=')
+        if separator != '=' or key not in {'group', 'candidate', 'class'} or not value or key in fields:
+            return ['unsupported or duplicate RS assertion field']
+        fields[key] = value
+    errors = []
+    if assertion['rs'] != report['verdict']['requirement_set']:
+        errors.append('asserted requirement scope differs from admitted provider')
+    if fields.get('group') != report['verdict']['group']:
+        errors.append('asserted group differs from admitted provider')
+    if 'candidate' in fields and fields['candidate'] != registration['candidate_id']:
+        errors.append('asserted candidate differs from trusted registration')
+    if 'class' in fields and fields['class'] != registration['requested_class']:
+        errors.append('asserted class differs from trusted registration')
+    if assertion['outcome'].lower() != report['verdict']['outcome']:
+        errors.append(f"scoped {assertion['outcome']} contradicts actual {report['verdict']['group']} provider verdict")
+    return errors
+
+
+def table_assertion_texts(line, rs_id):
+    """Keep each cell/semicolon outcome in its own inherited RS context.
+
+    Fields and outcome may occupy adjacent cells. Once an outcome appears,
+    later cells start another assertion rather than borrowing its coverage.
+    """
+    texts, pending = [], []
+    for cell in re.split(r'[;|]', line):
+        cell = cell.strip()
+        if not cell:
+            continue
+        pending.append(cell)
+        if re.search(r'\b(?:PASS|FAIL|INCOMPLETE)\b', cell):
+            text = ' '.join(pending)
+            if not re.search(r'\bRS-[A-Za-z0-9_-]+\s*:', text):
+                text = f'{rs_id}: {text}'
+            texts.append(text)
+            pending = []
+    if pending:
+        texts.append(' '.join(pending))
+    return texts
+
+
+def scan_pass(rel, text, report, registry, parsed=(), stop=None, *, registration):
     if stop and stop in text:
         text = text[:text.index(stop)]
-    header_scoped = False
-    in_code = False
-    for i, raw in enumerate(text.splitlines(), 1):
-        if raw.strip().startswith('```'):
-            in_code = not in_code
-            continue
-        if in_code:
-            continue
-        s = raw.strip()
-        if s.startswith('|'):
-            if re.match(r'^\|[\s:|-]+\|$', s):
-                continue
-            if not prev_table:
-                header_scoped = bool(RS.search(s))
-        prev = s.startswith('|')
-        line = strip_noise(raw)
-        if re.search(r'\bPASS\b', line) and not RS.search(raw) and not (s.startswith('|') and header_scoped):
-            errs.append(f'{rel}:{i}: unscoped PASS -> name the requirement set (e.g. RS-karambit-v1 screen): {raw.strip()[:120]}')
-        globals()['prev_table'] = prev
+    errors, table_scope = [], False
+    rs_id = report['verdict']['requirement_set']
+    group = report['verdict']['group']
+    prev_table = False
+    for number, line in blocks.editorial_lines(text, parsed):
+        stripped = line.strip(); in_table = stripped.startswith('|')
+        if in_table and not prev_table:
+            table_scope = rs_id in RS.findall(line)
+        if not in_table:
+            table_scope = False
+        prev_table = in_table
+        heading = CURRENT_MARKER_HEADING.match(line) or CURRENT_HEADING.match(line)
+        texts = table_assertion_texts(line, rs_id) if in_table and table_scope else [line]
+        for assertion_text in texts:
+            assertions = list(ASSERTION.finditer(assertion_text))
+            if in_table and table_scope and not assertions and re.search(r'\b(?:group|candidate|class)=', assertion_text):
+                errors.append(f'{rel}:{number}: unsupported table assertion field')
+            for assertion in assertions:
+                errors.extend(f'{rel}:{number}: {reason}' for reason in assertion_errors(assertion, report, registration))
+            covered = assertions + ([heading] if heading else [])
+            if any(not any(s.start() <= token.start() and token.end() <= s.end() for s in covered)
+                   for token in re.finditer(r'\bPASS\b', assertion_text)):
+                errors.append(f'{rel}:{number}: unscoped or unsupported PASS assertion')
+        if heading:
+            candidate = heading['candidate']
+            current = registry['current_by_scope'].get(group)
+            if (candidate != registration['candidate_id'] or candidate != current
+                    or registry['candidates'].get(candidate) in {None, 'archived', 'superseded'}):
+                errors.append(f'{rel}:{number}: stale or unregistered current candidate {candidate}')
+    return errors
 
 
-def check_block(rel):
-    t = read(rel)
-    m = re.search(r'<!-- RS:BEGIN (\S+) (\S+) -->\s*\n(.*?)\n\s*<!-- RS:END -->', t, re.S)
-    if not m:
-        errs.append(f'{rel}: missing <!-- RS:BEGIN <index.json> <label> --> ... <!-- RS:END --> block')
-        return
-    idx, label, body = m.group(1), m.group(2), m.group(3).strip()
-    out = subprocess.run([sys.executable, os.path.join(ROOT, 'ops', 'ci', 'rs_verdicts.py'), os.path.join(ROOT, idx), label],
-                         capture_output=True, text=True)
-    if out.returncode != 0:
-        errs.append(f'{rel}: rs_verdicts failed: {out.stderr.strip() or out.stdout.strip()}')
-        return
-    want = out.stdout.strip()
-    if want not in body:
-        errs.append(f'{rel}: RS verdict block is stale.\n  want: {want}\n  have: {body}')
+def check_document(document, context=None, *, rel='document.md', stop=None):
+    try:
+        context = context if context is not None else rs_verdicts.admitted_context()
+        claim_id = context.caller.data['pin']['registration']['claim_id']
+        expected = context.report_for(claim_id)
+        provider = context.last_resolution
+        registration = context.caller.verify_current()['pin']['registration']
+        registry = context.registry()
+    except rs_verdicts.RequestedScopeError as error:
+        return CheckResult(1, list(error.reasons), context.last_resolution)
+    except (claims.Refusal, ContractError, OSError, UnicodeError, TypeError, KeyError, ValueError) as error:
+        return CheckResult(2, [str(error)], None)
+    try:
+        text = document.decode('utf-8') if type(document) is bytes else document
+        parsed = blocks.parse_blocks(text)
+        if len(parsed) != 1:
+            raise blocks.BlockError('exactly one registered report block required')
+        blocks.check_exact_block(parsed[0], claim_id, expected)
+        errors = scan_pass(rel, text, expected, registry, parsed, stop, registration=registration)
+        return CheckResult(1 if errors else 0, errors, provider)
+    except (blocks.BlockError, UnicodeError, TypeError, ValueError) as error:
+        return CheckResult(1, [str(error)], provider)
 
 
-def check_default_evaluator():
-    main = read('crates/cli/src/main.rs')
+def check_block(rel, context=None, root=ROOT):
+    return check_document(read(rel, root), context, rel=rel)
+
+
+def check_default_evaluator(root=ROOT):
+    main = read('crates/cli/src/main.rs', root)
     opt_in = 'var("JARAMBIT_FEM").ok().as_deref() == Some("1")' in main
-    readme = read('README.md')
-    claims_default_on = re.search(r'plate level by default', readme) is not None
-    if opt_in and claims_default_on:
-        errs.append('README.md: claims plate level is the default, but crates/cli/src/main.rs makes it opt-in (JARAMBIT_FEM=1)')
+    readme = read('README.md', root)
+    errors = []
+    if opt_in and re.search(r'plate level by default', readme):
+        errors.append('README.md: plate level is opt-in (JARAMBIT_FEM=1)')
     if opt_in and 'JARAMBIT_FEM=1' not in readme:
-        errs.append('README.md: must document the JARAMBIT_FEM=1 opt-in for the plate-level search evaluator')
+        errors.append('README.md: must document the JARAMBIT_FEM=1 opt-in')
+    return errors
+
+
+def check_root(root=ROOT, context=None):
+    context = context if context is not None else rs_verdicts.admitted_context()
+    root = Path(root).resolve()
+    if (root / 'document.md').is_file():
+        return check_document(read('document.md', root), context)
+    results = [check_document(read(rel, root), context, rel=rel, stop=stop) for rel, stop in [('README.md', None), ('docs/PROVISIONAL.md', None), ('docs/WHITEPAPER.md', '## Appendix A')]]
+    errors = [e for r in results for e in r.violations] + check_default_evaluator(root)
+    code = 2 if any(r.exit_code == 2 for r in results) else (1 if errors else 0)
+    return CheckResult(code, errors, [r.provider for r in results])
+
+
+def main(argv=None, *, context=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--root', type=Path, default=ROOT)
+    args = parser.parse_args(argv)
+    try:
+        result = check_root(args.root, context)
+    except (claims.Refusal, ContractError, OSError, UnicodeError, ValueError, TypeError, KeyError) as error:
+        result = CheckResult(2, [str(error)])
+    for error in result.violations:
+        print('ERROR:', error)
+    print(f'check_claims: {len(result.violations)} violation(s)')
+    return result.exit_code
 
 
 if __name__ == '__main__':
-    prev_table = False
-    for rel, stop in (('README.md', None), ('docs/PROVISIONAL.md', None), ('docs/WHITEPAPER.md', '## Appendix A')):
-        prev_table = False
-        scan_pass(rel, read(rel), stop)
-    for rel in ('README.md', 'docs/PROVISIONAL.md'):
-        check_block(rel)
-    check_default_evaluator()
-    for e in errs:
-        print('ERROR:', e)
-    print(f'check_claims: {len(errs)} violation(s)')
-    sys.exit(1 if errs else 0)
+    raise SystemExit(main())

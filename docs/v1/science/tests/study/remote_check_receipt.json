@@ -1,0 +1,45 @@
+{
+  "scope": "documentation planning checks only",
+  "utc": "2026-10-14T01:07:08.771343+00:00",
+  "planning_parent_commit": "b967ece0d53e3a6fc70a8ce4ad80697bf690b35c",
+  "status": "passed",
+  "commands": [
+    {
+      "name": "package_hashes",
+      "argv": [
+        "sha256sum",
+        "-c",
+        "PACKAGE_SHA256SUMS"
+      ],
+      "cwd": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-plan/docs/v1/science",
+      "returncode": 0,
+      "elapsed_s": 0.0031,
+      "log_sha256": "669601684599ba5e3de10795ddc28891a0bfd8735db09476a96d359d651b0d3a"
+    },
+    {
+      "name": "test_plan_structure",
+      "argv": [
+        "python3",
+        "docs/v1/science/tests/validate_test_plan.py",
+        "--input-root",
+        "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-plan/.agent/science-v1-study/test-upgrade/inputs",
+        "--output",
+        "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-plan/.agent/science-v1-study/test-upgrade/remote_plan_validation.json"
+      ],
+      "cwd": "/home/ubuntu/jarambit/.agent/worktrees/codex-science-v1-plan",
+      "returncode": 0,
+      "elapsed_s": 0.3672,
+      "log_sha256": "00e1b073bb4e88f31b90e27734ba76ae45c9543e63808fd864fa79f397043627"
+    }
+  ],
+  "affinity": [
+    0
+  ],
+  "cgroup": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-r776bf8f0851e42a8885afac367a5c6be.scope",
+  "limits": {
+    "memory.max": "8589934592",
+    "memory.swap.max": "0"
+  },
+  "screen": "jr_v1_test_plancheck",
+  "code_runtime_tests_executed": false
+}

@@ -1,0 +1,486 @@
+{
+  "schema": "jarambit.test_plan.literature.v1",
+  "checked_utc": "2026-10-14T01:00:31.517086+00:00",
+  "method": "Primary anchors checked for scope; extracted proposal bibliography not exhaustively verified",
+  "checked_anchor_count": 12,
+  "checked_anchors": [
+    {
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36048948/",
+      "title": "On the origins of fatigue strength in crystalline metallic materials",
+      "publication": "2022",
+      "check_extent": "primary indexed abstract",
+      "status": "checked_with_limited_scope",
+      "transfer_limit": "First-cycle slip motivation; no universal part-life prediction"
+    },
+    {
+      "url": "https://www.nature.com/articles/s43246-026-01102-3",
+      "title": "Low stress grain boundary mediated plasticity and early fracture at basal twist grain boundaries in a titanium alloy",
+      "publication": "2026-02-10; version of record 2026-03-18",
+      "check_extent": "primary indexed abstract/conclusions",
+      "status": "checked_with_limited_scope",
+      "transfer_limit": "Specific Ti6Al4V microstructure/loading; hypothesis for stock, not diagnosis"
+    },
+    {
+      "url": "https://www.nature.com/articles/s41597-026-08241-9",
+      "title": "Multimodal 3D X-ray Topotomography Dataset of Slip Activity and Transmission in Ti7Al",
+      "publication": "2026-10-02 early article",
+      "check_extent": "primary indexed abstract/metadata",
+      "status": "checked_with_limited_scope",
+      "transfer_limit": "Surface/bulk method benchmark; no Ti6 qualification"
+    },
+    {
+      "url": "https://datadryad.org/dataset/doi:10.5061/dryad.sj3tx96g8",
+      "title": "Ti7Al multimodal dataset deposit",
+      "publication": "2026-07-02 dataset version",
+      "check_extent": "primary deposit metadata/readme text; no raw download",
+      "status": "checked_with_limited_scope",
+      "transfer_limit": "156.92GB full deposit; one specimen; small subset lacks matched DIC slip data"
+    },
+    {
+      "url": "https://www.nist.gov/publications/acoustic-nonlinearity-and-loss-associated-unbonded-interfaces-and-dislocations",
+      "title": "Acoustic Nonlinearity and Loss Associated with Unbonded Interfaces and Dislocations in Additively Manufactured CoCrMo Parts with Complex Geometries",
+      "publication": "2026-08-11",
+      "check_extent": "primary study abstract at research institution",
+      "status": "checked_with_limited_scope",
+      "transfer_limit": "Two AM CoCrMo specimens, not Ti diagnostic qualification"
+    },
+    {
+      "url": "https://www.nature.com/articles/s41467-019-08752-7",
+      "title": "Ti and its alloys as examples of cryogenic focused ion beam milling of environmentally-sensitive materials",
+      "publication": "2019",
+      "check_extent": "primary indexed article text",
+      "status": "checked_with_limited_scope",
+      "transfer_limit": "Material/preparation-specific hydrogen artifacts; no universal Ti6 assertion"
+    },
+    {
+      "url": "https://www.itl.nist.gov/div898/handbook/apr/section1/apr14.htm",
+      "title": "What is physical acceleration and how do we model it?",
+      "publication": "undated current handbook",
+      "check_extent": "full primary technical section",
+      "status": "checked_with_limited_scope",
+      "transfer_limit": "Same failure mechanisms and mode-specific factors; not service-year evidence"
+    },
+    {
+      "url": "https://newsreleases.sandia.gov/healing_metals/",
+      "title": "Research laboratory account of nanoscale metal fatigue healing",
+      "publication": "2023-07-19",
+      "check_extent": "full primary research-institution account",
+      "status": "checked_with_limited_scope",
+      "transfer_limit": "Nanoscale platinum/vacuum and later cracking; conventional air applicability unknown"
+    },
+    {
+      "url": "https://www.nature.com/articles/s41524-023-01123-3",
+      "title": "Discrepancies and error evaluation metrics for machine learning interatomic potentials",
+      "publication": "2023",
+      "check_extent": "primary indexed text/abstract",
+      "status": "checked_with_limited_scope",
+      "transfer_limit": "Specific model/benchmark errors; requires actual potential qualification"
+    },
+    {
+      "url": "https://www.nature.com/articles/s41524-024-01500-6",
+      "title": "Systematic softening in universal machine learning interatomic potentials",
+      "publication": "2025-01-10",
+      "check_extent": "primary indexed article text",
+      "status": "checked_with_limited_scope",
+      "transfer_limit": "Specific benchmark models, not every potential; year from article not DOI suffix"
+    },
+    {
+      "url": "https://arxiv.org/abs/2411.03401",
+      "title": "Statistical analysis to assess porosity equivalence with uncertainty across additively manufactured parts for fatigue applications",
+      "publication": "2024-11-05",
+      "check_extent": "primary preprint abstract",
+      "status": "checked_with_limited_scope",
+      "transfer_limit": "AM geometry/extreme-pore research lead; conditional route"
+    },
+    {
+      "url": "https://arxiv.org/abs/2502.05372",
+      "title": "Active Learning of Model Discrepancy with Bayesian Experimental Design",
+      "publication": "2025-02-07; v2 2025-08-10",
+      "check_extent": "primary preprint abstract",
+      "status": "checked_with_limited_scope",
+      "transfer_limit": "Model-discrepancy lead; not physical autonomous-lab proof"
+    }
+  ],
+  "proposal_citation_inventory": {
+    "https://www.sciencedirect.com/science/article/abs/pii/S0013468622014992": [
+      "test7.md"
+    ],
+    "https://pubs.rsc.org/cp/article/27/18/9522/885972/Reactions-of-fluid-and-lattice-oxygen-mediated-by": [
+      "test7.md"
+    ],
+    "https://www.sciencedirect.com/science/article/abs/pii/S0043164812001548": [
+      "test7.md"
+    ],
+    "https://www.science.org/doi/10.1126/sciadv.abc4060": [
+      "test7.md"
+    ],
+    "https://www.chess.cornell.edu/influence-alloying-slip-intermittency-and-implications-dwell-fatigue-titanium": [
+      "test7.md"
+    ],
+    "https://arxiv.org/abs/2102.03642": [
+      "test7.md"
+    ],
+    "https://pubs.acs.org/langd5/article/37/49/14509/581976/Re-examination-of-the-Aqueous-Stability-of-Atomic": [
+      "test7.md"
+    ],
+    "https://pubs.acs.org/doi/full/10.1021/nn4014356": [
+      "test7.md",
+      "test2.md"
+    ],
+    "https://www.nature.com/articles/s41467-019-08752-7": [
+      "test7.md",
+      "test10.md",
+      "test3.md",
+      "test8.md",
+      "test5.md"
+    ],
+    "https://www.jstage.jst.go.jp/article/jsa/20/3/20_211/_article": [
+      "test7.md"
+    ],
+    "https://www.nist.gov/publications/nonlinear-reverberation-spectroscopy-phase-sensitive-superheterodyne-reception": [
+      "test7.md",
+      "test6.md"
+    ],
+    "https://www.nist.gov/publications/acoustic-nonlinearity-and-loss-associated-unbonded-interfaces-and-dislocations": [
+      "test7.md",
+      "test7.md"
+    ],
+    "https://ntrs.nasa.gov/api/citations/20150023108/downloads/20150023108.pdf": [
+      "test7.md"
+    ],
+    "https://www.nature.com/articles/s41586-023-06223-0": [
+      "test7.md",
+      "test3.md",
+      "test8.md",
+      "test1.md"
+    ],
+    "https://www.nature.com/articles/s41524-023-01123-3": [
+      "test7.md"
+    ],
+    "https://www.nature.com/articles/s43246-026-01102-3_reference.pdf": [
+      "test10.md"
+    ],
+    "https://pubmed.ncbi.nlm.nih.gov/33203830/": [
+      "test10.md",
+      "test6.md",
+      "test6.md",
+      "test4.md"
+    ],
+    "https://pubmed.ncbi.nlm.nih.gov/20871111/": [
+      "test10.md"
+    ],
+    "https://research.buaa.edu.cn/en/publications/mechanistic-basis-of-oxygen-sensitivity-in-titanium/": [
+      "test10.md"
+    ],
+    "https://ntrs.nasa.gov/api/citations/19970011006/downloads/19970011006.pdf": [
+      "test10.md",
+      "test2.md"
+    ],
+    "https://www.sciencedirect.com/science/article/pii/S0043164812001548": [
+      "test10.md"
+    ],
+    "https://doi.org/10.1007/s11249-022-01624-0": [
+      "test10.md"
+    ],
+    "https://impact.ornl.gov/en/publications/nonlinear-resonance-ultrasonic-spectroscopy-nrus-for-the-quality-/": [
+      "test10.md",
+      "test5.md"
+    ],
+    "https://pubs.acs.org/doi/abs/10.1021/acsaenm.4c00779": [
+      "test10.md"
+    ],
+    "https://newsreleases.sandia.gov/healing_metals/": [
+      "test10.md",
+      "test6.md"
+    ],
+    "https://arxiv.org/html/2308.10702v2": [
+      "test10.md"
+    ],
+    "https://doi.org/10.1038/S41467-024-51423-5": [
+      "test3.md"
+    ],
+    "https://www.nature.com/articles/s41467-025-62646-5": [
+      "test3.md",
+      "test6.md",
+      "test1.md"
+    ],
+    "https://www.sciencedirect.com/science/article/pii/S0921509321017597": [
+      "test3.md"
+    ],
+    "https://doi.org/10.1016/j.ijfatigue.2020.105945": [
+      "test3.md"
+    ],
+    "https://www.sciencedirect.com/science/article/pii/S0010938X25004299": [
+      "test3.md"
+    ],
+    "https://www.sciencedirect.com/science/article/pii/S0257897210012430": [
+      "test3.md"
+    ],
+    "https://onlinelibrary.wiley.com/doi/abs/10.1111/ffe.14063": [
+      "test3.md"
+    ],
+    "https://www.cambridge.org/core/journals/journal-of-materials-research/article/abs/ultrasonic-linear-and-nonlinear-behavior-of-fatigued-ti6al4v/DF480E45B09D800F1F9539166F63D21A": [
+      "test3.md"
+    ],
+    "https://www.nist.gov/publications/probability-detection-x-ray-computed-tomography-additive-manufacturing-defects": [
+      "test3.md",
+      "test2.md"
+    ],
+    "https://onlinelibrary.wiley.com/doi/10.1111/ffe.13957": [
+      "test3.md"
+    ],
+    "https://www.nature.com/articles/s41524-024-01500-6": [
+      "test3.md",
+      "test8.md"
+    ],
+    "https://doi.org/10.1038%2Fs41524-025-01758-4": [
+      "test3.md",
+      "test3.md"
+    ],
+    "https://www.nature.com/articles/s41467-020-19597-w": [
+      "test3.md"
+    ],
+    "https://www.sciencedirect.com/science/article/pii/S1359645416303251": [
+      "test2.md"
+    ],
+    "https://www.nature.com/articles/s41467-020-19470-w": [
+      "test2.md",
+      "test8.md",
+      "test8.md"
+    ],
+    "https://link.springer.com/article/10.1038/s41597-026-08241-9": [
+      "test2.md",
+      "test5.md"
+    ],
+    "https://link.springer.com/content/pdf/10.1038/s41597-026-08241-9_reference.pdf": [
+      "test2.md"
+    ],
+    "https://arxiv.org/abs/2310.14668": [
+      "test2.md"
+    ],
+    "https://link.springer.com/article/10.1007/s11249-022-01624-0": [
+      "test2.md"
+    ],
+    "https://www.mdpi.com/1996-1944/17/4/835": [
+      "test2.md"
+    ],
+    "https://www.ctcms.nist.gov/potentials/": [
+      "test2.md",
+      "test9.md"
+    ],
+    "https://pubs.acs.org/jacsat/article/147/49/44686/3740186/A-Thermally-and-Photochemically-Stable-Fluorescent": [
+      "test2.md"
+    ],
+    "https://pure.psu.edu/en/publications/nonlinear-resonant-ultrasonic-spectroscopy-nrus-for-monitoring-fa/": [
+      "test2.md",
+      "test2.md",
+      "test8.md"
+    ],
+    "https://pmc.ncbi.nlm.nih.gov/articles/PMC10180313/": [
+      "test2.md"
+    ],
+    "https://pubmed.ncbi.nlm.nih.gov/37468631/": [
+      "test2.md",
+      "test6.md",
+      "test5.md"
+    ],
+    "https://pubmed.ncbi.nlm.nih.gov/36048948/": [
+      "test6.md",
+      "test6.md",
+      "test6.md",
+      "test5.md",
+      "test5.md"
+    ],
+    "https://www.osti.gov/pages/biblio/1591853": [
+      "test6.md"
+    ],
+    "https://research.birmingham.ac.uk/en/publications/tribocorrosion-behaviour-of-pure-titanium-in-bovine-serum-albumin/": [
+      "test6.md",
+      "test6.md"
+    ],
+    "https://www.nature.com/articles/s41427-022-00406-3": [
+      "test6.md",
+      "test6.md",
+      "test4.md"
+    ],
+    "https://pmc.ncbi.nlm.nih.gov/articles/PMC6391424/": [
+      "test6.md"
+    ],
+    "https://arxiv.org/abs/2306.11639": [
+      "test6.md",
+      "test6.md"
+    ],
+    "https://mail.goldbook.iupac.org/terms/view/T06470/plain": [
+      "test6.md",
+      "test5.md"
+    ],
+    "https://www.ornl.gov/publication/active-learning-neural-network-potentials-rare-events": [
+      "test6.md"
+    ],
+    "https://www.nature.com/articles/s41524-026-02148-0": [
+      "test6.md"
+    ],
+    "https://pure.psu.edu/en/publications/observing-dwell-fatigue-stress-redistribution-in-ti-6al-4v-grain-/": [
+      "test9.md"
+    ],
+    "https://arxiv.org/abs/2203.14615": [
+      "test9.md",
+      "test9.md"
+    ],
+    "https://onlinelibrary.wiley.com/doi/full/10.1111/ffe.12177": [
+      "test9.md"
+    ],
+    "https://pmc.ncbi.nlm.nih.gov/articles/PMC7608824/": [
+      "test9.md"
+    ],
+    "https://www.sciencedirect.com/science/article/pii/S2238785418301297": [
+      "test9.md"
+    ],
+    "https://www.sciencedirect.com/science/article/pii/S138824811730231X": [
+      "test9.md",
+      "test4.md"
+    ],
+    "https://www.sciencedirect.com/science/article/abs/pii/S0010938X02002238": [
+      "test9.md"
+    ],
+    "https://asu.elsevierpure.com/en/publications/graphene-as-a-long-term-metal-oxidation-barrier-worse-than-nothin/": [
+      "test9.md"
+    ],
+    "https://pubs.rsc.org/lp/article/3/3/592/895816/Harnessing-mechanochemical-fluorescence-toward": [
+      "test9.md"
+    ],
+    "https://link.springer.com/article/10.1007/s11665-023-08385-4": [
+      "test9.md"
+    ],
+    "https://lanlexperts.elsevierpure.com/en/publications/autonomous-healing-of-fatigue-cracks-via-cold-welding/": [
+      "test9.md"
+    ],
+    "https://www.sciencedirect.com/science/article/abs/pii/S0749641909000965": [
+      "test9.md"
+    ],
+    "https://arxiv.org/html/2603.12365v1": [
+      "test9.md"
+    ],
+    "https://pmc.ncbi.nlm.nih.gov/articles/PMC10179497/": [
+      "test9.md"
+    ],
+    "https://www.sciencedirect.com/science/article/abs/pii/S0142112311002659": [
+      "test8.md"
+    ],
+    "https://link.springer.com/article/10.1007/s11837-022-05461-3": [
+      "test8.md"
+    ],
+    "https://onlinelibrary.wiley.com/doi/10.1046/j.1460-2695.2002.00522.x": [
+      "test8.md"
+    ],
+    "https://www.nature.com/articles/s41529-025-00679-3": [
+      "test8.md"
+    ],
+    "https://www.sciencedirect.com/science/article/abs/pii/S135964542200074X": [
+      "test8.md"
+    ],
+    "https://www.nature.com/articles/s41529-023-00360-7": [
+      "test8.md"
+    ],
+    "https://arxiv.org/abs/2506.10548": [
+      "test8.md"
+    ],
+    "https://arxiv.org/abs/2003.01682": [
+      "test1.md"
+    ],
+    "https://www.nature.com/articles/s43246-026-01102-3": [
+      "test1.md"
+    ],
+    "https://link.aps.org/doi/10.1103/PhysRevMaterials.6.093601": [
+      "test1.md",
+      "test1.md"
+    ],
+    "https://link.springer.com/article/10.1007/s00161-020-00878-0": [
+      "test1.md"
+    ],
+    "https://research.manchester.ac.uk/en/publications/porosity-regrowth-during-heat-treatment-of-hot-isostatically-pres/": [
+      "test1.md",
+      "test1.md"
+    ],
+    "https://arxiv.org/abs/2411.03401": [
+      "test1.md"
+    ],
+    "https://www.nist.gov/publications/accurate-keyhole-instability-prediction-metal-additive-manufacturing-through-machine": [
+      "test1.md"
+    ],
+    "https://pubmed.ncbi.nlm.nih.gov/36308875/": [
+      "test1.md",
+      "test4.md"
+    ],
+    "https://onlinelibrary.wiley.com/doi/full/10.1002/jbm.a.37849": [
+      "test1.md"
+    ],
+    "https://link.springer.com/article/10.1557/JMR.1999.0176": [
+      "test1.md"
+    ],
+    "https://arxiv.org/html/2011.10041v1": [
+      "test1.md"
+    ],
+    "https://link.springer.com/article/10.1007/s10853-026-12405-8": [
+      "test1.md"
+    ],
+    "https://www.sciencedirect.com/science/article/pii/S0951832025004089": [
+      "test1.md"
+    ],
+    "https://link.springer.com/article/10.1186/s41313-024-00055-9": [
+      "test5.md"
+    ],
+    "https://datadryad.org/dataset/doi%3A10.5061/dryad.sj3tx96g8": [
+      "test5.md"
+    ],
+    "https://link.springer.com/article/10.1038/s41467-020-19470-w": [
+      "test5.md"
+    ],
+    "https://advanced.onlinelibrary.wiley.com/doi/abs/10.1002/adma.200601446": [
+      "test5.md"
+    ],
+    "https://pubmed.ncbi.nlm.nih.gov/29489376/": [
+      "test5.md"
+    ],
+    "https://eprints.lib.hokudai.ac.jp/repo/huscap/all/71584/": [
+      "test5.md"
+    ],
+    "https://www.nist.gov/publications/evidence-contributions-lack-fusion-defects-and-dislocations-acoustic-nonlinearity-and": [
+      "test5.md"
+    ],
+    "https://www.nature.com/articles/s41467-025-59232-0": [
+      "test5.md"
+    ],
+    "https://www.sciencedirect.com/science/article/abs/pii/S0142112323005698": [
+      "test4.md"
+    ],
+    "https://digitalcommons.memphis.edu/facpubs/14855/": [
+      "test4.md"
+    ],
+    "https://www.itl.nist.gov/div898/handbook/apr/section1/apr14.htm": [
+      "test4.md"
+    ],
+    "https://pubs.acs.org/doi/abs/10.1021/cm401635v": [
+      "test4.md"
+    ],
+    "https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/abs/10.1002/sia.1296": [
+      "test4.md"
+    ],
+    "https://www.cambridge.org/core/journals/journal-of-materials-research/article/ultrasonic-linear-and-nonlinear-behavior-of-fatigued-ti6al4v/DF480E45B09D800F1F9539166F63D21A": [
+      "test4.md"
+    ],
+    "https://pubs.aip.org/asa/jasa/article/126/5/EL117/901184/The-use-of-non-collinear-mixing-for-nonlinear": [
+      "test4.md"
+    ],
+    "https://arxiv.org/html/2502.05372v1": [
+      "test4.md"
+    ],
+    "https://www.nature.com/articles/s41524-026-02251-2": [
+      "test4.md"
+    ]
+  },
+  "unlisted_url_status": "extracted/unverified proposal citation; specialist must verify before numerical/physical use",
+  "raw_data_downloaded": false,
+  "quantitative_paper_results_imported_into_material_constants": false,
+  "copyright_policy": "short paraphrased scope summaries; no copied paper content"
+}

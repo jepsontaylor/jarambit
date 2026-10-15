@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "specimen.v1",
+  "description": "Closed specimen identity. Absent finish is omitted, not a default finish. An unknown route is explicit. No strength or transfer is implied.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "material_lot", "process_route", "heat_treatment", "geometry_sha256", "surface_process", "parent_stock", "chain_of_custody", "alloy"],
+  "properties": {
+    "schema": {"const": "specimen.v1"},
+    "id": {"type": "string", "minLength": 1},
+    "material_lot": {"type": "string", "minLength": 1},
+    "process_route": {
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["unknown"],
+          "properties": {"unknown": {"type": "string", "minLength": 1}}
+        }
+      ]
+    },
+    "heat_treatment": {"type": "string", "minLength": 1},
+    "geometry_sha256": {"type": "string", "minLength": 64, "maxLength": 64},
+    "surface_process": {"type": "string", "minLength": 1},
+    "parent_stock": {"type": "string", "minLength": 1},
+    "chain_of_custody": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "alloy": {"type": "string", "minLength": 1},
+    "finish": {
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["unknown"],
+          "properties": {"unknown": {"type": "string", "minLength": 1}}
+        }
+      ]
+    }
+  }
+}

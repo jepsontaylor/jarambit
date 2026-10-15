@@ -187,6 +187,14 @@ pub fn search_bias() -> (f64, f64) {
 /// Unbiased capacities at one mesh level (refinement studies beyond certification).
 pub fn run_unbiased(p: &Pheno, max_area: f64) -> Option<Fem> { run_b(p, max_area, false, 1.0, 1.0).map(|x| x.0) }
 
+/// One unbiased plate solve with the element fields kept. `seq_ratio` and the safety factors are
+/// the values `run_b` already returns at this mesh. Search bias is not applied. This is not
+/// `certify`: certification is the minimum of 0.25 mm² and 0.125 mm².
+pub fn report_fields(p: &Pheno, max_area: f64) -> Option<(Fem, Fields)> {
+    let (f, fields) = run_b(p, max_area, true, 1.0, 1.0)?;
+    Some((f, fields?))
+}
+
 /// Certified capacities: min over CERT_AREAS of the 20 C capacities, robust factors applied, no
 /// mesh bias (these are the reference levels). Fields (for plates) come from the 0.25 mm^2 level.
 pub fn certify(p: &Pheno) -> Option<(Fem, Fields)> {

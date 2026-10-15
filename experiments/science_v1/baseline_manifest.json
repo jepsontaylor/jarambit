@@ -26,7 +26,7 @@
       },
       {
         "path": "docs/v1/science/tests/TEST_CASE_CATALOG.json",
-        "sha256": "63d31d9d75de872369c4373f5c0be7fc537d921df0f5df13970fd9964e77d89d"
+        "sha256": "5746f3325bec2d62eb6c9e2f50184991c46e250bc9e3c76a2effcfbc8915a524"
       },
       {
         "path": "docs/v1/science/tests/CI_GATE_POLICY.json",
@@ -37,7 +37,7 @@
   },
   "release_policy": {
     "path": "assurance/policies/release-v1.json",
-    "sha256": "c2ff841cced11070c87f226a677d00c906cf7f4a11c6af31958bd642e27b5cd9",
+    "sha256": "c58b0b30da87e902db4da01502ddbeff95749732d45b8a8e91c353f349762b17",
     "bytes": 11615
   },
   "requirements": [

@@ -1,0 +1,323 @@
+{
+ "schema": "jarambit.cad_battery.subject.v1",
+ "subject": "w271c_11522",
+ "role": "genome",
+ "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+ "cases": [
+  {
+   "id": "build.analytic",
+   "kind": "software_contract",
+   "status": "pass",
+   "solver": "analytic",
+   "geometry_sha256": null,
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": "crates/physics/tests/invariance.rs",
+   "fresh_this_lane": false
+  },
+  {
+   "id": "build.gci_contracts",
+   "kind": "software_contract",
+   "status": "pass",
+   "solver": "gci",
+   "geometry_sha256": null,
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": "fem_solid/tests/test_gci.py",
+   "fresh_this_lane": false
+  },
+  {
+   "id": "build.claims",
+   "kind": "software_contract",
+   "status": "pass",
+   "solver": null,
+   "geometry_sha256": null,
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": "ops/ci/check_claims.py",
+   "fresh_this_lane": false,
+   "detail": {
+    "expected_unaided_exit": 2,
+    "reason": "independent_caller_admission_unavailable"
+   }
+  },
+  {
+   "id": "build.dolfinx",
+   "kind": "software_contract",
+   "status": "blocked",
+   "solver": "solid_dolfinx",
+   "geometry_sha256": null,
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": null,
+   "fresh_this_lane": false,
+   "reason": "ModuleNotFoundError: No module named dolfinx",
+   "detail": {
+    "interpreters_checked": [
+     "python3",
+     "/home/ubuntu/jarambit_render/venv-cad/bin/python",
+     "/home/ubuntu/.venv/bin/python",
+     "/home/ubuntu/.venvs/doug-tests/bin/python",
+     "/home/ubuntu/.venvs/innovationzero-v5-tabpfn/bin/python",
+     "/home/ubuntu/.venvs/jope-asm-training/bin/python",
+     "/home/ubuntu/.venvs/jope-dltrain-v1/bin/python",
+     "/home/ubuntu/.venvs/resemble-enhance/bin/python"
+    ],
+    "import_error": "ModuleNotFoundError",
+    "modules_on_default_discovery": false,
+    "pip_install": false
+   }
+  },
+  {
+   "id": "geom.unit",
+   "kind": "gate",
+   "status": "blocked",
+   "solver": null,
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": "evidence/rs_v2/genomes/w271c_11522.csv",
+   "fresh_this_lane": false,
+   "reason": "no step bound"
+  },
+  {
+   "id": "geom.one_solid",
+   "kind": "gate",
+   "status": "blocked",
+   "solver": null,
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": "evidence/rs_v2/genomes/w271c_11522.csv",
+   "fresh_this_lane": false,
+   "reason": "no step bound"
+  },
+  {
+   "id": "geom.mass",
+   "kind": "derived",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": "evidence/rs_v2/w271c_11522.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "plate_mass_g": 79.96161512803431,
+    "note": "fem::certify mass, not a STEP"
+   },
+   "g_inputs": {
+    "mass_g": 79.96161512803431
+   }
+  },
+  {
+   "id": "geom.pin",
+   "kind": "software_contract",
+   "status": "blocked",
+   "solver": null,
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": "evidence/rs_v2/genomes/w271c_11522.csv",
+   "fresh_this_lane": false,
+   "reason": "genome is not a native CAD pin"
+  },
+  {
+   "id": "plate.loads",
+   "kind": "derived",
+   "status": "fail",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": "evidence/rs_v2/w271c_11522.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "loads": {
+     "hiker_lateral_n": {
+      "value_n_or_sf": 274.69077251697746,
+      "compared_with": 180
+     },
+     "hunter_lateral_n": {
+      "value_n_or_sf": 274.69077251697746,
+      "compared_with": 260
+     },
+     "ring_pull_n": {
+      "value_n_or_sf": 13403.844789238432,
+      "compared_with": 1500
+     },
+     "chord_twist_human_max_sf": {
+      "value_n_or_sf": 0.09651947249219367,
+      "compared_with": 16200
+     },
+     "spine_sf": {
+      "value_n_or_sf": 0.41939747194547083,
+      "compared_with": 3427
+     },
+     "ring_back_sf": {
+      "value_n_or_sf": 1.9923488470274096,
+      "compared_with": 3000
+     },
+     "tip_inplane_sf_record_only": {
+      "value_n_or_sf": 0.5739417829204602,
+      "compared_with": 1000
+     },
+     "pry": null
+    },
+    "note": "derived from the certify record"
+   }
+  },
+  {
+   "id": "plate.seq",
+   "kind": "gate",
+   "status": "fail",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": "evidence/rs_v2/w271c_11522.json",
+   "fresh_this_lane": false,
+   "reason": "below 1.2",
+   "detail": {
+    "seq_ratio": 0.7784421108892615,
+    "seq_target": 1.2,
+    "side_report_seq_ratio": null
+   },
+   "g_inputs": {
+    "seq_ratio": 0.7784421108892615
+   }
+  },
+  {
+   "id": "plate.l7",
+   "kind": "derived",
+   "status": "fail",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": "evidence/rs_v2/w271c_11522.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "label": "screening",
+    "not": "spec \u00a77.3 L7",
+    "fat_sf": 0.7673006161022223,
+    "cycles": "1e7",
+    "load": "0..180 N"
+   }
+  },
+  {
+   "id": "plate.gci",
+   "kind": "derived",
+   "status": "incomplete",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": "evidence/rs_v2/w271c_11522.json",
+   "fresh_this_lane": false,
+   "reason": "no three-mesh plate family stored"
+  },
+  {
+   "id": "side.a1",
+   "kind": "derived",
+   "status": "incomplete",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": null,
+   "fresh_this_lane": false,
+   "reason": "not inherited from another subject"
+  },
+  {
+   "id": "side.a2",
+   "kind": "derived",
+   "status": "incomplete",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": null,
+   "fresh_this_lane": false,
+   "reason": "not inherited from another subject"
+  },
+  {
+   "id": "side.a3",
+   "kind": "derived",
+   "status": "incomplete",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": null,
+   "fresh_this_lane": false,
+   "reason": "not inherited from another subject"
+  },
+  {
+   "id": "side.a4",
+   "kind": "derived",
+   "status": "incomplete",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": null,
+   "fresh_this_lane": false,
+   "reason": "run_b default BC is the certified model",
+   "detail": {
+    "bore_support": "absent",
+    "grip_foundation_stiffness": "absent",
+    "buckling_eigenvalue": "absent",
+    "default_clamp": "ring-hole nodes fixed in all 5 dofs inside run_b",
+    "partial_solver_edit": false
+   }
+  },
+  {
+   "id": "solid.tip",
+   "kind": "solver_run",
+   "status": "incomplete",
+   "solver": "solid_skfem_p2",
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": null,
+   "fresh_this_lane": false,
+   "reason": "no solid tip bound to this genome",
+   "detail": {
+    "searched": [
+     "/home/ubuntu/fs4/d1/w271c_11522_D1.json",
+     "ubuntu@192.168.68.54:/home/ubuntu/fs4/d1/w271c_11522_D1.json",
+     "evidence/ has the RS json and the genome csv for w271c_11522, and no w271c_11522_D1.json"
+    ],
+    "found": false
+   }
+  },
+  {
+   "id": "gate.rs_v2",
+   "kind": "gate",
+   "status": "fail",
+   "solver": null,
+   "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "evidence_path": "evidence/rs_v2/w271c_11522.json",
+   "fresh_this_lane": false,
+   "reason": "does not pass every hard gate",
+   "detail": {
+    "gates": {
+     "aesthetic_and_geometric": "pass",
+     "fatigue": "fail",
+     "floors_828_joint": "pass",
+     "human_max": "fail",
+     "seq_hard": "fail",
+     "solid_tip_sf": "unverified",
+     "strict_hunter_lateral": "pass",
+     "twist_floor_body_and_tipsub_strict": "fail"
+    },
+    "all_hard": false
+   }
+  }
+ ],
+ "pass_count": 4,
+ "solver_run_count": 0,
+ "solver_run_objects": 1,
+ "global_fitness": {
+  "metric": "G1",
+  "inputs": {
+   "mass_g": 79.96161512803431,
+   "seq_ratio": 0.7784421108892615
+  },
+  "G": null,
+  "status": "INCOMPLETE",
+  "provisional": null,
+  "missing": [
+   "tip: solid_tip_sf_nodal_max: missing; plate_tipsub_screen_sf: missing; twist_tipzone_sf_strict: missing",
+   "spg: missing",
+   "aes_score: missing"
+  ],
+  "title": "G INCOMPLETE (3 missing) | 80.0 g | jarambit v0.31.0"
+ },
+ "search_fitness": "unchanged"
+}

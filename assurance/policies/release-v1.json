@@ -102,7 +102,7 @@
   "software_contracts": {
     "catalog": {
       "path": "docs/v1/science/tests/TEST_CASE_CATALOG.json",
-      "sha256": "63d31d9d75de872369c4373f5c0be7fc537d921df0f5df13970fd9964e77d89d"
+      "sha256": "5746f3325bec2d62eb6c9e2f50184991c46e250bc9e3c76a2effcfbc8915a524"
     },
     "gate_policy_reference": {
       "path": "docs/v1/science/tests/CI_GATE_POLICY.json",
