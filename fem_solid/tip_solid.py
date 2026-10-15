@@ -11,9 +11,6 @@ class Path:
     def contains_points(self, P):
         P = np.atleast_2d(P); x, y = P[:, 0][:, None], P[:, 1][:, None]; a = self.v; b = np.roll(a, -1, 0)
         c = ((a[:, 1] > y) != (b[:, 1] > y)) & (x < (b[:, 0]-a[:, 0])*(y-a[:, 1])/(b[:, 1]-a[:, 1]+1e-300)+a[:, 0]); return c.sum(1) % 2 == 1
-from skfem import MeshTet, Basis, ElementVector, ElementTetP2, asm
-from skfem.models.elasticity import linear_elasticity, lame_parameters
-from skfem.helpers import sym_grad, trace, eye
 import scipy.sparse.linalg as spla, scipy.sparse as sp
 fn, RC, NL, NSUB, OUT = sys.argv[1], float(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
 T_NMM, E, NU, SY20 = 1820.0, 113.8e3, 0.34, 828.0
@@ -97,6 +94,21 @@ for k in range(NL):
 TT = np.array(TT)
 v = pts[TT]; vol = np.einsum("ij,ij->i", np.cross(v[:, 1]-v[:, 0], v[:, 2]-v[:, 0]), v[:, 3]-v[:, 0])
 TT[vol < 0] = TT[vol < 0][:, [0, 2, 1, 3]]
+if __import__("os").environ.get("COUNT_ONLY") == "1":
+    # P2 vector size is 3 * (vertices + edges). This stops before assembly.
+    edges = set()
+    for tet in TT:
+        a, b, c, d = (int(x) for x in tet)
+        for i, j in ((a, b), (a, c), (a, d), (b, c), (b, d), (c, d)):
+            edges.add((i, j) if i < j else (j, i))
+    print("COUNT " + json.dumps({
+        "n_tet": int(len(TT)), "n_vertices": int(pts.shape[0]), "n_edges": len(edges),
+        "n_dof": 3 * (int(pts.shape[0]) + len(edges)), "NL": NL, "NSUB": NSUB, "R_CUT": RC,
+    }), flush=True)
+    sys.exit(0)
+from skfem import MeshTet, Basis, ElementVector, ElementTetP2, asm
+from skfem.models.elasticity import linear_elasticity, lame_parameters
+from skfem.helpers import sym_grad, trace, eye
 mesh = MeshTet(pts.T.copy(), TT.T.copy())
 e = ElementVector(ElementTetP2()); ib = Basis(mesh, e, intorder=2)
 lam, mu = lame_parameters(E, NU)

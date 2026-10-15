@@ -2,7 +2,7 @@
  "schema": "jarambit.cad_battery.subject.v1",
  "subject": "w271c_11522",
  "role": "genome",
- "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+ "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
  "cases": [
   {
    "id": "build.analytic",
@@ -10,7 +10,7 @@
    "status": "pass",
    "solver": "analytic",
    "geometry_sha256": null,
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": "crates/physics/tests/invariance.rs",
    "fresh_this_lane": false
   },
@@ -20,7 +20,7 @@
    "status": "pass",
    "solver": "gci",
    "geometry_sha256": null,
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": "fem_solid/tests/test_gci.py",
    "fresh_this_lane": false
   },
@@ -30,7 +30,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": null,
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": "ops/ci/check_claims.py",
    "fresh_this_lane": false,
    "detail": {
@@ -44,7 +44,7 @@
    "status": "blocked",
    "solver": "solid_dolfinx",
    "geometry_sha256": null,
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "ModuleNotFoundError: No module named dolfinx",
@@ -59,7 +59,7 @@
    "status": "blocked",
    "solver": null,
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": "evidence/rs_v2/genomes/w271c_11522.csv",
    "fresh_this_lane": false,
    "reason": "no step bound"
@@ -70,7 +70,7 @@
    "status": "blocked",
    "solver": null,
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": "evidence/rs_v2/genomes/w271c_11522.csv",
    "fresh_this_lane": false,
    "reason": "no step bound"
@@ -81,7 +81,7 @@
    "status": "pass",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": "evidence/rs_v2/w271c_11522.json",
    "fresh_this_lane": false,
    "detail": {
@@ -98,7 +98,7 @@
    "status": "blocked",
    "solver": null,
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": "evidence/rs_v2/genomes/w271c_11522.csv",
    "fresh_this_lane": false,
    "reason": "genome is not a native CAD pin"
@@ -109,7 +109,7 @@
    "status": "fail",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": "evidence/rs_v2/w271c_11522.json",
    "fresh_this_lane": false,
    "detail": {
@@ -153,7 +153,7 @@
    "status": "fail",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": "evidence/rs_v2/w271c_11522.json",
    "fresh_this_lane": false,
    "reason": "below 1.2",
@@ -172,7 +172,7 @@
    "status": "fail",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": "evidence/rs_v2/w271c_11522.json",
    "fresh_this_lane": false,
    "detail": {
@@ -189,7 +189,7 @@
    "status": "incomplete",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": "evidence/rs_v2/w271c_11522.json",
    "fresh_this_lane": false,
    "reason": "no three-mesh plate family stored"
@@ -200,7 +200,7 @@
    "status": "incomplete",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "not inherited from another subject"
@@ -211,7 +211,7 @@
    "status": "incomplete",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "not inherited from another subject"
@@ -222,7 +222,7 @@
    "status": "incomplete",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "not inherited from another subject"
@@ -233,7 +233,7 @@
    "status": "incomplete",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "support variants and buckling not run"
@@ -242,9 +242,9 @@
    "id": "solid.tip",
    "kind": "solver_run",
    "status": "incomplete",
-   "solver": "solid_dolfinx",
+   "solver": "solid_skfem_p2",
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "no solid tip bound to this genome"
@@ -255,7 +255,7 @@
    "status": "fail",
    "solver": null,
    "geometry_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
-   "source_commit": "6e588f3ec1ae386a73b2e2561b831e97dab739b7",
+   "source_commit": "0ad467602ec3ffe2b03953ba84ada0afa1c4cb96",
    "evidence_path": "evidence/rs_v2/w271c_11522.json",
    "fresh_this_lane": false,
    "reason": "does not pass every hard gate",

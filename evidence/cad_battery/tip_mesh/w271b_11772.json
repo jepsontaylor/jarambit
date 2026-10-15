@@ -1,0 +1,19 @@
+{
+ "schema": "jarambit.tip_mesh_count.v1",
+ "subject": "w271b_11772",
+ "builder": "fem_solid/tip_solid.py",
+ "mode": "COUNT_ONLY=1",
+ "solve_rerun": false,
+ "r_cut_mm": 30.0,
+ "d1_path": "xbabe3:/home/ubuntu/fs4/d1/w271b_11772_D1.json",
+ "d1_sha256": "78150f3b676e9e58e1c37d90c5ec2bf4ceb9c7600f6c13b7a94336d0307e861b",
+ "genome_data_row_matches_csv": true,
+ "gci_path": "evidence/fem_solid/gci/w271b_11772_gci.json",
+ "gci_sha256": "bb306086ed3f7301b61cceb96050f788b93fa93d082db87f70e1402eefd04140",
+ "metrics": {"spg": 3.89964, "aes_score": 0.6928},
+ "levels": [
+  {"NL": 2, "NSUB": 0, "n_tet": 9432, "n_vertices": 2544, "n_edges": 13791, "n_dof": 49005},
+  {"NL": 4, "NSUB": 1, "n_tet": 75456, "n_vertices": 16335, "n_edges": 99054, "n_dof": 346167},
+  {"NL": 8, "NSUB": 2, "n_tet": 603648, "n_vertices": 115389, "n_edges": 748092, "n_dof": 2590443}
+ ]
+}

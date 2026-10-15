@@ -1,0 +1,17 @@
+{
+ "schema": "jarambit.tip_mesh_count.v1",
+ "subject": "g3",
+ "builder": "fem_solid/tip_solid.py",
+ "mode": "COUNT_ONLY=1",
+ "solve_rerun": false,
+ "r_cut_mm": 30.0,
+ "d1_path": "evidence/wave27/g3_tip+00_t60_tt3_D1.json",
+ "d1_sha256": "49d9ee941f991b016e5ecbad2ee3ac58c020c9e9ffbde3421ccda491957ce666",
+ "gci_path": "evidence/fem_solid/gci/g3_tip+00_t60_tt3_gci.json",
+ "gci_sha256": "cf4657f3bdcf4d0c349b203ad89be38675e25dd63c3cbe01ea985627b5743076",
+ "levels": [
+  {"NL": 2, "NSUB": 0, "n_tet": 11556, "n_vertices": 3084, "n_edges": 16821, "n_dof": 59715},
+  {"NL": 4, "NSUB": 1, "n_tet": 92448, "n_vertices": 19905, "n_edges": 121080, "n_dof": 422955},
+  {"NL": 8, "NSUB": 2, "n_tet": 739584, "n_vertices": 140985, "n_edges": 915480, "n_dof": 3169395}
+ ]
+}

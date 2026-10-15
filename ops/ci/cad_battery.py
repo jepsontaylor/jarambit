@@ -223,7 +223,14 @@ def _genome_cases(spec, commit, rs, d1, sha):
     }
     hard_fail = any(isinstance(item, dict) and item.get('value_n_or_sf', 1) < 1
                     for key, item in loads.items() if key in ('chord_twist_human_max_sf', 'spine_sf'))
-    metrics = (d1 or {}).get('metrics') or {}
+    metrics = dict((d1 or {}).get('metrics') or {})
+    tip_doc = _load(spec.get('tip_mesh')) if spec.get('tip_mesh') else None
+    # SPG and aes only. The index plate_tipsub_screen_sf column is the twist
+    # tip-zone number on every wave27 row, so it is not copied in as a plate screen.
+    for key in ('spg', 'aes_score'):
+        value = (tip_doc or {}).get('metrics', {}).get(key)
+        if key not in metrics and isinstance(value, (int, float)) and not isinstance(value, bool):
+            metrics[key] = value
     g_loads = {}
     if isinstance(metrics.get('spg'), (int, float)) and not isinstance(metrics.get('spg'), bool):
         g_loads['spg'] = metrics['spg']
@@ -295,16 +302,35 @@ def _solid_tip(spec, commit, rs, sha):
     source = rs.get('solid_tip_source')
     payload = _load(source) if source else None
     if not payload:
-        return _case('solid.tip', 'solver_run', 'incomplete', solver='solid_dolfinx', geometry_sha256=sha,
+        return _case('solid.tip', 'solver_run', 'incomplete', solver='solid_skfem_p2', geometry_sha256=sha,
                      source_commit=commit, evidence_path=source, reason='no solid tip bound to this genome')
     levels = payload.get('levels') or []
-    finest = levels[-1] if levels else {}
-    missing = [name for name in SOLVER_FIELDS if name not in finest]
-    detail = {'SF_nodal_max_historical': (payload.get('SF_nodal_max') or {}).get('fine'),
-              'present': [name for name in SOLVER_FIELDS if name in finest], 'missing': missing,
-              'copied_from_another_genome': False}
+    finest = dict(levels[-1]) if levels else {}
+    counted = _load(spec.get('tip_mesh')) if spec.get('tip_mesh') else None
+    matched = None
+    if counted:
+        for row in counted.get('levels') or []:
+            if row.get('NL') == finest.get('NL') and row.get('NSUB') == finest.get('NSUB') and row.get('n_dof') == finest.get('n_dof'):
+                matched = row
+                break
+    if matched and isinstance(matched.get('n_tet'), int):
+        finest['n_tet'] = matched['n_tet']
+    missing = [name for name in SOLVER_FIELDS if not isinstance(finest.get(name), (int, float)) or isinstance(finest.get(name), bool)]
+    sf = finest.get('SF_nodal_max')
+    detail = {
+        'SF_nodal_max': sf if isinstance(sf, (int, float)) and not isinstance(sf, bool) else None,
+        'SF_nodal_max_published_fine': (payload.get('SF_nodal_max') or {}).get('fine'),
+        'n_tet': finest.get('n_tet'), 'n_dof': finest.get('n_dof'), 'ksp_its': finest.get('ksp_its'),
+        'NL': finest.get('NL'), 'NSUB': finest.get('NSUB'),
+        'n_tet_counted_this_lane': bool(matched), 'solve_rerun': False,
+        'copied_from_another_genome': False, 'missing': missing,
+    }
     # n_tet is required. A historical SF without it is not a solver_run success and is not a G input.
-    return _case('solid.tip', 'solver_run', 'incomplete', solver='solid_dolfinx', geometry_sha256=sha,
+    if not missing and isinstance(sf, (int, float)) and not isinstance(sf, bool):
+        return _case('solid.tip', 'solver_run', 'pass', solver='solid_skfem_p2', geometry_sha256=sha,
+                     source_commit=commit, evidence_path=spec.get('tip_mesh'),
+                     detail=detail, g_inputs={'solid_tip_sf_nodal_max': sf})
+    return _case('solid.tip', 'solver_run', 'incomplete', solver='solid_skfem_p2', geometry_sha256=sha,
                  source_commit=commit, evidence_path=source, reason='missing ' + ', '.join(missing), detail=detail)
 
 
@@ -339,11 +365,13 @@ def subject_catalog():
             'rs': 'evidence/rs_v2/g3_tip+00_t60_tt3.json',
             'd1': 'evidence/wave27/g3_tip+00_t60_tt3_D1.json',
             'genome': 'evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv',
+            'tip_mesh': 'evidence/cad_battery/tip_mesh/g3.json',
             'side_path': side, 'side_sha': SIDE_SHA if side else None, 'side_seq': side_seq,
         },
         'w271b_11772': {
             'rs': 'evidence/rs_v2/w271b_11772.json', 'd1': None,
             'genome': 'evidence/rs_v2/genomes/w271b_11772_genome.csv',
+            'tip_mesh': 'evidence/cad_battery/tip_mesh/w271b_11772.json',
         },
         'w271b_11860': {
             'rs': 'evidence/rs_v2/w271b_11860.json', 'd1': None,
