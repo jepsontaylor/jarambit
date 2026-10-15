@@ -1,0 +1,168 @@
+{
+  "genome": "evidence/rs_v2/genomes/w271b_11860_genome.csv",
+  "genome_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
+  "levels_fine_to_coarse": [
+    {
+      "h_mm": 0.5,
+      "lat20_n": 312.2211376400546,
+      "max_area_mm2": 0.25,
+      "mesh_sha256": "a17c460f871d4a40caf900f57e8fa611256a15f1ab05945f0585a0caa70f0ec6",
+      "n_elem": 24724,
+      "n_node": 13263,
+      "seq_ratio": 0.917559906566461,
+      "sf_hunter": 1.056411492495809
+    },
+    {
+      "h_mm": 1.0,
+      "lat20_n": 332.8932053827975,
+      "max_area_mm2": 1.0,
+      "mesh_sha256": "d37fc355255399c420bf54c5f0f2ff3f163b03909bd3f0a06960de4598f33625",
+      "n_elem": 6781,
+      "n_node": 3862,
+      "seq_ratio": 1.0046540651607705,
+      "sf_hunter": 1.1263561801045698
+    },
+    {
+      "h_mm": 2.0,
+      "lat20_n": 323.8140465125438,
+      "max_area_mm2": 4.0,
+      "mesh_sha256": "9a0bf6024043372962e0b1157fdcc93d5b59071e3b12eec20a7d3a17733bd92a",
+      "n_elem": 3043,
+      "n_node": 1907,
+      "seq_ratio": 1.0494471358487953,
+      "sf_hunter": 1.0956365182481433
+    }
+  ],
+  "primary_observable": "seq_ratio",
+  "refinement_ratio_r": 2.0,
+  "schema": "jarambit.plate_gci.v1",
+  "seq_ratio_gci": {
+    "admitted": false,
+    "asymptotic_validation": "not_established",
+    "f_ext": null,
+    "fit_status": "nonpositive_order",
+    "gci_fine": null,
+    "levels": [
+      {
+        "h": 0.5,
+        "mesh": {
+          "id": "w271b_11860_area_0.25",
+          "revision": "rev1",
+          "sha256": "a17c460f871d4a40caf900f57e8fa611256a15f1ab05945f0585a0caa70f0ec6"
+        },
+        "observable": {
+          "id": "plate_seq_ratio",
+          "metric": "seq_ratio",
+          "projection": "plate_cst_dkt",
+          "region": "blade_vs_ring_neck",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 1.0,
+        "mesh": {
+          "id": "w271b_11860_area_1.0",
+          "revision": "rev1",
+          "sha256": "d37fc355255399c420bf54c5f0f2ff3f163b03909bd3f0a06960de4598f33625"
+        },
+        "observable": {
+          "id": "plate_seq_ratio",
+          "metric": "seq_ratio",
+          "projection": "plate_cst_dkt",
+          "region": "blade_vs_ring_neck",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 2.0,
+        "mesh": {
+          "id": "w271b_11860_area_4.0",
+          "revision": "rev1",
+          "sha256": "9a0bf6024043372962e0b1157fdcc93d5b59071e3b12eec20a7d3a17733bd92a"
+        },
+        "observable": {
+          "id": "plate_seq_ratio",
+          "metric": "seq_ratio",
+          "projection": "plate_cst_dkt",
+          "region": "blade_vs_ring_neck",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      }
+    ],
+    "method_id": "relative_gci.v2",
+    "monotone": true,
+    "observable_valid": true,
+    "p": -0.9593003902133571,
+    "reason": "nonpositive_observed_order",
+    "relative_error_available": false,
+    "sequence_valid": true
+  },
+  "sf_hunter_gci": {
+    "admitted": false,
+    "asymptotic_validation": "not_established",
+    "f_ext": null,
+    "fit_status": "oscillatory",
+    "gci_fine": null,
+    "levels": [
+      {
+        "h": 0.5,
+        "mesh": {
+          "id": "w271b_11860_area_0.25",
+          "revision": "rev1",
+          "sha256": "a17c460f871d4a40caf900f57e8fa611256a15f1ab05945f0585a0caa70f0ec6"
+        },
+        "observable": {
+          "id": "plate_sf_hunter",
+          "metric": "sf_hunter",
+          "projection": "plate_cst_dkt",
+          "region": "blade_outside_4mm",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 1.0,
+        "mesh": {
+          "id": "w271b_11860_area_1.0",
+          "revision": "rev1",
+          "sha256": "d37fc355255399c420bf54c5f0f2ff3f163b03909bd3f0a06960de4598f33625"
+        },
+        "observable": {
+          "id": "plate_sf_hunter",
+          "metric": "sf_hunter",
+          "projection": "plate_cst_dkt",
+          "region": "blade_outside_4mm",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 2.0,
+        "mesh": {
+          "id": "w271b_11860_area_4.0",
+          "revision": "rev1",
+          "sha256": "9a0bf6024043372962e0b1157fdcc93d5b59071e3b12eec20a7d3a17733bd92a"
+        },
+        "observable": {
+          "id": "plate_sf_hunter",
+          "metric": "sf_hunter",
+          "projection": "plate_cst_dkt",
+          "region": "blade_outside_4mm",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      }
+    ],
+    "method_id": "relative_gci.v2",
+    "monotone": false,
+    "observable_valid": true,
+    "p": null,
+    "reason": "oscillatory_sequence",
+    "relative_error_available": false,
+    "sequence_valid": true
+  },
+  "subject": "w271b_11860"
+}

@@ -200,13 +200,25 @@
   {
    "id": "plate.gci",
    "kind": "derived",
-   "status": "incomplete",
+   "status": "fail",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "5418a4f1dde60341675a202b6b9d4d834b07c42a90ae0a11946a889039322cab",
    "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
-   "evidence_path": "evidence/rs_v2/w271b_11772.json",
+   "evidence_path": "evidence/cad_battery/plate_gci/w271b_11772.json",
    "fresh_this_lane": false,
-   "reason": "no three-mesh plate family stored"
+   "reason": "nonpositive_observed_order",
+   "detail": {
+    "primary_observable": "seq_ratio",
+    "refinement_ratio_r": 2.0,
+    "fit_status": "nonpositive_order",
+    "p": -0.6557511798638445,
+    "gci_fine": null,
+    "admitted": false,
+    "discretization_under_3pct": false,
+    "sf_hunter_fit_status": "oscillatory",
+    "sf_hunter_p": null,
+    "sf_hunter_gci_fine": null
+   }
   },
   {
    "id": "side.a1",

@@ -302,8 +302,33 @@ def _genome_cases(spec, commit, rs, d1, sha):
     plate_l7 = _case('plate.l7', 'derived', 'fail' if isinstance(fat, float) and fat < 1 else 'incomplete',
                      solver='plate_cst_dkt', geometry_sha256=sha, source_commit=commit, evidence_path=path,
                      detail={'label': 'screening', 'not': 'spec §7.3 L7', 'fat_sf': fat, 'cycles': '1e7', 'load': '0..180 N'})
-    plate_gci = _case('plate.gci', 'derived', 'incomplete', solver='plate_cst_dkt', geometry_sha256=sha,
-                      source_commit=commit, evidence_path=path, reason='no three-mesh plate family stored')
+    gci_path = spec.get('plate_gci')
+    gci_doc = _load(gci_path) if gci_path else None
+    if gci_doc and gci_doc.get('genome_sha256') == sha:
+        seq_gci = dict(gci_doc.get('seq_ratio_gci') or {})
+        sf_gci = dict(gci_doc.get('sf_hunter_gci') or {})
+        admitted = bool(seq_gci.get('admitted'))
+        plate_gci = _case(
+            'plate.gci', 'derived', 'pass' if admitted else 'fail',
+            solver='plate_cst_dkt', geometry_sha256=sha, source_commit=commit,
+            evidence_path=gci_path,
+            reason=None if admitted else (seq_gci.get('reason') or seq_gci.get('fit_status')),
+            detail={
+                'primary_observable': gci_doc.get('primary_observable'),
+                'refinement_ratio_r': gci_doc.get('refinement_ratio_r'),
+                'fit_status': seq_gci.get('fit_status'),
+                'p': seq_gci.get('p'),
+                'gci_fine': seq_gci.get('gci_fine'),
+                'admitted': admitted,
+                'discretization_under_3pct': bool(admitted and isinstance(seq_gci.get('gci_fine'), float) and seq_gci['gci_fine'] < 0.03),
+                'sf_hunter_fit_status': sf_gci.get('fit_status'),
+                'sf_hunter_p': sf_gci.get('p'),
+                'sf_hunter_gci_fine': sf_gci.get('gci_fine'),
+            },
+        )
+    else:
+        plate_gci = _case('plate.gci', 'derived', 'incomplete', solver='plate_cst_dkt', geometry_sha256=sha,
+                          source_commit=commit, evidence_path=path, reason='no three-mesh plate family stored')
     rows = {
         'plate.loads': plate_loads, 'plate.seq': plate_seq, 'plate.l7': plate_l7, 'plate.gci': plate_gci,
     }
@@ -438,6 +463,15 @@ def _d1_searched(name):
     ]
 
 
+def _repo_side(name):
+    rel = f'evidence/cad_battery/side/{name}_a1a3.json'
+    path = ROOT / rel
+    if not path.is_file():
+        return None, None, None
+    payload = json.loads(path.read_text(encoding='utf-8'))
+    return rel, _sha256(path), payload.get('seq_ratio_this_mesh')
+
+
 def subject_catalog():
     side = None
     side_seq = None
@@ -445,13 +479,9 @@ def subject_catalog():
         side = str(SIDE_REPORT)
         payload = json.loads(SIDE_REPORT.read_text(encoding='utf-8'))
         side_seq = payload.get('seq_ratio_this_mesh')
-    w271_side = None
-    w271_sha = None
-    w271_seq = None
-    if W271_SIDE.is_file():
-        w271_sha = _sha256(W271_SIDE)
-        w271_side = 'evidence/cad_battery/side/w271b_11772_a1a3.json'
-        w271_seq = json.loads(W271_SIDE.read_text(encoding='utf-8')).get('seq_ratio_this_mesh')
+    w11772_side, w11772_sha, w11772_seq = _repo_side('w271b_11772')
+    w11860_side, w11860_sha, w11860_seq = _repo_side('w271b_11860')
+    w11522_side, w11522_sha, w11522_seq = _repo_side('w271c_11522')
     native = {
         'c10a': 'C10a', 'c93': 'C93', 'c92': 'C92', 'c10c': 'C10c',
     }
@@ -461,23 +491,29 @@ def subject_catalog():
             'd1': 'evidence/wave27/g3_tip+00_t60_tt3_D1.json',
             'genome': 'evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv',
             'tip_mesh': 'evidence/cad_battery/tip_mesh/g3.json',
+            'plate_gci': 'evidence/cad_battery/plate_gci/g3.json',
             'side_path': side, 'side_sha': SIDE_SHA if side else None, 'side_seq': side_seq,
         },
         'w271b_11772': {
             'rs': 'evidence/rs_v2/w271b_11772.json', 'd1': None,
             'genome': 'evidence/rs_v2/genomes/w271b_11772_genome.csv',
             'tip_mesh': 'evidence/cad_battery/tip_mesh/w271b_11772.json',
-            'side_path': w271_side, 'side_sha': w271_sha, 'side_seq': w271_seq,
+            'plate_gci': 'evidence/cad_battery/plate_gci/w271b_11772.json',
+            'side_path': w11772_side, 'side_sha': w11772_sha, 'side_seq': w11772_seq,
         },
         'w271b_11860': {
             'rs': 'evidence/rs_v2/w271b_11860.json', 'd1': None,
             'genome': 'evidence/rs_v2/genomes/w271b_11860_genome.csv',
             'tip_mesh': 'evidence/cad_battery/tip_mesh/w271b_11860.json',
+            'plate_gci': 'evidence/cad_battery/plate_gci/w271b_11860.json',
+            'side_path': w11860_side, 'side_sha': w11860_sha, 'side_seq': w11860_seq,
             'd1_searched': _d1_searched('w271b_11860'),
         },
         'w271c_11522': {
             'rs': 'evidence/rs_v2/w271c_11522.json', 'd1': None,
             'genome': 'evidence/rs_v2/genomes/w271c_11522.csv',
+            'plate_gci': 'evidence/cad_battery/plate_gci/w271c_11522.json',
+            'side_path': w11522_side, 'side_sha': w11522_sha, 'side_seq': w11522_seq,
             'd1_searched': _d1_searched('w271c_11522'),
         },
     }

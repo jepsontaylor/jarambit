@@ -1,0 +1,168 @@
+{
+  "genome": "evidence/rs_v2/genomes/w271c_11522.csv",
+  "genome_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+  "levels_fine_to_coarse": [
+    {
+      "h_mm": 0.5,
+      "lat20_n": 320.10933848498547,
+      "max_area_mm2": 0.25,
+      "mesh_sha256": "2918e4a57e1b3e3a3d4077a2f4f9f720023cd82233714cbdc45e2136a52ca111",
+      "n_elem": 25960,
+      "n_node": 13896,
+      "seq_ratio": 0.8028716606255869,
+      "sf_hunter": 1.0844600516244387
+    },
+    {
+      "h_mm": 1.0,
+      "lat20_n": 338.66573649951994,
+      "max_area_mm2": 1.0,
+      "mesh_sha256": "0951b32f696314f6d38e47e237c1f5fe6801695a26948040d4fd29c5567325d5",
+      "n_elem": 7094,
+      "n_node": 4024,
+      "seq_ratio": 0.8637690380831939,
+      "sf_hunter": 1.147325047828695
+    },
+    {
+      "h_mm": 2.0,
+      "lat20_n": 365.69005728957654,
+      "max_area_mm2": 4.0,
+      "mesh_sha256": "2d35a77c91b53b4ec8e1bca3a9ac6395b9f6e10a06dbc3bffd803a2cb28f191a",
+      "n_elem": 3226,
+      "n_node": 2007,
+      "seq_ratio": 1.0324572029198904,
+      "sf_hunter": 1.2388775044293163
+    }
+  ],
+  "primary_observable": "seq_ratio",
+  "refinement_ratio_r": 2.0,
+  "schema": "jarambit.plate_gci.v1",
+  "seq_ratio_gci": {
+    "admitted": true,
+    "asymptotic_validation": "not_established",
+    "f_ext": 0.7684671380185493,
+    "fit_status": "admissible_estimate",
+    "gci_fine": 0.053564791694462814,
+    "levels": [
+      {
+        "h": 0.5,
+        "mesh": {
+          "id": "w271c_11522_area_0.25",
+          "revision": "rev1",
+          "sha256": "2918e4a57e1b3e3a3d4077a2f4f9f720023cd82233714cbdc45e2136a52ca111"
+        },
+        "observable": {
+          "id": "plate_seq_ratio",
+          "metric": "seq_ratio",
+          "projection": "plate_cst_dkt",
+          "region": "blade_vs_ring_neck",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 1.0,
+        "mesh": {
+          "id": "w271c_11522_area_1.0",
+          "revision": "rev1",
+          "sha256": "0951b32f696314f6d38e47e237c1f5fe6801695a26948040d4fd29c5567325d5"
+        },
+        "observable": {
+          "id": "plate_seq_ratio",
+          "metric": "seq_ratio",
+          "projection": "plate_cst_dkt",
+          "region": "blade_vs_ring_neck",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 2.0,
+        "mesh": {
+          "id": "w271c_11522_area_4.0",
+          "revision": "rev1",
+          "sha256": "2d35a77c91b53b4ec8e1bca3a9ac6395b9f6e10a06dbc3bffd803a2cb28f191a"
+        },
+        "observable": {
+          "id": "plate_seq_ratio",
+          "metric": "seq_ratio",
+          "projection": "plate_cst_dkt",
+          "region": "blade_vs_ring_neck",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      }
+    ],
+    "method_id": "relative_gci.v2",
+    "monotone": true,
+    "observable_valid": true,
+    "p": 1.4699067526827305,
+    "reason": "checked_relative_estimate",
+    "relative_error_available": true,
+    "sequence_valid": true
+  },
+  "sf_hunter_gci": {
+    "admitted": true,
+    "asymptotic_validation": "not_established",
+    "f_ext": 0.946699242784703,
+    "fit_status": "admissible_estimate",
+    "gci_fine": 0.1587896306477363,
+    "levels": [
+      {
+        "h": 0.5,
+        "mesh": {
+          "id": "w271c_11522_area_0.25",
+          "revision": "rev1",
+          "sha256": "2918e4a57e1b3e3a3d4077a2f4f9f720023cd82233714cbdc45e2136a52ca111"
+        },
+        "observable": {
+          "id": "plate_sf_hunter",
+          "metric": "sf_hunter",
+          "projection": "plate_cst_dkt",
+          "region": "blade_outside_4mm",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 1.0,
+        "mesh": {
+          "id": "w271c_11522_area_1.0",
+          "revision": "rev1",
+          "sha256": "0951b32f696314f6d38e47e237c1f5fe6801695a26948040d4fd29c5567325d5"
+        },
+        "observable": {
+          "id": "plate_sf_hunter",
+          "metric": "sf_hunter",
+          "projection": "plate_cst_dkt",
+          "region": "blade_outside_4mm",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 2.0,
+        "mesh": {
+          "id": "w271c_11522_area_4.0",
+          "revision": "rev1",
+          "sha256": "2d35a77c91b53b4ec8e1bca3a9ac6395b9f6e10a06dbc3bffd803a2cb28f191a"
+        },
+        "observable": {
+          "id": "plate_sf_hunter",
+          "metric": "sf_hunter",
+          "projection": "plate_cst_dkt",
+          "region": "blade_outside_4mm",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      }
+    ],
+    "method_id": "relative_gci.v2",
+    "monotone": true,
+    "observable_valid": true,
+    "p": 0.5423416628804812,
+    "reason": "checked_relative_estimate",
+    "relative_error_available": true,
+    "sequence_valid": true
+  },
+  "subject": "w271c_11522"
+}

@@ -152,16 +152,26 @@ class Records(unittest.TestCase):
                 self.assertEqual(again, later)
 
     def test_native_subjects_do_not_inherit_g3_areas(self):
-        for name in ('c10a', 'c93', 'c92', 'w271b_11860', 'w271c_11522'):
+        for name in ('c10a', 'c93', 'c92'):
             for case_id in ('side.a1', 'side.a2', 'side.a3'):
                 case = next(row for row in self.records[name]['cases'] if row['id'] == case_id)
                 self.assertNotEqual(case['status'], 'pass')
                 self.assertNotIn('3e419ac1', json.dumps(case))
-        for case_id in ('side.a1', 'side.a2', 'side.a3'):
-            case = next(row for row in self.records['w271b_11772']['cases'] if row['id'] == case_id)
-            self.assertEqual(case['status'], 'pass')
-            self.assertNotIn('3e419ac1', json.dumps(case))
-            self.assertIn('w271b_11772', case['evidence_path'])
+        for name in ('w271b_11772', 'w271b_11860', 'w271c_11522'):
+            for case_id in ('side.a1', 'side.a2', 'side.a3'):
+                case = next(row for row in self.records[name]['cases'] if row['id'] == case_id)
+                self.assertEqual(case['status'], 'pass')
+                self.assertNotIn('3e419ac1', json.dumps(case))
+                self.assertIn(name, case['evidence_path'])
+        for name, want_status in (
+            ('g3', 'pass'),
+            ('w271b_11772', 'fail'),
+            ('w271b_11860', 'fail'),
+            ('w271c_11522', 'pass'),
+        ):
+            gci = next(row for row in self.records[name]['cases'] if row['id'] == 'plate.gci')
+            self.assertEqual(gci['status'], want_status)
+            self.assertIn(name, gci['evidence_path'])
         seq = next(row for row in self.records['w271b_11772']['cases'] if row['id'] == 'plate.seq')
         self.assertEqual(seq['status'], 'fail')
         self.assertEqual(seq['detail']['seq_ratio'], 0.8823392882835103)
