@@ -199,7 +199,7 @@ All scientific evaluators, mesh-convergence gates, CAD hygiene checks, and repor
 git clone https://github.com/neverhuman/jarambit.git
 cd jarambit
 cargo build --release
-cargo test --release
+cargo test --release --workspace
 ```
 
 ## Quick start
@@ -214,8 +214,8 @@ python3 -B ops/ci/cad_battery.py \
   --analytic pass --gci pass --claims pass --dolfinx pass \
   --out-dir /tmp/jarambit_quickstart_battery
 
-# 2. Run a crescent MAP-Elites + island GA evolutionary search with the live CAD battery gate enabled
-JARAMBIT_CAD_BATTERY=1 ./target/release/jarambit crescent-evolve \
+# 2. Run a crescent MAP-Elites + island GA evolutionary search with all-gates + live CAD battery enabled
+JARAMBIT_ALL_GATES=1 JARAMBIT_CAD_BATTERY=1 ./target/release/jarambit crescent-evolve \
   --gens 2 --pop 12 --islands 2 --threads 8 --seed 2913 \
   --seeds evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_genome.csv \
   --out /tmp/jarambit_quickstart_evolve
@@ -225,11 +225,12 @@ python3 -B -m unittest ops.ci.tests.test_cad_battery -v
 python3 -B ops/ci/science_suite.py inventory
 python3 -B -m unittest discover -s research/science_v1 -p "test_*.py" -v
 
-# 4. Verify deterministic engineering-gates figures and public documentation blocks
+# 4. Verify deterministic engineering-gates figures and public documentation blocks, then clean up quickstart scratch
 python3 -B ops/ci/verify_figures.py
 python3 -B ops/ci/gen_readme.py --check
 python3 -B ops/ci/gen_whitepaper.py --check
 python3 -B ops/ci/gen_status.py --check
+rm -rf /tmp/jarambit_quickstart_d1 /tmp/jarambit_quickstart_battery /tmp/jarambit_quickstart_evolve
 ```
 
 ## Engine

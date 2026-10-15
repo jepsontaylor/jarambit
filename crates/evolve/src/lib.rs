@@ -1207,10 +1207,26 @@ mod tests {
         assert!(manifest(&Config::new(4, 2, 8, 1, 1)).scientific.is_none());
     }
 
-    fn scratch(name: &str) -> String {
-        let d = std::env::temp_dir().join(format!("jarambit_s04_src_{}", std::process::id()));
-        std::fs::create_dir_all(&d).unwrap();
-        d.join(name).to_string_lossy().into_owned()
+    struct ScratchDir {
+        parent: std::path::PathBuf,
+        dir: std::path::PathBuf,
+    }
+    impl ScratchDir {
+        fn new(tag: &str) -> Self {
+            let parent = std::env::temp_dir().join(format!("jarambit_s04_src_{}", std::process::id()));
+            let dir = parent.join(tag);
+            std::fs::create_dir_all(&dir).unwrap();
+            Self { parent, dir }
+        }
+        fn path(&self, name: &str) -> String {
+            self.dir.join(name).to_string_lossy().into_owned()
+        }
+    }
+    impl Drop for ScratchDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.dir);
+            let _ = std::fs::remove_dir(&self.parent);
+        }
     }
 
     fn write_current(path: &str, cfg: &Config, next_gen: usize) {
@@ -1236,7 +1252,8 @@ mod tests {
     }
 
     #[test] fn admission_refuses_score_carry_even_when_the_header_matches() {
-        let path = scratch("admit.ckpt");
+        let sd = ScratchDir::new("admit");
+        let path = sd.path("admit.ckpt");
         let mut cfg = Config::new(4, 2, 8, 1, 99);
         cfg.checkpoint = Some(path.clone());
         write_current(&path, &cfg, cfg.gens);
@@ -1306,7 +1323,7 @@ mod tests {
         cfg.resume = false;
         let e = refuse(&cfg);
         assert!(e.contains("seed-ckpt") && e.contains("manifest_json_rejected") && !e.contains("manifest mismatch"), "{e}");
-        let path_g = scratch("gens0.ckpt");
+        let path_g = sd.path("gens0.ckpt");
         let mut stored = Config::new(4, 1, 8, 1, 99);
         stored.checkpoint = Some(path_g.clone());
         write_current(&path_g, &stored, 2);
@@ -1329,7 +1346,8 @@ mod tests {
     }
 
     #[test] fn v1_and_v2_checkpoints_do_not_resume_or_fork() {
-        let v2 = scratch("v2.ckpt");
+        let sd = ScratchDir::new("v1v2");
+        let v2 = sd.path("v2.ckpt");
         let ind = direct(SampleStatistics::historical(0.2f64.to_bits(), 0.5f64.to_bits()), CutAvailability::Historical { value: f64::from_bits(0x3fc999999999999a) }, 1.0, true);
         let line = indiv_v2_historical(&ind).unwrap();
         std::fs::write(&v2, format!("jarambit-ckpt 2\nmanifest_sha256 {}\nmanifest {{}}\nnext_gen 1\nislands 1\nisland 0 rng 0000000000000001 n 1\n{line}\narchive 0\nend\n", "ab".repeat(32))).unwrap();
@@ -1343,7 +1361,7 @@ mod tests {
         cfg.fork = true;
         let e = refuse(&cfg);
         assert!(e.contains("format 2") && e.contains("seed-ckpt") && !e.contains("manifest mismatch"), "{e}");
-        let v1 = scratch("v1.ckpt");
+        let v1 = sd.path("v1.ckpt");
         let g = Genotype::random(&mut Rng(3));
         let row = format!("1.5 1.5 10 40 1 0.2 0.5 {}", g.to_csv_row());
         std::fs::write(&v1, format!("jarambit-ckpt 1\n0\nislands 1\n1\n1\nisland 0 rng 0000000000000001 n 1\n{row}\n")).unwrap();
@@ -1364,6 +1382,7 @@ mod tests {
 
     #[test]
     fn historical_v2_short_mean_cut_and_sharp_restore_radix_bits() {
+        let sd = ScratchDir::new("radix");
         let mean_canon = 0x3fc999999999999au64;
         let cut_canon = 0x3ff0000000000000u64;
         let sharp_canon = 0x3fe0000000000000u64;
@@ -1551,7 +1570,7 @@ mod tests {
             assert!(err.contains("retired token in historical checkpoint"), "{label} colon: {err}");
         }
 
-        let v2 = scratch("v2-radix-all-short.ckpt");
+        let v2 = sd.path("v2-radix-all-short.ckpt");
         std::fs::write(&v2, format!("jarambit-ckpt 2\nmanifest_sha256 {}\nmanifest {{}}\nnext_gen 1\nislands 1\nisland 0 rng 1 n 1\n{all_short_line}\narchive 0\nend\n", "ab".repeat(32))).unwrap();
         let loaded = load_ckpt(&v2).unwrap();
         assert_eq!(loaded.format_version, 2);
@@ -1579,7 +1598,7 @@ mod tests {
         let err = refuse(&cfg);
         assert!(err.contains("format 2") && err.contains("seed-ckpt") && !err.contains("manifest mismatch"), "{err}");
 
-        let current = scratch("v3-radix-counterparts.ckpt");
+        let current = sd.path("v3-radix-counterparts.ckpt");
         let mut current_cfg = Config::new(4, 2, 8, 1, 42);
         current_cfg.checkpoint = Some(current.clone());
         write_current(&current, &current_cfg, current_cfg.gens);
@@ -1591,7 +1610,7 @@ mod tests {
             original.replace(credited, &parts.join(" "))
         };
         let refuse_current = |name: &str, body: String| {
-            let path = scratch(name);
+            let path = sd.path(name);
             std::fs::write(&path, body).unwrap();
             match load_ckpt(&path) {
                 Err(err) => err,
@@ -1615,7 +1634,8 @@ mod tests {
 
     #[test]
     fn current_checkpoint_bounds_counts_grammar_and_framing() {
-        let path = scratch("frame.ckpt");
+        let sd = ScratchDir::new("framing");
+        let path = sd.path("frame.ckpt");
         let mut cfg = Config::new(4, 2, 8, 1, 42);
         cfg.checkpoint = Some(path.clone());
         write_current(&path, &cfg, cfg.gens);
@@ -1628,7 +1648,7 @@ mod tests {
         let again = indiv_v3(&loaded.islands[0].pop[0]).unwrap();
         assert!(original.contains(&again));
         let refuse_text = |name: &str, body: String| {
-            let p = scratch(name);
+            let p = sd.path(name);
             std::fs::write(&p, body).unwrap();
             match load_ckpt(&p) {
                 Err(e) => e,
@@ -1657,7 +1677,7 @@ mod tests {
         assert!(refuse_text("huge-archive", original.replace("\narchive 0\n", "\narchive 18446744073709551615\n")).contains("exceeds remaining records"));
         let header_only = original.lines().take_while(|l| !l.split(' ').nth(1).is_some_and(|t| t.starts_with("credited:"))).collect::<Vec<_>>().join("\n");
         assert!(refuse_text("truncated", format!("{header_only}\n")).contains("exceeds remaining records"));
-        let empty = scratch("empty-pop.ckpt");
+        let empty = sd.path("empty-pop.ckpt");
         save_ckpt(&empty, cfg.gens, &manifest(&cfg), &[Island { rng: Rng(1), pop: vec![] }], &[]).unwrap();
         assert_eq!(load_ckpt(&empty).unwrap().archive.len(), 0);
         cfg.checkpoint = Some(empty.clone());
@@ -1668,7 +1688,7 @@ mod tests {
         cfg.fork = true;
         let e = refuse(&cfg);
         assert!(e.contains("empty current population"), "{e}");
-        let v2 = scratch("v2-short.ckpt");
+        let v2 = sd.path("v2-short.ckpt");
         let historical = direct(SampleStatistics::historical(0.2f64.to_bits(), 0.5f64.to_bits()), CutAvailability::Historical { value: f64::from_bits(0x3fc999999999999a) }, 1.5, true);
         let v2_line = indiv_v2_historical(&historical).unwrap();
         let short_fit = format!("0 {}", v2_line.split_once(' ').unwrap().1);

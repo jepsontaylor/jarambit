@@ -1,6 +1,8 @@
-import json, os, subprocess, sys, unittest
+import atexit, json, os, shutil, subprocess, sys, unittest
 import tempfile
-MAN_TMP = os.path.join(tempfile.mkdtemp(), 'x')
+_TMP_DIR = tempfile.mkdtemp()
+atexit.register(shutil.rmtree, _TMP_DIR, ignore_errors=True)
+MAN_TMP = os.path.join(_TMP_DIR, 'x')
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, os.path.join(ROOT, 'ops', 'ci'))
 

@@ -6,16 +6,38 @@ use jarambit_evolve::{try_run, Config};
 fn cfg(seed: u64, path: &str) -> Config {
     let mut c = Config::new(6, 14, 8, 2, seed); c.islands = 2; c.migrate_every = 3; c.checkpoint = Some(path.into()); c
 }
-fn tmp(name: &str) -> String { let d = std::env::temp_dir().join(format!("jarambit_replay_{}", std::process::id())); std::fs::create_dir_all(&d).unwrap(); d.join(name).to_string_lossy().into() }
+
+struct TempDir {
+    parent: std::path::PathBuf,
+    dir: std::path::PathBuf,
+}
+impl TempDir {
+    fn new(tag: &str) -> Self {
+        let parent = std::env::temp_dir().join(format!("jarambit_replay_{}", std::process::id()));
+        let dir = parent.join(tag);
+        std::fs::create_dir_all(&dir).unwrap();
+        Self { parent, dir }
+    }
+    fn path(&self, name: &str) -> String {
+        self.dir.join(name).to_string_lossy().into_owned()
+    }
+}
+impl Drop for TempDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.dir);
+        let _ = std::fs::remove_dir(&self.parent);
+    }
+}
 
 #[test]
 fn interrupted_then_resumed_equals_uninterrupted_bitwise() {
+    let td = TempDir::new("bitwise");
     for seed in [1u64, 42, 9001] {
-        let full = tmp(&format!("full_{seed}.ckpt"));
+        let full = td.path(&format!("full_{seed}.ckpt"));
         let (b_full, f_full) = try_run(&cfg(seed, &full), |_| {}).unwrap();
         let want = std::fs::read(&full).unwrap();
         for stop in [3usize, 7, 12] {
-            let p = tmp(&format!("int_{seed}_{stop}.ckpt"));
+            let p = td.path(&format!("int_{seed}_{stop}.ckpt"));
             let mut c = cfg(seed, &p); c.stop_after = Some(stop); try_run(&c, |_| {}).unwrap();
             assert!(std::fs::read_to_string(&p).unwrap().contains(&format!("\nnext_gen {stop}\n")));
             let mut c = cfg(seed, &p); c.resume = true;
@@ -31,7 +53,8 @@ fn interrupted_then_resumed_equals_uninterrupted_bitwise() {
 
 #[test]
 fn any_manifest_change_refuses_resume() {
-    let p = tmp("m.ckpt");
+    let td = TempDir::new("manifest");
+    let p = td.path("m.ckpt");
     let mut c = cfg(5, &p); c.stop_after = Some(2); try_run(&c, |_| {}).unwrap();
     let base = jarambit_evolve::manifest(&cfg(5, &p));
     let edits: Vec<(&str, Box<dyn Fn(&mut Config)>)> = vec![
@@ -50,7 +73,7 @@ fn any_manifest_change_refuses_resume() {
     let txt = std::fs::read_to_string(&p).unwrap();
     for (from, to) in [("\"op_version\":1", "\"op_version\":2"), ("\"floors_n\":\"180/260/1500\"", "\"floors_n\":\"180/250/1500\""), ("\"command\":\"evolve\"", "\"command\":\"evolvx\""), ("\"search_area\":2.0", "\"search_area\":4.0")] {
         assert!(txt.contains(from), "{from} not in manifest json");
-        let q = tmp("m_edit.ckpt");
+        let q = td.path("m_edit.ckpt");
         // tamper the manifest JSON AND recompute nothing: the stored sha no longer matches this run's sha either way
         let man_line = txt.lines().find(|l| l.starts_with("manifest ")).unwrap();
         let mut m: jarambit_evidence::RunManifest = serde_json::from_str(&man_line["manifest ".len()..].replace(from, to)).unwrap();
@@ -65,7 +88,8 @@ fn any_manifest_change_refuses_resume() {
 
 #[test]
 fn resume_without_checkpoint_is_an_error_and_fork_is_explicit() {
-    let p = tmp("absent.ckpt"); let _ = std::fs::remove_file(&p);
+    let td = TempDir::new("fork");
+    let p = td.path("absent.ckpt"); let _ = std::fs::remove_file(&p);
     let mut c = cfg(8, &p); c.resume = true;
     assert!(try_run(&c, |_| {}).unwrap_err().contains("does not exist"));
     // torn checkpoint
