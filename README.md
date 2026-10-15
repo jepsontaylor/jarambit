@@ -45,6 +45,18 @@ Verdicts are scoped to a requirement set (`requirements/RS-karambit-v1.toml`): *
 
 </div>
 
+<!-- MARKET:CENSUS:BEGIN -->
+## Market weight comparison
+
+The source-audited [October 13, 2026 census](docs/market/2026-10-13/README.md) consolidates eight supplied CSVs plus an additional qualifying polymer model. **119 identifiable entries meet the published 3.375 in blade minimum; 77 have comparable verified published knife weights.** Color-only duplicates are consolidated; genuine material variants and distinct custom examples remain separate. Missing weights and unresolved candidates stay visible in the evidence tables.
+
+![Karambit market weight and blade-length comparison](docs/market/2026-10-13/figures/market_landscape.png)
+
+**SWITCHBACK C.10a RC4: 64.841 g, CAD prediction.** Nominally lighter than 76 of 77 plotted entries (98.7%); 59.3% below their 159.32 g median. TALIM titanium lists 51.03 g, so this does not support a lightest-overall claim. C.10a is a release candidate, unmanufactured and untested; `g3_tip+00_t60_tt3` remains the historical 84.80 g design of record. Listed commercial lengths use different measurement conventions, and material/weight comparisons establish no performance equivalence.
+
+[Transparent material histogram](docs/market/2026-10-13/figures/weight_histogram.png) · [Every weight by exact grade](docs/market/2026-10-13/figures/weight_by_grade.png) · [Catalog by material](docs/market/2026-10-13/qualified_by_material.csv) · [Missing/conditional candidate queue](docs/market/2026-10-13/review_queue.csv)
+<!-- MARKET:CENSUS:END -->
+
 <!-- GEN:RELEASE:BEGIN -->
 ## Release v0.31.0 — what is measured, and under which requirement set
 

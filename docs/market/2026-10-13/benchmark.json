@@ -1,0 +1,27 @@
+{
+  "schema": "jarambit.market.benchmark.v1",
+  "base_commit": "7042f199ad1a9c9e924b7aa68d514e8ea5123567",
+  "primary": {
+    "name": "SWITCHBACK C.10a RC4",
+    "mass_g": 64.841,
+    "mass_basis": "CAD volume times nominal Grade 5 density; knife only; no physical measurement",
+    "material": "Ti-6Al-4V",
+    "blade_length_in": 3.805244227042456,
+    "blade_length_mm": 96.65320336687837,
+    "blade_length_basis": "CAD tip-to-heel straight distance",
+    "horizontal_projection_mm": 87.00287351273006,
+    "inside_edge_arc_mm": 101.18045160709735,
+    "status": "current release candidate; not design of record; unmanufactured and untested",
+    "mass_source": "designs/switchback/C10a/data/cad_revC9_c10a.json",
+    "length_source": "designs/switchback/C10a/data/outline_c10a.json",
+    "status_source": "designs/switchback/C10a/README.md",
+    "step_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7"
+  },
+  "historical_design_of_record": {
+    "name": "g3_tip+00_t60_tt3",
+    "mass_g": 84.8,
+    "mass_source": "docs/wave27_diversity/plates/wave27_D1_index.json",
+    "status": "engineering provisional; not promoted"
+  },
+  "claim_boundary": "Market mass/length comparison only. Published blade lengths do not establish the three Jarambit length gates, strength, sharpness, safety or manufacturing eligibility. Do not import another candidate's strength or fitness into C.10a."
+}

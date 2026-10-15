@@ -360,6 +360,24 @@ def _solid_tip(spec, commit, rs, sha):
     source = rs.get('solid_tip_source')
     payload = _load(source) if source else None
     if not payload:
+        stored = _load(spec.get('tip_mesh')) if spec.get('tip_mesh') else None
+        if stored and stored.get('schema') == 'jarambit.stored_solid_tip.v1':
+            solid = dict(stored.get('stored_solid') or {})
+            missing = [name for name in SOLVER_FIELDS
+                       if not isinstance(solid.get(name), (int, float)) or isinstance(solid.get(name), bool)]
+            # A stored SF without every solver field stays out of G.
+            detail = {
+                'SF_nodal_max': solid.get('SF_nodal_max'),
+                'n_tet': solid.get('n_tet'), 'n_dof': solid.get('n_dof'), 'ksp_its': solid.get('ksp_its'),
+                'NL': solid.get('NL'), 'NSUB': solid.get('NSUB'),
+                'missing': missing, 'solve_rerun': False,
+                'copied_from_another_genome': False, 'entered_as_solver_run': False,
+                'genome_data_row_matches_csv': stored.get('genome_data_row_matches_csv'),
+                'd1_sha256': stored.get('d1_sha256'),
+            }
+            return _case('solid.tip', 'solver_run', 'incomplete', solver='solid_skfem_p2', geometry_sha256=sha,
+                         source_commit=commit, evidence_path=spec.get('tip_mesh'),
+                         reason='missing ' + ', '.join(missing), detail=detail)
         searched = spec.get('d1_searched')
         detail = {'searched': list(searched), 'found': False} if searched else None
         return _case('solid.tip', 'solver_run', 'incomplete', solver='solid_skfem_p2', geometry_sha256=sha,
@@ -415,6 +433,7 @@ def _d1_searched(name):
     return [
         f'/home/ubuntu/fs4/d1/{name}_D1.json',
         f'ubuntu@192.168.68.54:/home/ubuntu/fs4/d1/{name}_D1.json',
+        f'/home/ubuntu/jarambit_w271/out/solidcert_{name}/{name}_D1.json',
         f'evidence/ has the RS json and the genome csv for {name}, and no {name}_D1.json',
     ]
 
@@ -453,6 +472,7 @@ def subject_catalog():
         'w271b_11860': {
             'rs': 'evidence/rs_v2/w271b_11860.json', 'd1': None,
             'genome': 'evidence/rs_v2/genomes/w271b_11860_genome.csv',
+            'tip_mesh': 'evidence/cad_battery/tip_mesh/w271b_11860.json',
             'd1_searched': _d1_searched('w271b_11860'),
         },
         'w271c_11522': {

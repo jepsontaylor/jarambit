@@ -1,0 +1,40 @@
+material_family,blade_grade,qualifying_entries,comparable_weights,minimum_weight_g,median_weight_g,maximum_weight_g
+Carbon / tool steel,1095,6,6,111.98,180.01999999999998,283.5
+Carbon / tool steel,5160,2,1,249.48,249.48,249.48
+Carbon / tool steel,A2,1,1,163.01,163.01,163.01
+Carbon / tool steel,D2,7,6,124.74,148.55,238.14
+Carbon / tool steel,OU-31,1,0,,,
+Carbon / tool steel,SK-5,1,1,263.65,263.65,263.65
+Damascus / pattern steel,"Damascus, composition unspecified",9,4,71.2,164.005,289.17
+PM tool steel,CPM 3V,2,1,156.49,156.49,156.49
+PM tool steel,K340,2,2,217.0,217.0,217.0
+PM tool steel,Z-Wear,1,0,,,
+Polymer / nonmetal,Glass-reinforced polymer,1,1,65.2,65.2,65.2
+Stainless steel,154CM,6,4,119.92,145.86,333.96
+Stainless steel,2Cr13,2,1,340.19,340.19,340.19
+Stainless steel,3Cr13,9,8,75.98,143.165,411.07
+Stainless steel,420,3,2,164.43,184.275,204.12
+Stainless steel,440,4,2,226.8,248.4,270.0
+Stainless steel,440A,2,2,212.9,232.60500000000002,252.31
+Stainless steel,440C,3,1,221.13,221.13,221.13
+Stainless steel,5Cr15MoV,1,0,,,
+Stainless steel,7Cr13,3,1,167.26,167.26,167.26
+Stainless steel,7Cr17,1,1,119.07,119.07,119.07
+Stainless steel,8Cr13MoV,3,3,96.39,110.56,229.63
+Stainless steel,9Cr18MoV,1,1,167.26,167.26,167.26
+Stainless steel,AEB-L,1,0,,,
+Stainless steel,AUS-10A,1,1,134.66,134.66,134.66
+Stainless steel,AUS-8,2,2,167.26,221.125,274.99
+Stainless steel,AUS-8A,1,1,141.75,141.75,141.75
+Stainless steel,CPM 154,3,3,147.42,219.99,249.48
+Stainless steel,M390,4,2,70.87,115.095,159.32
+Stainless steel,M390MK,1,1,133.24,133.24,133.24
+Stainless steel,MagnaCut,1,1,207.0,207.0,207.0
+Stainless steel,N690,5,5,71.2,158.76,192.78
+Stainless steel,Nitro-V,1,1,138.2,138.2,138.2
+Stainless steel,S30V,2,1,153.65,153.65,153.65
+Stainless steel,S35VN,2,2,93.55,126.435,159.32
+Stainless steel,VG-10,1,1,134.0,134.0,134.0
+"Steel, grade unspecified","Steel, grade unspecified",18,5,99.22,113.4,226.8
+Titanium / Ti composite,Ti-6Al-4V,1,0,,,
+Titanium / Ti composite,"Titanium, alloy unspecified",4,2,51.03,85.05,119.07

@@ -1,0 +1,93 @@
+{
+  "schema": "jarambit.market.validation.v1",
+  "created_at_utc": "2026-10-14T01:21:21.272378+00:00",
+  "research_date_local": "2026-10-13",
+  "base_commit": "7042f199ad1a9c9e924b7aa68d514e8ea5123567",
+  "branch": "codex/market-census-20261013",
+  "scope": [
+    "docs/market/**",
+    "ops/market/**",
+    "README.md market section",
+    "COORD.md append"
+  ],
+  "checks": [
+    {
+      "command": "python3 ops/market/validate.py",
+      "local_result": "12 passed",
+      "xbabe2_result": "12 passed after category-link regression fix; final-head recheck follows"
+    },
+    {
+      "command": "python3 ops/market/build.py --no-plots; python3 ops/market/report.py",
+      "result": "seven data/report outputs reproduce byte-for-byte"
+    },
+    {
+      "command": "python3 ops/ci/gen_readme.py --check",
+      "xbabe2_result": "README.md up to date"
+    },
+    {
+      "command": "git diff --check",
+      "xbabe2_result": "pass"
+    }
+  ],
+  "visual_qa": {
+    "market_landscape": "pass; units, source scope, benchmark and lighter comparator readable",
+    "weight_histogram": "pass; alpha 0.42, shared bins, material counts and benchmark readable",
+    "weight_by_grade": "pass; every exact grade and weight readable"
+  },
+  "plot_runtime": {
+    "python": "3.14.6",
+    "matplotlib": "3.10.8",
+    "numpy": "2.3.5"
+  },
+  "source_body_policy": "Original public page bodies remain private scratch, outside Git; factual fields, URLs and retrieval hashes preserved.",
+  "artifact_hashes": {
+    "docs/market/2026-10-13/README.md": "59add4584bd4a94c04fc949bd47328f5e39de8f37d788364636d43981f85fda2",
+    "docs/market/2026-10-13/benchmark.json": "fee4c4143e0a6ec548c1b5ae0695f9a78c5f0260725650528ea5983c24e48edd",
+    "docs/market/2026-10-13/census.csv": "05927cad43fb7d1b1ba969c81e617ee98df0fdbe1c15c26f3795ce1d2104e2e7",
+    "docs/market/2026-10-13/census.json": "871c17a50d205feae5a93100ab212d2ddf06354d3d5fcf17c95c51ff313f7893",
+    "docs/market/2026-10-13/curation.json": "37a63ebb5919d892f1717e2ede4f51e9e2cd514bf899cb5a01d1d643ca104857",
+    "docs/market/2026-10-13/discovered_models.json": "46953364db23fe869fe4d748b7f64f60bf72f6e5b477a49fa2641778624d7681",
+    "docs/market/2026-10-13/figures/market_landscape.pdf": "a1f8cfad3ec3b7bf11bbaa8ceaf046c4a29baf4115cbc444ecb8dd35dcbb6564",
+    "docs/market/2026-10-13/figures/market_landscape.png": "b9931e16c9312dfbd1268af47749883faf8f0ea3ed4632e2dfa497a0af323525",
+    "docs/market/2026-10-13/figures/market_landscape.svg": "1bdec77c22ba4dbaecdc514a42e8ec825be8a5d13c6286c46142223737a13b39",
+    "docs/market/2026-10-13/figures/weight_by_grade.pdf": "5f8a41fcc961b9a11d7b6303d9f4f3d8a1b1909df9a77ee33032c5f84381a74f",
+    "docs/market/2026-10-13/figures/weight_by_grade.png": "fb44b9424cb59a215d3042128c9bc51dace8d8d3ba54180969f892888dbfa577",
+    "docs/market/2026-10-13/figures/weight_by_grade.svg": "b0299c419bf03178f28ad6e635536f9b9ac25f4b6970e002044bd28685a0b3a0",
+    "docs/market/2026-10-13/figures/weight_histogram.pdf": "6c6885fa5e7c0ad2b6c72a6f0b39917a7972cbad31ab82cdedf7c5869f60c281",
+    "docs/market/2026-10-13/figures/weight_histogram.png": "5a05209bfe55e1ed29cacd05d7605b662422831ce2a900fd187855c6ad378f0e",
+    "docs/market/2026-10-13/figures/weight_histogram.svg": "3b24e3eae8b674b9aa1618ed2a873e61dfa9c69fdf2c0661f5dde05d3fca2ffc",
+    "docs/market/2026-10-13/input_manifest.json": "2f964b52a9c6af8355d1d6bcfb96b178ef102d3e412b4ffe5ecd3c66e83cd9dd",
+    "docs/market/2026-10-13/material_summary.csv": "b0429cf3dbfa3f540803acc80ce355c4483f3dbc7930677fb704ea5bd503b421",
+    "docs/market/2026-10-13/nearby_weight_links.csv": "6b83ba2bc3c703a224812a0a0083538f56fed3742a1ce576e843757f56aa99ab",
+    "docs/market/2026-10-13/observations.json": "ea05a5a903fe3931358edec3f323382e79adb400c661396cc795fbf0f2bd67ce",
+    "docs/market/2026-10-13/qualified_by_material.csv": "fb11fad6929655a1d1bacffdec2585acc27e5b930f8c7032844f068f1b8c4fde",
+    "docs/market/2026-10-13/raw/karambit_catalog_min_3_375_in_2026-10-13.csv": "4367094903f5329483ce03fbc547e214a28d6fc24a6a6676bfb515827edc4ef3",
+    "docs/market/2026-10-13/raw/karambit_knives (1).csv": "b5e7a598a2fee5682777ec8361e13b24f5c5fbe86409af5667156e93d47c9512",
+    "docs/market/2026-10-13/raw/karambit_knives (2).csv": "4f8827cd794b18c3fc9c5ae4b472f895a463f0806109784dcf0a29c02bec9919",
+    "docs/market/2026-10-13/raw/karambit_knives.csv": "0b4f35f0352b1a1ff15f3a1791f598357b0eadcbaeed7360ceab28d3ec0a1fc0",
+    "docs/market/2026-10-13/raw/karambit_knives_dataset.csv": "487659b9d3eede9254483a01c4ccd2c793b63cf5db320ce4f3da8a1924b05ad2",
+    "docs/market/2026-10-13/raw/karambit_knives_min_3_375_in.csv": "98abbac49e45abdaf119593893dd37c341caa8511d9e14b5501ac26137f5d291",
+    "docs/market/2026-10-13/raw/karambit_reference_3p375in_min_2026-10-13.csv": "5319638d6d1e697d8726fc6ebbec6aeaee6a2972a7a1dcc5fe530de0aabac3ae",
+    "docs/market/2026-10-13/raw/karambits_3.375in_plus.csv": "b9afcac9c88b243417506f3cda2a0474b52302889c7d376807dff58d8c9c5c5e",
+    "docs/market/2026-10-13/retrieval_ledger.json": "4e90c115acd2941a74a5f4b20937352c7cccdd7953982a25d887ac1b8a6cc88f",
+    "docs/market/2026-10-13/review_queue.csv": "fa315dccb2de18180bd7bac07e698b479b2910ba0fb76043712757cb0ee16b0b",
+    "docs/market/2026-10-13/screened_exclusions.csv": "709ac1d15e5bf3d9812fb438990cf63832949367c3823cf5ae95652c4a7fa28b",
+    "docs/market/2026-10-13/source_facts.json": "348664652e2a1a90d384cb49c100816984e69bb50412ada3760be51ae45207e7",
+    "docs/market/2026-10-13/summary.json": "d672623f851e6a3695c8624da9f481d62ec9251496e809cedc1ab0a90ea382b4",
+    "docs/market/2026-10-13/web_evidence.json": "80494b2d5c30026006d32d2616c6dd9b121909ecb0996b72f694b2f33dd069ec",
+    "ops/market/build.py": "66049b5ac01a71805546574f8c6f6212572536b5e3f743e3f6044dd6b1b4989f",
+    "ops/market/harvest.py": "9431e1f8622988c00aceee16151b1d6fe6f726ec1364db416dacc322580b2e2f",
+    "ops/market/normalize.py": "52d735b7b072255005cb17b94ac0f2155c6af35841e1d550aa6965dbbfd30b3c",
+    "ops/market/report.py": "cd23995771f88e8d3ca0ac942f9619d0e8f4c203e168b619c49239cfbbb1b3a0",
+    "ops/market/validate.py": "0f6f84ab63aa1ecd9a3b90648e196f382728e2527a993cd1fffb801056a105d8"
+  },
+  "limits": [
+    "Global completeness not established",
+    "42 qualifying entries lack comparable verified weights",
+    "Stock availability not independently audited",
+    "CAD mass is unmeasured; no performance equivalence inferred"
+  ],
+  "integration": "Committed branch is prepared for the existing one-PR queue behind PR #67; no merge or release authorized by the data build.",
+  "updated_at_utc": "2026-10-14T01:28:23.684737+00:00",
+  "correction": "A shared merchant category link had merged CIA Stinger III and Garra. Only individual product links may reconcile aliases; a regression test locks both distinct models. Separate legacy/current Microtech material records remain separate. Nearby-weight CSV includes full URLs and caveats."
+}

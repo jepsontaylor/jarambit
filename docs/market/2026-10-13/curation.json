@@ -1,0 +1,144 @@
+{
+  "hightron-cyroclaw": {
+    "qualification": "conditional_length_conflict",
+    "weight_g": 57.0,
+    "cutting_edge_in": 2.44,
+    "notes": "Manufacturer and Blade HQ label the blade 3.94 in. Arizona Custom Knives repeats that description but its product-details table says 2.75 in. A 2.44 in edge is also listed. Retained in review queue; excluded from confirmed comparison. Titanium clip does not make the M390 blade titanium."
+  },
+  "hoback-talim__titanium-alloy-unspecified": {
+    "qualification": "source_confirmed_as_listed",
+    "weight_g": 51.03,
+    "weight_basis": "explicit_knife_only",
+    "weight_verification": "current_source",
+    "weight_with_sheath_g": 96.39,
+    "blade_length_in": 3.5,
+    "blade_grade": "Titanium, alloy unspecified",
+    "style_scope": "broader_style",
+    "source_method": "web_reader_catalog_facts",
+    "notes": "Northern Knives live product specifications explicitly separate 1.8 oz live-blade weight from 3.4 oz with sheath. Price covers the trainer/sheath bundle. Heading and browser title disagree TALIM/TUSK; retain the SKU JHB-TIKARAM PO and URL. Treat as a broader ringless style comparator. Lighter than C.10a.",
+    "weight_source_url": "https://www.northernknives.com/online-store/Jake-Hoback-TALIM-Combative-Systems-3-5-Karambit-&-Trainer-Carbon-Fiber-Differentially-Heat-Treated-Titanium-Pre-Owned-p616740169",
+    "additional_verified_urls": [
+      "https://www.northernknives.com/online-store/Jake-Hoback-TALIM-Combative-Systems-3-5-Karambit-&-Trainer-Carbon-Fiber-Differentially-Heat-Treated-Titanium-Pre-Owned-p616740169"
+    ],
+    "source_url": "https://www.northernknives.com/online-store/Jake-Hoback-TALIM-Combative-Systems-3-5-Karambit-&-Trainer-Carbon-Fiber-Differentially-Heat-Treated-Titanium-Pre-Owned-p616740169",
+    "length_source_url": "https://www.northernknives.com/online-store/Jake-Hoback-TALIM-Combative-Systems-3-5-Karambit-&-Trainer-Carbon-Fiber-Differentially-Heat-Treated-Titanium-Pre-Owned-p616740169"
+  },
+  "hoback-talim__s35vn": {
+    "style_scope": "broader_style"
+  },
+  "schwartz-spartan": {
+    "blade_grade": "Ti-6Al-4V",
+    "weight_g": 104.89,
+    "weight_basis": "seller_weight_scope_unspecified",
+    "weight_verification": "current_source",
+    "notes": "KnifeCenter SWZ13 lists 4.4 oz INCLUDING sheath (124.74 g). Arizona Custom Knives 1071375 lists 3.7 oz (104.89 g), weight scope unspecified. Do not plot 124.74 g as bare knife or use an estimated 103 g. Both 3.375 in and 3.5 in lengths qualify. Titanium blade with carbidized edge.",
+    "weight_source_url": "https://www.arizonacustomknives.com/products/1071375"
+  },
+  "medford-burung": {
+    "qualification": "conditional_length_conflict",
+    "notes": "KnifeCenter lists 3.45 in, while another supplied catalog lists 3.25 in. Resolve SKU/generation and measurement convention before confirming the minimum."
+  },
+  "rogue-custom-titanium": {
+    "qualification": "candidate_unverified",
+    "blade_length_in": 3.937007874015748,
+    "blade_grade": "Ti / carbon fiber",
+    "weight_g": 106.31,
+    "weight_basis": "marketplace_seller_reported",
+    "notes": "Live Knife-Market listing describes a titanium/Kevlar-carbon-fiber prototype and 3.75 oz. Structured blade length is 100 mm, correcting the supplied 4.75 in claim. Single marketplace seller, unsupported material certification and weight basis; retained for review."
+  },
+  "terry-renner-playmates-tactical-hawkbill-karambit": {
+    "weight_basis": "set_or_single_knife_unresolved",
+    "notes": "Listing is a right/left pair. The 3.4 oz field does not explicitly establish per-knife versus pair mass; excluded from comparable weights."
+  },
+  "black-legion-set-karambit": {
+    "weight_g": null,
+    "weight_basis": "three_knife_set_not_single_knife",
+    "notes": "3.5 in karambit component qualifies by listing. Three color variants and MTech/Black Legion branding collapsed to one catalog entry. 16.3 oz belongs to an unresolved set scope, never to a verified single knife."
+  },
+  "boker-wildcat-xl": {
+    "blade_length_in": 3.43,
+    "weight_g": 163.86,
+    "weight_basis": "published_knife_spec",
+    "weight_verification": "current_source",
+    "notes": "Boker USA 01BO755 manufacturer specifications list 3.43 in and 5.78 oz. Blade HQ lists 3.375 in and 5 oz for the same identifier. Manufacturer values take precedence; both lengths qualify. Weight disagreement remains in the audit."
+  },
+  "boker-straight-karambit": {
+    "style_scope": "broader_style",
+    "blade_grade": "Steel, grade unspecified",
+    "notes": "Straight ring-handled design belongs to the broader style group. Current sellers disagree 7Cr17MoV versus 440A; retain both original claims in observations, group under unspecified steel until manufacturer/SKU metallurgy resolves."
+  },
+  "tops-tac-tops": {
+    "blade_length_in": 7.13,
+    "cutting_edge_in": 5.75,
+    "weight_g": 283.5,
+    "weight_basis": "explicit_knife_only",
+    "weight_verification": "current_source",
+    "weight_with_sheath_g": 411.07,
+    "notes": "TOPS current manufacturer table: blade 7.13 in, cutting edge 5.75 in, knife weight 10 oz, with sheath 14.5 oz. Older 6.125 in catalog convention remains recorded; all values qualify."
+  },
+  "tops-10-27": {
+    "weight_g": 243.81,
+    "weight_basis": "published_knife_spec",
+    "weight_verification": "current_source",
+    "notes": "KnifeCenter and Oso Grande currently list 8.6 oz. Supplied 6.8 oz weight is not used. This ring/drop-point hybrid remains in the broader style comparison.",
+    "style_scope": "broader_style"
+  },
+  "tops-c-u-t-4-0": {
+    "style_scope": "broader_style"
+  },
+  "tops-trailhead-kukri": {
+    "style_scope": "broader_style"
+  },
+  "cold-steel-black-talon-ii": {
+    "style_scope": "broader_style"
+  },
+  "spyderco-civilian": {
+    "style_scope": "broader_style"
+  },
+  "civivi-orthrus-fixed-karambit-straight-edge-bob-terzuola-design": {
+    "style_scope": "broader_style",
+    "additional_verified_urls": [
+      "https://www.civivi.com/products/civivi-orthrus-c20037b-1"
+    ],
+    "blade_grade": "Nitro-V"
+  },
+  "elite-tactical-silverfang": {
+    "qualification": "source_confirmed_as_listed",
+    "blade_length_in": 3.5,
+    "blade_grade": "D2",
+    "weight_g": 172.93,
+    "weight_basis": "explicit_knife_only",
+    "weight_verification": "current_source",
+    "notes": "KYGunCo description identifies 3.5 in D2 blade and separates 6.1 oz knife weight from total weight including sheath.",
+    "source_method": "direct_public_page_description"
+  },
+  "mick-strider-custom": {
+    "blade_grade": "Titanium, alloy unspecified",
+    "notes": "KnifeCenter describes the Level IV Strike Plate blade as titanium in product title, description and blade-material category; alloy and independent certification remain unspecified."
+  },
+  "united-cutlery-m48-liberator-falcon": {
+    "blade_length_in": 4.63,
+    "source_url": "https://karambit.com/products/m48-liberator-falcon-karambit",
+    "length_source_url": "https://karambit.com/products/m48-liberator-falcon-karambit",
+    "notes": "Seller calls the UC3334 a Liberator Falcon with 4.63 in blade; KnifeCenter calls UC3334 Falcon with 5.25 in blade. Names/SKU overlap unresolved. Kept separately from M48 Falcon as an input family; do not assign a verified knife-only weight.",
+    "qualification": "conditional_model_identity"
+  },
+  "lotar-kharma-gen-2": {
+    "blade_grade": "CPM 3V"
+  },
+  "maxace-hela": {
+    "weight_g": null,
+    "weight_basis": "published_weight_conflict_unresolved",
+    "notes": "Qualifying M390 Hela listings span M20A/B/C/E. Current sellers list 6.17 versus 7.30 oz without a clear generation/construction reconciliation. Color/SKU family retained, but no single representative knife weight is chosen."
+  },
+  "fox-parong-standard": {
+    "ignored_source_urls": [
+      "https://foxknivesamericas.com/products/karambit-titanium-frame-lock"
+    ],
+    "notes": "Fox Americas link in one input refers to a different 2.56 in titanium-frame-lock model. Its specs are excluded from Parong; source URL retained for audit. Parong FX-637T product page lists 3.75 in N690 and 6.7 oz."
+  },
+  "emerson-super-karambit": {
+    "qualification": "conditional_length_conflict",
+    "notes": "Blade HQ lists 3.375 in; Oso Grande 3.4 in; Knivesandtools 8 cm (3.15 in). SKU/measurement boundary unresolved. EKnives 3\u20133.49 in is a store filter range, not an exact measurement. Retained as conditional."
+  }
+}

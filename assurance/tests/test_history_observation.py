@@ -1743,12 +1743,15 @@ FIXTURES = json.loads(r"""
     },
     "oracle": {
       "censoring": "left",
+      "history_prefix_events": [
+        "E1"
+      ],
       "limit": 0.5,
       "outcome": "accepted",
       "value": null
     },
     "input_sha256": "5aaf4d63a8825a775b0aa53ddf1ddda9a5bb5db5dfd14a6df9ded840a28167d1",
-    "oracle_sha256": "fc8cc4b2ab53689124f780feb95c98ccc773f424e749dc7e3a302a36dee11ac3"
+    "oracle_sha256": "03e1c6c0a2c3c4be1d6659cd09126ac3057d36328f595b10406f39139ca0ae0d"
   },
   {
     "id": "FX-09-p-measured_zero",
@@ -1833,11 +1836,14 @@ FIXTURES = json.loads(r"""
     },
     "oracle": {
       "censoring": null,
+      "history_prefix_events": [
+        "E1"
+      ],
       "outcome": "accepted",
       "value": 0.0
     },
     "input_sha256": "989c70b28ae81836d8d69974a0bf0971c4c9c19c3e0ff36701500403da341a10",
-    "oracle_sha256": "ed5c9c1d5532e6dc2abbb70074e705f7016896f0d69fa01fbac806fbf576ced8"
+    "oracle_sha256": "e594db3af2de1d9b647e68919f0e1f1e499dd24b443e87c26362113721ba2d62"
   },
   {
     "id": "FX-09-a",
@@ -2020,10 +2026,13 @@ FIXTURES = json.loads(r"""
       "components_unknown": [
         "xy"
       ],
+      "history_prefix_events": [
+        "E1"
+      ],
       "outcome": "accepted"
     },
     "input_sha256": "609ffc65f70ae4d363b7845660d63547709d7d1997e4bb131b601f373770b70a",
-    "oracle_sha256": "479d08000234f969dde465b755456300f1b13b1f98a66eb745e53366e05014f9"
+    "oracle_sha256": "2599b0817377a0b3a5fbcbf4f7a8793f1a5453dfd20d7f35ee7a328ae63e9993"
   },
   {
     "id": "FX-09-a-A03-03_components",
@@ -3834,6 +3843,57 @@ class SameConsumerContractControls(unittest.TestCase):
         after["history"]["events"].append(
             event("2026-01-01T03:00:00Z", "2026-01-01T01:30:00Z"))
         self.assertEqual(bind(after)["reason"], "measurement_during_active_exposure")
+
+    def test_accepted_bindings_retain_the_validated_prefix(self):
+        """Censored, measured-zero, and component acceptances keep the prefix."""
+        expected = {
+            "FX-09-p": {
+                "censoring": "left",
+                "history_prefix_events": ["E1"],
+                "limit": 0.5,
+                "outcome": "accepted",
+                "value": None,
+            },
+            "FX-09-p-measured_zero": {
+                "censoring": None,
+                "history_prefix_events": ["E1"],
+                "outcome": "accepted",
+                "value": 0.0,
+            },
+            "FX-09-p-A03-03_components": {
+                "components_unknown": ["xy"],
+                "history_prefix_events": ["E1"],
+                "outcome": "accepted",
+            },
+        }
+        refused = {
+            "FX-09-a": "censored_value_not_null",
+            "FX-09-a-A03-03_components": "inferred_component_labeled_measured",
+        }
+        for fixture_id, oracle in expected.items():
+            payload = _fixture(fixture_id)
+            accepted = observation.bind_observation(
+                payload["measurement"],
+                payload["history"],
+                payload["raw_bytes_sha256"],
+            )
+            self.assertEqual(accepted, oracle, fixture_id)
+            self.assertEqual(
+                accepted["history_prefix_events"],
+                list(payload["measurement"]["history_prefix_events"]),
+                fixture_id,
+            )
+            self.assertTrue(accepted["history_prefix_events"], fixture_id)
+        for fixture_id, reason in refused.items():
+            payload = _fixture(fixture_id)
+            result = observation.bind_observation(
+                payload["measurement"],
+                payload["history"],
+                payload.get("raw_bytes_sha256"),
+            )
+            self.assertEqual(result["outcome"], "refused", fixture_id)
+            self.assertEqual(result["reason"], reason, fixture_id)
+            self.assertNotIn("history_prefix_events", result, fixture_id)
 
 
 if __name__ == "__main__":
