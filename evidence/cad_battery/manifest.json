@@ -22,31 +22,11 @@
   "gate.rs_v2"
  ],
  "subjects": [
-  "c10a",
-  "c93",
-  "c92",
-  "c10c",
-  "g3",
-  "w271b_11772",
-  "w271b_11860",
-  "w271c_11522",
-  "w272_s2902_c01",
-  "w273_s2904_c01",
-  "w273_s2903_c04"
+  "w274_s2905_c01"
  ],
- "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
+ "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
  "search_fitness": "unchanged",
  "files": [
-  "evidence/cad_battery/c10a.json",
-  "evidence/cad_battery/c93.json",
-  "evidence/cad_battery/c92.json",
-  "evidence/cad_battery/c10c.json",
-  "evidence/cad_battery/g3.json",
-  "evidence/cad_battery/w271b_11772.json",
-  "evidence/cad_battery/w271b_11860.json",
-  "evidence/cad_battery/w271c_11522.json",
-  "evidence/cad_battery/w272_s2902_c01.json",
-  "evidence/cad_battery/w273_s2904_c01.json",
-  "evidence/cad_battery/w273_s2903_c04.json"
+  "evidence/cad_battery/w274_s2905_c01.json"
  ]
 }

@@ -23,9 +23,9 @@ pub struct Rec {
 }
 impl Rec {
     pub fn aesthetic_pass(&self) -> bool { self.aes.pass }
-    /// LEGAL = gates + floors; with the P1 layer ON also the D1 failure-sequence proxy >= 1.2 (hard).
-    /// With P1 ON also the OWNER-LOCKED twist floor (body AND tip submodel >= 1.82 N*m) at search level.
-    pub fn legal(&self) -> bool { self.rejects.is_empty() && self.fem.as_ref().map_or(false, |f| f.floors_ok && (!self.g.p1() || (f.seq_ratio >= fem::SEQ_TARGET && fem::twist_floor_ok(f.twist_body_sf, f.twist_tipzone_sf)))) }
+    /// LEGAL = gates + floors; with the P1 layer ON (or JARAMBIT_ALL_GATES=1) also the D1 failure-sequence proxy >= 1.2 (hard)
+    /// and the OWNER-LOCKED twist floor (body AND tip submodel >= 1.82 N*m) at search level.
+    pub fn legal(&self) -> bool { self.rejects.is_empty() && self.fem.as_ref().map_or(false, |f| f.floors_ok && (!(self.g.p1() || all_gates_env()) || (f.seq_ratio >= fem::SEQ_TARGET && fem::twist_floor_ok(f.twist_body_sf, f.twist_tipzone_sf)))) }
 }
 
 pub fn descriptor(g: &Genome, p: &Pheno) -> [f64; DESC_N] {
@@ -72,6 +72,9 @@ pub fn min_through() -> usize { std::env::var("JARAMBIT_MIN_THROUGH").ok().and_t
 /// constraint-dominated for every design, not just P1 genomes. A floors-OK design that misses it ranks in (-1, -0.1),
 /// graded by min(body, tip) SF, so the search cannot buy mass by thinning the tip rail/ribs.
 pub fn tiptwist_gate() -> bool { std::env::var("JARAMBIT_TIPTWIST_GATE").map_or(false, |v| v == "1") }
+/// JARAMBIT_ALL_GATES=1: enforce all D1 gates (seq_ratio >= 1.2, twist_body_sf >= 1.0, twist_tipzone_sf >= 1.0)
+/// as hard legality gates for all genomes, with knee-capped survival margin (+8% knee) so mass reduction dominates.
+pub fn all_gates_env() -> bool { std::env::var("JARAMBIT_ALL_GATES").map_or(false, |v| v == "1") }
 /// Provisional reference mass (g) for the cap-free mass-reward term (PR-0.31.2).
 pub const MASS_REF_G: f64 = 84.8;
 /// Below this mass (g) the log mass reward keeps rising but at `MASS_KNEE_SLOPE` of the rate (diminishing returns).
@@ -112,15 +115,19 @@ pub fn strength_margin(r: &Rec) -> f64 {
 pub fn fitness(r: &Rec) -> f64 {
     if !r.aes.pass { return -200.0 - r.aes.fails.len() as f64 - r.aes.hausdorff; }
     if !r.rejects.is_empty() { return -100.0 - r.rejects.len() as f64; }
+    let ag = all_gates_env();
     match &r.fem { None => -50.0,
         Some(f) if !f.floors_ok => -1.0 - 10.0 * ((1.0 - f.lat_rob / 260.0).max(0.0) + (1.0 - f.ring_rob / 1500.0).max(0.0)),
         Some(f) if f.seq_ratio < fem::SEQ_TARGET || !fem::twist_floor_ok(f.twist_body_sf, f.twist_tipzone_sf) => {
             let q = (f.seq_ratio / fem::SEQ_TARGET).clamp(0.0, 1.0) * f.twist_body_sf.clamp(0.0, 1.0) * f.twist_tipzone_sf.clamp(0.0, 1.0);
-            -1.0 + 0.9 * q.min(0.999) }
+            let m_tie = if ag { 0.05 * ((90.0 - r.mass_g) / 20.0).clamp(0.0, 1.0) } else { 0.0 };
+            -1.0 + 0.85 * q.min(0.999) + m_tie }
         // through-lattice experiment lane: feasible but too few through-features ranks below every feasible design that has them
         Some(_) if r.n_win + r.n_perf < min_through() => -0.09 + 0.08 * ((r.n_win + r.n_perf) as f64 / min_through() as f64),
-        Some(_) => 1.0 + mass_reward(r.mass_g) - mass_over_penalty(r.mass_g) + MARGIN_W * (1.0 - (-strength_margin(r) / MARGIN_SCALE).exp())
-            + 0.02 * r.aes.score.clamp(0.0, 1.0) + 0.02 * r.novelty.clamp(0.0, 1.0) }
+        Some(_) => {
+            let (mw, ms) = if ag { (0.02, 0.03) } else { (MARGIN_W, MARGIN_SCALE) };
+            1.0 + mass_reward(r.mass_g) - mass_over_penalty(r.mass_g) + mw * (1.0 - (-strength_margin(r) / ms).exp())
+                + 0.02 * r.aes.score.clamp(0.0, 1.0) + 0.02 * r.novelty.clamp(0.0, 1.0) } }
 }
 /// Back-compat shim: the tip-twist floor is now always hard; the flag is ignored.
 pub fn fitness_opt(r: &Rec, _tiptwist: bool) -> f64 { fitness(r) }

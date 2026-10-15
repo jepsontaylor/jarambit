@@ -429,8 +429,8 @@ def _side_cases(spec, commit, sha):
 def _solid_tip(spec, commit, rs, sha):
     source = rs.get('solid_tip_source')
     payload = _load(source) if source else None
-    if not payload:
-        stored = _load(spec.get('tip_mesh')) if spec.get('tip_mesh') else None
+    if not payload or payload.get('schema') == 'jarambit.stored_solid_tip.v1':
+        stored = payload if (payload and payload.get('schema') == 'jarambit.stored_solid_tip.v1') else (_load(spec.get('tip_mesh')) if spec.get('tip_mesh') else None)
         if stored and stored.get('schema') == 'jarambit.stored_solid_tip.v1':
             solid = dict(stored.get('stored_solid') or {})
             missing = [name for name in SOLVER_FIELDS
@@ -536,6 +536,10 @@ def subject_catalog():
     w272_side, w272_sha, w272_seq = _repo_side('w272_s2902_c01')
     w273_2904_side, w273_2904_sha, w273_2904_seq = _repo_side('w273_s2904_c01')
     w273_2903_side, w273_2903_sha, w273_2903_seq = _repo_side('w273_s2903_c04')
+    w274_2905_side = 'evidence/rs_v2/w274_calibrated/w274_s2905_c01_a1a3.json'
+    w274_2905_path = ROOT / w274_2905_side
+    w274_2905_sha = _sha256(w274_2905_path) if w274_2905_path.is_file() else None
+    w274_2905_seq = json.loads(w274_2905_path.read_text(encoding='utf-8')).get('seq_ratio_this_mesh') if w274_2905_path.is_file() else None
     native = {
         'c10a': 'C10a', 'c93': 'C93', 'c92': 'C92', 'c10c': 'C10c',
     }
@@ -598,6 +602,15 @@ def subject_catalog():
             'plate_gci': 'evidence/cad_battery/plate_gci/w273_s2903_c04.json',
             'side_a4': 'evidence/cad_battery/side/w273_s2903_c04_a4.json',
             'side_path': w273_2903_side, 'side_sha': w273_2903_sha, 'side_seq': w273_2903_seq,
+        },
+        'w274_s2905_c01': {
+            'rs': 'evidence/rs_v2/w274_calibrated/w274_s2905_c01_rs.json', 'd1': None,
+            'genome': 'evidence/rs_v2/w274_calibrated/w274_s2905_c01_genome.csv',
+            'tip_mesh': 'evidence/rs_v2/w274_calibrated/w274_s2905_c01_solid_tip.json',
+            'plate_gci': 'evidence/rs_v2/w274_calibrated/w274_s2905_c01_plate_gci.json',
+            'side_a4': 'evidence/rs_v2/w274_calibrated/w274_s2905_c01_a4.json',
+            'side_path': w274_2905_side if w274_2905_sha else None,
+            'side_sha': w274_2905_sha, 'side_seq': w274_2905_seq,
         },
     }
     return native, genomes

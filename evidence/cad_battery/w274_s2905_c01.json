@@ -1,0 +1,365 @@
+{
+ "schema": "jarambit.cad_battery.subject.v1",
+ "subject": "w274_s2905_c01",
+ "role": "genome",
+ "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+ "cases": [
+  {
+   "id": "build.analytic",
+   "kind": "software_contract",
+   "status": "pass",
+   "solver": "analytic",
+   "geometry_sha256": null,
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "crates/physics/tests/invariance.rs",
+   "fresh_this_lane": false
+  },
+  {
+   "id": "build.gci_contracts",
+   "kind": "software_contract",
+   "status": "pass",
+   "solver": "gci",
+   "geometry_sha256": null,
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "fem_solid/tests/test_gci.py",
+   "fresh_this_lane": false
+  },
+  {
+   "id": "build.claims",
+   "kind": "software_contract",
+   "status": "pass",
+   "solver": null,
+   "geometry_sha256": null,
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "ops/ci/check_claims.py",
+   "fresh_this_lane": false,
+   "detail": {
+    "expected_unaided_exit": 2,
+    "reason": "independent_caller_admission_unavailable"
+   }
+  },
+  {
+   "id": "build.dolfinx",
+   "kind": "software_contract",
+   "status": "pass",
+   "solver": "solid_dolfinx",
+   "geometry_sha256": null,
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/cad_battery/dolfinx_cross_check.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "container_image": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+    "script": "fem_solid/cross_check.py",
+    "all_within_2pct": true,
+    "tolerance_rel": 0.02,
+    "subjects_checked": [
+     "g3",
+     "w271b_11772",
+     "w271b_11860",
+     "w271c_11522",
+     "w272_s2902_c01",
+     "w273_s2903_c04",
+     "w273_s2904_c01",
+     "w274_s2905_c01"
+    ]
+   }
+  },
+  {
+   "id": "geom.unit",
+   "kind": "gate",
+   "status": "blocked",
+   "solver": null,
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_genome.csv",
+   "fresh_this_lane": false,
+   "reason": "no step bound"
+  },
+  {
+   "id": "geom.one_solid",
+   "kind": "gate",
+   "status": "blocked",
+   "solver": null,
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_genome.csv",
+   "fresh_this_lane": false,
+   "reason": "no step bound"
+  },
+  {
+   "id": "geom.mass",
+   "kind": "derived",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_rs.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "plate_mass_g": 84.97916178866379,
+    "note": "fem::certify mass, not a STEP"
+   },
+   "g_inputs": {
+    "mass_g": 84.97916178866379
+   }
+  },
+  {
+   "id": "geom.pin",
+   "kind": "software_contract",
+   "status": "blocked",
+   "solver": null,
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_genome.csv",
+   "fresh_this_lane": false,
+   "reason": "genome is not a native CAD pin"
+  },
+  {
+   "id": "plate.loads",
+   "kind": "derived",
+   "status": "fail",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_rs.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "loads": {
+     "hiker_lateral_n": {
+      "value_n_or_sf": 267.69283863318356,
+      "compared_with": 180
+     },
+     "hunter_lateral_n": {
+      "value_n_or_sf": 267.69283863318356,
+      "compared_with": 260
+     },
+     "ring_pull_n": {
+      "value_n_or_sf": 18751.35725170091,
+      "compared_with": 1500
+     },
+     "chord_twist_human_max_sf": {
+      "value_n_or_sf": 0.12565751503254272,
+      "compared_with": 16200
+     },
+     "spine_sf": {
+      "value_n_or_sf": 0.3853925348444139,
+      "compared_with": 3427
+     },
+     "ring_back_sf": {
+      "value_n_or_sf": 2.8210302521654995,
+      "compared_with": 3000
+     },
+     "tip_inplane_sf_record_only": {
+      "value_n_or_sf": 0.4858640261787062,
+      "compared_with": 1000
+     },
+     "pry": null
+    },
+    "note": "derived from the certify record"
+   },
+   "g_inputs": {
+    "spg": 3.1501
+   }
+  },
+  {
+   "id": "plate.seq",
+   "kind": "gate",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_rs.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "seq_ratio": 1.2730313869258605,
+    "seq_target": 1.2,
+    "side_report_seq_ratio": 1.3659513989214631
+   },
+   "g_inputs": {
+    "seq_ratio": 1.2730313869258605
+   }
+  },
+  {
+   "id": "plate.l7",
+   "kind": "derived",
+   "status": "fail",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_rs.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "label": "screening",
+    "not": "spec \u00a77.3 L7",
+    "fat_sf": 0.7477531120806018,
+    "cycles": "1e7",
+    "load": "0..180 N"
+   }
+  },
+  {
+   "id": "plate.gci",
+   "kind": "derived",
+   "status": "fail",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_plate_gci.json",
+   "fresh_this_lane": false,
+   "reason": "oscillatory_sequence",
+   "detail": {
+    "primary_observable": "seq_ratio",
+    "refinement_ratio_r": 2.0,
+    "fit_status": "oscillatory",
+    "p": null,
+    "gci_fine": null,
+    "admitted": false,
+    "discretization_under_3pct": false,
+    "sf_hunter_fit_status": "oscillatory",
+    "sf_hunter_p": null,
+    "sf_hunter_gci_fine": null
+   }
+  },
+  {
+   "id": "side.a1",
+   "kind": "derived",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_a1a3.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "sha256": "b2edc31873e763ba065e6ae928b70bda381aa88521b07c41ef66f9a95ed42415",
+    "mesh_mm2": 0.25,
+    "changes_seq_ratio": false
+   }
+  },
+  {
+   "id": "side.a2",
+   "kind": "derived",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_a1a3.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "sha256": "b2edc31873e763ba065e6ae928b70bda381aa88521b07c41ef66f9a95ed42415",
+    "mesh_mm2": 0.25,
+    "changes_seq_ratio": false
+   }
+  },
+  {
+   "id": "side.a3",
+   "kind": "derived",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_a1a3.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "sha256": "b2edc31873e763ba065e6ae928b70bda381aa88521b07c41ef66f9a95ed42415",
+    "mesh_mm2": 0.25,
+    "changes_seq_ratio": false
+   }
+  },
+  {
+   "id": "side.a4",
+   "kind": "derived",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_a4.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "sha256": "cb794417303b0069cfd919ecccbe037f7ee17df912104bb3ff2467946c561a70",
+    "bore_support": "radial_pin_bearing_and_flange",
+    "grip_foundation_stiffness": "winkler_grip_pad_foundation",
+    "buckling_eigenvalue": 10.356499256079452,
+    "buckling_critical_load_n": 2692.6898065806577,
+    "supported_seq_ratio": 2.7214781077131365,
+    "certified_seq_ratio": 1.2730313869258605,
+    "default_clamp": "ring-hole nodes fixed in all 5 dofs inside run_b",
+    "partial_solver_edit": false,
+    "changes_seq_ratio": false
+   }
+  },
+  {
+   "id": "solid.tip",
+   "kind": "solver_run",
+   "status": "pass",
+   "solver": "solid_skfem_p2",
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_solid_tip.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "SF_nodal_max": 1.304,
+    "n_tet": 90384,
+    "n_dof": 413613,
+    "ksp_its": 61,
+    "NL": 4,
+    "NSUB": 1,
+    "missing": [],
+    "solve_rerun": true,
+    "copied_from_another_genome": false,
+    "entered_as_solver_run": true,
+    "genome_data_row_matches_csv": true,
+    "d1_sha256": "e3928d52edcc2793ab812dd632401701f71cc84f2624bb55bf86168d25b2d02c"
+   },
+   "g_inputs": {
+    "solid_tip_sf_nodal_max": 1.304
+   }
+  },
+  {
+   "id": "gate.rs_v2",
+   "kind": "gate",
+   "status": "fail",
+   "solver": null,
+   "geometry_sha256": "6790f4a858771650159ba64cdf46521c3d57f514f59509988de8b0963b5b7ddf",
+   "source_commit": "028a8cf6ceb6aafef2ce72f11cd4eb67fa12b5db",
+   "evidence_path": "evidence/rs_v2/w274_calibrated/w274_s2905_c01_rs.json",
+   "fresh_this_lane": false,
+   "reason": "does not pass every hard gate",
+   "detail": {
+    "gates": {
+     "aesthetic_and_geometric": "pass",
+     "fatigue": "fail",
+     "floors_828_joint": "pass",
+     "gate_s_sharp_law": "fail",
+     "gate_s_tip_point_brep": "unverified",
+     "human_max": "fail",
+     "seq_hard": "pass",
+     "solid_tip_sf": "pass",
+     "strict_hunter_lateral": "pass",
+     "twist_floor_body_and_tipsub_strict": "pass"
+    },
+    "all_hard": false
+   },
+   "g_inputs": {
+    "aes_score": 0.3896
+   }
+  }
+ ],
+ "pass_count": 11,
+ "solver_run_count": 1,
+ "solver_run_objects": 1,
+ "global_fitness": {
+  "metric": "G1",
+  "inputs": {
+   "mass_g": 84.97916178866379,
+   "spg": 3.1501,
+   "seq_ratio": 1.2730313869258605,
+   "solid_tip_sf_nodal_max": 1.304,
+   "aes_score": 0.3896
+  },
+  "G": 0.7700579410566811,
+  "status": "COMPLETE",
+  "provisional": false,
+  "missing": [],
+  "title": "G 0.770 | 85.0 g | jarambit v0.32.0"
+ },
+ "search_fitness": "unchanged"
+}

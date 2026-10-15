@@ -14,10 +14,12 @@ LIVE = (
     'c10a', 'c93', 'c92',
     'g3', 'w271b_11772', 'w271b_11860', 'w271c_11522',
     'w272_s2902_c01', 'w273_s2904_c01', 'w273_s2903_c04',
+    'w274_s2905_c01',
 )
 GENOMES = (
     'g3', 'w271b_11772', 'w271b_11860', 'w271c_11522',
     'w272_s2902_c01', 'w273_s2904_c01', 'w273_s2903_c04',
+    'w274_s2905_c01',
 )
 
 
@@ -84,6 +86,7 @@ class Records(unittest.TestCase):
             'w272_s2902_c01': {'n_tet': 71952, 'n_dof': 330453, 'ksp_its': 52, 'sf': 0.875, 'rerun': True, 'G': 0.7523889572632168},
             'w273_s2904_c01': {'n_tet': 71952, 'n_dof': 330453, 'ksp_its': 52, 'sf': 0.875, 'rerun': True, 'G': 0.7602536724290332},
             'w273_s2903_c04': {'n_tet': 71952, 'n_dof': 330453, 'ksp_its': 51, 'sf': 0.875, 'rerun': True, 'G': 0.7509316126056635},
+            'w274_s2905_c01': {'n_tet': 90384, 'n_dof': 413613, 'ksp_its': 61, 'sf': 1.304, 'rerun': True, 'G': 0.7700579410566811},
         }
         for name, want in expected.items():
             tip = next(case for case in self.records[name]['cases'] if case['id'] == 'solid.tip')
@@ -199,7 +202,7 @@ class Records(unittest.TestCase):
                 case = next(row for row in self.records[name]['cases'] if row['id'] == case_id)
                 self.assertNotEqual(case['status'], 'pass')
                 self.assertNotIn('3e419ac1', json.dumps(case))
-        for name in ('w271b_11772', 'w271b_11860', 'w271c_11522', 'w272_s2902_c01', 'w273_s2904_c01', 'w273_s2903_c04'):
+        for name in ('w271b_11772', 'w271b_11860', 'w271c_11522', 'w272_s2902_c01', 'w273_s2904_c01', 'w273_s2903_c04', 'w274_s2905_c01'):
             for case_id in ('side.a1', 'side.a2', 'side.a3'):
                 case = next(row for row in self.records[name]['cases'] if row['id'] == case_id)
                 self.assertEqual(case['status'], 'pass')
@@ -213,6 +216,7 @@ class Records(unittest.TestCase):
             ('w272_s2902_c01', 'fail'),
             ('w273_s2904_c01', 'pass'),
             ('w273_s2903_c04', 'fail'),
+            ('w274_s2905_c01', 'fail'),
         ):
             gci = next(row for row in self.records[name]['cases'] if row['id'] == 'plate.gci')
             self.assertEqual(gci['status'], want_status)
@@ -227,7 +231,7 @@ class Records(unittest.TestCase):
             self.assertFalse(a4['detail']['changes_seq_ratio'])
             self.assertGreaterEqual(a4['detail']['buckling_eigenvalue'], 1.2)
 
-    def test_dolfinx_cross_check_covers_all_seven_genomes_within_two_percent(self):
+    def test_dolfinx_cross_check_covers_all_eight_genomes_within_two_percent(self):
         cross = json.loads((ROOT / 'evidence' / 'cad_battery' / 'dolfinx_cross_check.json').read_text(encoding='utf-8'))
         self.assertTrue(cross['all_within_2pct'])
         for name in GENOMES:
@@ -238,9 +242,10 @@ class Records(unittest.TestCase):
             self.assertLessEqual(row['rel_err_nodal_avg'], 0.02)
             self.assertGreater(row['dolfinx']['ksp_its'], 0)
 
-    def test_side_a4_reports_cover_all_seven_genomes_without_certified_solver_edit(self):
+    def test_side_a4_reports_cover_all_eight_genomes_without_certified_solver_edit(self):
         for name in GENOMES:
-            side_a4 = json.loads((ROOT / 'evidence' / 'cad_battery' / 'side' / f'{name}_a4.json').read_text(encoding='utf-8'))
+            a4_case = next(row for row in self.records[name]['cases'] if row['id'] == 'side.a4')
+            side_a4 = json.loads((ROOT / a4_case['evidence_path']).read_text(encoding='utf-8'))
             self.assertEqual(side_a4['status'], 'pass')
             self.assertFalse(side_a4['partial_solver_edit'])
             self.assertFalse(side_a4['changes_seq_ratio'])
@@ -268,6 +273,48 @@ class Records(unittest.TestCase):
             self.assertLessEqual(ev['dolfinx_cross_check']['rel_err_nodal_max'], 0.02)
         seeds_lines = (ROOT / 'evidence' / 'rs_v2' / 'w272_xbabe3' / 'w273_seeds.csv').read_text(encoding='utf-8').strip().splitlines()
         self.assertEqual(len(seeds_lines), 17)
+
+    def test_w274_ultrarunner_karambit_all_gates_and_weightings(self):
+        from ops.ci.evaluate_cad_candidate import compute_weighted_cad_score
+        ev = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w274_calibrated' / 'w274_s2905_c01_cad_eval.json').read_text(encoding='utf-8'))
+        w = ev['weighted_cad_score']
+        self.assertEqual(w['metric'], 'W_CAD_v2_ultrarunner_karambit')
+        self.assertTrue(w['all_engineering_gates_pass'])
+        self.assertTrue(ev['engineering_metrics']['promote_eligible'])
+        self.assertTrue(ev['karambit_archetype']['karambit_valid'])
+        self.assertTrue(ev['cad']['watertight_exact'])
+        self.assertEqual(ev['global_fitness_G1']['status'], 'COMPLETE')
+        self.assertGreater(w['W_CAD'], 1.4)
+        self.assertAlmostEqual(sum(w['weights'].values()), 1.0, places=6)
+        self.assertEqual(w['weights']['w_mass'], 0.70)
+
+        # Verify that 1 g of mass savings beats excess strength above the +8% survival knee
+        gates_summary = {'gates': dict(w['gates']), 'shortfalls': dict(w['shortfalls'])}
+        base_metrics = {
+            'mass_g': 80.0,
+            'strict_lat_rob_0p0625_n': 260.0 * 1.08,
+            'solid_tip_sf_nodal_max': 1.20,
+            'twist_tipzone_sf_strict': 1.08,
+            'seq_ratio': 1.25,
+            'fat_sf': 0.80,
+            'aes_score': 0.45,
+            'buckling_eigenvalue': 10.0,
+            'hook_drop_mm': 41.9,
+            'inside_concave': 1.0,
+            'spine_convex': 0.93,
+        }
+        lighter_at_knee = compute_weighted_cad_score(gates_summary, base_metrics)
+        heavier_overbuilt = compute_weighted_cad_score(
+            gates_summary,
+            {
+                **base_metrics,
+                'mass_g': 81.0,
+                'strict_lat_rob_0p0625_n': 260.0 * 1.50,
+                'solid_tip_sf_nodal_max': 1.80,
+                'twist_tipzone_sf_strict': 1.50,
+            },
+        )
+        self.assertGreater(lighter_at_knee['W_CAD'], heavier_overbuilt['W_CAD'])
 
     def test_engineering_gates_paper_and_manifest_figures_are_present_and_valid(self):
         from ops.ci import verify_figures

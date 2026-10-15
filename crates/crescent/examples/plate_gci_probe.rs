@@ -91,9 +91,29 @@ fn main() -> ExitCode {
             "sf_hunter": sf_hunter,
         }));
     }
+    let aes = jarambit_crescent::aesthetic::evaluate(&g, &p);
     let out_doc = serde_json::json!({
         "genome": genome_path,
         "genome_sha256": genome_sha256,
+        "karambit": {
+            "ring_id_mm": p.ring_id,
+            "ring_wall_mm": g.v[jarambit_crescent::genome::RING_WALL],
+            "groove_w_mm": p.groove_w,
+            "groove_area_mm2": p.groove_area,
+            "hook_drop_mm": aes.hook_drop,
+            "inside_concave": aes.inside_concave,
+            "spine_convex": aes.spine_convex,
+            "seat_depth_mm": aes.seat_depth,
+            "lobe_prom_mm": aes.lobe_prom,
+            "teeth_in": p.teeth_in,
+            "teeth_sp": p.teeth_sp,
+            "tip_to_heel_mm": p.blade.tip_to_heel,
+            "horizontal_reach_mm": p.blade.horizontal_reach,
+            "sharpened_arc_mm": p.blade.sharpened_arc,
+            "grip_len_mm": p.grip_len,
+            "aes_score": aes.score,
+            "aes_pass": aes.pass,
+        },
         "levels_fine_to_coarse": levels,
     });
     if let Some(parent) = std::path::Path::new(&out_path).parent() {

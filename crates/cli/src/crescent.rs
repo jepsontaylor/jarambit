@@ -263,11 +263,11 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
         let Some((cf, fl)) = c else { n_fail += 1; continue; };
         let (s_lat, s_ok) = match &f16 { Some(f) => { let m = jarambit_physics::material(r.g.mat); let rob = (f.lat20 * fem::joint_k(m, r.g.t_joint(), 2)).min(cf.lat_rob);
             (rob, rob >= jarambit_physics::floors::HUNTER_LATERAL_N) } None => (f64::NAN, !strict) };
-        // D1 P1: certified PASS also needs the failure-sequence proxy >= 1.2 at certification (hard)
-        let seq_ok = !r.g.p1() || cf.seq_ratio >= fem::SEQ_TARGET;
+        // D1 P1 (or JARAMBIT_ALL_GATES=1): certified PASS also needs the failure-sequence proxy >= 1.2 at certification (hard)
+        let seq_ok = !(r.g.p1() || qd::all_gates_env()) || cf.seq_ratio >= fem::SEQ_TARGET;
         let tz16 = f16.as_ref().map_or(f64::NAN, |f| f.twist_tipzone_sf);
         let prom = fem::promote_eligible(r.aes.pass, r.rejects.is_empty(), cf.floors_ok, s_lat, cf.seq_ratio, cf.twist_body_sf, tz16);
-        if s_ok && cf.floors_ok && seq_ok { strict_ok_ids.push(r.id); }
+        if s_ok && cf.floors_ok && seq_ok && (!qd::all_gates_env() || prom) { strict_ok_ids.push(r.id); }
         strict_info.insert(r.id, serde_json::json!({"strict_lat_rob_0p0625": record::fin(s_lat, 1), "strict_ok": s_ok, "seq_ok": seq_ok, "twist_tipzone_sf_strict": record::fin(tz16, 3),
             "pass_all_828_joint_strict_seq": s_ok && cf.floors_ok && seq_ok, "twist_floor_ok": fem::twist_floor_ok(cf.twist_body_sf, tz16), "promote_eligible": prom}).to_string());
         let tw = cf.twist_sf;

@@ -184,6 +184,15 @@ pub fn search_bias() -> (f64, f64) {
         (e("JARAMBIT_SEARCH_BIAS_LAT", SEARCH_BIAS_LAT), e("JARAMBIT_SEARCH_BIAS_RING", SEARCH_BIAS_RING)) })
 }
 
+/// Optional search-mesh bias for tip-submodel twist SF and seq_ratio (default 1.0 / 1.0 unless overridden via
+/// JARAMBIT_SEARCH_BIAS_TIPTWIST / JARAMBIT_SEARCH_BIAS_SEQ).
+pub fn search_bias_extra() -> (f64, f64) {
+    static BX: std::sync::OnceLock<(f64, f64)> = std::sync::OnceLock::new();
+    *BX.get_or_init(|| {
+        let e = |k: &str, d: f64| std::env::var(k).ok().and_then(|v| v.parse::<f64>().ok()).filter(|x| *x >= 0.5).unwrap_or(d);
+        (e("JARAMBIT_SEARCH_BIAS_TIPTWIST", 1.0), e("JARAMBIT_SEARCH_BIAS_SEQ", 1.0)) })
+}
+
 /// Unbiased capacities at one mesh level (refinement studies beyond certification).
 pub fn run_unbiased(p: &Pheno, max_area: f64) -> Option<Fem> { run_b(p, max_area, false, 1.0, 1.0).map(|x| x.0) }
 
@@ -341,13 +350,14 @@ fn run_b(p: &Pheno, max_area: f64, keep: bool, bias_lat: f64, bias_ring: f64) ->
     let lat20 = sy20 / sl.max(1e-12); let ring20 = sy20 / ring_pk.0.max(1e-12);
     let lat_rob = lat20 * joint_k(&m, p.t_joint, 2) / bias_lat;
     let ring_rob = ring20 * joint_k(&m, p.t_joint, 1) / bias_ring;
+    let (bias_tw, bias_seq) = if (bias_lat - 1.0).abs() > 1e-9 || (bias_ring - 1.0).abs() > 1e-9 { search_bias_extra() } else { (1.0, 1.0) };
     let twist20 = sy20 / st.max(1e-12); let tw_joint = twist20 * joint_k(&m, p.t_joint, 2) / tw_kc;
     let f = Fem { lat20, pry20: sy20 / pry_pk.max(1e-12), twist20_nmm: twist20, ring20, lat_rob, ring_rob,
         couple20_nmm: sy20 / sc.max(1e-12), twist_kc: tw_kc, twist_b_mm: tw_b, twist_t_mm: tw_t, twist_at: cen[et_e],
-        twist_joint_nmm: tw_joint, twist_sf: tw_joint / TWIST_FLOOR_NMM, seq_ratio: seq.0, seq_case: seq.1,
+        twist_joint_nmm: tw_joint, twist_sf: tw_joint / TWIST_FLOOR_NMM, seq_ratio: seq.0 / bias_seq, seq_case: seq.1,
         twist_tipdist: dist(cen[et_e], tp), twist_body_joint_nmm: sy20 / st_body.max(1e-12) * joint_k(&m, p.t_joint, 2),
         twist_hand_joint_nmm: sy20 / st_hand.max(1e-12) * joint_k(&m, p.t_joint, 2),
-        twist_body_kc: kc_body, twist_body_sf: body_j3 / TWIST_FLOOR_NMM, twist_tipzone_kc: kc_tz, twist_tipzone_joint_nmm: tz_j3, twist_tipzone_sf: tz_j3 / TWIST_FLOOR_NMM,
+        twist_body_kc: kc_body, twist_body_sf: body_j3 / TWIST_FLOOR_NMM, twist_tipzone_kc: kc_tz, twist_tipzone_joint_nmm: tz_j3 / bias_tw, twist_tipzone_sf: (tz_j3 / bias_tw) / TWIST_FLOOR_NMM,
         hm_twist_nmm: tw_joint, hm_tip_inplane_n: hm_tip, hm_spine_n: hm_sp, hm_ringback_n: hm_rb,
         hm_twist_sf: tw_joint / hm::TWIST_NMM, hm_tip_inplane_sf: hm_tip / hm::TIP_INPLANE_N, hm_spine_sf: hm_sp / hm::SPINE_N, hm_ringback_sf: hm_rb / hm::RINGBACK_N,
         fat_sf: fatigue::goodman_sf(sl * fatigue::CYCLIC_LATERAL_N / joint_k(&m, p.t_joint, 2), p.t_joint),
