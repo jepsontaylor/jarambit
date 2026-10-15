@@ -50,7 +50,7 @@ def probe(msh, f, pts):
     pts = np.asarray(pts, dtype=np.float64)
     tree = geometry.bb_tree(msh, msh.topology.dim)
     cells = geometry.compute_colliding_cells(msh, geometry.compute_collisions_points(tree, pts), pts)
-    return f.eval(pts, [cells.links(i)[0] for i in range(len(pts))])
+    return np.atleast_2d(f.eval(pts, [cells.links(i)[0] for i in range(len(pts))]))
 
 
 def cube(scale=1.0):
@@ -59,6 +59,7 @@ def cube(scale=1.0):
 
 def run(msh, ft, load, *, units=MM, e_mod=E, clamp=(1,), **kw):
     """One genuine solve plus its signed stress components on the solver's own DG(order-1) space."""
+    kw.setdefault("rtol", 1e-12)
     uh, vmh, sig, info = S.solve(msh, ft, e_mod, NU, list(clamp), {2: load if callable(load) else traction(load)}, units=units, **kw)
     comps, cdesc = S.dg_stress_components(msh, sig(uh), kw.get("order", 2), units=units, frame=S.FRAME, region=S.WHOLE_DOMAIN)
     return {"uh": uh, "vmh": vmh, "sig": sig, "info": info, "comps": comps, "cdesc": cdesc}
@@ -147,7 +148,7 @@ class LinearScaling(Operator):
         out = {}
         for name, vec in (("F", F), ("G", G), ("F+G", FG)):
             call = traction(vec) if mutate is None else mutate(traction(vec))
-            out[name] = run(self.msh, self.ft, call, rtol=1e-10, order=2)
+            out[name] = run(self.msh, self.ft, call, rtol=1e-13, order=2)
         return out
 
     def test_t05_01_rev33_solid_positive(self):

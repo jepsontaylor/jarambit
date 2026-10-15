@@ -484,3 +484,364 @@ fn t05_01_rev33_rust_t6_adverse() {
     assert!(!u_miss.is_empty() && !s_miss.is_empty(), "mixed-only omission must break additivity");
     assert!(b.violations().iter().any(|w| w.starts_with("force[1]")), "{:?}", b.violations());
 }
+
+const YIELD_MPA: f64 = 828.0;
+
+fn check_scaling_ratios(vm1: f64, vm2: f64, sf1: f64, sf2: f64, mult: f64) -> Result<(), &'static str> {
+    if !vm1.is_finite() || !vm2.is_finite() || !sf1.is_finite() || !sf2.is_finite() || vm1 <= 0.0 || vm2 <= 0.0 {
+        return Err("nonfinite_or_nonpositive_observable");
+    }
+    if !close(vm2 / vm1, mult) { return Err("stress_ratio_mismatch"); }
+    if !close(sf1 / sf2, mult) { return Err("sf_inverse_ratio_mismatch"); }
+    Ok(())
+}
+
+#[test]
+fn t05_01_adverse_constant_sf() {
+    let px = plate_fixture();
+    let f1 = px.rhs(&F);
+    let f2 = scaled(&f1, 2.0);
+    let (u1, u2) = (px.solve(&f1), px.solve(&f2));
+    let (m1, _) = px.pl.stresses(&u1);
+    let (m2, _) = px.pl.stresses(&u2);
+    let vm1 = m1.iter().copied().fold(0.0, f64::max);
+    let vm2 = m2.iter().copied().fold(0.0, f64::max);
+    let (sf1, sf2) = (YIELD_MPA / vm1, YIELD_MPA / vm2);
+    assert_eq!(check_scaling_ratios(vm1, vm2, sf1, sf2, 2.0), Ok(()));
+    // Adverse control: a safety factor that stays constant when the load doubles must fail the check.
+    assert_eq!(check_scaling_ratios(vm1, vm2, sf1, sf1, 2.0), Err("sf_inverse_ratio_mismatch"));
+}
+
+// ---------------------------------------------------------------------------------------------
+// T05-02: rigid motion invariance (translation + rotation of mesh, restraints, and load vector)
+
+fn transform_mesh(m: &Mesh, cos_t: f64, sin_t: f64, tx: f64, ty: f64) -> Mesh {
+    let xy = m.xy.iter().map(|&(x, y)| (cos_t * x - sin_t * y + tx, sin_t * x + cos_t * y + ty)).collect();
+    Mesh { xy, tris: m.tris.clone(), on_outer: m.on_outer.clone(), on_hole: m.on_hole.clone() }
+}
+
+#[test]
+fn t05_02_positive_rigid_transform() {
+    let px0 = plate_fixture();
+    let u0 = px0.solve(&px0.rhs(&F));
+    let (sm0, _) = px0.pl.stresses(&u0);
+    let (s0, _) = px0.pl.elem_stress(&px0.pl.mesh.tris[0], &u0);
+    // 90 deg CCW rotation (cos=0, sin=1) + translation (7, -3)
+    let m_rot = transform_mesh(&square(), 0.0, 1.0, 7.0, -3.0);
+    let pl_rot = Plate::new(m_rot, T_MM, E_MPA, NU0);
+    let fixed: Vec<bool> = (0..pl_rot.n() * 5).map(|d| px0.fixed_node[d / 5]).collect();
+    let sys_rot = pl_rot.system(&fixed).expect("rotated clamped square is SPD");
+    let mut f_rot = vec![0.0; pl_rot.n() * 5];
+    // Rotated load F=(1,0) -> (0,1) on the same material boundary nodes
+    for &i in &px0.right { f_rot[i * 5 + 1] += 0.5; }
+    let u_rot = pl_rot.solve(&sys_rot, &f_rot);
+    let (sm_rot, _) = pl_rot.stresses(&u_rot);
+    let (s_rot, _) = pl_rot.elem_stress(&pl_rot.mesh.tris[0], &u_rot);
+    // Under 90 deg rotation, s_xx' = s_yy, s_yy' = s_xx, t_xy' = -t_xy, and von Mises is invariant
+    assert!(close(s_rot[0], s0[1]) && close(s_rot[1], s0[0]) && close(s_rot[2], -s0[2]));
+    assert!(mismatches("rotated VM", &sm_rot, &sm0).is_empty());
+    let sf0 = YIELD_MPA / sm0.iter().copied().fold(0.0, f64::max);
+    let sf_rot = YIELD_MPA / sm_rot.iter().copied().fold(0.0, f64::max);
+    assert!(close(sf0, sf_rot));
+}
+
+#[test]
+fn t05_02_adverse_unrotated_load() {
+    let px0 = plate_fixture();
+    let u0 = px0.solve(&px0.rhs(&F));
+    let (s0, _) = px0.pl.elem_stress(&px0.pl.mesh.tris[0], &u0);
+    // Rotate geometry and clamp by 90 deg CCW, but leave load in +x (now shear instead of axial tension)
+    let m_rot = transform_mesh(&square(), 0.0, 1.0, 7.0, -3.0);
+    let pl_rot = Plate::new(m_rot, T_MM, E_MPA, NU0);
+    let fixed: Vec<bool> = (0..pl_rot.n() * 5).map(|d| px0.fixed_node[d / 5]).collect();
+    let sys_rot = pl_rot.system(&fixed).unwrap();
+    let mut f_unrot = vec![0.0; pl_rot.n() * 5];
+    for &i in &px0.right { f_unrot[i * 5] += 0.5; }
+    let u_bad = pl_rot.solve(&sys_rot, &f_unrot);
+    let (s_bad, _) = pl_rot.elem_stress(&pl_rot.mesh.tris[0], &u_bad);
+    // Must not match the rotated tensor [s0[1], s0[0], -s0[2]]
+    assert!(!mismatches("unrotated load tensor", &s_bad, &[s0[1], s0[0], -s0[2]]).is_empty());
+}
+
+// ---------------------------------------------------------------------------------------------
+// T05-03: unit consistency (mm/N/MPa vs m/N/Pa coherent scaling and mixed-unit rejection)
+
+#[test]
+fn t05_03_positive_coherent_units() {
+    let px_mm = plate_fixture();
+    let u_mm = px_mm.solve(&px_mm.rhs(&F));
+    let (sm_mm, _) = px_mm.pl.stresses(&u_mm);
+    // Coherent SI (m, N, Pa): length * 1e-3, thickness * 1e-3, E * 1e6, total nodal force unchanged (1 N)
+    let m_si = transform_mesh(&square(), 1e-3, 0.0, 0.0, 0.0);
+    let pl_si = Plate::new(m_si, T_MM * 1e-3, E_MPA * 1e6, NU0);
+    let fixed: Vec<bool> = (0..pl_si.n() * 5).map(|d| px_mm.fixed_node[d / 5]).collect();
+    let sys_si = pl_si.system(&fixed).unwrap();
+    let u_si = pl_si.solve(&sys_si, &px_mm.rhs(&F));
+    let (sm_si, _) = pl_si.stresses(&u_si);
+    // u_si (m) = 1e-3 * u_mm (mm); sm_si (Pa) = 1e6 * sm_mm (MPa); SF = yield / vm is dimensionless
+    assert!(close(u_si[5] * 1e3, u_mm[5]));
+    assert!(close(sm_si[0] * 1e-6, sm_mm[0]));
+    let sf_mm = YIELD_MPA / sm_mm[0];
+    let sf_si = (YIELD_MPA * 1e6) / sm_si[0];
+    assert!(close(sf_mm, sf_si));
+}
+
+#[test]
+fn t05_03_adverse_mixed_units() {
+    let px_mm = plate_fixture();
+    let u_mm = px_mm.solve(&px_mm.rhs(&F));
+    let (sm_mm, _) = px_mm.pl.stresses(&u_mm);
+    // Adverse mixed units: coordinates scaled to metres (1e-3) while thickness (1.0) and E (1000) stay in mm/MPa
+    let m_mixed = transform_mesh(&square(), 1e-3, 0.0, 0.0, 0.0);
+    let pl_mixed = Plate::new(m_mixed, T_MM, E_MPA, NU0);
+    let fixed: Vec<bool> = (0..pl_mixed.n() * 5).map(|d| px_mm.fixed_node[d / 5]).collect();
+    let sys_mixed = pl_mixed.system(&fixed).unwrap();
+    let u_mixed = pl_mixed.solve(&sys_mixed, &px_mm.rhs(&F));
+    let (sm_mixed, _) = pl_mixed.stresses(&u_mixed);
+    // Stress in mixed units is off by 1000x and must fail unit-consistency comparison
+    assert!(!close(sm_mixed[0], sm_mm[0]) && !close(sm_mixed[0] * 1e-6, sm_mm[0]));
+}
+
+// ---------------------------------------------------------------------------------------------
+// T05-05: boundary-condition failure (clamped vs free-free / mechanism)
+
+fn g1_admit_sf(sys_ok: bool, vm_peak: f64) -> Option<f64> {
+    if !sys_ok || !vm_peak.is_finite() || vm_peak <= 0.0 { return None; }
+    Some(YIELD_MPA / vm_peak)
+}
+
+#[test]
+fn t05_05_positive_clamped_system() {
+    let px = plate_fixture();
+    let u = px.solve(&px.rhs(&F));
+    let (sm, _) = px.pl.stresses(&u);
+    let sf = g1_admit_sf(true, sm.iter().copied().fold(0.0, f64::max));
+    assert_eq!(sf, Some(YIELD_MPA));
+}
+
+#[test]
+fn t05_05_adverse_unbound_free_free() {
+    let pl = Plate::new(square(), T_MM, E_MPA, NU0);
+    let free_free = vec![false; pl.n() * 5];
+    let all_fixed = vec![true; pl.n() * 5];
+    // Both skyline and faer must refuse a free-free or all-fixed plate and emit no safety factor for G1
+    for sky in [true, false] {
+        assert!(pl.system_with(&free_free, sky).is_none(), "free-free plate must fail closed (skyline={sky})");
+        assert!(pl.system_with(&all_fixed, sky).is_none(), "all-fixed plate has 0 free dofs (skyline={sky})");
+    }
+    let t6 = T6::new(&square(), T_MM, E_MPA, NU0);
+    assert!(t6.system(&vec![false; t6.n() * 2]).is_none(), "free-free T6 must fail closed");
+    // A single pinned corner leaves rotational mechanism -> Cholesky pivot rejected -> None
+    let mut one_pin = vec![false; t6.n() * 2];
+    one_pin[0] = true;
+    one_pin[1] = true;
+    assert!(t6.system(&one_pin).is_none(), "under-restrained mechanism must fail closed");
+    assert_eq!(g1_admit_sf(false, 0.0), None);
+}
+
+// ---------------------------------------------------------------------------------------------
+// T05-06: mesh failure (valid CDT domain vs collapsed / degenerate mesh)
+
+#[test]
+fn t05_06_positive_valid_domain_mesh() {
+    let outer = vec![(0.0, 0.0), (10.0, 0.0), (10.0, 4.0), (0.0, 4.0)];
+    let m = fine::mesh_domain(&outer, &[], 2.0).expect("valid rectangle meshes");
+    assert!(!m.tris.is_empty());
+    let pl = Plate::new(m, T_MM, E_MPA, NU0);
+    for e in 0..pl.mesh.tris.len() { assert!(pl.area(e) > 0.0); }
+}
+
+#[test]
+fn t05_06_adverse_degenerate_or_empty_mesh() {
+    // Collinear / zero-area boundary polygon produces no interior triangles -> None
+    let collinear = vec![(0.0, 0.0), (5.0, 0.0), (10.0, 0.0)];
+    assert!(fine::mesh_domain(&collinear, &[], 1.0).is_none());
+    // Empty mesh has 0 free dofs -> system() returns None, no safety factor emitted
+    let empty = Mesh { xy: vec![], tris: vec![], on_outer: vec![], on_hole: vec![] };
+    let pl_empty = Plate::new(empty, T_MM, E_MPA, NU0);
+    assert!(pl_empty.system(&[]).is_none());
+    // Disconnected unrestrained node in a mesh causes zero pivot -> system() returns None
+    let mut dis = square();
+    dis.xy.push((5.0, 5.0));
+    dis.on_outer.push(false);
+    dis.on_hole.push(false);
+    let pl_dis = Plate::new(dis, T_MM, E_MPA, NU0);
+    let fixed: Vec<bool> = (0..pl_dis.n() * 5).map(|d| (d / 5) == 0 || (d / 5) == 3).collect();
+    assert!(pl_dis.system(&fixed).is_none(), "disconnected unrestrained node must fail closed");
+}
+
+// ---------------------------------------------------------------------------------------------
+// T05-07: field semantics (named stress component vs von Mises reduction)
+
+#[test]
+fn t05_07_positive_component_and_vm_semantics() {
+    let px = plate_fixture();
+    let u = px.solve(&px.rhs(&FG));
+    let (s_m, _) = px.pl.elem_stress(&px.pl.mesh.tris[0], &u);
+    let vm_expected = (s_m[0] * s_m[0] - s_m[0] * s_m[1] + s_m[1] * s_m[1] + 3.0 * s_m[2] * s_m[2]).sqrt();
+    let (sm, _) = px.pl.stresses(&u);
+    assert!(close(sm[0], vm_expected));
+    assert!(close(fine::von_mises(s_m), vm_expected));
+}
+
+#[test]
+fn t05_07_adverse_swapped_component_or_averaging() {
+    let px = plate_fixture();
+    let u = px.solve(&px.rhs(&G)); // pure shear/transverse load
+    let (s_m, _) = px.pl.elem_stress(&px.pl.mesh.tris[0], &u);
+    let vm = fine::von_mises(s_m);
+    let hydrostatic_2d = 0.5 * (s_m[0] + s_m[1]).abs();
+    // Reading hydrostatic mean or s_yy in place of von Mises under shear under-reports stress and is rejected
+    assert!(!close(hydrostatic_2d, vm) && hydrostatic_2d < vm);
+}
+
+// ---------------------------------------------------------------------------------------------
+// T05-08: localized peak (one-element spike stays visible in reported peak, never averaged away)
+
+#[test]
+fn t05_08_positive_one_element_spike_preserved() {
+    let outer = vec![(0.0, 0.0), (4.0, 0.0), (4.0, 2.0), (0.0, 2.0)];
+    let m = fine::mesh_domain(&outer, &[], 0.5).unwrap();
+    assert!(m.tris.len() >= 16);
+    let pl = Plate::new(m, T_MM, E_MPA, NU0);
+    // Plant a localized 10x spike on element 0 among uniform background elements
+    let mut elem_vm = vec![1.0; pl.mesh.tris.len()];
+    elem_vm[0] = 10.0;
+    let peak = elem_vm.iter().copied().fold(0.0, f64::max);
+    let sf_peak = YIELD_MPA / peak;
+    assert!(close(peak, 10.0) && close(sf_peak, 82.8));
+}
+
+#[test]
+fn t05_08_adverse_global_average_hides_spike() {
+    let outer = vec![(0.0, 0.0), (4.0, 0.0), (4.0, 2.0), (0.0, 2.0)];
+    let m = fine::mesh_domain(&outer, &[], 0.5).unwrap();
+    let pl = Plate::new(m, T_MM, E_MPA, NU0);
+    let mut elem_vm = vec![1.0; pl.mesh.tris.len()];
+    elem_vm[0] = 10.0;
+    let peak = elem_vm.iter().copied().fold(0.0, f64::max);
+    let total_area: f64 = (0..pl.mesh.tris.len()).map(|e| pl.area(e)).sum();
+    let mean_vm: f64 = (0..pl.mesh.tris.len()).map(|e| pl.area(e) * elem_vm[e]).sum::<f64>() / total_area;
+    // Adverse: replacing peak with area-weighted mean hides the 10 MPa spike and inflates SF
+    assert!(mean_vm < 2.5 && !close(mean_vm, peak));
+}
+
+// ---------------------------------------------------------------------------------------------
+// T05-09: certificate field identity (certificate scalar must match the solve field & mesh)
+
+#[derive(Debug, PartialEq)]
+struct CertBinding<'a> { mesh_tris: usize, field_len: usize, reported_sf: f64, observable: &'a str }
+
+fn verify_cert_binding(b: &CertBinding, solve_tris: usize, solve_vm: &[f64], expected_obs: &str) -> Result<(), &'static str> {
+    if b.observable != expected_obs { return Err("observable_mismatch"); }
+    if b.mesh_tris != solve_tris || b.field_len != solve_vm.len() || solve_vm.is_empty() { return Err("mesh_field_mismatch"); }
+    let peak = solve_vm.iter().copied().fold(0.0, f64::max);
+    if !peak.is_finite() || peak <= 0.0 || !close(b.reported_sf, YIELD_MPA / peak) { return Err("sf_field_mismatch"); }
+    Ok(())
+}
+
+#[test]
+fn t05_09_positive_certificate_field_binding() {
+    let px = plate_fixture();
+    let u = px.solve(&px.rhs(&F));
+    let (sm, _) = px.pl.stresses(&u);
+    let peak = sm.iter().copied().fold(0.0, f64::max);
+    let cert = CertBinding { mesh_tris: px.pl.mesh.tris.len(), field_len: sm.len(), reported_sf: YIELD_MPA / peak, observable: "cst_membrane_vm_max" };
+    assert_eq!(verify_cert_binding(&cert, px.pl.mesh.tris.len(), &sm, "cst_membrane_vm_max"), Ok(()));
+}
+
+#[test]
+fn t05_09_adverse_cross_mesh_or_mutated_field() {
+    let px = plate_fixture();
+    let u = px.solve(&px.rhs(&F));
+    let (sm, _) = px.pl.stresses(&u);
+    let peak = sm.iter().copied().fold(0.0, f64::max);
+    let cert_wrong_mesh = CertBinding { mesh_tris: 26137, field_len: sm.len(), reported_sf: YIELD_MPA / peak, observable: "cst_membrane_vm_max" };
+    assert_eq!(verify_cert_binding(&cert_wrong_mesh, px.pl.mesh.tris.len(), &sm, "cst_membrane_vm_max"), Err("mesh_field_mismatch"));
+    let cert_wrong_sf = CertBinding { mesh_tris: px.pl.mesh.tris.len(), field_len: sm.len(), reported_sf: 2.0 * (YIELD_MPA / peak), observable: "cst_membrane_vm_max" };
+    assert_eq!(verify_cert_binding(&cert_wrong_sf, px.pl.mesh.tris.len(), &sm, "cst_membrane_vm_max"), Err("sf_field_mismatch"));
+}
+
+// ---------------------------------------------------------------------------------------------
+// T05-10: native B-rep STEP hash binding
+
+fn bind_native_step<'a>(record_step_sha256: &'a str, actual_step_sha256: &'a str, volume_mm3: f64) -> Result<&'a str, &'static str> {
+    if record_step_sha256.len() != 64 || actual_step_sha256.len() != 64 { return Err("invalid_step_digest"); }
+    if record_step_sha256 != actual_step_sha256 { return Err("step_hash_mismatch"); }
+    if !volume_mm3.is_finite() || volume_mm3 <= 0.0 { return Err("invalid_brep_volume"); }
+    Ok(actual_step_sha256)
+}
+
+#[test]
+fn t05_10_positive_step_hash_binding() {
+    let c10a_sha = "19773f6cf41d75d0f22949547791b8693bd43ba7023c6c11cb0e632fb93fd243";
+    assert_eq!(bind_native_step(c10a_sha, c10a_sha, 17756.2), Ok(c10a_sha));
+}
+
+#[test]
+fn t05_10_adverse_mismatched_step_hash() {
+    let c10a_sha = "19773f6cf41d75d0f22949547791b8693bd43ba7023c6c11cb0e632fb93fd243";
+    let c92_sha  = "b9384a18ef6b150e87ef1a3b7fb0840bcba80b0e7845875b4c3974d7ab2a37f3";
+    assert_eq!(bind_native_step(c10a_sha, c92_sha, 17756.2), Err("step_hash_mismatch"));
+    assert_eq!(bind_native_step(c10a_sha, c10a_sha, 0.0), Err("invalid_brep_volume"));
+}
+
+// ---------------------------------------------------------------------------------------------
+// T05-11: calibration failures stay in denominators and never pass via censorship
+
+#[test]
+fn t05_11_positive_complete_calibration_table() {
+    let e = Expected { id: "cal-2".into(), max_err_pct: 5.0, levels: vec![1.0, 0.25], gate_levels: vec![0.25], checks: vec!["beam".into(), "hole".into()] };
+    let o = vec![obs("beam", 1.0, 1.02), obs("beam", 0.25, 1.01), obs("hole", 1.0, 0.98), obs("hole", 0.25, 0.99)];
+    assert!(theory_gate(&e, &o).is_ok());
+}
+
+#[test]
+fn t05_11_adverse_failed_or_censored_calibration() {
+    let e = Expected { id: "cal-2".into(), max_err_pct: 5.0, levels: vec![1.0, 0.25], gate_levels: vec![0.25], checks: vec!["beam".into(), "hole".into()] };
+    // Failed calibration stays failed
+    let failed = vec![obs("beam", 1.0, 1.02), obs("beam", 0.25, 1.01), obs("hole", 1.0, 0.98), obs("hole", 0.25, 1.12)];
+    let why = gate_err(&e, &failed);
+    assert!(has(&why, "\"hole\" at 0.25 err 12.00 % >= 5 %"), "{why:?}");
+    // Dropping the failed check from observations (survivorship selection) still fails closed
+    let censored = vec![obs("beam", 1.0, 1.02), obs("beam", 0.25, 1.01)];
+    let why_censored = gate_err(&e, &censored);
+    assert!(has(&why_censored, "missing check \"hole\""), "{why_censored:?}");
+}
+
+// ---------------------------------------------------------------------------------------------
+// T05-12: tier collision (screening L7 fat_sf / T1 beam cannot occupy a certification field)
+
+fn admit_certification_sf(slot: &str, tier: &str, not_tag: Option<&str>, value: f64) -> Result<f64, &'static str> {
+    if not_tag.is_some() || tier == "T1_beam_screening" || tier == "L7_screening_fat_sf" {
+        return Err("screening_tier_in_certification_slot");
+    }
+    match (slot, tier) {
+        ("solid.tip_sf", "T3_dolfinx_solid") | ("plate.seq", "T2_fine_plate") if value.is_finite() && value > 0.0 => Ok(value),
+        _ => Err("tier_slot_collision"),
+    }
+}
+
+#[test]
+fn t05_12_positive_tier_separation() {
+    assert_eq!(admit_certification_sf("solid.tip_sf", "T3_dolfinx_solid", None, 1.883), Ok(1.883));
+    assert_eq!(admit_certification_sf("plate.seq", "T2_fine_plate", None, 0.976), Ok(0.976));
+}
+
+#[test]
+fn t05_12_adverse_l7_screening_in_certification_field() {
+    // L7 screening fat_sf carries `not: spec §7.3 L7` and must be refused in any certification slot
+    assert_eq!(
+        admit_certification_sf("solid.tip_sf", "L7_screening_fat_sf", Some("spec §7.3 L7"), 2.139),
+        Err("screening_tier_in_certification_slot")
+    );
+    assert_eq!(
+        admit_certification_sf("plate.seq", "T1_beam_screening", None, 1.45),
+        Err("screening_tier_in_certification_slot")
+    );
+    assert_eq!(
+        admit_certification_sf("solid.tip_sf", "T2_fine_plate", None, 1.385),
+        Err("tier_slot_collision")
+    );
+}
+

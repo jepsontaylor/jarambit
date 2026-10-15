@@ -158,6 +158,30 @@ class GCI(unittest.TestCase):
         self.assertEqual(empty.reason, 'three_ordered_levels_required')
         self.assertFalse(empty.admitted)
 
+    def test_T01_12_threshold_edge(self):
+        from fem_solid.tests.test_gci_evidence import GCIEvidence
+        GCIEvidence('test_T01_12_threshold_edge').test_T01_12_threshold_edge()
+
+    def test_T01_13_negative_error_band(self):
+        from fem_solid.tests.test_gci_evidence import GCIEvidence
+        GCIEvidence('test_T01_13_negative_error_band').test_T01_13_negative_error_band()
+
+    def test_T01_14_inventory_empty(self):
+        from fem_solid.tests.test_gci_evidence import GCIEvidence
+        GCIEvidence('test_T01_14_inventory_empty').test_T01_14_inventory_empty()
+
+    def test_T01_15_stale_noop(self):
+        from fem_solid.tests.test_fresh_attempts import FreshAttempts
+        FreshAttempts('test_T01_15_stale_noop').test_T01_15_stale_noop()
+
+    def test_T01_16_cache_identity(self):
+        from fem_solid.tests.test_fresh_attempts import FreshAttempts
+        FreshAttempts('test_T01_16_cache_identity').test_T01_16_cache_identity()
+
+    def test_T01_17_partial_atomic(self):
+        from fem_solid.tests.test_fresh_attempts import FreshAttempts
+        FreshAttempts('test_T01_17_partial_atomic').test_T01_17_partial_atomic()
+
     def test_T01_18_peak_singularity(self):
         global_result = self.positive(); local = compute_gci(10, 12, 13, 2, levels=levels())
         self.assertTrue(global_result.admitted); self.assertFalse(local.admitted)

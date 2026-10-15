@@ -80,7 +80,7 @@ def probe(msh, f, pts):
     pts = np.asarray(pts, dtype=np.float64)
     tree = geometry.bb_tree(msh, msh.topology.dim)
     cells = geometry.compute_colliding_cells(msh, geometry.compute_collisions_points(tree, pts), pts)
-    return f.eval(pts, [cells.links(i)[0] for i in range(len(pts))])
+    return np.atleast_2d(f.eval(pts, [cells.links(i)[0] for i in range(len(pts))]))
 
 
 def manufactured_vm(msh, ux):
