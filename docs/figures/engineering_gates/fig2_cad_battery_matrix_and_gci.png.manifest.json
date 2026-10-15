@@ -2,12 +2,12 @@
  "figure": "docs/figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png",
  "figure_sha256": "14d9a54b064d09fd546586363d5fb48cb35dcb01b935dfd1a6c280c0690be20f",
  "inputs": {
-  "evidence/cad_battery/c10a.json": "f4905ec5e9c6b00402d64fda96808e06d78ba9792e671895375a52113cbbb111",
-  "evidence/cad_battery/c10c.json": "7a42499ef7d7f58d5b36ffe020abb63e3aeac3d724370def9ae868b5cc8e8250",
-  "evidence/cad_battery/c92.json": "841b1683202fceec4bfa84c4821f9a7af4c497ea1a9449088f4e223a6c4435fd",
-  "evidence/cad_battery/c93.json": "f693a904737c06304ce995ef0909dab242fe1c4b45f1da4916eb9080d0615f07",
+  "evidence/cad_battery/c10a.json": "00d4e73de38a6fe796569a590f4c227e8d952c75f55a20db2d596be2e8bb7631",
+  "evidence/cad_battery/c10c.json": "4df748c7b67e77b87d253a5113643b8ce818bc376bc19e555a5288a4faf12f6b",
+  "evidence/cad_battery/c92.json": "faa8c987a8cff96b1932e7a1751916f2db907e3b78ff7beb78c14b2112651b07",
+  "evidence/cad_battery/c93.json": "1768649a3816a614cb6cae46e622d0ceed133b047d8b3b8efbf0e29ecde1ff70",
   "evidence/cad_battery/dolfinx_cross_check.json": "efe1a37c58708e5d4f29ebec0b548a61056bb9aa8a16b0a3fb3b331837cd46d1",
-  "evidence/cad_battery/g3.json": "922786488053e3251f44e34d884a52573333a2cfcdf0cfc134d4154cb83d3da9",
+  "evidence/cad_battery/g3.json": "63bd4184a93ffe672423812eea931fbc005f74cff0065e83e1db0edcd5b56e37",
   "evidence/cad_battery/plate_gci/g3.json": "93a0a1e461f13bda465afbe23ad286ddd876c8aacca1a93450e923a086285969",
   "evidence/cad_battery/plate_gci/w271b_11772.json": "7222e22235b2aa14fcccd44014c1f15db2fcc990a0fc871b2f948cb4a970a8dd",
   "evidence/cad_battery/plate_gci/w271b_11860.json": "69ffd66427729ecfd61e5621ba1da5a4d33f91fe3d37a9b4eec42c91f5a67531",
@@ -23,12 +23,12 @@
   "evidence/cad_battery/side/w272_s2902_c01_a4.json": "3d67803e726d65ab82952df93b75793add56e50f787484b7f826ce0dc7a9cb4c",
   "evidence/cad_battery/side/w273_s2903_c04_a4.json": "20f458a56cbb460538b13e15a76ffbc39df6fd6dea451aaf682e21f80f8dfc19",
   "evidence/cad_battery/side/w273_s2904_c01_a4.json": "7e64fd52cd1525bda96c4ee1f78fe3c0b9a241a7de56bec1368e29dfb2af752d",
-  "evidence/cad_battery/w271b_11772.json": "cdac8cab0ca23f10553d35cb289b36e6090f1d423faf95e8d8b54bd3f214b8d6",
-  "evidence/cad_battery/w271b_11860.json": "eb8d404f8e7aa8e115a7ba5a605b96ba66826484aa594f3d0c07dd9192e081c3",
-  "evidence/cad_battery/w271c_11522.json": "efcf88bf4fc495ff20e444f39c8dc660abc79449114bdbbd6c45800a248f430e",
-  "evidence/cad_battery/w272_s2902_c01.json": "010c35816a5ecaaccbb8e473d3cadcf2fd9e0eb7efb0a915ad65fe22e1520b04",
-  "evidence/cad_battery/w273_s2903_c04.json": "04089ae2b4f21aaf9a4beefc51816fcaa0a0b621cbf100289aedda6a6ea27c37",
-  "evidence/cad_battery/w273_s2904_c01.json": "e584331ec9b84c79a77c682b570c46efdd956f103c54110ae56d2b38fa774d2f"
+  "evidence/cad_battery/w271b_11772.json": "03938717c0d30333011de4417353f229ccecbd943aeb6c164fd76b7f4804a33b",
+  "evidence/cad_battery/w271b_11860.json": "fcdbe0245f28205816eb8d8d6937a14ceace4557111883fefcb322453ff6082a",
+  "evidence/cad_battery/w271c_11522.json": "e2a761f5b241f003c7cc02294a311889ad8753893583817bf918e6e49fdceb89",
+  "evidence/cad_battery/w272_s2902_c01.json": "036058025b1cfae52c39123898c182e8a934edf05e648d835d50718d0a2b05b6",
+  "evidence/cad_battery/w273_s2903_c04.json": "7e7d7748c5a3fbe12351bff4af217f053249066afe9bb81e739351b93f0797e4",
+  "evidence/cad_battery/w273_s2904_c01.json": "9b07cbb021248c2c7ba806b9b4caf3f960d8bdcf1a6e4d556a7e9f85148c03ef"
  },
  "norms": {
   "safety_factor": {

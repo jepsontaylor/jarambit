@@ -2,7 +2,7 @@
  "schema": "jarambit.cad_battery.subject.v1",
  "subject": "c10c",
  "role": "archived_not_on_main",
- "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+ "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
  "cases": [
   {
    "id": "build.analytic",
@@ -10,7 +10,7 @@
    "status": "pass",
    "solver": "analytic",
    "geometry_sha256": null,
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "crates/physics/tests/invariance.rs",
    "fresh_this_lane": false
   },
@@ -20,7 +20,7 @@
    "status": "pass",
    "solver": "gci",
    "geometry_sha256": null,
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "fem_solid/tests/test_gci.py",
    "fresh_this_lane": false
   },
@@ -30,7 +30,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": null,
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "ops/ci/check_claims.py",
    "fresh_this_lane": false,
    "detail": {
@@ -44,7 +44,7 @@
    "status": "pass",
    "solver": "solid_dolfinx",
    "geometry_sha256": null,
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "evidence/cad_battery/dolfinx_cross_check.json",
    "fresh_this_lane": false,
    "detail": {
@@ -69,7 +69,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
    "fresh_this_lane": false,
    "detail": {
@@ -83,7 +83,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
    "fresh_this_lane": false,
    "detail": {
@@ -96,7 +96,7 @@
    "status": "fail",
    "solver": null,
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
    "fresh_this_lane": false,
    "reason": "stl is not watertight",
@@ -126,7 +126,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
    "fresh_this_lane": false,
    "detail": {
@@ -140,7 +140,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -151,7 +151,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -162,7 +162,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -173,7 +173,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -184,7 +184,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -195,7 +195,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -206,7 +206,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -217,7 +217,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": "designs/switchback/C10c/cad/switchback_revC10c_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -228,7 +228,7 @@
    "status": "blocked",
    "solver": "solid_dolfinx",
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "no solid tip bound to this B-rep"
@@ -239,7 +239,7 @@
    "status": "blocked",
    "solver": null,
    "geometry_sha256": "4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4",
-   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "B-rep is not an RS-karambit-v2 genome"
@@ -262,7 +262,7 @@
    "aes_score: missing",
    "seq_ratio: missing"
   ],
-  "title": "G INCOMPLETE (4 missing) | 67.1 g | jarambit v0.31.0"
+  "title": "G INCOMPLETE (4 missing) | 67.1 g | jarambit v0.32.0"
  },
  "search_fitness": "unchanged"
 }

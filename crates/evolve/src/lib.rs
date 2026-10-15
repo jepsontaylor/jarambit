@@ -1685,7 +1685,8 @@ mod tests {
         assert_eq!(jarambit_evidence::hex(&sha2_256(EXPECTED_MANIFEST_JSON.as_bytes())), EXPECTED_MANIFEST_SHA256);
         let digest_cfg = Config::new(4, 2, 8, 1, 1);
         assert!(digest_cfg.seeds.is_empty() && digest_cfg.checkpoint.is_none() && !digest_cfg.resume && !digest_cfg.fork && digest_cfg.stop_after.is_none());
-        let produced = manifest(&digest_cfg);
+        let mut produced = manifest(&digest_cfg);
+        produced.tool_version = "0.31.0".into();
         assert_eq!(produced.schema, 1);
         assert!(produced.scientific.is_none() && produced.runtime.is_none());
         let observed = produced.canonical_json();
