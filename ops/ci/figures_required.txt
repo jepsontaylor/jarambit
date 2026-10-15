@@ -1,1 +1,4 @@
 docs/figures/whitepaper/wave27_g3_tip+00_t60_tt3_STEP_3D.png  # hero render (PR-0.29.4)
+docs/figures/engineering_gates/fig1_evolutionary_trajectories.png  # evolutionary trajectories & QD archive
+docs/figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png  # 11x18 CAD battery, GCI & DOLFINx cross-check
+docs/figures/engineering_gates/fig3_cad_and_fem_gallery.png  # real 3D CAD & FEM gallery

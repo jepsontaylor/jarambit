@@ -1,0 +1,35 @@
+{
+ "figure": "docs/figures/engineering_gates/fig1_evolutionary_trajectories.png",
+ "figure_sha256": "10e156a0eacf93560ae6d21a1a723f1f36af7038b6bd443c18d9450611b01ad3",
+ "inputs": {
+  "docs/crescent/history.csv": "5d309f974b76c07ad261c7d2de4140d0b0fc878070dbccab5a9631b05ba16580",
+  "docs/lattice/wave13_c6/history.csv": "ee2f5517f118b01aaeaa7ab1b70e309362ad48625a65a6b8bccdba949fb490e9",
+  "docs/lattice/wave13_c6/qd_archive.csv": "660ddfe43dcf4be14648c0cad4bc535bfa78eaf2b2ced762d30ab4d9c1fa9210",
+  "docs/lattice/wave15_c6_long/history.csv": "6a0ff870aa0f82e631155b702043f237263812af319844a72eee149348d62ac8",
+  "docs/lattice/wave16_c6_through4/history.csv": "8e0a6ba6aa7f4a9ddfe9c26b4cc6f9bfe9ec2b7c5772d995988ed38267194ea6",
+  "docs/lattice/wave16_c6_through4/qd_archive.csv": "24e3a2c373d9dfd99c42e347604837b136f12cdec208d354828f9ef78cfcb9fd",
+  "docs/wave27_diversity/plates/wave27_D1_index.json": "5a7258526e80410bad0ae0580b5f31c28982a780fc3c7b4a18a66dc39b96dcf2",
+  "evidence/cad_battery/g3.json": "922786488053e3251f44e34d884a52573333a2cfcdf0cfc134d4154cb83d3da9",
+  "evidence/cad_battery/w271b_11772.json": "cdac8cab0ca23f10553d35cb289b36e6090f1d423faf95e8d8b54bd3f214b8d6",
+  "evidence/cad_battery/w271b_11860.json": "eb8d404f8e7aa8e115a7ba5a605b96ba66826484aa594f3d0c07dd9192e081c3",
+  "evidence/cad_battery/w271c_11522.json": "efcf88bf4fc495ff20e444f39c8dc660abc79449114bdbbd6c45800a248f430e",
+  "evidence/cad_battery/w272_s2902_c01.json": "010c35816a5ecaaccbb8e473d3cadcf2fd9e0eb7efb0a915ad65fe22e1520b04",
+  "evidence/cad_battery/w273_s2903_c04.json": "04089ae2b4f21aaf9a4beefc51816fcaa0a0b621cbf100289aedda6a6ea27c37",
+  "evidence/cad_battery/w273_s2904_c01.json": "e584331ec9b84c79a77c682b570c46efdd956f103c54110ae56d2b38fa774d2f",
+  "evidence/rs_v2/w272_xbabe3/s2902/history.csv": "f4b59f98105e33ede2a65b8ca6c1c711f1161c81a803c99fa48c278786d6bfb4",
+  "evidence/rs_v2/w272_xbabe3/s2902/qd_archive.csv": "2cf4292e773dc7a25b5c3be5ed3115444fa9214061fc81a2c4265e3ef2063b1a",
+  "evidence/rs_v2/w273_xbabe3/s2903/qd_archive.csv": "188b59a7bb5231e55e8fa3fcaaf8109057e3b8f87a5c6051a7685298fd7d4d16",
+  "evidence/rs_v2/w273_xbabe3/s2904/history.csv": "b7ed17ffd9a0063882506964872bebc78d60003f7bda63b18db66975d0d932f4",
+  "evidence/rs_v2/w273_xbabe3/s2904/qd_archive.csv": "33a7a1e6a9f4bf7d2083c62531e5130f490203610755bb208ec692ef2a3182a0"
+ },
+ "norms": {
+  "safety_factor": {
+   "cmap": "RdYlGn",
+   "note": "fixed 0..4; clipped",
+   "vmax": 4.0,
+   "vmin": 0.0
+  }
+ },
+ "schema": 1,
+ "script": "ops/render/engineering_gates_paper_figs.py"
+}

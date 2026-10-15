@@ -1,0 +1,33 @@
+{
+ "figure": "docs/figures/engineering_gates/fig3_cad_and_fem_gallery.png",
+ "figure_sha256": "c692a0fcd631d8e8d287acc3bc9d3d4957b890668d4d20e19742e1d7c0ce0ffd",
+ "inputs": {
+  "designs/switchback/C10a/cad/switchback_revC10a_ground.stl": "0bcadad61bff550d9c527266e183440e8242c3a0222b9a89755cdc682b214411",
+  "designs/switchback/C9.2/cad/switchback_revC9_2_ground.stl": "10b8c41f80b898c255cc090a349559722258f87f8af849ce9a605e14d762e847",
+  "designs/switchback/C9.3/cad/switchback_revC9_3_ground.stl": "1aeda17eba396bcec7380ac27f7d20886d64d234f70ad8d3d0cc57aaf63d74ca",
+  "evidence/cad_battery/side/c10a_solid_tip.json": "48b78c6f3dfb5cc77a196e8701726d843d608247607b9bc84ae7b18763d4444d",
+  "evidence/cad_battery/side/g3_a1a3.json": "3e419ac1cbd2576b9b2f92296862d937e763abe27cc2a065c4937ff6ec4a85f9",
+  "evidence/cad_battery/side/w271c_11522_a1a3.json": "0a41132f42bbe44bb5050839d47692c372987c58f728c7e4ad038ec0ce681bf5",
+  "evidence/cad_battery/side/w272_s2902_c01_a1a3.json": "f6ec760260a0bae9f22f15648c2fcaa2dcd0c7be81b630d3c84b634a988eafa1",
+  "evidence/cad_battery/side/w273_s2903_c04_a1a3.json": "f6ac27f1077a3eb9610a3985e25be9b9ef0d97e5cf4088800dfc2e21dac56286",
+  "evidence/cad_battery/side/w273_s2904_c01_a1a3.json": "164eac4827a29aa1f7bcc9e6d36abf067f4d1f0ba11908a99007629102649ccb",
+  "evidence/wave27/g3_tip+00_t60_tt3.stl": "04404820cf8385f5e34a42ef9d39a79aecda8eb88895c78aa21f4e3a92fe28c5",
+  "evidence/wave27/g3_tip+00_t60_tt3_D1.json": "49d9ee941f991b016e5ecbad2ee3ac58c020c9e9ffbde3421ccda491957ce666"
+ },
+ "norms": {
+  "safety_factor": {
+   "cmap": "RdYlGn",
+   "note": "fixed 0..4; clipped",
+   "vmax": 4.0,
+   "vmin": 0.0
+  },
+  "step3d_x_mm": {
+   "cmap": "plasma",
+   "note": "shading only (x position); no physical meaning",
+   "vmax": null,
+   "vmin": null
+  }
+ },
+ "schema": 1,
+ "script": "ops/render/engineering_gates_paper_figs.py"
+}

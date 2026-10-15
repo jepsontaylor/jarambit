@@ -1,0 +1,43 @@
+{
+ "figure": "docs/figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png",
+ "figure_sha256": "14d9a54b064d09fd546586363d5fb48cb35dcb01b935dfd1a6c280c0690be20f",
+ "inputs": {
+  "evidence/cad_battery/c10a.json": "f4905ec5e9c6b00402d64fda96808e06d78ba9792e671895375a52113cbbb111",
+  "evidence/cad_battery/c10c.json": "7a42499ef7d7f58d5b36ffe020abb63e3aeac3d724370def9ae868b5cc8e8250",
+  "evidence/cad_battery/c92.json": "841b1683202fceec4bfa84c4821f9a7af4c497ea1a9449088f4e223a6c4435fd",
+  "evidence/cad_battery/c93.json": "f693a904737c06304ce995ef0909dab242fe1c4b45f1da4916eb9080d0615f07",
+  "evidence/cad_battery/dolfinx_cross_check.json": "efe1a37c58708e5d4f29ebec0b548a61056bb9aa8a16b0a3fb3b331837cd46d1",
+  "evidence/cad_battery/g3.json": "922786488053e3251f44e34d884a52573333a2cfcdf0cfc134d4154cb83d3da9",
+  "evidence/cad_battery/plate_gci/g3.json": "93a0a1e461f13bda465afbe23ad286ddd876c8aacca1a93450e923a086285969",
+  "evidence/cad_battery/plate_gci/w271b_11772.json": "7222e22235b2aa14fcccd44014c1f15db2fcc990a0fc871b2f948cb4a970a8dd",
+  "evidence/cad_battery/plate_gci/w271b_11860.json": "69ffd66427729ecfd61e5621ba1da5a4d33f91fe3d37a9b4eec42c91f5a67531",
+  "evidence/cad_battery/plate_gci/w271c_11522.json": "244b1ff25e93f2d1689a1395e4bcdc27b846e834b55bfb37bc71e2e86036f420",
+  "evidence/cad_battery/plate_gci/w272_s2902_c01.json": "80630f3f2e0cc923217ed979ec77fc2eac2920672306faafa10a9bf101249fa3",
+  "evidence/cad_battery/plate_gci/w273_s2903_c04.json": "16aab795f539b16714f90628817bb2c175c9fe86d2890160f1fd70ba32513b0a",
+  "evidence/cad_battery/plate_gci/w273_s2904_c01.json": "5c5b3a21ad4c7de1e18c8919b11357402cefce02a25b2e79bf1cc006c528b1eb",
+  "evidence/cad_battery/side/c10a_solid_tip.json": "48b78c6f3dfb5cc77a196e8701726d843d608247607b9bc84ae7b18763d4444d",
+  "evidence/cad_battery/side/g3_a4.json": "e7307d1798bbe5f1284b3e3098525767217778793f9b9d64472670610cb771e1",
+  "evidence/cad_battery/side/w271b_11772_a4.json": "342c4292000854f1b5bc509bf5176b9dca19767a6c911c72f781218768e511de",
+  "evidence/cad_battery/side/w271b_11860_a4.json": "660f86800f05462cb4af2abd3055522ead85cd8dd97de16fc511c57fd9d5cffc",
+  "evidence/cad_battery/side/w271c_11522_a4.json": "1374605b3990f1e9385223ad3276cc4b35eb12986e6a3699e15664a36f775a97",
+  "evidence/cad_battery/side/w272_s2902_c01_a4.json": "3d67803e726d65ab82952df93b75793add56e50f787484b7f826ce0dc7a9cb4c",
+  "evidence/cad_battery/side/w273_s2903_c04_a4.json": "20f458a56cbb460538b13e15a76ffbc39df6fd6dea451aaf682e21f80f8dfc19",
+  "evidence/cad_battery/side/w273_s2904_c01_a4.json": "7e64fd52cd1525bda96c4ee1f78fe3c0b9a241a7de56bec1368e29dfb2af752d",
+  "evidence/cad_battery/w271b_11772.json": "cdac8cab0ca23f10553d35cb289b36e6090f1d423faf95e8d8b54bd3f214b8d6",
+  "evidence/cad_battery/w271b_11860.json": "eb8d404f8e7aa8e115a7ba5a605b96ba66826484aa594f3d0c07dd9192e081c3",
+  "evidence/cad_battery/w271c_11522.json": "efcf88bf4fc495ff20e444f39c8dc660abc79449114bdbbd6c45800a248f430e",
+  "evidence/cad_battery/w272_s2902_c01.json": "010c35816a5ecaaccbb8e473d3cadcf2fd9e0eb7efb0a915ad65fe22e1520b04",
+  "evidence/cad_battery/w273_s2903_c04.json": "04089ae2b4f21aaf9a4beefc51816fcaa0a0b621cbf100289aedda6a6ea27c37",
+  "evidence/cad_battery/w273_s2904_c01.json": "e584331ec9b84c79a77c682b570c46efdd956f103c54110ae56d2b38fa774d2f"
+ },
+ "norms": {
+  "safety_factor": {
+   "cmap": "RdYlGn",
+   "note": "fixed 0..4; clipped",
+   "vmax": 4.0,
+   "vmin": 0.0
+  }
+ },
+ "schema": 1,
+ "script": "ops/render/engineering_gates_paper_figs.py"
+}
