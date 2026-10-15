@@ -34,7 +34,7 @@ G_SOURCE = {
     'mass_g': 'geom.mass',
     'seq_ratio': 'plate.seq',
 }
-SIDE_REPORT = Path('/home/ubuntu/jarambit_review_custody/disposition-20261014/report-a1/g3_a1a3.json')
+SIDE_REPORT = ROOT / 'evidence' / 'cad_battery' / 'side' / 'g3_a1a3.json'
 SIDE_SHA = '3e419ac1cbd2576b9b2f92296862d937e763abe27cc2a065c4937ff6ec4a85f9'
 W271_SIDE = ROOT / 'evidence' / 'cad_battery' / 'side' / 'w271b_11772_a1a3.json'
 SOLVER_FIELDS = ('n_tet', 'n_dof', 'ksp_its')
@@ -476,7 +476,7 @@ def subject_catalog():
     side = None
     side_seq = None
     if SIDE_REPORT.is_file() and _sha256(SIDE_REPORT) == SIDE_SHA:
-        side = str(SIDE_REPORT)
+        side = str(SIDE_REPORT.relative_to(ROOT))
         payload = json.loads(SIDE_REPORT.read_text(encoding='utf-8'))
         side_seq = payload.get('seq_ratio_this_mesh')
     w11772_side, w11772_sha, w11772_seq = _repo_side('w271b_11772')

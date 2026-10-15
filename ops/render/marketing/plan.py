@@ -38,8 +38,8 @@ C92_STL_SHA256 = "10b8c41f80b898c255cc090a349559722258f87f8af849ce9a605e14d762e8
 # Release candidate, not the design of record; V2 tip strength is record-only.
 C10A_STEP_SHA256 = "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7"
 C10A_STL_SHA256 = "0bcadad61bff550d9c527266e183440e8242c3a0222b9a89755cdc682b214411"
-C10A_STEP_PATH = os.path.expanduser("~/jarambit_render/inputs/switchback_C10a/switchback_revC10a_ground.step")
-C10A_STL_PATH = os.path.expanduser("~/jarambit_render/inputs/switchback_C10a/switchback_revC10a_ground.stl")
+C10A_STEP_PATH = os.path.abspath(os.path.join(_HERE, "../../../designs/switchback/C10a/cad/switchback_revC10a_ground.step"))
+C10A_STL_PATH = os.path.abspath(os.path.join(_HERE, "../../../designs/switchback/C10a/cad/switchback_revC10a_ground.stl"))
 HERO_STEP_SHA256, HERO_STL_SHA256 = C10A_STEP_SHA256, C10A_STL_SHA256
 HERO_SOURCE_SHA256 = frozenset({HERO_STEP_SHA256, HERO_STL_SHA256, C93_STEP_SHA256, C93_STL_SHA256, C92_STEP_SHA256, C92_STL_SHA256})
 HERO_STEP_PATH = C10A_STEP_PATH

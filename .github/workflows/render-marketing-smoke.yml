@@ -68,7 +68,7 @@ jobs:
           set -euo pipefail
           # CAD ingest tests import OCP. System Python on the jarambit runners does not
           # have it; the pinned interpreter is requirements-cad.txt. Missing OCP fails closed.
-          PY="${HOME}/jarambit_render/venv-cad/bin/python"
+          PY="${HOME}/.venvs/jarambit-cad/bin/python"
           if [ ! -x "$PY" ]; then
             echo "required tool missing: ${PY} (OCP). Not skipped."
             exit 1

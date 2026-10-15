@@ -15,7 +15,7 @@ from ops.render.marketing.ingest import canonical_pose, load_cad
 ROOT = Path(__file__).resolve().parents[4]
 BRAND = ROOT / "ops" / "render" / "brand" / "signature"
 G3_STL = ROOT / "evidence" / "wave27" / "g3_tip+00_t60_tt3.stl"
-C93_STL = Path(os.path.expanduser("~/jarambit_render/inputs/switchback_C9.3/switchback_revC9_3_ground.stl"))
+C93_STL = ROOT / "designs" / "switchback" / "C9.3" / "cad" / "switchback_revC9_3_ground.stl"
 
 
 def posed(path):
