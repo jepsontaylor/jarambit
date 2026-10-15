@@ -1,0 +1,27 @@
+[
+  {
+    "input_file": "discovered_models.json",
+    "input_row": 1,
+    "input_record_id": "DISC-001",
+    "brand": "Cold Steel",
+    "model": "FGX Karambit",
+    "model_family": "Cold Steel FGX Karambit",
+    "variant": "Nightshade 92FK",
+    "sku": "92FK",
+    "knife_type": "fixed",
+    "style": "curved_karambit",
+    "blade_length_in": 4.0,
+    "cutting_edge_in": null,
+    "material_as_reported": "Polymer",
+    "blade_grade": "Glass-reinforced polymer",
+    "weight_g": 65.2,
+    "weight_as_reported": "2.3 oz",
+    "weight_scope": "published_knife_spec",
+    "weight_with_sheath_g": null,
+    "availability_as_reported": "in_stock_category_listing",
+    "qualification_as_reported": "new_discovery_product_page_read",
+    "url": "https://www.bladehq.com/item--Cold-Steel-FGX-Karambit-Nightshade--16139",
+    "all_urls": ["https://www.bladehq.com/item--Cold-Steel-FGX-Karambit-Nightshade--16139"],
+    "notes": "Additional qualifying nonmetal model discovered in the live Blade HQ karambit category. Sharpened polymer product, distinct from the separate rubber trainer. Nominal 2.3 oz converts to 65.2 g; this coarse published mass is too close to 64.841 g CAD mass for a demonstrated physical weight advantage. Performance equivalence is not established."
+  }
+]

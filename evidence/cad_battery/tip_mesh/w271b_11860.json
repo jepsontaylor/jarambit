@@ -1,0 +1,29 @@
+{
+ "schema": "jarambit.stored_solid_tip.v1",
+ "subject": "w271b_11860",
+ "solve_rerun": false,
+ "copied_from_another_genome": false,
+ "entered_as_solver_run": false,
+ "genome_data_row_matches_csv": true,
+ "d1_sha256": "2cc8206a9bcb6c2dc5b40182467b9e4877bb0bf20a010ee813ae66874f18d9e5",
+ "solid_sha256": "776eb192a0fd69a04d451d480c81b6adac370a8854f25d71256905419d1940ce",
+ "manifest_sha256": "e9c1de04eed8ef2947ab910279aa651c9b4201e4403173f6eac45fce584348ce",
+ "source_host_path": "/home/ubuntu/jarambit_w271/out/solidcert_w271b_11860/w271b_11860_solid.json",
+ "note": "Stored NL4/NSUB1 solve. n_tet and n_dof and SF_nodal_max are present. ksp_its is absent from both the solid json and its manifest, so this is not a solver_run and is not a G input.",
+ "metrics": {
+  "spg": 3.69093,
+  "aes_score": 0.6332
+ },
+ "stored_solid": {
+  "SF_nodal_max": 0.814,
+  "n_tet": 76560,
+  "n_dof": 351297,
+  "ksp_its": null,
+  "NL": 4,
+  "NSUB": 1,
+  "R_CUT": 30.0
+ },
+ "missing": [
+  "ksp_its"
+ ]
+}

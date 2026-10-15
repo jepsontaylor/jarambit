@@ -1,0 +1,73 @@
+{
+  "research_date": "2026-10-13",
+  "minimum_blade_length_in": 3.375,
+  "input_rows": 435,
+  "discovered_observations": 1,
+  "canonical_entries": 166,
+  "qualification_counts": {
+    "source_confirmed_as_listed": 119,
+    "candidate_unverified": 43,
+    "conditional_length_conflict": 3,
+    "conditional_model_identity": 1
+  },
+  "qualified_entries": 119,
+  "plotted_entries": 77,
+  "qualified_missing_comparable_weight": 42,
+  "strict_weight_entries": 32,
+  "market_median_g": 159.32,
+  "market_min_g": 51.03,
+  "market_max_g": 411.07,
+  "benchmark_g": 64.841,
+  "benchmark_lighter_than_count": 76,
+  "benchmark_lighter_than_fraction": 0.987012987012987,
+  "benchmark_below_median_fraction": 0.5930140597539544,
+  "lighter_models": [
+    {
+      "model": "Hoback TALIM",
+      "weight_g": 51.03,
+      "style_scope": "broader_style",
+      "source_url": "https://www.northernknives.com/online-store/Jake-Hoback-TALIM-Combative-Systems-3-5-Karambit-&-Trainer-Carbon-Fiber-Differentially-Heat-Treated-Titanium-Pre-Owned-p616740169"
+    }
+  ],
+  "material_counts": {
+    "Stainless steel": 63,
+    "Steel, grade unspecified": 18,
+    "Carbon / tool steel": 18,
+    "Damascus / pattern steel": 9,
+    "Polymer / nonmetal": 1,
+    "PM tool steel": 5,
+    "Titanium / Ti composite": 5
+  },
+  "material_weight_counts": {
+    "Stainless steel": 47,
+    "Carbon / tool steel": 15,
+    "Damascus / pattern steel": 4,
+    "Polymer / nonmetal": 1,
+    "PM tool steel": 3,
+    "Titanium / Ti composite": 2,
+    "Steel, grade unspecified": 5
+  },
+  "claim_scope": "Unweighted catalog entries, not sales share or a proof of total global coverage. CAD mass vs published commercial knife specifications. No performance equivalence inferred.",
+  "missing_weight_bounds": {
+    "minimum_fraction_lighter_than_benchmark": 0.6386554621848739,
+    "maximum_fraction_lighter_than_benchmark": 0.9915966386554622,
+    "meaning": "Extreme bookkeeping bounds if every missing comparable weight were below or above the CAD benchmark. Not confidence intervals."
+  },
+  "sensitivity": {
+    "explicit_knife_only": {
+      "n": 32,
+      "median_g": 140.32999999999998,
+      "nominally_heavier_than_benchmark": 31
+    },
+    "curved_karambit_only": {
+      "n": 55,
+      "median_g": 167.26,
+      "nominally_heavier_than_benchmark": 55
+    },
+    "metal_blades_only": {
+      "n": 76,
+      "median_g": 161.165,
+      "nominally_heavier_than_benchmark": 75
+    }
+  }
+}

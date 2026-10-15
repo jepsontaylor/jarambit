@@ -14,4 +14,6 @@ for spec in $SPECS; do
   screen -dmS "$name" bash -c "cd '$out' && $FEM JARAMBIT_MAX_THREADS=$T MIMALLOC_PURGE_DELAY=-1 exec nice -n 19 '$BIN' --gens $GENS --pop $POP --mc $mc --threads $T --islands $ISL --migrate 5 --seed $seed --out '$out' > '$out/run.log' 2>&1"
   echo "started $name  (threads=$T mc=$mc gens=$GENS pop=$POP islands=$ISL fem=${JARAMBIT_FEM:-0}) -> $out"
 done
-pgrep -u "$(id -u)" -f yield_guard.sh >/dev/null || screen -dmS jarambit_yield_guard bash "$(dirname "$0")/yield_guard.sh"
+if [ "${JARAMBIT_YIELD_GUARD:-1}" = "1" ]; then
+  pgrep -u "$(id -u)" -f yield_guard.sh >/dev/null || screen -dmS jarambit_yield_guard bash "$(dirname "$0")/yield_guard.sh"
+fi

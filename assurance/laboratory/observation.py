@@ -58,8 +58,9 @@ def bind_observation(measurement, history, raw_bytes_sha256=None):
     """Bind one observation to the history prefix, caller raw bytes, calibration, and unit.
 
     The digest stored on the measurement is not the caller's presented raw
-    identity. A missing caller argument stays unavailable. An accepted scalar
-    binding reports the completed prefix event ids.
+    identity. A missing caller argument stays unavailable. Every accepted
+    binding reports the completed prefix event ids, including a censored
+    result, a measured zero, and a screened component mapping.
     """
     if type(measurement) is not dict:
         return _refuse("measurement_not_an_object")
@@ -111,16 +112,24 @@ def bind_observation(measurement, history, raw_bytes_sha256=None):
         if reason is not None:
             return _refuse(reason)
     if screened is not None:
-        return screened
+        accepted = dict(screened)
+        accepted["history_prefix_events"] = list(prefix["event_ids"])
+        return accepted
     if censoring is not None:
         return {
             "censoring": censoring.get("type"),
+            "history_prefix_events": list(prefix["event_ids"]),
             "limit": censoring.get("limit"),
             "outcome": "accepted",
             "value": None,
         }
     if value == 0 or value == 0.0:
-        return {"censoring": None, "outcome": "accepted", "value": 0.0}
+        return {
+            "censoring": None,
+            "history_prefix_events": list(prefix["event_ids"]),
+            "outcome": "accepted",
+            "value": 0.0,
+        }
     return {
         "available": True,
         "history_prefix_events": list(prefix["event_ids"]),
