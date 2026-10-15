@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "canonical_wire": "jarambit.science.canonical.v1",
-  "catalog_sha256": "0783e3f90979aa23c51d135ca914e721bac8fc2827966477c773f0e351b1ab24",
+  "catalog_sha256": "1a81004b4bebbcf19b420826942a0e773d5622b19f8841de2581e94035806b7e",
   "max_bytes": 1048576,
   "max_depth": 64,
   "max_nodes": 100000,
