@@ -1,0 +1,367 @@
+{
+ "schema": "jarambit.cad_battery.subject.v1",
+ "subject": "w276_s2913_c01",
+ "role": "genome",
+ "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+ "cases": [
+  {
+   "id": "build.analytic",
+   "kind": "software_contract",
+   "status": "pass",
+   "solver": "analytic",
+   "geometry_sha256": null,
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "crates/physics/tests/invariance.rs",
+   "fresh_this_lane": false
+  },
+  {
+   "id": "build.gci_contracts",
+   "kind": "software_contract",
+   "status": "pass",
+   "solver": "gci",
+   "geometry_sha256": null,
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "fem_solid/tests/test_gci.py",
+   "fresh_this_lane": false
+  },
+  {
+   "id": "build.claims",
+   "kind": "software_contract",
+   "status": "pass",
+   "solver": null,
+   "geometry_sha256": null,
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "ops/ci/check_claims.py",
+   "fresh_this_lane": false,
+   "detail": {
+    "expected_unaided_exit": 2,
+    "reason": "independent_caller_admission_unavailable"
+   }
+  },
+  {
+   "id": "build.dolfinx",
+   "kind": "software_contract",
+   "status": "pass",
+   "solver": "solid_dolfinx",
+   "geometry_sha256": null,
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/cad_battery/dolfinx_cross_check.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "container_image": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+    "script": "fem_solid/cross_check.py",
+    "all_within_2pct": true,
+    "tolerance_rel": 0.02,
+    "subjects_checked": [
+     "g3",
+     "w271b_11772",
+     "w271b_11860",
+     "w271c_11522",
+     "w272_s2902_c01",
+     "w273_s2903_c04",
+     "w273_s2904_c01",
+     "w274_s2905_c01",
+     "w275_s2909_c01",
+     "w276_s2913_c01"
+    ]
+   }
+  },
+  {
+   "id": "geom.unit",
+   "kind": "gate",
+   "status": "blocked",
+   "solver": null,
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_genome.csv",
+   "fresh_this_lane": false,
+   "reason": "no step bound"
+  },
+  {
+   "id": "geom.one_solid",
+   "kind": "gate",
+   "status": "blocked",
+   "solver": null,
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_genome.csv",
+   "fresh_this_lane": false,
+   "reason": "no step bound"
+  },
+  {
+   "id": "geom.mass",
+   "kind": "derived",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_rs.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "plate_mass_g": 79.99479010835532,
+    "note": "fem::certify mass, not a STEP"
+   },
+   "g_inputs": {
+    "mass_g": 79.99479010835532
+   }
+  },
+  {
+   "id": "geom.pin",
+   "kind": "software_contract",
+   "status": "blocked",
+   "solver": null,
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_genome.csv",
+   "fresh_this_lane": false,
+   "reason": "genome is not a native CAD pin"
+  },
+  {
+   "id": "plate.loads",
+   "kind": "derived",
+   "status": "fail",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_rs.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "loads": {
+     "hiker_lateral_n": {
+      "value_n_or_sf": 274.7789079802282,
+      "compared_with": 180
+     },
+     "hunter_lateral_n": {
+      "value_n_or_sf": 274.7789079802282,
+      "compared_with": 260
+     },
+     "ring_pull_n": {
+      "value_n_or_sf": 15402.166173778292,
+      "compared_with": 1500
+     },
+     "chord_twist_human_max_sf": {
+      "value_n_or_sf": 0.12892114271644683,
+      "compared_with": 16200
+     },
+     "spine_sf": {
+      "value_n_or_sf": 0.393424883962932,
+      "compared_with": 3427
+     },
+     "ring_back_sf": {
+      "value_n_or_sf": 2.3115458858692217,
+      "compared_with": 3000
+     },
+     "tip_inplane_sf_record_only": {
+      "value_n_or_sf": 0.4958595341811897,
+      "compared_with": 1000
+     },
+     "pry": null
+    },
+    "note": "derived from the certify record"
+   },
+   "g_inputs": {
+    "spg": 3.43496
+   }
+  },
+  {
+   "id": "plate.seq",
+   "kind": "gate",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_rs.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "seq_ratio": 1.2128687563094507,
+    "seq_target": 1.2,
+    "side_report_seq_ratio": 1.2128687563094507
+   },
+   "g_inputs": {
+    "seq_ratio": 1.2128687563094507
+   }
+  },
+  {
+   "id": "plate.l7",
+   "kind": "derived",
+   "status": "fail",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_rs.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "label": "screening",
+    "not": "spec \u00a77.3 L7",
+    "fat_sf": 0.7675468070995868,
+    "cycles": "1e7",
+    "load": "0..180 N"
+   }
+  },
+  {
+   "id": "plate.gci",
+   "kind": "derived",
+   "status": "fail",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_plate_gci.json",
+   "fresh_this_lane": false,
+   "reason": "oscillatory_sequence",
+   "detail": {
+    "primary_observable": "seq_ratio",
+    "refinement_ratio_r": 2.0,
+    "fit_status": "oscillatory",
+    "p": null,
+    "gci_fine": null,
+    "admitted": false,
+    "discretization_under_3pct": false,
+    "sf_hunter_fit_status": "oscillatory",
+    "sf_hunter_p": null,
+    "sf_hunter_gci_fine": null
+   }
+  },
+  {
+   "id": "side.a1",
+   "kind": "derived",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_a1a3.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "sha256": "595f3a63ab584693fc76b4f920f40722423c56b113a4ea897d3984067464c043",
+    "mesh_mm2": 0.25,
+    "changes_seq_ratio": false
+   }
+  },
+  {
+   "id": "side.a2",
+   "kind": "derived",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_a1a3.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "sha256": "595f3a63ab584693fc76b4f920f40722423c56b113a4ea897d3984067464c043",
+    "mesh_mm2": 0.25,
+    "changes_seq_ratio": false
+   }
+  },
+  {
+   "id": "side.a3",
+   "kind": "derived",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_a1a3.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "sha256": "595f3a63ab584693fc76b4f920f40722423c56b113a4ea897d3984067464c043",
+    "mesh_mm2": 0.25,
+    "changes_seq_ratio": false
+   }
+  },
+  {
+   "id": "side.a4",
+   "kind": "derived",
+   "status": "pass",
+   "solver": "plate_cst_dkt",
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_a4.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "sha256": "87d9605778bc72b3f7d4e9ce3292da94c67e5d054cb9268c78d8a53149398253",
+    "bore_support": "radial_pin_bearing_and_flange",
+    "grip_foundation_stiffness": "winkler_grip_pad_foundation",
+    "buckling_eigenvalue": 9.010308186769818,
+    "buckling_critical_load_n": 2342.6801285601528,
+    "supported_seq_ratio": 4.096218692258367,
+    "certified_seq_ratio": 1.2128687563094507,
+    "default_clamp": "ring-hole nodes fixed in all 5 dofs inside run_b",
+    "partial_solver_edit": false,
+    "changes_seq_ratio": false
+   }
+  },
+  {
+   "id": "solid.tip",
+   "kind": "solver_run",
+   "status": "pass",
+   "solver": "solid_skfem_p2",
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_solid_tip.json",
+   "fresh_this_lane": false,
+   "detail": {
+    "SF_nodal_max": 1.3393,
+    "n_tet": 90384,
+    "n_dof": 413613,
+    "ksp_its": 61,
+    "NL": 4,
+    "NSUB": 1,
+    "missing": [],
+    "solve_rerun": true,
+    "copied_from_another_genome": false,
+    "entered_as_solver_run": true,
+    "genome_data_row_matches_csv": true,
+    "d1_sha256": "b855f4a3b1ed6c03ff770bbefee9a4b4d2fe59e661d9cc290a9d717e598ce8d5"
+   },
+   "g_inputs": {
+    "solid_tip_sf_nodal_max": 1.3393
+   }
+  },
+  {
+   "id": "gate.rs_v2",
+   "kind": "gate",
+   "status": "fail",
+   "solver": null,
+   "geometry_sha256": "536b54c307aaf740e09be43f07df2a57b39e9182aca9a9a462f9d9acbaae37d0",
+   "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+   "evidence_path": "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_rs.json",
+   "fresh_this_lane": false,
+   "reason": "does not pass every hard gate",
+   "detail": {
+    "gates": {
+     "aesthetic_and_geometric": "pass",
+     "fatigue": "fail",
+     "floors_828_joint": "pass",
+     "gate_s_sharp_law": "fail",
+     "gate_s_tip_point_brep": "unverified",
+     "human_max": "fail",
+     "seq_hard": "pass",
+     "solid_tip_sf": "pass",
+     "strict_hunter_lateral": "pass",
+     "twist_floor_body_and_tipsub_strict": "pass"
+    },
+    "all_hard": false
+   },
+   "g_inputs": {
+    "aes_score": 0.3896
+   }
+  }
+ ],
+ "pass_count": 11,
+ "solver_run_count": 1,
+ "solver_run_objects": 1,
+ "global_fitness": {
+  "metric": "G1",
+  "inputs": {
+   "mass_g": 79.99479010835532,
+   "spg": 3.43496,
+   "seq_ratio": 1.2128687563094507,
+   "solid_tip_sf_nodal_max": 1.3393,
+   "aes_score": 0.3896
+  },
+  "G": 0.8322600494582232,
+  "status": "COMPLETE",
+  "provisional": false,
+  "missing": [],
+  "title": "G 0.832 | 80.0 g | jarambit v0.32.2"
+ },
+ "search_fitness": "unchanged"
+}
