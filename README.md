@@ -40,7 +40,7 @@ Verdicts are scoped to a requirement set (`requirements/RS-karambit-v1.toml`): *
 
 <img src="docs/figures/engineering_gates/fig1_evolutionary_trajectories.png" width="96%" alt="Multi-wave evolutionary trajectories: mass vs G1, failure-sequence ratio vs tip-submodel twist SF, MAP-Elites archive trajectory, and fitness decomposition"/>
 
-<img src="docs/figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png" width="96%" alt="11-subject by 18-evaluator CAD battery matrix, Roache P2 solid-tip GCI convergence, and dolfinx vs skfem cross-solver verification"/>
+<img src="docs/figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png" width="96%" alt="14-subject by 18-evaluator CAD battery matrix, Roache P2 solid-tip GCI convergence, and dolfinx vs skfem cross-solver verification"/>
 
 <img src="docs/figures/engineering_gates/fig3_cad_and_fem_gallery.png" width="96%" alt="CAD thickness and von Mises stress gallery across historical g3, W271c, W273, and SWITCHBACK C10a"/>
 
@@ -133,7 +133,7 @@ RS-karambit-v2 structural cases — first-yield safety factors (L7: fatigue/endu
 
 ### 14-Subject × 18-Evaluator CAD Battery & Multi-Wave Progression (`evidence/cad_battery/*.json`, `docs/ENGINEERING_GATES_AND_EVOLUTION.md`)
 
-Every candidate in the 14-subject CAD battery is evaluated against all 18 standardized evaluators (`build.analytic`, `build.gci_contracts`, `build.claims`, `build.dolfinx`, `geom.unit`, `geom.one_solid`, `geom.mass`, `geom.pin`, `plate.loads`, `plate.seq`, `plate.l7`, `plate.gci`, `side.a1`–`side.a4`, `solid.tip`, `solid.whole_part`), and the `crescent-evolve` loop enforces an opt-in live CAD battery gate via `JARAMBIT_CAD_BATTERY=1` (`ops/ci/evaluate_cad_candidate.py`). Full methodology and derivations: [docs/ENGINEERING_GATES_AND_EVOLUTION.md](docs/ENGINEERING_GATES_AND_EVOLUTION.md).
+Every candidate in the 14-subject CAD battery is evaluated against all 18 standardized evaluators (`build.analytic`, `build.gci_contracts`, `build.claims`, `build.dolfinx`, `geom.unit`, `geom.one_solid`, `geom.mass`, `geom.pin`, `plate.loads`, `plate.seq`, `plate.l7`, `plate.gci`, `side.a1`–`side.a4`, `solid.tip`, `gate.rs_v2`), and the `crescent-evolve` loop enforces an opt-in live CAD battery gate via `JARAMBIT_CAD_BATTERY=1` (`ops/ci/evaluate_cad_candidate.py`). Full methodology and derivations: [docs/ENGINEERING_GATES_AND_EVOLUTION.md](docs/ENGINEERING_GATES_AND_EVOLUTION.md).
 
 | subject | role | mass (g) | hunter lat (N) / SPG (N/g) | cert `seq_ratio` | Winkler+bore `seq` (`side.a4`) | buckling $P_{\text{cr}}$ (N) | P2 solid tip SF (`dolfinx` / `skfem`, $\Delta$) | 18-case tally (`pass` / `fail` / `blocked`) |
 |---|---|---|---|---|---|---|---|---|
@@ -152,7 +152,7 @@ Every candidate in the 14-subject CAD battery is evaluated against all 18 standa
 | `c92` | `native_cad` | 66.76 | *blocked (B-rep)* | *blocked* | *blocked* | *blocked* | *blocked* | `8 / 0 / 10` |
 | `c10c` | `archived_not_on_main` | 67.09 | *blocked (B-rep)* | *blocked* | *blocked* | *blocked* | *blocked* | `7 / 1 / 10` |
 
-**Battery total across 14 subjects × 18 evaluators (252 cells):** `138 pass`, `45 fail`, `69 blocked`. Every genome subject (`10/10`) clears the `side.a4` Winkler grip-foundation + radial/tangential bore-pin sequence check and linear buckling ($P_{\text{cr}} \gg 260\text{ N}$), and agrees within $\le 0.45\%$ between independent `dolfinx` and `skfem` 3D P2 solid-tip solves; `w276_s2913_c01` (`80.00 g` / `79.995 g`, `G1 = 0.8323`, `W_CAD = +1.6381`), `w275_s2909_c01` (`81.77 g`, `G1 = 0.8015`, `W_CAD = +1.5589`), and `w274_s2905_c01` (`84.98 g`, `G1 = 0.7701`, `W_CAD = +1.4634`) clear both certified `seq_ratio >= 1.20` and 3D P2 solid-tip `SF >= 1.0`.
+**Battery total across 14 subjects × 18 evaluators (252 cells):** `138 pass`, `45 fail`, `69 blocked`. Every genome subject (`10/10`) clears the `side.a4` Winkler grip-foundation + radial/tangential bore-pin sequence check and linear buckling ($P_{\text{cr}} \gg 260\text{ N}$), and agrees within $\le 0.45\%$ between independent `dolfinx` and `skfem` 3D P2 solid-tip solves; `w276_s2913_c01` (`80.00 g` in 2-decimal column / `79.995 g` exact, `G1 = 0.8323`, `W_CAD = +1.6381`), `w275_s2909_c01` (`81.77 g`, `G1 = 0.8015`, `W_CAD = +1.5589`), and `w274_s2905_c01` (`84.98 g`, `G1 = 0.7701`, `W_CAD = +1.4634`) clear both certified `seq_ratio >= 1.20` and 3D P2 solid-tip `SF >= 1.0` (their `11 / 4 / 3` tally reflects 11 `pass`, 4 `fail` on `RS-karambit-v2` `plate.loads` human-max, `plate.l7` fatigue, `plate.gci` single-element oscillatory sequence, and `gate.rs_v2`, plus 3 `blocked` B-rep STEP evaluators `geom.unit`, `geom.one_solid`, `geom.pin`).
 
 ### 178-Group (356-Control) Scientific Assurance Catalog (`T00`–`T19`, `docs/v1/science/tests/TEST_CASE_CATALOG.json`)
 
@@ -181,7 +181,7 @@ All scientific evaluators, mesh-convergence gates, CAD hygiene checks, and repor
 | 🧬 **Genotype** | 40 outline control points + ~100 feature genes (stock/tip law, rails, ring channels), red-team validators reject; during search, infeasible designs are ranked below feasible ones with graded negative scores (never eligible for promotion) |
 | 🧊 **Phenotype** | outline + thickness field → watertight STL + faceted STEP (export not yet validated as a sewn solid) |
 | 🔥 **FEM** | DKT + CST plate screen (828 MPa joint, thin+hot) + P2 solid tip submodel (dolfinx, mesh-converged; see Release) |
-| 🧪 **CAD Battery** | 18 standardized evaluators per subject (`build.*`, `geom.*`, `plate.*`, `side.a1`–`a4`, `solid.*`) + 178-group (356-control) scientific assurance suite (`T00`–`T19`) |
+| 🧪 **CAD Battery** | 18 standardized evaluators per subject (`build.*`, `geom.*`, `plate.*`, `side.a1`–`a4`, `solid.tip`, `gate.rs_v2`) + 178-group (356-control) scientific assurance suite (`T00`–`T19`) |
 | 🎲 **Monte Carlo** | tolerances × −10…100 °C, p05 strength-per-gram (legacy NSGA-II lane) |
 | 🧭 **Evolution** | two engines: legacy NSGA-II islands (`crates/evolve`) and the crescent island GA + novelty + MAP-Elites archive (`crates/crescent/src/qd.rs`, used for all recent waves); one locked GLOBAL metric **G1** across waves |
 
@@ -190,14 +190,15 @@ All scientific evaluators, mesh-convergence gates, CAD hygiene checks, and repor
 ## Install
 
 ### Prerequisites
-- **Rust toolchain** (`rustup` stable, `cargo` 1.75+): builds the `jarambit` CLI and all 11 workspace crates (`crates/*`).
-- **Python 3.11+**: runs the scientific assurance suite (`ops/ci/science_suite.py`), the 18-case CAD battery (`ops/ci/cad_battery.py`), live candidate evaluation (`ops/ci/evaluate_cad_candidate.py`), and deterministic documentation/figure generators (`numpy`, `scipy`, `matplotlib`, `Pillow`, `gmsh`, `scikit-fem` optional for local 3D solid cross-checks).
+- **Rust toolchain** (`1.85.1`, pinned in `rust-toolchain.toml` and selected automatically by `rustup`): builds the `jarambit` CLI and all 11 workspace crates (`crates/*`).
+- **Python 3.11+**: runs the scientific assurance suite (`ops/ci/science_suite.py`), the 18-case CAD battery (`ops/ci/cad_battery.py`), live candidate evaluation (`ops/ci/evaluate_cad_candidate.py`), and deterministic documentation/figure generators (`numpy`, `scipy`, `matplotlib`, `Pillow`, `gmsh`, `scikit-fem`, `pytest`, `jsonschema`).
 - **Docker** *(optional)*: required only when re-running the containerized FEniCSx `dolfinx` v0.9.0 3D P2 solid-tip cross-check (`fem_solid/cross_check.py`).
 
 ### Build from source
 ```bash
 git clone https://github.com/neverhuman/jarambit.git
 cd jarambit
+python3 -m pip install --quiet numpy scipy matplotlib pillow gmsh scikit-fem pytest jsonschema
 cargo build --release
 cargo test --release
 ```
