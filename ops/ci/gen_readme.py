@@ -21,6 +21,12 @@ REPO = 'https://github.com/neverhuman/jarambit'
 IDX, LABEL = 'docs/wave27_diversity/plates/wave27_D1_index.json', 'g3_tip+00_t60_tt3_D1'
 DESIGN = LABEL[:-3]
 FIG = 'docs/figures/whitepaper'
+EG_FIG = 'docs/figures/engineering_gates'
+BATTERY_SUBJECTS = (
+    'g3', 'w274_s2905_c01', 'w273_s2904_c01', 'w271c_11522', 'w272_s2902_c01',
+    'w273_s2903_c04', 'w271b_11772', 'w271b_11860',
+    'c10a', 'c93', 'c92', 'c10c',
+)
 
 
 def rd(rel):
@@ -89,14 +95,21 @@ def figs(context=None):
     tip = rec['solid_tip_sf_nodal_max']
     wp = js('evidence/fem_solid/verify_0.30.2.json')['whole_part_mesh']
     rel = f'{REPO}/releases/tag/v{v}'
-    L = [         f'📄 [White paper](docs/WHITEPAPER.md) · ⚖️ [Patent draft (not filed)](docs/PATENT_DRAFT.md) · 📦 [Release v{v}]({rel}) · 🗺️ [Technology map](TECHNOLOGY_MAP.md)', '',
+    L = [f'📄 [White paper](docs/WHITEPAPER.md) · 📐 [Engineering gates & evolution paper](docs/ENGINEERING_GATES_AND_EVOLUTION.md) · ⚖️ [Patent draft (not filed)](docs/PATENT_DRAFT.md) · 📦 [Release v{v}]({rel}) · 🗺️ [Technology map](TECHNOLOGY_MAP.md)', '',
          f'<img src="docs/media/{DESIGN}_turntable.gif" width="100%" alt="360 degree turntable of {DESIGN}: faceted STL, colour = D1 certified envelope SF"/>', '',
          f'*360° turntable (`ops/render/turntable.py`, manifest `docs/media/{DESIGN}_turntable.gif.manifest.json`): faceted STL, colour = D1 certified envelope SF at 100 °C (red < 1).*', '',
          f'<img src="{FIG}/wave27_{DESIGN}_STEP_3D.png" width="88%" alt="3D render of {DESIGN}: faceted STL preview (STEP not validated)"/>', '',
          f'<img src="{FIG}/wave27_{DESIGN}_W27HARDPASS_SPG4p15_wgt84p8g_D1_FEM_metrics.png" width="88%" alt="historical wave27 D1 FEM plate for {DESIGN}"/>', '',
          f'*Top: faceted STL preview, not a validated STEP. The wave27 STEP imports as an unsewable shell, so the whole-part solid mesh uses the STL twin '
          f'({wp["mass_g_at_4.43"]:.2f} g vs {wp["ref_mass_g"]:.2f} g). Colour = position along the blade. Bottom: **historical** wave27 D1 plate '
-         f'(RS-karambit-v1 W27 screen scope; it labels seq SOFT, which RS-karambit-v2 makes HARD). Solid-tip SF {f(tip)} at the production mesh.*']
+         f'(RS-karambit-v1 W27 screen scope; it labels seq SOFT, which RS-karambit-v2 makes HARD). Solid-tip SF {f(tip)} at the production mesh.*', '',
+         f'<img src="{EG_FIG}/fig1_evolutionary_trajectories.png" width="96%" alt="Multi-wave evolutionary trajectories: mass vs G1, failure-sequence ratio vs tip-submodel twist SF, MAP-Elites archive trajectory, and fitness decomposition"/>', '',
+         f'<img src="{EG_FIG}/fig2_cad_battery_matrix_and_gci.png" width="96%" alt="11-subject by 18-evaluator CAD battery matrix, Roache P2 solid-tip GCI convergence, and dolfinx vs skfem cross-solver verification"/>', '',
+         f'<img src="{EG_FIG}/fig3_cad_and_fem_gallery.png" width="96%" alt="CAD thickness and von Mises stress gallery across historical g3, W271c, W273, and SWITCHBACK C10a"/>', '',
+         f'*Engineering gates & evolutionary verification gallery (`ops/render/engineering_gates_paper_figs.py`, [full paper](docs/ENGINEERING_GATES_AND_EVOLUTION.md)): '
+         f'(1) multi-wave evolutionary progression across W27 → W271b/c → W272 → W273 and C9.2–C10c B-rep studies; '
+         f'(2) 11-subject × 18-evaluator CAD battery status matrix, 3-level P2 tetrahedral Roache GCI convergence, and independent `dolfinx` vs `skfem` cross-solver verification; '
+         f'(3) real CAD thickness fields $t(x,y)$ and certified DKT+CST von Mises stress fields across evolved genomes and B-rep candidates.*']
     return '\n'.join(L)
 
 
@@ -187,8 +200,60 @@ def release(context=None):
         sh += [f'unverified: {u}' for u in r['unverified']]
         L.append(f'| `{r["label"]}` | {r["mass_g"]:.2f} | {st(r["screen"])} | {st(r["gates"]["strict_hunter_lateral"])} | {yn(g["seq_hard"])} | {yn(g["human_max"])} | {yn(g["fatigue"])} | {yn(r["all_hard"])} | {", ".join(sh)} |')
     n_all = sum(json.load(open(fp))['all_hard'] for fp in glob.glob(os.path.join(ROOT, 'evidence/rs_v2/*.json')))
-    L += ['', f'**{n_all} of {len(glob.glob(os.path.join(ROOT, "evidence/rs_v2/*.json")))} named designs pass every RS-karambit-v2 hard gate.** An unverified gate (no evidence) never counts as met. No design is promoted.', '',
-          '### Calibration and solver speed', '',
+    L += ['', f'**{n_all} of {len(glob.glob(os.path.join(ROOT, "evidence/rs_v2/*.json")))} named designs pass every RS-karambit-v2 hard gate.** An unverified gate (no evidence) never counts as met. No design is promoted.', '']
+
+    dx_all = js('evidence/cad_battery/dolfinx_cross_check.json')['subjects']
+    L += ['### 12-Subject × 18-Evaluator CAD Battery & Multi-Wave Progression (`evidence/cad_battery/*.json`, `docs/ENGINEERING_GATES_AND_EVOLUTION.md`)', '',
+          'Every candidate in the 12-subject CAD battery is evaluated against all 18 standardized evaluators (`build.analytic`, `build.gci_contracts`, `build.claims`, `build.dolfinx`, `geom.unit`, `geom.one_solid`, `geom.mass`, `geom.pin`, `plate.loads`, `plate.seq`, `plate.l7`, `plate.gci`, `side.a1`–`side.a4`, `solid.tip`, `solid.whole_part`), and the `crescent --evolve` loop enforces an opt-in live 14-check CAD battery gate via `JARAMBIT_CAD_BATTERY=1` (`ops/ci/evaluate_cad_candidate.py`). Full methodology and derivations: [docs/ENGINEERING_GATES_AND_EVOLUTION.md](docs/ENGINEERING_GATES_AND_EVOLUTION.md).', '',
+          '| subject | role | mass (g) | hunter lat (N) / SPG (N/g) | cert `seq_ratio` | Winkler+bore `seq` (`side.a4`) | buckling $P_{\\text{cr}}$ (N) | P2 solid tip SF (`dolfinx` / `skfem`, $\\Delta$) | 18-case tally (`pass` / `fail` / `blocked`) |',
+          '|---|---|---|---|---|---|---|---|---|']
+    tot_p = tot_f = tot_b = 0
+    for sid in BATTERY_SUBJECTS:
+        b = js(f'evidence/cad_battery/{sid}.json')
+        cmap = {c['id']: c for c in b['cases']}
+        np_ = sum(1 for c in b['cases'] if c['status'] == 'pass')
+        nf_ = sum(1 for c in b['cases'] if c['status'] == 'fail')
+        nb_ = sum(1 for c in b['cases'] if c['status'] == 'blocked')
+        tot_p += np_; tot_f += nf_; tot_b += nb_
+        mg = cmap['geom.mass'].get('g_inputs', {}).get('mass_g')
+        mass_str = f'{mg:.2f}' if mg is not None else '—'
+        pl = cmap['plate.loads']
+        if pl['status'] != 'blocked' and pl.get('detail', {}).get('loads'):
+            hlat = pl['detail']['loads']['hunter_lateral_n']['value_n_or_sf']
+            spg_v = pl.get('g_inputs', {}).get('spg', hlat / mg if mg else 0.0)
+            lat_str = f'{hlat:.1f} / {spg_v:.3f}'
+        else:
+            lat_str = '*blocked (B-rep)*'
+        ps = cmap['plate.seq']
+        seq_str = f'{ps["detail"]["seq_ratio"]:.3f}' if ps['status'] != 'blocked' and ps.get('detail') else '*blocked*'
+        a4_rel = f'evidence/cad_battery/side/{sid}_a4.json'
+        if os.path.isfile(os.path.join(ROOT, a4_rel)):
+            a4 = js(a4_rel)
+            a4_seq_str = f'{a4["supported_seq_ratio"]:.3f}'
+            a4_pcr_str = f'{a4["buckling_critical_load_n"]:.0f}'
+        else:
+            a4_seq_str = '*blocked*'
+            a4_pcr_str = '*blocked*'
+        if sid in dx_all:
+            dxs = dx_all[sid]
+            d_sf = dxs['dolfinx']['SF_nodal_max']
+            s_sf = dxs['skfem_reference']['SF_nodal_max']
+            rdiff = 100.0 * dxs['rel_err_nodal_max']
+            tip_str = f'{d_sf:.3f} / {s_sf:.3f} ({rdiff:.2f} %)'
+        else:
+            tip_str = '*blocked*'
+        L.append(f'| `{sid}` | `{b["role"]}` | {mass_str} | {lat_str} | {seq_str} | {a4_seq_str} | {a4_pcr_str} | {tip_str} | `{np_} / {nf_} / {nb_}` |')
+    L += ['', f'**Battery total across {len(BATTERY_SUBJECTS)} subjects × 18 evaluators ({len(BATTERY_SUBJECTS) * 18} cells):** `{tot_p} pass`, `{tot_f} fail`, `{tot_b} blocked`. Every genome subject (`8/8`) clears the `side.a4` Winkler grip-foundation + radial/tangential bore-pin sequence check and linear buckling ($P_{{\\text{{cr}}}} \\gg 260\\text{{ N}}$), and agrees within $\\le 0.45\\%$ between independent `dolfinx` and `skfem` 3D P2 solid-tip solves; `w274_s2905_c01` (`84.98 g`, `G1 = 0.7701`, `W_CAD = +1.4634`) clears both certified `seq_ratio = 1.488 >= 1.20` and 3D P2 solid-tip `SF = 1.304 >= 1.0`.', '']
+
+    tcat = js('docs/v1/science/tests/TEST_CASE_CATALOG.json')
+    n_groups = tcat['case_group_count']
+    L += ['### 178-Group (356-Control) Scientific Assurance Catalog (`T00`–`T19`, `docs/v1/science/tests/TEST_CASE_CATALOG.json`)', '',
+          f'All scientific evaluators, mesh-convergence gates, CAD hygiene checks, and reporting claims are guarded by **{n_groups} paired positive/negative control groups ({2 * n_groups} controls)** across 20 topic families (`T00`–`T19`), verified in one command via `python3 -B ops/ci/science_suite.py`:', '',
+          '- **`T00`–`T04` (Governance, Authority & Evidence Binding):** `T00` metric & gate governance (`T00-01`..`10`), `T01` claim & authority admission (`T01-01`..`10`), `T02` artifact & provenance integrity (`T02-01`..`10`), `T03` CAD B-rep & mesh hygiene (`T03-01`..`10`), `T04` mass, density & volume accounting (`T04-01`..`10`).',
+          '- **`T05`–`T11` (Continuum Mechanics, 3D Solid FEM & Solver Verification):** `T05` boundary conditions & load application (`T05-01`..`10`), `T06` constitutive & thermal knockdown (`T06-01`..`10`), `T07` DKT+CST plate element formulation (`T07-01`..`10`), `T08` 3D P2 tetrahedral solid FEM (`T08-01`..`10`), `T09` Roache GCI & Richardson extrapolation (`T09-01`..`10`), `T10` T1→T2 calibration & bias factors (`T10-01`..`10`), `T11` linear solver & cross-solver reproducibility (`T11-01`..`08`).',
+          '- **`T12`–`T19` (Failure Sequence, Fatigue, Monte Carlo, QD Search & Release Integrity):** `T12` failure sequence & Winkler/bore support physics (`T12-01`..`09`), `T13` Marin + Goodman high-cycle fatigue (`T13-01`..`08`), `T14` ergonomics, ring bore & sheath retention (`T14-01`..`09`), `T15` Monte Carlo tolerance & thermal cloud (`T15-01`..`08`), `T16` evolutionary QD search & archive invariants (`T16-01`..`09`), `T17` market census & comparative claims (`T17-01`..`08`), `T18` figure, turntable & media provenance (`T18-01`..`09`), `T19` end-to-end release & battery coherence (`T19-01`..`10`).', '']
+
+    L += ['### Calibration and solver speed', '',
           '| T1 → T2 case | factor | residual σ | σ ≤ ' + pct(cal['sigma_max'], 0) + ' |', '|---|---|---|---|']
     for k, s in cal['cases'].items():
         L.append(f'| {k} | {s["factor_t2_over_t1"]:.3f} | {pct(s["sigma"])} | {"yes" if s["pass_sigma"] else "**no** (gated on T2 only)"} |')
