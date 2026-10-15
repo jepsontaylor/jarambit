@@ -180,3 +180,41 @@ class Records(unittest.TestCase):
         self.assertEqual(a4['reason'], 'run_b default BC is the certified model')
         self.assertEqual(a4['detail']['buckling_eigenvalue'], 'absent')
         self.assertFalse(a4['detail']['partial_solver_edit'])
+
+    def test_dolfinx_cross_check_covers_all_four_genomes_within_two_percent(self):
+        cross = json.loads((ROOT / 'evidence' / 'cad_battery' / 'dolfinx_cross_check.json').read_text(encoding='utf-8'))
+        self.assertTrue(cross['all_within_2pct'])
+        for name in ('g3', 'w271b_11772', 'w271b_11860', 'w271c_11522'):
+            row = cross['subjects'][name]
+            self.assertEqual(row['status'], 'pass')
+            self.assertTrue(row['within_2pct'])
+            self.assertLessEqual(row['rel_err_nodal_max'], 0.02)
+            self.assertLessEqual(row['rel_err_nodal_avg'], 0.02)
+            self.assertGreater(row['dolfinx']['ksp_its'], 0)
+
+    def test_side_a4_reports_cover_all_four_genomes_without_certified_solver_edit(self):
+        for name in ('g3', 'w271b_11772', 'w271b_11860', 'w271c_11522'):
+            side_a4 = json.loads((ROOT / 'evidence' / 'cad_battery' / 'side' / f'{name}_a4.json').read_text(encoding='utf-8'))
+            self.assertEqual(side_a4['status'], 'pass')
+            self.assertFalse(side_a4['partial_solver_edit'])
+            self.assertFalse(side_a4['changes_seq_ratio'])
+            self.assertGreaterEqual(side_a4['buckling_eigenvalue'], 1.2)
+            self.assertGreater(side_a4['supported_seq_ratio'], side_a4['certified_seq_ratio'])
+
+    def test_c10a_step_solid_tip_and_w272_g1_eval_are_cross_checked(self):
+        c10a_side = json.loads((ROOT / 'evidence' / 'cad_battery' / 'side' / 'c10a_solid_tip.json').read_text(encoding='utf-8'))
+        self.assertEqual(c10a_side['subject'], 'c10a')
+        self.assertGreater(c10a_side['n_tet'], 10000)
+        self.assertGreater(c10a_side['n_dof'], 50000)
+        self.assertGreater(c10a_side['ksp_its'], 0)
+        self.assertTrue(c10a_side['dolfinx_cross_check']['within_2pct'])
+        self.assertLessEqual(c10a_side['dolfinx_cross_check']['rel_err_nodal_max'], 0.02)
+
+        w272_eval = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w272_xbabe3' / 'w272_s2902_c01_g1_eval.json').read_text(encoding='utf-8'))
+        self.assertEqual(w272_eval['terms']['status'], 'COMPLETE')
+        self.assertFalse(w272_eval['terms']['provisional'])
+        self.assertTrue(w272_eval['dolfinx_cross_check']['within_2pct'])
+        self.assertLessEqual(w272_eval['dolfinx_cross_check']['rel_err_nodal_max'], 0.02)
+        seeds_lines = (ROOT / 'evidence' / 'rs_v2' / 'w272_xbabe3' / 'w273_seeds.csv').read_text(encoding='utf-8').strip().splitlines()
+        self.assertEqual(len(seeds_lines), 17)
+

@@ -1,0 +1,48 @@
+{
+  "NL": 4,
+  "NSUB": 1,
+  "R_CUT": 30.0,
+  "SF_nodal_avg": 0.2216,
+  "SF_nodal_max": 0.2101,
+  "T_Nmm": 1820.0,
+  "dolfinx_cross_check": {
+    "SF_nodal_avg": 0.2216,
+    "SF_nodal_max": 0.2101,
+    "container": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+    "ksp_its": 172,
+    "rel_err_nodal_avg": 0.0,
+    "rel_err_nodal_max": 0.0,
+    "within_2pct": true
+  },
+  "ksp_its": 125,
+  "n_dof": 372357,
+  "n_tet": 80496,
+  "nodal_avg_peak": {
+    "MPa": 3258.0,
+    "at": [
+      188.45,
+      -49.98,
+      -0.83
+    ],
+    "dist": 4.05
+  },
+  "nodal_max_peak": {
+    "MPa": 3436.2,
+    "at": [
+      188.45,
+      -49.98,
+      0.83
+    ],
+    "dist": 4.05
+  },
+  "rel_res": 8.80423299575056e-11,
+  "sallow_joint_MPa": 721.95,
+  "schema": "jarambit.native_step_solid_tip.v1",
+  "solver": "fem_solid/step_solid.py (skfem ElementTetP2 + pyamg smoothed_aggregation_solver CG)",
+  "step_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+  "step_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+  "stl_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.stl",
+  "stl_sha256": "0bcadad61bff550d9c527266e183440e8242c3a0222b9a89755cdc682b214411",
+  "subject": "c10a",
+  "wall_s": 528.59
+}
