@@ -289,8 +289,32 @@ def evaluate_subject(subject: str, d1_path: Path, rs_path: Path, side_a1a3_path:
     lambda_cr = float(1.0 / mu_max)
 
     cert_seq = float(rs['seq_ratio'])
-    genome_rel = a1a3['genome']
-    genome_sha = _sha256(ROOT / genome_rel)
+    genome_rel = str(a1a3.get('genome') or rs.get('genome') or '')
+    genome_path = None
+    for cand in (a1a3.get('genome'), rs.get('genome')):
+        if not cand:
+            continue
+        cand_str = str(cand)
+        if 'evidence/' in cand_str:
+            rel_cand = 'evidence/' + cand_str.split('evidence/', 1)[1]
+            if (ROOT / rel_cand).is_file():
+                genome_rel = rel_cand
+                genome_path = ROOT / rel_cand
+                break
+        p = Path(cand_str)
+        if not p.is_absolute() and (ROOT / p).is_file():
+            genome_rel = str(p)
+            genome_path = ROOT / p
+            break
+        if p.is_absolute() and p.is_file():
+            genome_rel = str(p.relative_to(ROOT)) if p.is_relative_to(ROOT) else str(p)
+            genome_path = p
+            break
+    if genome_path is None:
+        if 'evidence/' in genome_rel:
+            genome_rel = 'evidence/' + genome_rel.split('evidence/', 1)[1]
+        genome_path = ROOT / genome_rel.lstrip('/')
+    genome_sha = _sha256(genome_path)
     status = 'pass' if (lambda_cr > 0.0 and supported_seq_ratio >= cert_seq) else 'fail'
 
     return {
