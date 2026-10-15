@@ -1,0 +1,34 @@
+{
+  "bore_support": {
+    "k_flange_n_per_mm": 100000.0,
+    "k_radial_n_per_mm": 50000.0,
+    "k_tangential_n_per_mm": 5000.0,
+    "model": "radial_pin_bearing_and_flange",
+    "n_bore_nodes": 132
+  },
+  "buckling_critical_load_n": 2958.0586381575727,
+  "buckling_eigenvalue": 11.377148608298356,
+  "certified_model": "run_b ring-hole clamp in all 5 DOFs",
+  "certified_seq_ratio": 0.8823392882835103,
+  "changes_seq_ratio": false,
+  "d1_sha256": "d8acda72385a9c403275dfb53127341c7b1aec648fd000ca3b78ce65d9794960",
+  "eigensolver": "scipy.sparse.linalg.eigsh",
+  "genome": "evidence/rs_v2/genomes/w271b_11772_genome.csv",
+  "genome_sha256": "5418a4f1dde60341675a202b6b9d4d834b07c42a90ae0a11946a889039322cab",
+  "grip_foundation_stiffness": {
+    "k_foundation_n_per_mm3": 200.0,
+    "model": "winkler_grip_pad_foundation",
+    "n_grip_nodes": 6292
+  },
+  "mesh_max_area_mm2": 0.25,
+  "n_elem": 25608,
+  "n_node": 13708,
+  "partial_solver_edit": false,
+  "schema": "jarambit.side_report.a4.v1",
+  "status": "pass",
+  "subject": "w271b_11772",
+  "supported_blade_peak_mpa_per_n": 1.7222346392338659,
+  "supported_hand_peak_mpa_per_n": 0.4509042066725843,
+  "supported_seq_ratio": 3.819513355049345,
+  "supported_vs_certified_seq_delta": 2.937174066765835
+}

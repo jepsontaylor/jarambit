@@ -261,3 +261,115 @@ fn ratio_rejects_a_zero_denominator() {
     assert_eq!(Ratio::reduced(2, 4).unwrap().text(), "1/2");
     assert_eq!(Ratio::reduced(i128::MIN, 1).unwrap().num, i128::MIN);
 }
+
+#[test]
+fn t03_01_empty_count() {
+    zero_samples_is_rejected_explicitly();
+}
+
+#[test]
+fn t03_02_quantile_boundary() {
+    quantile_boundaries_match_historical_floor_ratio();
+}
+
+#[test]
+fn t03_03_finite_reduction() {
+    finite_reduction_matches_exact_hex_on_every_order();
+    exact_ratio_stops_at_the_half_open_i128_bound();
+    huge_cancellation_keeps_the_exact_power_of_two();
+}
+
+#[test]
+fn t03_04_invalid_sample() {
+    nonfinite_monte_carlo_sample_is_not_sorted_as_equal();
+    invalid_sample_counts_are_preserved();
+}
+
+#[test]
+fn t03_05_worker_panic() {
+    serial_double_counts_panic_and_keeps_the_positive();
+}
+
+#[test]
+fn t03_06_joint_correlation() {
+    use jarambit_monte_carlo::{joint_columns, paired_joint, ColumnSample, Pair};
+    let pos = paired_joint(&[
+        Pair { id: 0, a: 1.0, b: 1.0 },
+        Pair { id: 1, a: 1.0, b: 1.0 },
+        Pair { id: 2, a: -1.0, b: -1.0 },
+        Pair { id: 3, a: -1.0, b: -1.0 },
+    ]).unwrap();
+    let neg = paired_joint(&[
+        Pair { id: 0, a: 1.0, b: -1.0 },
+        Pair { id: 1, a: 2.0, b: -2.0 },
+        Pair { id: 2, a: -1.0, b: 1.0 },
+        Pair { id: 3, a: -2.0, b: 2.0 },
+    ]).unwrap();
+    assert_eq!(pos.marginal_a, neg.marginal_a);
+    assert_eq!(pos.marginal_b, neg.marginal_b);
+    assert_eq!(pos.joint.text(), "2/4");
+    assert_eq!(neg.joint.text(), "0/4");
+    assert_ne!(pos.joint, neg.joint);
+    let a = [ColumnSample { id: 0, value: 1.0 }, ColumnSample { id: 1, value: -1.0 }];
+    let b = [ColumnSample { id: 1, value: 1.0 }, ColumnSample { id: 0, value: -1.0 }];
+    assert_eq!(joint_columns(&a, &b), Err(CheckedError::MismatchedSampleId));
+}
+
+#[test]
+fn t03_07_independence_control() {
+    use jarambit_monte_carlo::{accept_sourced_correlation, check_audit_ids, paired_joint, AuditIds, CommonRandomNumbers, Pair};
+    let rows = [
+        Pair { id: 0, a: 1.0, b: 1.0 },
+        Pair { id: 1, a: 1.0, b: -1.0 },
+        Pair { id: 2, a: -1.0, b: 1.0 },
+        Pair { id: 3, a: -1.0, b: -1.0 },
+    ];
+    let est = paired_joint(&rows).unwrap();
+    assert_eq!(est.joint.text(), "1/4");
+    assert_eq!(est.product.text(), "1/4");
+    assert_eq!(est.product_label, "assumed_independent");
+    check_audit_ids(AuditIds { search: 11, calibration: 22, final_audit: 33 }).unwrap();
+    assert_eq!(
+        check_audit_ids(AuditIds { search: 11, calibration: 22, final_audit: 11 }),
+        Err(CheckedError::AuditStreamNotIndependent)
+    );
+    let _crn = CommonRandomNumbers { stream: 11 };
+    accept_sourced_correlation(true).unwrap();
+    assert_eq!(accept_sourced_correlation(false), Err(CheckedError::UnsourcedCorrelation));
+}
+
+#[test]
+fn t03_08_thread_replay() {
+    thread_admission_and_planner_do_not_spawn();
+    let forward = run_serial_double(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0], 4, SerialInject::default());
+    let reverse = run_serial_double(
+        &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        4,
+        SerialInject { reverse_chunks: true, ..SerialInject::default() },
+    );
+    assert_eq!(forward.summary, reverse.summary);
+}
+
+#[test]
+fn t03_09_population_shift() {
+    use jarambit_monte_carlo::population_shift;
+    for k in [1u64, 10, u64::MAX / 10] {
+        let s = population_shift(k).unwrap();
+        assert_eq!(s.service.text(), "1/10");
+        assert_eq!(s.discovery.text(), "1/2");
+        assert_eq!(s.gap.text(), "2/5");
+        assert_eq!(s.label, "assumed_model_population_discrepancy");
+        assert_eq!(s.mc_error, 0);
+    }
+    assert_eq!(population_shift(0), Err(CheckedError::InvalidConfig));
+}
+
+#[test]
+fn t03_10_media_retirement() {
+    use jarambit_monte_carlo::{active_cut_medium, historical_medium, CutMedia};
+    let gel = historical_medium("gel").unwrap();
+    assert_eq!((gel.work, gel.lead, gel.edge, gel.label), (60.0, 0.50, 0.30, "model_retired"));
+    assert_eq!(CutMedia::Gel.profile(), (60.0, 0.50, 0.30));
+    assert!(historical_medium("unknown").is_none());
+    assert_eq!(active_cut_medium(), Err(CheckedError::RetiredLookup));
+}
