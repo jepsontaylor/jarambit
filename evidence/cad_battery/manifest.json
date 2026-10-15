@@ -29,9 +29,12 @@
   "g3",
   "w271b_11772",
   "w271b_11860",
-  "w271c_11522"
+  "w271c_11522",
+  "w272_s2902_c01",
+  "w273_s2904_c01",
+  "w273_s2903_c04"
  ],
- "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+ "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
  "search_fitness": "unchanged",
  "files": [
   "evidence/cad_battery/c10a.json",
@@ -41,6 +44,9 @@
   "evidence/cad_battery/g3.json",
   "evidence/cad_battery/w271b_11772.json",
   "evidence/cad_battery/w271b_11860.json",
-  "evidence/cad_battery/w271c_11522.json"
+  "evidence/cad_battery/w271c_11522.json",
+  "evidence/cad_battery/w272_s2902_c01.json",
+  "evidence/cad_battery/w273_s2904_c01.json",
+  "evidence/cad_battery/w273_s2903_c04.json"
  ]
 }

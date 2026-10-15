@@ -1,0 +1,168 @@
+{
+  "genome": "evidence/rs_v2/w273_xbabe3/s2904/wave273_xbabe3_s2904_c01_fit_genome.csv",
+  "genome_sha256": "b46f9cf2181b21c06a8472939178ccca8b1ea729035eca32c094152c16c2bd63",
+  "levels_fine_to_coarse": [
+    {
+      "h_mm": 0.5,
+      "lat20_n": 353.34400110172305,
+      "max_area_mm2": 0.25,
+      "mesh_sha256": "ef69991a2576064198f53b646dec243d20083824f80bdb5947e8a506c5a954bf",
+      "n_elem": 25033,
+      "n_node": 13422,
+      "seq_ratio": 1.0179783550197032,
+      "sf_hunter": 1.1977637818178368
+    },
+    {
+      "h_mm": 1.0,
+      "lat20_n": 342.2029250727694,
+      "max_area_mm2": 1.0,
+      "mesh_sha256": "5bf6ce51dac4d31e70696dcef1c2d2339655060de246f1e2af93951df56ab905",
+      "n_elem": 6820,
+      "n_node": 3882,
+      "seq_ratio": 1.0843917659682505,
+      "sf_hunter": 1.1599978163101392
+    },
+    {
+      "h_mm": 2.0,
+      "lat20_n": 335.2557419520697,
+      "max_area_mm2": 4.0,
+      "mesh_sha256": "31b12c901e573dc86cde76f80c9c9b6cae48f8db3ff37cd7f622e48247ac82b7",
+      "n_elem": 3103,
+      "n_node": 1944,
+      "seq_ratio": 1.165410531782701,
+      "sf_hunter": 1.1364482886496008
+    }
+  ],
+  "primary_observable": "seq_ratio",
+  "refinement_ratio_r": 2.0,
+  "schema": "jarambit.plate_gci.v1",
+  "seq_ratio_gci": {
+    "admitted": true,
+    "asymptotic_validation": "not_established",
+    "f_ext": 0.7159835596643614,
+    "fit_status": "admissible_estimate",
+    "gci_fine": 0.37082664118813286,
+    "levels": [
+      {
+        "h": 0.5,
+        "mesh": {
+          "id": "w273_s2904_c01_area_0.25",
+          "revision": "rev1",
+          "sha256": "ef69991a2576064198f53b646dec243d20083824f80bdb5947e8a506c5a954bf"
+        },
+        "observable": {
+          "id": "plate_seq_ratio",
+          "metric": "seq_ratio",
+          "projection": "plate_cst_dkt",
+          "region": "blade_vs_ring_neck",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 1.0,
+        "mesh": {
+          "id": "w273_s2904_c01_area_1.0",
+          "revision": "rev1",
+          "sha256": "5bf6ce51dac4d31e70696dcef1c2d2339655060de246f1e2af93951df56ab905"
+        },
+        "observable": {
+          "id": "plate_seq_ratio",
+          "metric": "seq_ratio",
+          "projection": "plate_cst_dkt",
+          "region": "blade_vs_ring_neck",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 2.0,
+        "mesh": {
+          "id": "w273_s2904_c01_area_4.0",
+          "revision": "rev1",
+          "sha256": "31b12c901e573dc86cde76f80c9c9b6cae48f8db3ff37cd7f622e48247ac82b7"
+        },
+        "observable": {
+          "id": "plate_seq_ratio",
+          "metric": "seq_ratio",
+          "projection": "plate_cst_dkt",
+          "region": "blade_vs_ring_neck",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      }
+    ],
+    "method_id": "relative_gci.v2",
+    "monotone": true,
+    "observable_valid": true,
+    "p": 0.2867815118213706,
+    "reason": "checked_relative_estimate",
+    "relative_error_available": true,
+    "sequence_valid": true
+  },
+  "sf_hunter_gci": {
+    "admitted": false,
+    "asymptotic_validation": "not_established",
+    "f_ext": null,
+    "fit_status": "nonpositive_order",
+    "gci_fine": null,
+    "levels": [
+      {
+        "h": 0.5,
+        "mesh": {
+          "id": "w273_s2904_c01_area_0.25",
+          "revision": "rev1",
+          "sha256": "ef69991a2576064198f53b646dec243d20083824f80bdb5947e8a506c5a954bf"
+        },
+        "observable": {
+          "id": "plate_sf_hunter",
+          "metric": "sf_hunter",
+          "projection": "plate_cst_dkt",
+          "region": "blade_outside_4mm",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 1.0,
+        "mesh": {
+          "id": "w273_s2904_c01_area_1.0",
+          "revision": "rev1",
+          "sha256": "5bf6ce51dac4d31e70696dcef1c2d2339655060de246f1e2af93951df56ab905"
+        },
+        "observable": {
+          "id": "plate_sf_hunter",
+          "metric": "sf_hunter",
+          "projection": "plate_cst_dkt",
+          "region": "blade_outside_4mm",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 2.0,
+        "mesh": {
+          "id": "w273_s2904_c01_area_4.0",
+          "revision": "rev1",
+          "sha256": "31b12c901e573dc86cde76f80c9c9b6cae48f8db3ff37cd7f622e48247ac82b7"
+        },
+        "observable": {
+          "id": "plate_sf_hunter",
+          "metric": "sf_hunter",
+          "projection": "plate_cst_dkt",
+          "region": "blade_outside_4mm",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      }
+    ],
+    "method_id": "relative_gci.v2",
+    "monotone": true,
+    "observable_valid": true,
+    "p": -0.681388547057524,
+    "reason": "nonpositive_observed_order",
+    "relative_error_available": false,
+    "sequence_valid": true
+  },
+  "subject": "w273_s2904_c01"
+}

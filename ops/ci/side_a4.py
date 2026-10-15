@@ -329,7 +329,27 @@ def evaluate_subject(subject: str, d1_path: Path, rs_path: Path, side_a1a3_path:
     }
 
 
-def main() -> int:
+def main(argv=None) -> int:
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--subject')
+    parser.add_argument('--d1', type=Path)
+    parser.add_argument('--rs', type=Path)
+    parser.add_argument('--a1a3', type=Path)
+    parser.add_argument('--out', type=Path)
+    args = parser.parse_args(argv)
+    if args.subject and args.d1 and args.rs and args.a1a3:
+        rec = evaluate_subject(args.subject, args.d1, args.rs, args.a1a3)
+        out_path = args.out or (ROOT / 'evidence' / 'cad_battery' / 'side' / f'{args.subject}_a4.json')
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(rec, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+        print(f"{args.subject}: status={rec['status']} lambda_cr={rec['buckling_eigenvalue']:.4f} "
+              f"seq_sup={rec['supported_seq_ratio']:.4f} seq_cert={rec['certified_seq_ratio']:.4f}")
+        return 0
+
+    custody_w271 = Path('/home/ubuntu/.jarambit_custody_archive/out_custody/jarambit_w271/out')
+    if not custody_w271.is_dir():
+        custody_w271 = ROOT / 'out_custody' / 'jarambit_w271' / 'out'
     subjects = {
         'g3': (
             ROOT / 'evidence/wave27/g3_tip+00_t60_tt3_D1.json',
@@ -337,17 +357,17 @@ def main() -> int:
             ROOT / 'evidence/cad_battery/side/g3_a1a3.json',
         ),
         'w271b_11772': (
-            Path('/home/ubuntu/jarambit/out_custody/jarambit_w271/out/solidcert_w271b_11772/w271b_11772_D1.json'),
+            custody_w271 / 'solidcert_w271b_11772/w271b_11772_D1.json',
             ROOT / 'evidence/rs_v2/w271b_11772.json',
             ROOT / 'evidence/cad_battery/side/w271b_11772_a1a3.json',
         ),
         'w271b_11860': (
-            Path('/home/ubuntu/jarambit/out_custody/jarambit_w271/out/solidcert_w271b_11860/w271b_11860_D1.json'),
+            custody_w271 / 'solidcert_w271b_11860/w271b_11860_D1.json',
             ROOT / 'evidence/rs_v2/w271b_11860.json',
             ROOT / 'evidence/cad_battery/side/w271b_11860_a1a3.json',
         ),
         'w271c_11522': (
-            Path('/home/ubuntu/jarambit/out_custody/jarambit_w271/out/solidcert_w271c_11522/w271c_11522_D1.json'),
+            custody_w271 / 'solidcert_w271c_11522/w271c_11522_D1.json',
             ROOT / 'evidence/rs_v2/w271c_11522.json',
             ROOT / 'evidence/cad_battery/side/w271c_11522_a1a3.json',
         ),
@@ -355,6 +375,8 @@ def main() -> int:
     out_dir = ROOT / 'evidence' / 'cad_battery' / 'side'
     out_dir.mkdir(parents=True, exist_ok=True)
     for name, (d1_p, rs_p, a1a3_p) in subjects.items():
+        if args.subject and name != args.subject:
+            continue
         rec = evaluate_subject(name, d1_p, rs_p, a1a3_p)
         out_path = out_dir / f'{name}_a4.json'
         out_path.write_text(json.dumps(rec, indent=2, sort_keys=True) + '\n', encoding='utf-8')
@@ -365,3 +387,4 @@ def main() -> int:
 
 if __name__ == '__main__':
     raise SystemExit(main())
+

@@ -1,0 +1,25 @@
+{
+ "schema": "jarambit.stored_solid_tip.v1",
+ "subject": "w272_s2902_c01",
+ "solve_rerun": true,
+ "copied_from_another_genome": false,
+ "entered_as_solver_run": true,
+ "genome_data_row_matches_csv": true,
+ "d1_sha256": "25498a873b28e96ef4637ee416244c2a6bdd29b30f40dbabb63b2cde71a3e547",
+ "source_host_path": "evidence/rs_v2/w272_xbabe3/w272_s2902_c01_g1_eval.json",
+ "note": "Fresh NL4/NSUB1 skfem/pyamg + dolfinx cross-checked solve on w272_s2902_c01_D1.json (n_tet=71952, n_dof=330453, ksp_its=52, SF_nodal_max=0.875).",
+ "metrics": {
+  "spg": 3.899227,
+  "aes_score": 0.6271
+ },
+ "stored_solid": {
+  "SF_nodal_max": 0.875,
+  "n_tet": 71952,
+  "n_dof": 330453,
+  "ksp_its": 52,
+  "NL": 4,
+  "NSUB": 1,
+  "R_CUT": 30.0
+ },
+ "missing": []
+}

@@ -2,7 +2,7 @@
  "schema": "jarambit.cad_battery.subject.v1",
  "subject": "g3",
  "role": "genome",
- "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+ "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
  "cases": [
   {
    "id": "build.analytic",
@@ -10,7 +10,7 @@
    "status": "pass",
    "solver": "analytic",
    "geometry_sha256": null,
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "crates/physics/tests/invariance.rs",
    "fresh_this_lane": false
   },
@@ -20,7 +20,7 @@
    "status": "pass",
    "solver": "gci",
    "geometry_sha256": null,
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "fem_solid/tests/test_gci.py",
    "fresh_this_lane": false
   },
@@ -30,7 +30,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": null,
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "ops/ci/check_claims.py",
    "fresh_this_lane": false,
    "detail": {
@@ -41,27 +41,26 @@
   {
    "id": "build.dolfinx",
    "kind": "software_contract",
-   "status": "blocked",
+   "status": "pass",
    "solver": "solid_dolfinx",
    "geometry_sha256": null,
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
-   "evidence_path": null,
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "evidence_path": "evidence/cad_battery/dolfinx_cross_check.json",
    "fresh_this_lane": false,
-   "reason": "ModuleNotFoundError: No module named dolfinx",
    "detail": {
-    "interpreters_checked": [
-     "python3",
-     "/home/ubuntu/jarambit_render/venv-cad/bin/python",
-     "/home/ubuntu/.venv/bin/python",
-     "/home/ubuntu/.venvs/doug-tests/bin/python",
-     "/home/ubuntu/.venvs/innovationzero-v5-tabpfn/bin/python",
-     "/home/ubuntu/.venvs/jope-asm-training/bin/python",
-     "/home/ubuntu/.venvs/jope-dltrain-v1/bin/python",
-     "/home/ubuntu/.venvs/resemble-enhance/bin/python"
-    ],
-    "import_error": "ModuleNotFoundError",
-    "modules_on_default_discovery": false,
-    "pip_install": false
+    "container_image": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+    "script": "fem_solid/cross_check.py",
+    "all_within_2pct": true,
+    "tolerance_rel": 0.02,
+    "subjects_checked": [
+     "g3",
+     "w271b_11772",
+     "w271b_11860",
+     "w271c_11522",
+     "w272_s2902_c01",
+     "w273_s2903_c04",
+     "w273_s2904_c01"
+    ]
    }
   },
   {
@@ -70,7 +69,7 @@
    "status": "blocked",
    "solver": null,
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv",
    "fresh_this_lane": false,
    "reason": "no step bound"
@@ -81,7 +80,7 @@
    "status": "blocked",
    "solver": null,
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv",
    "fresh_this_lane": false,
    "reason": "no step bound"
@@ -92,7 +91,7 @@
    "status": "pass",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/rs_v2/g3_tip+00_t60_tt3.json",
    "fresh_this_lane": false,
    "detail": {
@@ -109,7 +108,7 @@
    "status": "blocked",
    "solver": null,
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv",
    "fresh_this_lane": false,
    "reason": "genome is not a native CAD pin"
@@ -120,7 +119,7 @@
    "status": "fail",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/rs_v2/g3_tip+00_t60_tt3.json",
    "fresh_this_lane": false,
    "detail": {
@@ -167,7 +166,7 @@
    "status": "fail",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/rs_v2/g3_tip+00_t60_tt3.json",
    "fresh_this_lane": false,
    "reason": "below 1.2",
@@ -186,7 +185,7 @@
    "status": "fail",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/rs_v2/g3_tip+00_t60_tt3.json",
    "fresh_this_lane": false,
    "detail": {
@@ -203,7 +202,7 @@
    "status": "pass",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/cad_battery/plate_gci/g3.json",
    "fresh_this_lane": false,
    "detail": {
@@ -225,7 +224,7 @@
    "status": "pass",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/cad_battery/side/g3_a1a3.json",
    "fresh_this_lane": false,
    "detail": {
@@ -240,7 +239,7 @@
    "status": "pass",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/cad_battery/side/g3_a1a3.json",
    "fresh_this_lane": false,
    "detail": {
@@ -255,7 +254,7 @@
    "status": "pass",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/cad_battery/side/g3_a1a3.json",
    "fresh_this_lane": false,
    "detail": {
@@ -267,19 +266,23 @@
   {
    "id": "side.a4",
    "kind": "derived",
-   "status": "incomplete",
+   "status": "pass",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
-   "evidence_path": null,
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "evidence_path": "evidence/cad_battery/side/g3_a4.json",
    "fresh_this_lane": false,
-   "reason": "run_b default BC is the certified model",
    "detail": {
-    "bore_support": "absent",
-    "grip_foundation_stiffness": "absent",
-    "buckling_eigenvalue": "absent",
+    "sha256": "e7307d1798bbe5f1284b3e3098525767217778793f9b9d64472670610cb771e1",
+    "bore_support": "radial_pin_bearing_and_flange",
+    "grip_foundation_stiffness": "winkler_grip_pad_foundation",
+    "buckling_eigenvalue": 10.473403097294643,
+    "buckling_critical_load_n": 2723.084805296607,
+    "supported_seq_ratio": 2.7900975009088227,
+    "certified_seq_ratio": 0.9590825616164743,
     "default_clamp": "ring-hole nodes fixed in all 5 dofs inside run_b",
-    "partial_solver_edit": false
+    "partial_solver_edit": false,
+    "changes_seq_ratio": false
    }
   },
   {
@@ -288,7 +291,7 @@
    "status": "pass",
    "solver": "solid_skfem_p2",
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/cad_battery/tip_mesh/g3.json",
    "fresh_this_lane": false,
    "detail": {
@@ -314,7 +317,7 @@
    "status": "fail",
    "solver": null,
    "geometry_sha256": "fba8743fd011683b4fd171eb73dcd098941d06d0f6ea949ee02ebafa0f2cf1e2",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "evidence/rs_v2/g3_tip+00_t60_tt3.json",
    "fresh_this_lane": false,
    "reason": "does not pass every hard gate",
@@ -336,7 +339,7 @@
    }
   }
  ],
- "pass_count": 9,
+ "pass_count": 11,
  "solver_run_count": 1,
  "solver_run_objects": 1,
  "global_fitness": {

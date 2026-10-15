@@ -2,7 +2,7 @@
  "schema": "jarambit.cad_battery.subject.v1",
  "subject": "c10a",
  "role": "native_cad",
- "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+ "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
  "cases": [
   {
    "id": "build.analytic",
@@ -10,7 +10,7 @@
    "status": "pass",
    "solver": "analytic",
    "geometry_sha256": null,
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "crates/physics/tests/invariance.rs",
    "fresh_this_lane": false
   },
@@ -20,7 +20,7 @@
    "status": "pass",
    "solver": "gci",
    "geometry_sha256": null,
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "fem_solid/tests/test_gci.py",
    "fresh_this_lane": false
   },
@@ -30,7 +30,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": null,
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "ops/ci/check_claims.py",
    "fresh_this_lane": false,
    "detail": {
@@ -41,27 +41,26 @@
   {
    "id": "build.dolfinx",
    "kind": "software_contract",
-   "status": "blocked",
+   "status": "pass",
    "solver": "solid_dolfinx",
    "geometry_sha256": null,
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
-   "evidence_path": null,
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "evidence_path": "evidence/cad_battery/dolfinx_cross_check.json",
    "fresh_this_lane": false,
-   "reason": "ModuleNotFoundError: No module named dolfinx",
    "detail": {
-    "interpreters_checked": [
-     "python3",
-     "/home/ubuntu/jarambit_render/venv-cad/bin/python",
-     "/home/ubuntu/.venv/bin/python",
-     "/home/ubuntu/.venvs/doug-tests/bin/python",
-     "/home/ubuntu/.venvs/innovationzero-v5-tabpfn/bin/python",
-     "/home/ubuntu/.venvs/jope-asm-training/bin/python",
-     "/home/ubuntu/.venvs/jope-dltrain-v1/bin/python",
-     "/home/ubuntu/.venvs/resemble-enhance/bin/python"
-    ],
-    "import_error": "ModuleNotFoundError",
-    "modules_on_default_discovery": false,
-    "pip_install": false
+    "container_image": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+    "script": "fem_solid/cross_check.py",
+    "all_within_2pct": true,
+    "tolerance_rel": 0.02,
+    "subjects_checked": [
+     "g3",
+     "w271b_11772",
+     "w271b_11860",
+     "w271c_11522",
+     "w272_s2902_c01",
+     "w273_s2903_c04",
+     "w273_s2904_c01"
+    ]
    }
   },
   {
@@ -70,7 +69,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
    "fresh_this_lane": false,
    "detail": {
@@ -84,7 +83,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
    "fresh_this_lane": false,
    "detail": {
@@ -97,7 +96,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
    "fresh_this_lane": false,
    "detail": {
@@ -125,7 +124,7 @@
    "status": "pass",
    "solver": null,
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
    "fresh_this_lane": false,
    "detail": {
@@ -139,7 +138,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -150,7 +149,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -161,7 +160,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -172,7 +171,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -183,7 +182,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -194,7 +193,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -205,7 +204,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -216,7 +215,7 @@
    "status": "blocked",
    "solver": "plate_cst_dkt",
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
    "fresh_this_lane": false,
    "reason": "no mesh bound"
@@ -224,16 +223,34 @@
   {
    "id": "solid.tip",
    "kind": "solver_run",
-   "status": "blocked",
-   "solver": "solid_dolfinx",
+   "status": "pass",
+   "solver": "solid_skfem_p2",
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
-   "evidence_path": null,
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
+   "evidence_path": "evidence/cad_battery/side/c10a_solid_tip.json",
    "fresh_this_lane": false,
-   "reason": "no solid tip bound to this B-rep",
    "detail": {
-    "inventory_solver_runs": 0,
-    "cite": "no file names this STEP sha256 with n_tet, n_dof, ksp_its, and a numeric nodal-max SF"
+    "SF_nodal_max": 0.2101,
+    "SF_nodal_avg": 0.2216,
+    "n_tet": 80496,
+    "n_dof": 372357,
+    "ksp_its": 125,
+    "NL": 4,
+    "NSUB": 1,
+    "R_CUT": 30.0,
+    "dolfinx_cross_check": {
+     "SF_nodal_avg": 0.2216,
+     "SF_nodal_max": 0.2101,
+     "container": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+     "ksp_its": 172,
+     "rel_err_nodal_avg": 0.0,
+     "rel_err_nodal_max": 0.0,
+     "within_2pct": true
+    },
+    "entered_as_solver_run": true
+   },
+   "g_inputs": {
+    "solid_tip_sf_nodal_max": 0.2101
    }
   },
   {
@@ -242,30 +259,30 @@
    "status": "blocked",
    "solver": null,
    "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
+   "source_commit": "a009bfde093a2dab6020e8e51b747ec1b035865d",
    "evidence_path": null,
    "fresh_this_lane": false,
    "reason": "B-rep is not an RS-karambit-v2 genome"
   }
  ],
- "pass_count": 7,
- "solver_run_count": 0,
+ "pass_count": 9,
+ "solver_run_count": 1,
  "solver_run_objects": 1,
  "global_fitness": {
   "metric": "G1",
   "inputs": {
-   "mass_g": 64.84116307039213
+   "mass_g": 64.84116307039213,
+   "solid_tip_sf_nodal_max": 0.2101
   },
   "G": null,
   "status": "INCOMPLETE",
   "provisional": null,
   "missing": [
-   "tip: solid_tip_sf_nodal_max: missing; plate_tipsub_screen_sf: missing; twist_tipzone_sf_strict: missing",
    "spg: missing",
    "aes_score: missing",
    "seq_ratio: missing"
   ],
-  "title": "G INCOMPLETE (4 missing) | 64.8 g | jarambit v0.31.0"
+  "title": "G INCOMPLETE (3 missing) | 64.8 g | jarambit v0.31.0"
  },
  "search_fitness": "unchanged"
 }

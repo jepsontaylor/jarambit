@@ -1,0 +1,78 @@
+{
+  "G1": 0.760246,
+  "G1_exact": 0.7602462083333332,
+  "candidate": "w273_s2904_c01",
+  "dolfinx_cross_check": {
+    "SF_nodal_avg": 0.9155,
+    "SF_nodal_max": 0.8746,
+    "container": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+    "ksp_its": 84,
+    "rel_err_nodal_avg": 0.000546,
+    "rel_err_nodal_max": 0.000457,
+    "within_2pct": true
+  },
+  "genome_csv": "evidence/rs_v2/w273_xbabe3/s2904/wave273_xbabe3_s2904_c01_fit_genome.csv",
+  "genome_id": 3637,
+  "inputs": {
+    "aes_score": 0.6271,
+    "mass_g": 78.585,
+    "seq_ratio": 1.001,
+    "solid_tip_sf_nodal_max": 0.875,
+    "spg": 3.94049
+  },
+  "schema": "jarambit.rs_v2.w273_g1_eval.v1",
+  "skfem_solid": {
+    "NL": 4,
+    "NSUB": 1,
+    "PATCH_mm": 2.0,
+    "R_CUT": 30.0,
+    "SF_solid_elem_mean": 1.044,
+    "SF_solid_nodal_avg": 0.916,
+    "SF_solid_nodal_max": 0.875,
+    "elem_mean_peak": {
+      "MPa": 698.9,
+      "at": [
+        188.21,
+        -48.92,
+        1.08
+      ]
+    },
+    "ksp_its": 52,
+    "n_dof": 330453,
+    "n_tet": 71952,
+    "nodal_avg_peak": {
+      "MPa": 797.1,
+      "at": [
+        188.06,
+        -48.89,
+        1.27
+      ],
+      "dist": 4.05
+    },
+    "nodal_max_peak": {
+      "MPa": 834.3,
+      "at": [
+        188.06,
+        -48.89,
+        1.27
+      ],
+      "dist": 4.05
+    },
+    "rel_res": 6.4e-11,
+    "twist_rot_check": null,
+    "wall_s": 430.4
+  },
+  "terms": {
+    "aes": 0.6271,
+    "mass_pen": 0.15849999999999936,
+    "metric_version": "G1",
+    "missing": [],
+    "provisional": false,
+    "seq_gap": 0.1658333333333334,
+    "spg_n": 0.9851225,
+    "status": "COMPLETE",
+    "tip": 0.875,
+    "tip_missing": false,
+    "tip_source": "solid_tip_sf_nodal_max"
+  }
+}

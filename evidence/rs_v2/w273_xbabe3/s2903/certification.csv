@@ -1,0 +1,13 @@
+kind,id,gen,mass_g,t,search_lat_rob,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,twist_sf_1p82_joint3d,floors_ok_cert,spg_cert,aes,novelty,relief_frac,n_win,n_perf,strict_lat_rob_0p0625,strict_ok,seq_ratio_cert,seq_case,seq_ok,twist_tip_sf_default_hard,twist_body_sf,twist_tipzone_sf_strict,t_joint,cert_pass_all,twist_floor_ok_body_and_tipsub,mass_band_74_77,blade_min_in,promote_eligible_pending_aesthetic_signoff
+fit,3356,18,79.27,5.9,261.5,307.0,13950.3,1.705,1.181,9.300,0.696,true,3.8725,0.6271,0.0033,0.0573,0,0,307.0,true,1.009,lateral,true,0.696,2.449,0.742,5.900,true,false,false,3.448,false
+fit,3522,19,79.27,5.9,261.5,307.0,13950.3,1.705,1.181,9.300,0.696,true,3.8725,0.6271,0.0019,0.0573,0,0,307.0,true,1.009,lateral,true,0.696,2.449,0.742,5.900,true,false,false,3.448,false
+fit,2971,16,79.30,5.9,261.5,307.0,13950.3,1.705,1.181,9.300,0.696,true,3.8711,0.6271,0.0011,0.0570,0,0,307.0,true,1.009,lateral,true,0.696,2.449,0.742,5.900,true,false,false,3.448,false
+fit,3304,18,79.28,5.9,261.0,306.4,14017.1,1.702,1.178,9.345,0.696,true,3.8642,0.6271,0.0152,0.0571,0,0,306.4,true,1.029,lateral,true,0.696,2.440,0.741,5.900,true,false,false,3.448,false
+fit,1149,6,79.31,5.9,261.5,307.0,13950.3,1.705,1.181,9.300,0.696,true,3.8705,0.6271,0.0073,0.0569,0,0,307.0,true,1.009,lateral,true,0.696,2.449,0.742,5.900,true,false,false,3.448,false
+fit,2283,12,79.31,5.9,261.5,307.0,13950.3,1.705,1.181,9.300,0.696,true,3.8705,0.6271,0.0067,0.0569,0,0,307.0,true,1.009,lateral,true,0.696,2.449,0.742,5.900,true,false,false,3.448,false
+fit,2513,13,79.31,5.9,261.5,307.0,13950.3,1.705,1.181,9.300,0.696,true,3.8705,0.6271,0.0063,0.0569,0,0,307.0,true,1.009,lateral,true,0.696,2.449,0.742,5.900,true,false,false,3.448,false
+fit,3066,16,79.30,5.9,261.5,307.0,13950.3,1.705,1.181,9.300,0.696,true,3.8709,0.6271,0.0008,0.0570,0,0,307.0,true,1.009,lateral,true,0.696,2.449,0.742,5.900,true,false,false,3.448,false
+fit,2611,14,79.31,5.9,261.5,307.0,13950.3,1.705,1.181,9.300,0.696,true,3.8705,0.6271,0.0052,0.0569,0,0,307.0,true,1.009,lateral,true,0.696,2.449,0.742,5.900,true,false,false,3.448,false
+fit,3092,17,79.31,5.9,261.5,307.0,13950.3,1.705,1.181,9.300,0.696,true,3.8705,0.6271,0.0010,0.0569,0,0,307.0,true,1.009,lateral,true,0.696,2.449,0.742,5.900,true,false,false,3.448,false
+fit,3159,17,79.31,5.9,261.5,307.0,13950.3,1.705,1.181,9.300,0.696,true,3.8705,0.6271,0.0010,0.0569,0,0,307.0,true,1.009,lateral,true,0.696,2.449,0.742,5.900,true,false,false,3.448,false
+fit,3240,17,79.31,5.9,261.5,307.0,13950.3,1.705,1.181,9.300,0.696,true,3.8705,0.6271,0.0010,0.0569,0,0,307.0,true,1.009,lateral,true,0.696,2.449,0.742,5.900,true,false,false,3.448,false

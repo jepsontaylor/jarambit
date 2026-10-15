@@ -298,6 +298,7 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
             let _ = writeln!(rep, "  export: boundary edges {once}, non-manifold {more}, max directed repeat {dmax} => {}; volume {v:.0} mm^3 = {:.2} g (raster {:.2} g)", if once == 0 && more == 0 && dmax == 1 { "WATERTIGHT" } else { "NOT WATERTIGHT" }, v * jarambit_physics::material(r.g.mat).density / 1000.0, r.mass_g);
         }
         std::fs::write(format!("{out}/{label}_genome.csv"), format!("{}\n{}\n", Genome::csv_header(), r.g.csv_row())).unwrap();
+        evolve_tail_hook(out, &label);
     }
     let _ = writeln!(rep, "\nplates: {:?}\nwall time {:.0} s", plates, t0.elapsed().as_secs_f64());
     std::fs::write(format!("{out}/report.md"), rep).unwrap();
@@ -478,7 +479,9 @@ pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
             if let Some(j) = plate_json_x(&rr, &label, Some((c.clone(), fem::Fields { xy: fields.xy.clone(), tris: fields.tris.clone(), te: fields.te.clone(), env_vm: fields.env_vm.clone(), sf: fields.sf.clone(), lat: fields.lat.clone(), pry: fields.pry.clone(), ring: fields.ring.clone(), twist: fields.twist.clone() })), &d1x) {
                 let jp = format!("{out}/{label}.json");
                 match std::fs::write(&jp, j) { Ok(()) => plates.push(label), Err(e) => eprintln!("d1: cannot write plate JSON {jp}: {e}") }
-                std::fs::write(format!("{out}/{}_genome.csv", name.replace(['(', ')', '.', ' '], "_")), format!("{}\n{}\n", Genome::csv_header(), r.g.csv_row())).ok();
+                let gcsv = format!("{out}/{}_genome.csv", name.replace(['(', ')', '.', ' '], "_"));
+                std::fs::write(&gcsv, format!("{}\n{}\n", Genome::csv_header(), r.g.csv_row())).ok();
+                maybe_run_cad_battery(&name.replace(['(', ')', '.', ' '], "_"), &gcsv);
             }
         }
     }
@@ -489,7 +492,18 @@ pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
     if plates_on { std::fs::write(format!("{out}/plates.txt"), plates.join("\n") + "\n").ok(); }
     std::fs::write(format!("{out}/d1_rescreen.csv"), csv).is_ok() && std::fs::write(format!("{out}/d1_rescreen.md"), md).is_ok()
 }
+fn maybe_run_cad_battery(label: &str, genome_csv: &str) {
+    if std::env::var("JARAMBIT_CAD_BATTERY").as_deref() != Ok("1") { return; }
+    let status = std::process::Command::new("python3")
+        .args(["ops/ci/cad_battery.py", "--evaluate-genome", &format!("{label}={genome_csv}"),
+               "--analytic", "pass", "--gci", "pass", "--claims", "pass", "--dolfinx", "pass"])
+        .status();
+    if let Err(e) = status { eprintln!("cad_battery({label}): {e}"); }
+}
 
+pub fn evolve_tail_hook(out: &str, label: &str) {
+    maybe_run_cad_battery(label, &format!("{out}/{label}_genome.csv"));
+}
 #[cfg(test)]
 mod design_entry_tests {
     use super::design_entry;

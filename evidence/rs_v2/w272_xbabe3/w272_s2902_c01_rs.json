@@ -1,0 +1,53 @@
+{
+  "aes_pass": true,
+  "all_hard": false,
+  "fat_sf": 0.8650596508390767,
+  "floors_ok": true,
+  "gates": {
+    "aesthetic_and_geometric": "pass",
+    "fatigue": "fail",
+    "floors_828_joint": "pass",
+    "gate_s_sharp_law": "fail",
+    "gate_s_tip_point_brep": "unverified",
+    "human_max": "fail",
+    "seq_hard": "fail",
+    "solid_tip_sf": "unverified",
+    "strict_hunter_lateral": "pass",
+    "twist_floor_body_and_tipsub_strict": "fail"
+  },
+  "genome": "evidence/rs_v2/w272_xbabe3/s2902/wave272_xbabe3_s2902_c01_fit_genome.csv",
+  "groups": {
+    "fatigue": false,
+    "human_max": false,
+    "screen_plate": false,
+    "seq_hard": false
+  },
+  "hm_ringback_sf": 2.1738345379057935,
+  "hm_spine_sf": 0.42991086996469685,
+  "hm_tip_inplane_record_only": true,
+  "hm_tip_inplane_sf": 0.5406725958827919,
+  "hm_twist_sf": 0.07816312894639287,
+  "label": "w272_s2902_c01",
+  "lat_rob_n": 309.68814409318253,
+  "mass_g": 79.42608648214917,
+  "rejects": [],
+  "requirement_set": "RS-karambit-v2",
+  "ring_band_mm": 5.274549338910207,
+  "ring_bearing_w_mm": 5.193572998046875,
+  "ring_rob_n": 13950.283085533227,
+  "screen": "fail",
+  "seq_ratio": 1.0000086521751033,
+  "solid_tip_note": "bound by evidence/fem_solid/gci/bindings.json: identical genome + design label required (finest mesh SF_nodal_max); absent or mismatched = unverified",
+  "solid_tip_sf": null,
+  "solid_tip_source": null,
+  "strict_lat_rob_0p0625_n": 309.2255083519064,
+  "t_mm": 5.9,
+  "tier": "T2 certification (fem::certify) + strict 0.0625 mm^2 + solid tip evidence",
+  "twist_body_sf": 2.4815572973441533,
+  "twist_tipzone_sf": 0.6957377411711891,
+  "twist_tipzone_sf_strict": 0.7417827851784621,
+  "unverified": [
+    "solid_tip_sf",
+    "gate_s_tip_point_brep"
+  ]
+}

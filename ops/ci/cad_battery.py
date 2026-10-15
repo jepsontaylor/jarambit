@@ -152,6 +152,45 @@ def _shared_build(commit, probes):
     analytic = probes.get('analytic', 'incomplete')
     gci = probes.get('gci', 'incomplete')
     claims = probes.get('claims', 'incomplete')
+    cross_rel = 'evidence/cad_battery/dolfinx_cross_check.json'
+    cross_doc = _load(cross_rel)
+    dolfinx = probes.get('dolfinx')
+    if dolfinx is None:
+        dolfinx = 'pass' if (cross_doc and cross_doc.get('all_within_2pct') is True) else 'blocked'
+    if dolfinx == 'pass' and cross_doc and cross_doc.get('all_within_2pct') is True:
+        dolfinx_case = _case(
+            'build.dolfinx', 'software_contract', 'pass', solver='solid_dolfinx',
+            geometry_sha256=None, source_commit=commit,
+            evidence_path=cross_rel,
+            detail={
+                'container_image': cross_doc.get('container_image'),
+                'script': cross_doc.get('script'),
+                'all_within_2pct': True,
+                'tolerance_rel': cross_doc.get('tolerance_rel'),
+                'subjects_checked': sorted((cross_doc.get('subjects') or {}).keys()),
+            },
+        )
+    else:
+        dolfinx_case = _case(
+            'build.dolfinx', 'software_contract', 'blocked', solver='solid_dolfinx',
+            geometry_sha256=None, source_commit=commit, evidence_path=None,
+            reason='ModuleNotFoundError: No module named dolfinx',
+            detail={
+                'interpreters_checked': [
+                    'python3',
+                    '/home/ubuntu/jarambit_render/venv-cad/bin/python',
+                    '/home/ubuntu/.venv/bin/python',
+                    '/home/ubuntu/.venvs/doug-tests/bin/python',
+                    '/home/ubuntu/.venvs/innovationzero-v5-tabpfn/bin/python',
+                    '/home/ubuntu/.venvs/jope-asm-training/bin/python',
+                    '/home/ubuntu/.venvs/jope-dltrain-v1/bin/python',
+                    '/home/ubuntu/.venvs/resemble-enhance/bin/python',
+                ],
+                'import_error': 'ModuleNotFoundError',
+                'modules_on_default_discovery': False,
+                'pip_install': False,
+            },
+        )
     rows = [
         _case('build.analytic', 'software_contract', analytic, solver='analytic',
               geometry_sha256=None, source_commit=commit,
@@ -166,24 +205,7 @@ def _shared_build(commit, probes):
               evidence_path='ops/ci/check_claims.py',
               reason=None if claims == 'pass' else 'not executed in this record',
               detail={'expected_unaided_exit': 2, 'reason': 'independent_caller_admission_unavailable'} if claims == 'pass' else None),
-        _case('build.dolfinx', 'software_contract', 'blocked', solver='solid_dolfinx',
-              geometry_sha256=None, source_commit=commit, evidence_path=None,
-              reason='ModuleNotFoundError: No module named dolfinx',
-              detail={
-                  'interpreters_checked': [
-                      'python3',
-                      '/home/ubuntu/jarambit_render/venv-cad/bin/python',
-                      '/home/ubuntu/.venv/bin/python',
-                      '/home/ubuntu/.venvs/doug-tests/bin/python',
-                      '/home/ubuntu/.venvs/innovationzero-v5-tabpfn/bin/python',
-                      '/home/ubuntu/.venvs/jope-asm-training/bin/python',
-                      '/home/ubuntu/.venvs/jope-dltrain-v1/bin/python',
-                      '/home/ubuntu/.venvs/resemble-enhance/bin/python',
-                  ],
-                  'import_error': 'ModuleNotFoundError',
-                  'modules_on_default_discovery': False,
-                  'pip_install': False,
-              }),
+        dolfinx_case,
     ]
     return {row['id']: row for row in rows}
 
@@ -367,17 +389,40 @@ def _side_cases(spec, commit, sha):
             rows[case_id] = _case(case_id, 'derived', 'incomplete', solver='plate_cst_dkt',
                                   geometry_sha256=sha, source_commit=commit, evidence_path=None,
                                   reason='not inherited from another subject')
-    rows['side.a4'] = _case(
-        'side.a4', 'derived', 'incomplete', solver='plate_cst_dkt', geometry_sha256=sha,
-        source_commit=commit, evidence_path=None,
-        reason='run_b default BC is the certified model',
-        detail={
-            'bore_support': 'absent',
-            'grip_foundation_stiffness': 'absent',
-            'buckling_eigenvalue': 'absent',
-            'default_clamp': 'ring-hole nodes fixed in all 5 dofs inside run_b',
-            'partial_solver_edit': False,
-        })
+    a4_rel = spec.get('side_a4')
+    a4_doc = _load(a4_rel) if a4_rel else None
+    if (a4_doc and a4_doc.get('schema') == 'jarambit.side_report.a4.v1'
+            and a4_doc.get('genome_sha256') == sha
+            and a4_doc.get('status') == 'pass'
+            and a4_doc.get('partial_solver_edit') is False
+            and a4_doc.get('changes_seq_ratio') is False):
+        rows['side.a4'] = _case(
+            'side.a4', 'derived', 'pass', solver='plate_cst_dkt', geometry_sha256=sha,
+            source_commit=commit, evidence_path=a4_rel,
+            detail={
+                'sha256': _sha256(ROOT / a4_rel),
+                'bore_support': (a4_doc.get('bore_support') or {}).get('model'),
+                'grip_foundation_stiffness': (a4_doc.get('grip_foundation_stiffness') or {}).get('model'),
+                'buckling_eigenvalue': a4_doc.get('buckling_eigenvalue'),
+                'buckling_critical_load_n': a4_doc.get('buckling_critical_load_n'),
+                'supported_seq_ratio': a4_doc.get('supported_seq_ratio'),
+                'certified_seq_ratio': a4_doc.get('certified_seq_ratio'),
+                'default_clamp': 'ring-hole nodes fixed in all 5 dofs inside run_b',
+                'partial_solver_edit': False,
+                'changes_seq_ratio': False,
+            })
+    else:
+        rows['side.a4'] = _case(
+            'side.a4', 'derived', 'incomplete', solver='plate_cst_dkt', geometry_sha256=sha,
+            source_commit=commit, evidence_path=None,
+            reason='run_b default BC is the certified model',
+            detail={
+                'bore_support': 'absent',
+                'grip_foundation_stiffness': 'absent',
+                'buckling_eigenvalue': 'absent',
+                'default_clamp': 'ring-hole nodes fixed in all 5 dofs inside run_b',
+                'partial_solver_edit': False,
+            })
     return rows
 
 
@@ -488,6 +533,9 @@ def subject_catalog():
     w11772_side, w11772_sha, w11772_seq = _repo_side('w271b_11772')
     w11860_side, w11860_sha, w11860_seq = _repo_side('w271b_11860')
     w11522_side, w11522_sha, w11522_seq = _repo_side('w271c_11522')
+    w272_side, w272_sha, w272_seq = _repo_side('w272_s2902_c01')
+    w273_2904_side, w273_2904_sha, w273_2904_seq = _repo_side('w273_s2904_c01')
+    w273_2903_side, w273_2903_sha, w273_2903_seq = _repo_side('w273_s2903_c04')
     native = {
         'c10a': 'C10a', 'c93': 'C93', 'c92': 'C92', 'c10c': 'C10c',
     }
@@ -498,6 +546,7 @@ def subject_catalog():
             'genome': 'evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv',
             'tip_mesh': 'evidence/cad_battery/tip_mesh/g3.json',
             'plate_gci': 'evidence/cad_battery/plate_gci/g3.json',
+            'side_a4': 'evidence/cad_battery/side/g3_a4.json',
             'side_path': side, 'side_sha': SIDE_SHA if side else None, 'side_seq': side_seq,
         },
         'w271b_11772': {
@@ -505,6 +554,7 @@ def subject_catalog():
             'genome': 'evidence/rs_v2/genomes/w271b_11772_genome.csv',
             'tip_mesh': 'evidence/cad_battery/tip_mesh/w271b_11772.json',
             'plate_gci': 'evidence/cad_battery/plate_gci/w271b_11772.json',
+            'side_a4': 'evidence/cad_battery/side/w271b_11772_a4.json',
             'side_path': w11772_side, 'side_sha': w11772_sha, 'side_seq': w11772_seq,
         },
         'w271b_11860': {
@@ -512,6 +562,7 @@ def subject_catalog():
             'genome': 'evidence/rs_v2/genomes/w271b_11860_genome.csv',
             'tip_mesh': 'evidence/cad_battery/tip_mesh/w271b_11860.json',
             'plate_gci': 'evidence/cad_battery/plate_gci/w271b_11860.json',
+            'side_a4': 'evidence/cad_battery/side/w271b_11860_a4.json',
             'side_path': w11860_side, 'side_sha': w11860_sha, 'side_seq': w11860_seq,
             'd1_searched': _d1_searched('w271b_11860'),
         },
@@ -520,8 +571,33 @@ def subject_catalog():
             'genome': 'evidence/rs_v2/genomes/w271c_11522.csv',
             'tip_mesh': 'evidence/cad_battery/tip_mesh/w271c_11522.json',
             'plate_gci': 'evidence/cad_battery/plate_gci/w271c_11522.json',
+            'side_a4': 'evidence/cad_battery/side/w271c_11522_a4.json',
             'side_path': w11522_side, 'side_sha': w11522_sha, 'side_seq': w11522_seq,
             'd1_searched': _d1_searched('w271c_11522'),
+        },
+        'w272_s2902_c01': {
+            'rs': 'evidence/rs_v2/w272_xbabe3/w272_s2902_c01_rs.json', 'd1': None,
+            'genome': 'evidence/rs_v2/w272_xbabe3/s2902/wave272_xbabe3_s2902_c01_fit_genome.csv',
+            'tip_mesh': 'evidence/cad_battery/tip_mesh/w272_s2902_c01.json',
+            'plate_gci': 'evidence/cad_battery/plate_gci/w272_s2902_c01.json',
+            'side_a4': 'evidence/cad_battery/side/w272_s2902_c01_a4.json',
+            'side_path': w272_side, 'side_sha': w272_sha, 'side_seq': w272_seq,
+        },
+        'w273_s2904_c01': {
+            'rs': 'evidence/rs_v2/w273_xbabe3/w273_s2904_c01_rs.json', 'd1': None,
+            'genome': 'evidence/rs_v2/w273_xbabe3/s2904/wave273_xbabe3_s2904_c01_fit_genome.csv',
+            'tip_mesh': 'evidence/cad_battery/tip_mesh/w273_s2904_c01.json',
+            'plate_gci': 'evidence/cad_battery/plate_gci/w273_s2904_c01.json',
+            'side_a4': 'evidence/cad_battery/side/w273_s2904_c01_a4.json',
+            'side_path': w273_2904_side, 'side_sha': w273_2904_sha, 'side_seq': w273_2904_seq,
+        },
+        'w273_s2903_c04': {
+            'rs': 'evidence/rs_v2/w273_xbabe3/w273_s2903_c04_rs.json', 'd1': None,
+            'genome': 'evidence/rs_v2/w273_xbabe3/s2903/wave273_xbabe3_s2903_c04_fit_genome.csv',
+            'tip_mesh': 'evidence/cad_battery/tip_mesh/w273_s2903_c04.json',
+            'plate_gci': 'evidence/cad_battery/plate_gci/w273_s2903_c04.json',
+            'side_a4': 'evidence/cad_battery/side/w273_s2903_c04_a4.json',
+            'side_path': w273_2903_side, 'side_sha': w273_2903_sha, 'side_seq': w273_2903_seq,
         },
     }
     return native, genomes
@@ -551,10 +627,39 @@ def build_subject(subject_id, commit, probes, *, geometry=None, measure=False):
         if subject_id in LADDER_BLOCKED:
             cases['solid.tip']['detail'] = LADDER_BLOCKED[subject_id]
         elif subject_id == 'c10a':
-            cases['solid.tip']['detail'] = {
-                'inventory_solver_runs': 0,
-                'cite': 'no file names this STEP sha256 with n_tet, n_dof, ksp_its, and a numeric nodal-max SF',
-            }
+            c10a_rel = 'evidence/cad_battery/side/c10a_solid_tip.json'
+            c10a_tip = _load(c10a_rel)
+            missing = [
+                f for f in SOLVER_FIELDS
+                if not c10a_tip or not isinstance(c10a_tip.get(f), (int, float)) or isinstance(c10a_tip.get(f), bool)
+            ]
+            sf = (c10a_tip or {}).get('SF_nodal_max')
+            if (c10a_tip and c10a_tip.get('schema') == 'jarambit.native_step_solid_tip.v1'
+                    and c10a_tip.get('step_sha256') == sha
+                    and not missing and isinstance(sf, (int, float)) and not isinstance(sf, bool)):
+                cases['solid.tip'] = _case(
+                    'solid.tip', 'solver_run', 'pass', solver='solid_skfem_p2',
+                    geometry_sha256=sha, source_commit=commit,
+                    evidence_path=c10a_rel,
+                    detail={
+                        'SF_nodal_max': sf,
+                        'SF_nodal_avg': c10a_tip.get('SF_nodal_avg'),
+                        'n_tet': c10a_tip.get('n_tet'),
+                        'n_dof': c10a_tip.get('n_dof'),
+                        'ksp_its': c10a_tip.get('ksp_its'),
+                        'NL': c10a_tip.get('NL'),
+                        'NSUB': c10a_tip.get('NSUB'),
+                        'R_CUT': c10a_tip.get('R_CUT'),
+                        'dolfinx_cross_check': c10a_tip.get('dolfinx_cross_check'),
+                        'entered_as_solver_run': True,
+                    },
+                    g_inputs={'solid_tip_sf_nodal_max': sf},
+                )
+            else:
+                cases['solid.tip']['detail'] = {
+                    'inventory_solver_runs': 0,
+                    'cite': 'no file names this STEP sha256 with n_tet, n_dof, ksp_its, and a numeric nodal-max SF',
+                }
         role = 'archived_not_on_main' if spec.get('archived') else 'native_cad'
     elif subject_id in genomes:
         spec = genomes[subject_id]
@@ -584,6 +689,96 @@ def build_subject(subject_id, commit, probes, *, geometry=None, measure=False):
         'global_fitness': assemble_g(inputs, version),
         'search_fitness': 'unchanged',
     }
+    return record
+
+
+def evaluate_genome_pipeline(entry: str, commit: str, probes: dict, out_dir: Path) -> dict:
+    """Run the full CAD -> G1 fitness evaluator battery on `<label>=<genome.csv>`."""
+    import os
+    import subprocess
+    import tempfile
+    from fem_solid.gci import Level, MeshRef, Observable, compute_gci
+    from ops.ci.side_a4 import evaluate_subject as eval_side_a4
+
+    if '=' in entry:
+        label, gpath_str = entry.split('=', 1)
+    else:
+        gpath_str = entry
+        label = Path(gpath_str).stem.replace('_genome', '')
+    gpath = Path(gpath_str)
+    if not gpath.is_absolute():
+        gpath = ROOT / gpath
+    grel = str(gpath.relative_to(ROOT)) if gpath.is_relative_to(ROOT) else str(gpath)
+
+    jarambit_bin = ROOT / 'target/release/jarambit'
+    probe_bin = ROOT / 'target/release/examples/plate_gci_probe'
+    side_bin = ROOT / 'target/release/examples/g3_side_report'
+
+    _native, genomes = subject_catalog()
+    rs_rel = genomes.get(label, {}).get('rs', f'evidence/rs_v2/genomes/{label}.json')
+    rs_path = ROOT / rs_rel
+    if not rs_path.is_file() and jarambit_bin.is_file():
+        with tempfile.TemporaryDirectory() as tmp:
+            subprocess.run(
+                [str(jarambit_bin), 'rs-v2-eval', '--genomes', f'{label}={grel}',
+                 '--out', tmp, '--solid-dir', str(ROOT / 'evidence/fem_solid/gci')],
+                cwd=ROOT, check=True,
+            )
+            rs_path.parent.mkdir(parents=True, exist_ok=True)
+            rs_path.write_text((Path(tmp) / f'{label}.json').read_text(encoding='utf-8'), encoding='utf-8')
+
+    a1a3_path = ROOT / 'evidence/cad_battery/side' / f'{label}_a1a3.json'
+    if not a1a3_path.is_file() and side_bin.is_file():
+        subprocess.run([str(side_bin), str(gpath), str(a1a3_path)], cwd=ROOT, check=True)
+
+    gci_path = ROOT / 'evidence/cad_battery/plate_gci' / f'{label}.json'
+    if not gci_path.is_file() and probe_bin.is_file():
+        with tempfile.TemporaryDirectory() as tmp:
+            raw_p = Path(tmp) / 'raw_gci.json'
+            subprocess.run([str(probe_bin), str(gpath), str(raw_p)], cwd=ROOT, check=True)
+            raw_gci = json.loads(raw_p.read_text(encoding='utf-8'))
+            levels_raw = raw_gci['levels_fine_to_coarse']
+            obs_seq = Observable(id='plate_seq_ratio', metric='seq_ratio',
+                                 region='blade_vs_ring_neck', projection='plate_cst_dkt', units='ratio')
+            obs_sf = Observable(id='plate_sf_hunter', metric='sf_hunter',
+                                region='blade_outside_4mm', projection='plate_cst_dkt', units='ratio')
+            l_seq = [Level(mesh=MeshRef(id=f"{label}_area_{lv['max_area_mm2']}", revision='rev1', sha256=lv['mesh_sha256']),
+                           h=float(lv['h_mm']), observable=obs_seq) for lv in levels_raw]
+            l_sf = [Level(mesh=MeshRef(id=f"{label}_area_{lv['max_area_mm2']}", revision='rev1', sha256=lv['mesh_sha256']),
+                          h=float(lv['h_mm']), observable=obs_sf) for lv in levels_raw]
+            seq_res = compute_gci(levels_raw[0]['seq_ratio'], levels_raw[1]['seq_ratio'], levels_raw[2]['seq_ratio'],
+                                  r=2.0, levels=l_seq).to_dict()
+            sf_res = compute_gci(levels_raw[0]['sf_hunter'], levels_raw[1]['sf_hunter'], levels_raw[2]['sf_hunter'],
+                                 r=2.0, levels=l_sf).to_dict()
+            gci_doc = {
+                'schema': 'jarambit.plate_gci.v1',
+                'subject': label,
+                'genome': grel,
+                'genome_sha256': _sha256(gpath),
+                'primary_observable': 'seq_ratio',
+                'refinement_ratio_r': 2.0,
+                'levels_fine_to_coarse': levels_raw,
+                'seq_ratio_gci': seq_res,
+                'sf_hunter_gci': sf_res,
+            }
+            gci_path.parent.mkdir(parents=True, exist_ok=True)
+            gci_path.write_text(json.dumps(gci_doc, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+
+    a4_path = ROOT / 'evidence/cad_battery/side' / f'{label}_a4.json'
+    if not a4_path.is_file() and jarambit_bin.is_file() and rs_path.is_file() and a1a3_path.is_file():
+        with tempfile.TemporaryDirectory() as tmp:
+            subprocess.run(
+                [str(jarambit_bin), 'crescent-d1', '--genomes', f'{label}={gpath}', '--threads', '4', '--out', tmp],
+                cwd=ROOT, env={**os.environ, 'D1_PLATES': '1'}, check=True,
+            )
+            d1_tmp = Path(tmp) / f'{label}_D1.json'
+            a4_rec = eval_side_a4(label, d1_tmp, rs_path, a1a3_path)
+            a4_path.parent.mkdir(parents=True, exist_ok=True)
+            a4_path.write_text(json.dumps(a4_rec, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+
+    record = build_subject(label, commit, probes)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f'{label}.json').write_text(json.dumps(record, indent=1, sort_keys=False) + '\n', encoding='utf-8')
     return record
 
 
@@ -619,11 +814,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--subject')
     parser.add_argument('--all', action='store_true')
+    parser.add_argument('--evaluate-genome', help='Evaluate <label>=<genome.csv> end-to-end through the CAD battery + G1')
     parser.add_argument('--out-dir', type=Path, default=ROOT / 'evidence' / 'cad_battery')
     parser.add_argument('--commit', default=None)
     parser.add_argument('--analytic', choices=('pass', 'fail', 'incomplete'), default='incomplete')
     parser.add_argument('--gci', choices=('pass', 'fail', 'incomplete'), default='incomplete')
     parser.add_argument('--claims', choices=('pass', 'fail', 'incomplete'), default='incomplete')
+    parser.add_argument('--dolfinx', choices=('pass', 'fail', 'incomplete', 'blocked'), default=None)
     parser.add_argument('--measure-native', action='store_true')
     args = parser.parse_args(argv)
     commit = args.commit
@@ -631,10 +828,17 @@ def main(argv=None):
         import subprocess
         commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     probes = {'analytic': args.analytic, 'gci': args.gci, 'claims': args.claims}
+    if args.dolfinx is not None:
+        probes['dolfinx'] = args.dolfinx
+    if args.evaluate_genome:
+        record = evaluate_genome_pipeline(args.evaluate_genome, commit, probes, args.out_dir)
+        print(f"{record['subject']} pass={record['pass_count']} solver_runs={record['solver_run_count']} "
+              f"G={record['global_fitness']['status']} ({record['global_fitness']['G']})")
+        return 0
     native, genomes = subject_catalog()
     wanted = [args.subject] if args.subject else list(native) + list(genomes)
     if not args.subject and not args.all:
-        parser.error('pass --subject or --all')
+        parser.error('pass --subject, --all, or --evaluate-genome')
     args.out_dir.mkdir(parents=True, exist_ok=True)
     written = []
     for subject_id in wanted:
