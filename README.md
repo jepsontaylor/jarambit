@@ -191,14 +191,13 @@ All scientific evaluators, mesh-convergence gates, CAD hygiene checks, and repor
 
 ### Prerequisites
 - **Rust toolchain** (`1.85.1`, pinned in `rust-toolchain.toml` and selected automatically by `rustup`): builds the `jarambit` CLI and all 11 workspace crates (`crates/*`).
-- **Python 3.11+**: runs the scientific assurance suite (`ops/ci/science_suite.py`), the 18-case CAD battery (`ops/ci/cad_battery.py`), live candidate evaluation (`ops/ci/evaluate_cad_candidate.py`), and deterministic documentation/figure generators (`numpy`, `scipy`, `matplotlib`, `Pillow`, `gmsh`, `scikit-fem`, `pytest`, `jsonschema`).
+- **Python 3.11+**: runs the scientific assurance suite (`ops/ci/science_suite.py`), the 18-case CAD battery (`ops/ci/cad_battery.py`), live candidate evaluation (`ops/ci/evaluate_cad_candidate.py`), and deterministic documentation/figure generators (`numpy`, `scipy`, `matplotlib`, `Pillow`, `gmsh`, `scikit-fem`; if installing via `pip` on a PEP 668 Linux host, use a virtual environment: `python3 -m venv .venv && . .venv/bin/activate && pip install numpy scipy matplotlib pillow gmsh scikit-fem`).
 - **Docker** *(optional)*: required only when re-running the containerized FEniCSx `dolfinx` v0.9.0 3D P2 solid-tip cross-check (`fem_solid/cross_check.py`).
 
 ### Build from source
 ```bash
 git clone https://github.com/neverhuman/jarambit.git
 cd jarambit
-python3 -m pip install --quiet numpy scipy matplotlib pillow gmsh scikit-fem pytest jsonschema
 cargo build --release
 cargo test --release
 ```
