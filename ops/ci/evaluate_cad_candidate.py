@@ -231,7 +231,8 @@ def evaluate_candidate(
         shutil.copyfile(genome_csv, canon_genome)
 
     # 1. Run crescent-d1 with strict 0.0625 mm^2 and D1_PLATES=1
-    d1_env = {**os.environ, 'D1_PLATES': '1', 'JARAMBIT_CERT_STRICT': '1'}
+    d1_env = {k: v for k, v in os.environ.items() if k != 'JARAMBIT_CAD_BATTERY'}
+    d1_env.update({'D1_PLATES': '1', 'JARAMBIT_CERT_STRICT': '1', 'JARAMBIT_CAD_BATTERY_DEPTH': '1'})
     subprocess.run(
         [str(jarambit_bin), 'crescent-d1', '--genomes', f'{label}={canon_genome}', '--threads', '8', '--out', str(out_dir)],
         cwd=ROOT, env=d1_env, check=True,

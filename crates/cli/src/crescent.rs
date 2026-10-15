@@ -299,7 +299,9 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
             let _ = writeln!(rep, "  export: boundary edges {once}, non-manifold {more}, max directed repeat {dmax} => {}; volume {v:.0} mm^3 = {:.2} g (raster {:.2} g)", if once == 0 && more == 0 && dmax == 1 { "WATERTIGHT" } else { "NOT WATERTIGHT" }, v * jarambit_physics::material(r.g.mat).density / 1000.0, r.mass_g);
         }
         std::fs::write(format!("{out}/{label}_genome.csv"), format!("{}\n{}\n", Genome::csv_header(), r.g.csv_row())).unwrap();
-        evolve_tail_hook(out, &label);
+        if k == 0 || std::env::var("JARAMBIT_CAD_BATTERY_ALL").as_deref() == Ok("1") {
+            evolve_tail_hook(out, &label);
+        }
     }
     let _ = writeln!(rep, "\nplates: {:?}\nwall time {:.0} s", plates, t0.elapsed().as_secs_f64());
     std::fs::write(format!("{out}/report.md"), rep).unwrap();
@@ -482,7 +484,7 @@ pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
                 match std::fs::write(&jp, j) { Ok(()) => plates.push(label), Err(e) => eprintln!("d1: cannot write plate JSON {jp}: {e}") }
                 let gcsv = format!("{out}/{}_genome.csv", name.replace(['(', ')', '.', ' '], "_"));
                 std::fs::write(&gcsv, format!("{}\n{}\n", Genome::csv_header(), r.g.csv_row())).ok();
-                maybe_run_cad_battery(&name.replace(['(', ')', '.', ' '], "_"), &gcsv);
+                maybe_run_cad_battery(out, &name.replace(['(', ')', '.', ' '], "_"), &gcsv);
             }
         }
     }
@@ -493,26 +495,49 @@ pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
     if plates_on { std::fs::write(format!("{out}/plates.txt"), plates.join("\n") + "\n").ok(); }
     std::fs::write(format!("{out}/d1_rescreen.csv"), csv).is_ok() && std::fs::write(format!("{out}/d1_rescreen.md"), md).is_ok()
 }
-fn maybe_run_cad_battery(label: &str, genome_csv: &str) {
-    if std::env::var("JARAMBIT_CAD_BATTERY").as_deref() != Ok("1") { return; }
-    let status = std::process::Command::new("python3")
+pub fn should_run_cad_battery_from(flag: Option<&str>, depth: Option<&str>) -> bool {
+    flag == Some("1") && depth != Some("1")
+}
+fn cad_battery_command(out: &str, label: &str, genome_csv: &str) -> std::process::Command {
+    let mut cmd = std::process::Command::new("python3");
+    cmd.env_remove("JARAMBIT_CAD_BATTERY")
+        .env("JARAMBIT_CAD_BATTERY_DEPTH", "1")
         .args(["ops/ci/cad_battery.py", "--evaluate-genome", &format!("{label}={genome_csv}"),
-               "--analytic", "pass", "--gci", "pass", "--claims", "pass", "--dolfinx", "pass"])
-        .status();
+               "--out-dir", out,
+               "--analytic", "pass", "--gci", "pass", "--claims", "pass", "--dolfinx", "pass"]);
+    cmd
+}
+fn maybe_run_cad_battery(out: &str, label: &str, genome_csv: &str) {
+    let flag = std::env::var("JARAMBIT_CAD_BATTERY").ok();
+    let depth = std::env::var("JARAMBIT_CAD_BATTERY_DEPTH").ok();
+    if !should_run_cad_battery_from(flag.as_deref(), depth.as_deref()) { return; }
+    let status = cad_battery_command(out, label, genome_csv).status();
     if let Err(e) = status { eprintln!("cad_battery({label}): {e}"); }
 }
 
 pub fn evolve_tail_hook(out: &str, label: &str) {
-    maybe_run_cad_battery(label, &format!("{out}/{label}_genome.csv"));
+    maybe_run_cad_battery(&format!("{out}/cad_battery"), label, &format!("{out}/{label}_genome.csv"));
 }
 #[cfg(test)]
 mod design_entry_tests {
-    use super::design_entry;
+    use super::{cad_battery_command, design_entry, should_run_cad_battery_from};
     #[test]
     fn bare_path_is_named_by_stem() {
         assert_eq!(design_entry("out/x/w271b_11772.csv"), ("w271b_11772".to_string(), "out/x/w271b_11772.csv"));
         assert_eq!(design_entry("out/wave27/g3_tip+00_t60_tt3_genome.csv").0, "g3_tip+00_t60_tt3");
         assert_eq!(design_entry("g3=out/a.csv"), ("g3".to_string(), "out/a.csv"));
         assert_eq!(design_entry("C6_SEED_T5.7").0, "C6_SEED_T5.7");
+    }
+    #[test]
+    fn cad_battery_recursion_guard_clears_env_and_stops_at_depth_one() {
+        assert!(!should_run_cad_battery_from(None, None));
+        assert!(!should_run_cad_battery_from(Some("0"), None));
+        assert!(should_run_cad_battery_from(Some("1"), None));
+        assert!(should_run_cad_battery_from(Some("1"), Some("0")));
+        assert!(!should_run_cad_battery_from(Some("1"), Some("1")));
+        let cmd = cad_battery_command("/tmp/jb_out", "lbl", "/tmp/jb_out/lbl_genome.csv");
+        let envs: Vec<_> = cmd.get_envs().collect();
+        assert!(envs.contains(&(std::ffi::OsStr::new("JARAMBIT_CAD_BATTERY"), None)));
+        assert!(envs.contains(&(std::ffi::OsStr::new("JARAMBIT_CAD_BATTERY_DEPTH"), Some(std::ffi::OsStr::new("1")))));
     }
 }

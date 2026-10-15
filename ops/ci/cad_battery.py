@@ -83,7 +83,10 @@ def _sha256(path):
 
 
 def _load(rel):
-    path = ROOT / rel
+    if not rel:
+        return None
+    p = Path(rel)
+    path = p if p.is_absolute() else ROOT / p
     if not path.is_file():
         return None
     return json.loads(path.read_text(encoding='utf-8'))
@@ -629,7 +632,15 @@ def subject_catalog():
     return native, genomes
 
 
-def build_subject(subject_id, commit, probes, *, geometry=None, measure=False):
+def _child_env(**extra) -> dict:
+    import os
+    env = {k: v for k, v in os.environ.items() if k != 'JARAMBIT_CAD_BATTERY'}
+    env['JARAMBIT_CAD_BATTERY_DEPTH'] = '1'
+    env.update(extra)
+    return env
+
+
+def build_subject(subject_id, commit, probes, *, geometry=None, measure=False, custom_spec=None):
     from ops.science_tests.native_cad.pins import SUBJECTS
     native, genomes = subject_catalog()
     version = (ROOT / 'docs' / 'VERSION').read_text(encoding='utf-8').strip()
@@ -687,13 +698,14 @@ def build_subject(subject_id, commit, probes, *, geometry=None, measure=False):
                     'cite': 'no file names this STEP sha256 with n_tet, n_dof, ksp_its, and a numeric nodal-max SF',
                 }
         role = 'archived_not_on_main' if spec.get('archived') else 'native_cad'
-    elif subject_id in genomes:
-        spec = genomes[subject_id]
+    elif subject_id in genomes or custom_spec is not None:
+        spec = custom_spec if custom_spec is not None else genomes[subject_id]
         rs = _load(spec['rs'])
         if rs is None:
             raise FileNotFoundError(spec['rs'])
         d1 = _load(spec['d1']) if spec.get('d1') else None
-        sha = _sha256(ROOT / spec['genome'])
+        g_p = Path(spec['genome'])
+        sha = _sha256(g_p if g_p.is_absolute() else ROOT / g_p)
         cases = dict(shared)
         cases.update(_genome_cases(spec, commit, rs, d1, sha))
         role = 'genome'
@@ -720,7 +732,6 @@ def build_subject(subject_id, commit, probes, *, geometry=None, measure=False):
 
 def evaluate_genome_pipeline(entry: str, commit: str, probes: dict, out_dir: Path) -> dict:
     """Run the full CAD -> G1 fitness evaluator battery on `<label>=<genome.csv>`."""
-    import os
     import subprocess
     import tempfile
     from fem_solid.gci import Level, MeshRef, Observable, compute_gci
@@ -741,27 +752,39 @@ def evaluate_genome_pipeline(entry: str, commit: str, probes: dict, out_dir: Pat
     side_bin = ROOT / 'target/release/examples/g3_side_report'
 
     _native, genomes = subject_catalog()
-    rs_rel = genomes.get(label, {}).get('rs', f'evidence/rs_v2/genomes/{label}.json')
-    rs_path = ROOT / rs_rel
+    in_catalog = label in genomes
+    if in_catalog:
+        spec_cat = genomes[label]
+        rs_path = ROOT / spec_cat['rs']
+        a1a3_path = ROOT / (spec_cat.get('side_path') or f'evidence/cad_battery/side/{label}_a1a3.json')
+        gci_path = ROOT / (spec_cat.get('plate_gci') or f'evidence/cad_battery/plate_gci/{label}.json')
+        a4_path = ROOT / (spec_cat.get('side_a4') or f'evidence/cad_battery/side/{label}_a4.json')
+    else:
+        work_dir = out_dir / '_battery_work'
+        work_dir.mkdir(parents=True, exist_ok=True)
+        rs_path = work_dir / f'{label}_rs.json'
+        a1a3_path = work_dir / f'{label}_a1a3.json'
+        gci_path = work_dir / f'{label}_plate_gci.json'
+        a4_path = work_dir / f'{label}_a4.json'
+
     if not rs_path.is_file() and jarambit_bin.is_file():
         with tempfile.TemporaryDirectory() as tmp:
             subprocess.run(
                 [str(jarambit_bin), 'rs-v2-eval', '--genomes', f'{label}={grel}',
                  '--out', tmp, '--solid-dir', str(ROOT / 'evidence/fem_solid/gci')],
-                cwd=ROOT, check=True,
+                cwd=ROOT, env=_child_env(), check=True,
             )
             rs_path.parent.mkdir(parents=True, exist_ok=True)
             rs_path.write_text((Path(tmp) / f'{label}.json').read_text(encoding='utf-8'), encoding='utf-8')
 
-    a1a3_path = ROOT / 'evidence/cad_battery/side' / f'{label}_a1a3.json'
     if not a1a3_path.is_file() and side_bin.is_file():
-        subprocess.run([str(side_bin), str(gpath), str(a1a3_path)], cwd=ROOT, check=True)
+        a1a3_path.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run([str(side_bin), str(gpath), str(a1a3_path)], cwd=ROOT, env=_child_env(), check=True)
 
-    gci_path = ROOT / 'evidence/cad_battery/plate_gci' / f'{label}.json'
     if not gci_path.is_file() and probe_bin.is_file():
         with tempfile.TemporaryDirectory() as tmp:
             raw_p = Path(tmp) / 'raw_gci.json'
-            subprocess.run([str(probe_bin), str(gpath), str(raw_p)], cwd=ROOT, check=True)
+            subprocess.run([str(probe_bin), str(gpath), str(raw_p)], cwd=ROOT, env=_child_env(), check=True)
             raw_gci = json.loads(raw_p.read_text(encoding='utf-8'))
             levels_raw = raw_gci['levels_fine_to_coarse']
             obs_seq = Observable(id='plate_seq_ratio', metric='seq_ratio',
@@ -790,19 +813,47 @@ def evaluate_genome_pipeline(entry: str, commit: str, probes: dict, out_dir: Pat
             gci_path.parent.mkdir(parents=True, exist_ok=True)
             gci_path.write_text(json.dumps(gci_doc, indent=2, sort_keys=True) + '\n', encoding='utf-8')
 
-    a4_path = ROOT / 'evidence/cad_battery/side' / f'{label}_a4.json'
     if not a4_path.is_file() and jarambit_bin.is_file() and rs_path.is_file() and a1a3_path.is_file():
-        with tempfile.TemporaryDirectory() as tmp:
-            subprocess.run(
-                [str(jarambit_bin), 'crescent-d1', '--genomes', f'{label}={gpath}', '--threads', '4', '--out', tmp],
-                cwd=ROOT, env={**os.environ, 'D1_PLATES': '1'}, check=True,
-            )
-            d1_tmp = Path(tmp) / f'{label}_D1.json'
-            a4_rec = eval_side_a4(label, d1_tmp, rs_path, a1a3_path)
+        existing_d1 = None
+        for cand_d1 in (gpath.parent / f'{label}_D1.json', gpath.parent / f'{label}.json'):
+            if cand_d1.is_file():
+                try:
+                    doc = json.loads(cand_d1.read_text(encoding='utf-8'))
+                    if isinstance(doc.get('mesh'), dict) and isinstance(doc.get('metrics'), dict):
+                        existing_d1 = cand_d1
+                        break
+                except Exception:
+                    pass
+        if existing_d1 is not None:
+            a4_rec = eval_side_a4(label, existing_d1, rs_path, a1a3_path)
             a4_path.parent.mkdir(parents=True, exist_ok=True)
             a4_path.write_text(json.dumps(a4_rec, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+        else:
+            with tempfile.TemporaryDirectory() as tmp:
+                subprocess.run(
+                    [str(jarambit_bin), 'crescent-d1', '--genomes', f'{label}={gpath}', '--threads', '4', '--out', tmp],
+                    cwd=ROOT, env=_child_env(D1_PLATES='1'), check=True,
+                )
+                d1_tmp = Path(tmp) / f'{label}_D1.json'
+                a4_rec = eval_side_a4(label, d1_tmp, rs_path, a1a3_path)
+                a4_path.parent.mkdir(parents=True, exist_ok=True)
+                a4_path.write_text(json.dumps(a4_rec, indent=2, sort_keys=True) + '\n', encoding='utf-8')
 
-    record = build_subject(label, commit, probes)
+    custom_spec = None
+    if not in_catalog:
+        side_seq = json.loads(a1a3_path.read_text(encoding='utf-8')).get('seq_ratio_this_mesh') if a1a3_path.is_file() else None
+        custom_spec = {
+            'rs': str(rs_path),
+            'd1': None,
+            'genome': str(gpath),
+            'tip_mesh': None,
+            'plate_gci': str(gci_path) if gci_path.is_file() else None,
+            'side_a4': str(a4_path) if a4_path.is_file() else None,
+            'side_path': str(a1a3_path) if a1a3_path.is_file() else None,
+            'side_sha': _sha256(a1a3_path) if a1a3_path.is_file() else None,
+            'side_seq': side_seq,
+        }
+    record = build_subject(label, commit, probes, custom_spec=custom_spec)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f'{label}.json').write_text(json.dumps(record, indent=1, sort_keys=False) + '\n', encoding='utf-8')
     return record

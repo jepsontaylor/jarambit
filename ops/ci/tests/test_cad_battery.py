@@ -343,4 +343,65 @@ class Records(unittest.TestCase):
             self.assertTrue(manifest.is_file())
             self.assertEqual(verify_figures.check_manifest(str(manifest), str(ROOT)), [])
 
+    def test_jarambit_cad_battery_env_does_not_recurse(self):
+        from pathlib import Path
+        import shutil
+        import tempfile
+        from unittest import mock
+        from ops.ci.cad_battery import _child_env, evaluate_genome_pipeline
+
+        old = os.environ.get('JARAMBIT_CAD_BATTERY')
+        try:
+            os.environ['JARAMBIT_CAD_BATTERY'] = '1'
+            env = _child_env(D1_PLATES='1')
+            self.assertNotIn('JARAMBIT_CAD_BATTERY', env)
+            self.assertEqual(env.get('JARAMBIT_CAD_BATTERY_DEPTH'), '1')
+            self.assertEqual(env.get('D1_PLATES'), '1')
+
+            with tempfile.TemporaryDirectory() as tmp:
+                out_dir = Path(tmp) / 'battery_out'
+                work_dir = out_dir / '_battery_work'
+                work_dir.mkdir(parents=True, exist_ok=True)
+                label = 'norecurse_probe'
+                src_dir = ROOT / 'evidence' / 'rs_v2' / 'w275_ultrarunner'
+                shutil.copyfile(src_dir / 'w275_s2909_c01_rs.json', work_dir / f'{label}_rs.json')
+                shutil.copyfile(src_dir / 'w275_s2909_c01_a1a3.json', work_dir / f'{label}_a1a3.json')
+                shutil.copyfile(src_dir / 'w275_s2909_c01_plate_gci.json', work_dir / f'{label}_plate_gci.json')
+
+                d1_calls = []
+                real_run = subprocess.run
+
+                def spy_run(cmd, *args, **kwargs):
+                    if len(cmd) >= 2 and cmd[1] == 'crescent-d1':
+                        d1_calls.append(dict(kwargs.get('env') or {}))
+                        out_idx = cmd.index('--out') + 1
+                        shutil.copyfile(
+                            src_dir / 'w275_s2909_c01_D1.json',
+                            Path(cmd[out_idx]) / f'{label}_D1.json',
+                        )
+                        return subprocess.CompletedProcess(cmd, 0, '', '')
+                    return real_run(cmd, *args, **kwargs)
+
+                with mock.patch('subprocess.run', side_effect=spy_run):
+                    rec = evaluate_genome_pipeline(
+                        f'{label}={src_dir / "w275_s2909_c01_genome.csv"}',
+                        '0' * 40,
+                        {'analytic': 'pass', 'gci': 'pass', 'claims': 'pass', 'dolfinx': 'pass'},
+                        out_dir,
+                    )
+                self.assertEqual(len(d1_calls), 1)
+                self.assertNotIn('JARAMBIT_CAD_BATTERY', d1_calls[0])
+                self.assertEqual(d1_calls[0].get('JARAMBIT_CAD_BATTERY_DEPTH'), '1')
+                self.assertEqual(rec['subject'], label)
+                self.assertTrue((out_dir / f'{label}.json').is_file())
+        finally:
+            if old is None:
+                os.environ.pop('JARAMBIT_CAD_BATTERY', None)
+            else:
+                os.environ['JARAMBIT_CAD_BATTERY'] = old
+
+
+if __name__ == '__main__':
+    unittest.main()
+
 
