@@ -1,0 +1,38 @@
+{
+  "copied_from_another_genome": false,
+  "d1_path": "evidence/rs_v2/w275_ultrarunner/w275_s2909_c01_D1.json",
+  "d1_sha256": "b25e51f6878688e6d5bea6372cd7deabf1fd66b56a28d4a6c91b8f1127b03587",
+  "dolfinx_cross_check": {
+    "SF_nodal_avg": 1.3828,
+    "SF_nodal_max": 1.2967,
+    "container": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+    "ksp_its": 61,
+    "rel_err_nodal_avg": 0.000145,
+    "rel_err_nodal_max": 0.000231,
+    "within_2pct": true
+  },
+  "entered_as_solver_run": true,
+  "genome_data_row_matches_csv": true,
+  "genome_sha256": "d0defafe6d7eda0265cd3130ea1fbda6d1fc1161461b4092d93c89fab799ee6d",
+  "metrics": {
+    "aes_score": 0.3896,
+    "spg": 3.35601
+  },
+  "schema": "jarambit.stored_solid_tip.v1",
+  "solve_rerun": true,
+  "stored_solid": {
+    "NL": 4,
+    "NSUB": 1,
+    "PATCH_mm": 2.0,
+    "R_CUT": 30.0,
+    "SF_elem_mean": 1.515,
+    "SF_nodal_avg": 1.3828,
+    "SF_nodal_max": 1.2967,
+    "SF_skfem_nodal_avg": 1.383,
+    "SF_skfem_nodal_max": 1.297,
+    "ksp_its": 61,
+    "n_dof": 413613,
+    "n_tet": 90384
+  },
+  "subject": "w275_s2909_c01"
+}

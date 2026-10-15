@@ -180,7 +180,7 @@ pub fn run(p: &Pheno, max_area: f64, keep: bool) -> Option<(Fem, Option<Fields>)
 pub fn search_bias() -> (f64, f64) {
     static B: std::sync::OnceLock<(f64, f64)> = std::sync::OnceLock::new();
     *B.get_or_init(|| {
-        let e = |k: &str, d: f64| std::env::var(k).ok().and_then(|v| v.parse::<f64>().ok()).filter(|x| *x >= 1.0).unwrap_or(d);
+        let e = |k: &str, d: f64| std::env::var(k).ok().and_then(|v| v.parse::<f64>().ok()).filter(|x| *x >= 0.5).unwrap_or(d);
         (e("JARAMBIT_SEARCH_BIAS_LAT", SEARCH_BIAS_LAT), e("JARAMBIT_SEARCH_BIAS_RING", SEARCH_BIAS_RING)) })
 }
 
