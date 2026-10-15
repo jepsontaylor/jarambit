@@ -23,7 +23,7 @@ DESIGN = LABEL[:-3]
 FIG = 'docs/figures/whitepaper'
 EG_FIG = 'docs/figures/engineering_gates'
 BATTERY_SUBJECTS = (
-    'g3', 'w275_s2909_c01', 'w274_s2905_c01', 'w273_s2904_c01', 'w271c_11522', 'w272_s2902_c01',
+    'g3', 'w276_s2913_c01', 'w275_s2909_c01', 'w274_s2905_c01', 'w273_s2904_c01', 'w271c_11522', 'w272_s2902_c01',
     'w273_s2903_c04', 'w271b_11772', 'w271b_11860',
     'c10a', 'c93', 'c92', 'c10c',
 )
@@ -107,7 +107,7 @@ def figs(context=None):
          f'<img src="{EG_FIG}/fig2_cad_battery_matrix_and_gci.png" width="96%" alt="11-subject by 18-evaluator CAD battery matrix, Roache P2 solid-tip GCI convergence, and dolfinx vs skfem cross-solver verification"/>', '',
          f'<img src="{EG_FIG}/fig3_cad_and_fem_gallery.png" width="96%" alt="CAD thickness and von Mises stress gallery across historical g3, W271c, W273, and SWITCHBACK C10a"/>', '',
          f'*Engineering gates & evolutionary verification gallery (`ops/render/engineering_gates_paper_figs.py`, [full paper](docs/ENGINEERING_GATES_AND_EVOLUTION.md)): '
-         f'(1) multi-wave evolutionary progression across W27 → W271b/c → W272 → W273 → W274 → W275 and C9.2–C10c B-rep studies; '
+         f'(1) multi-wave evolutionary progression across W27 → W271b/c → W272 → W273 → W274 → W275 → W276 and C9.2–C10c B-rep studies; '
          f'(2) 18-evaluator CAD battery status matrix, 3-level P2 tetrahedral Roache GCI convergence, and independent `dolfinx` vs `skfem` cross-solver verification; '
          f'(3) real CAD thickness fields $t(x,y)$ and certified DKT+CST von Mises stress fields across evolved genomes and B-rep candidates.*']
     return '\n'.join(L)
@@ -203,8 +203,8 @@ def release(context=None):
     L += ['', f'**{n_all} of {len(glob.glob(os.path.join(ROOT, "evidence/rs_v2/*.json")))} named designs pass every RS-karambit-v2 hard gate.** An unverified gate (no evidence) never counts as met. No design is promoted.', '']
 
     dx_all = js('evidence/cad_battery/dolfinx_cross_check.json')['subjects']
-    L += ['### 13-Subject × 18-Evaluator CAD Battery & Multi-Wave Progression (`evidence/cad_battery/*.json`, `docs/ENGINEERING_GATES_AND_EVOLUTION.md`)', '',
-          'Every candidate in the 13-subject CAD battery is evaluated against all 18 standardized evaluators (`build.analytic`, `build.gci_contracts`, `build.claims`, `build.dolfinx`, `geom.unit`, `geom.one_solid`, `geom.mass`, `geom.pin`, `plate.loads`, `plate.seq`, `plate.l7`, `plate.gci`, `side.a1`–`side.a4`, `solid.tip`, `solid.whole_part`), and the `crescent-evolve` loop enforces an opt-in live CAD battery gate via `JARAMBIT_CAD_BATTERY=1` (`ops/ci/evaluate_cad_candidate.py`). Full methodology and derivations: [docs/ENGINEERING_GATES_AND_EVOLUTION.md](docs/ENGINEERING_GATES_AND_EVOLUTION.md).', '',
+    L += ['### 14-Subject × 18-Evaluator CAD Battery & Multi-Wave Progression (`evidence/cad_battery/*.json`, `docs/ENGINEERING_GATES_AND_EVOLUTION.md`)', '',
+          'Every candidate in the 14-subject CAD battery is evaluated against all 18 standardized evaluators (`build.analytic`, `build.gci_contracts`, `build.claims`, `build.dolfinx`, `geom.unit`, `geom.one_solid`, `geom.mass`, `geom.pin`, `plate.loads`, `plate.seq`, `plate.l7`, `plate.gci`, `side.a1`–`side.a4`, `solid.tip`, `solid.whole_part`), and the `crescent-evolve` loop enforces an opt-in live CAD battery gate via `JARAMBIT_CAD_BATTERY=1` (`ops/ci/evaluate_cad_candidate.py`). Full methodology and derivations: [docs/ENGINEERING_GATES_AND_EVOLUTION.md](docs/ENGINEERING_GATES_AND_EVOLUTION.md).', '',
           '| subject | role | mass (g) | hunter lat (N) / SPG (N/g) | cert `seq_ratio` | Winkler+bore `seq` (`side.a4`) | buckling $P_{\\text{cr}}$ (N) | P2 solid tip SF (`dolfinx` / `skfem`, $\\Delta$) | 18-case tally (`pass` / `fail` / `blocked`) |',
           '|---|---|---|---|---|---|---|---|---|']
     tot_p = tot_f = tot_b = 0
@@ -242,7 +242,7 @@ def release(context=None):
         else:
             tip_str = '*blocked*'
         L.append(f'| `{sid}` | `{b["role"]}` | {mass_str} | {lat_str} | {seq_str} | {a4_seq_str} | {a4_pcr_str} | {tip_str} | `{np_} / {nf_} / {nb_}` |')
-    L += ['', f'**Battery total across {len(BATTERY_SUBJECTS)} subjects × 18 evaluators ({len(BATTERY_SUBJECTS) * 18} cells):** `{tot_p} pass`, `{tot_f} fail`, `{tot_b} blocked`. Every genome subject (`9/9`) clears the `side.a4` Winkler grip-foundation + radial/tangential bore-pin sequence check and linear buckling ($P_{{\\text{{cr}}}} \\gg 260\\text{{ N}}$), and agrees within $\\le 0.45\\%$ between independent `dolfinx` and `skfem` 3D P2 solid-tip solves; `w275_s2909_c01` (`81.77 g`, `G1 = 0.8015`, `W_CAD = +1.5589`) and `w274_s2905_c01` (`84.98 g`, `G1 = 0.7701`, `W_CAD = +1.4634`) clear both certified `seq_ratio >= 1.20` and 3D P2 solid-tip `SF >= 1.0`.', '']
+    L += ['', f'**Battery total across {len(BATTERY_SUBJECTS)} subjects × 18 evaluators ({len(BATTERY_SUBJECTS) * 18} cells):** `{tot_p} pass`, `{tot_f} fail`, `{tot_b} blocked`. Every genome subject (`10/10`) clears the `side.a4` Winkler grip-foundation + radial/tangential bore-pin sequence check and linear buckling ($P_{{\\text{{cr}}}} \\gg 260\\text{{ N}}$), and agrees within $\\le 0.45\\%$ between independent `dolfinx` and `skfem` 3D P2 solid-tip solves; `w276_s2913_c01` (`80.00 g` / `79.995 g`, `G1 = 0.8323`, `W_CAD = +1.6381`), `w275_s2909_c01` (`81.77 g`, `G1 = 0.8015`, `W_CAD = +1.5589`), and `w274_s2905_c01` (`84.98 g`, `G1 = 0.7701`, `W_CAD = +1.4634`) clear both certified `seq_ratio >= 1.20` and 3D P2 solid-tip `SF >= 1.0`.', '']
 
     tcat = js('docs/v1/science/tests/TEST_CASE_CATALOG.json')
     n_groups = tcat['case_group_count']

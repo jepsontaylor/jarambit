@@ -2,12 +2,12 @@
 
 **Jepson Taylor**
 
-**Version 0.32.2 — 2026-10-15** (living document; version from `docs/VERSION`, checked by CI `ops/ci/version_check.py`). Frozen companion: `docs/WHITEPAPER_g3_neckrail.md` (v0.1.0-g3neckrail, branch `release/v0.1.0`). Target: IEEE-style, 6–10 pp; completeness over page count. Wave27 pack landed (tag `v0.27.0`); engineering provisional is **g3_tip+00_t60_tt3** (G1 0.9804, tip×SPG 6.362 @ 84.80 g). Wave26 plates remain a placeholder. **No design is promoted** (g3_neckrail not promoted; 828 MPa screening yield provisional; human aesthetic sign-off pending).
+**Version 0.32.3 — 2026-10-15** (living document; version from `docs/VERSION`, checked by CI `ops/ci/version_check.py`). Frozen companion: `docs/WHITEPAPER_g3_neckrail.md` (v0.1.0-g3neckrail, branch `release/v0.1.0`). Target: IEEE-style, 6–10 pp; completeness over page count. Wave27 pack landed (tag `v0.27.0`); engineering provisional is **g3_tip+00_t60_tt3** (G1 0.9804, tip×SPG 6.362 @ 84.80 g). Wave26 plates remain a placeholder. **No design is promoted** (g3_neckrail not promoted; 828 MPa screening yield provisional; human aesthetic sign-off pending).
 
 **Abstract** — *jarambit* is a Rust-native pipeline that evolves fixed-blade titanium hiking/utility karambits (SWITCHBACK class) under hard manufacturability and safety constraints, verified by a plate FEM screen plus a solid tip submodel, made robust by Monte Carlo over tolerances, temperature (−10…100 °C) and cut media, and ranked across waves by a single GLOBAL metric **G** that combines solid-tip safety factor, strength-per-gram, aesthetics, mass and failure sequence. Hard limits are rejections, never penalties; G never overrides a gate.
 
 <!-- GEN:WP_STATUS:BEGIN -->
-**Honest status (v0.32.2, generated from `evidence/rs_v2/*.json`).** 0 of 4 named designs meet every RS-karambit-v2 hard gate; no design is promoted and this version is a release candidate, not v1.0.0. The v1 gate set (RS-karambit-v2) adds human-maximum loads, seq ≥ 1.2 as a hard gate, fatigue and ring handling to the v1 screen; Table IV-A lists every shortfall.
+**Honest status (v0.32.3, generated from `evidence/rs_v2/*.json`).** 0 of 4 named designs meet every RS-karambit-v2 hard gate; no design is promoted and this version is a release candidate, not v1.0.0. The v1 gate set (RS-karambit-v2) adds human-maximum loads, seq ≥ 1.2 as a hard gate, fatigue and ring handling to the v1 screen; Table IV-A lists every shortfall.
 <!-- GEN:WP_STATUS:END -->
 
 *Index Terms* — evolutionary design, finite element analysis, Monte Carlo robustness, titanium, karambit, NSGA-II, design-for-manufacture.
