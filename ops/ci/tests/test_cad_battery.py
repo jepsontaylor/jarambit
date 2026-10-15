@@ -269,4 +269,21 @@ class Records(unittest.TestCase):
         seeds_lines = (ROOT / 'evidence' / 'rs_v2' / 'w272_xbabe3' / 'w273_seeds.csv').read_text(encoding='utf-8').strip().splitlines()
         self.assertEqual(len(seeds_lines), 17)
 
+    def test_engineering_gates_paper_and_manifest_figures_are_present_and_valid(self):
+        from ops.ci import verify_figures
+        paper = ROOT / 'docs' / 'ENGINEERING_GATES_AND_EVOLUTION.md'
+        self.assertTrue(paper.is_file())
+        text = paper.read_text(encoding='utf-8')
+        for cid in CASE_IDS:
+            self.assertIn(f'`{cid}`', text)
+        for fig_rel in (
+            'docs/figures/engineering_gates/fig1_evolutionary_trajectories.png',
+            'docs/figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png',
+            'docs/figures/engineering_gates/fig3_cad_and_fem_gallery.png',
+        ):
+            self.assertTrue((ROOT / fig_rel).is_file())
+            manifest = ROOT / f'{fig_rel}.manifest.json'
+            self.assertTrue(manifest.is_file())
+            self.assertEqual(verify_figures.check_manifest(str(manifest), str(ROOT)), [])
+
 
