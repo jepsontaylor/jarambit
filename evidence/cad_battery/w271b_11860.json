@@ -286,28 +286,28 @@
   {
    "id": "solid.tip",
    "kind": "solver_run",
-   "status": "incomplete",
+   "status": "pass",
    "solver": "solid_skfem_p2",
    "geometry_sha256": "3340300af53f3244b85d546c44e2065828ffe27b2d670567bfca937d0f192e03",
    "source_commit": "a580ffa3b339faccfdf0d818e69ef4ec56617bd3",
    "evidence_path": "evidence/cad_battery/tip_mesh/w271b_11860.json",
    "fresh_this_lane": false,
-   "reason": "missing ksp_its",
    "detail": {
     "SF_nodal_max": 0.814,
     "n_tet": 76560,
     "n_dof": 351297,
-    "ksp_its": null,
+    "ksp_its": 54,
     "NL": 4,
     "NSUB": 1,
-    "missing": [
-     "ksp_its"
-    ],
-    "solve_rerun": false,
+    "missing": [],
+    "solve_rerun": true,
     "copied_from_another_genome": false,
-    "entered_as_solver_run": false,
+    "entered_as_solver_run": true,
     "genome_data_row_matches_csv": true,
     "d1_sha256": "2cc8206a9bcb6c2dc5b40182467b9e4877bb0bf20a010ee813ae66874f18d9e5"
+   },
+   "g_inputs": {
+    "solid_tip_sf_nodal_max": 0.814
    }
   },
   {
@@ -338,8 +338,8 @@
    }
   }
  ],
- "pass_count": 7,
- "solver_run_count": 0,
+ "pass_count": 8,
+ "solver_run_count": 1,
  "solver_run_objects": 1,
  "global_fitness": {
   "metric": "G1",
@@ -347,15 +347,14 @@
    "mass_g": 73.32648797691759,
    "spg": 3.69093,
    "seq_ratio": 0.8917967778864481,
+   "solid_tip_sf_nodal_max": 0.814,
    "aes_score": 0.6332
   },
-  "G": null,
-  "status": "INCOMPLETE",
-  "provisional": null,
-  "missing": [
-   "tip: solid_tip_sf_nodal_max: missing; plate_tipsub_screen_sf: missing; twist_tipzone_sf_strict: missing"
-  ],
-  "title": "G INCOMPLETE (1 missing) | 73.3 g | jarambit v0.31.0"
+  "G": 0.7216545740786019,
+  "status": "COMPLETE",
+  "provisional": false,
+  "missing": [],
+  "title": "G 0.722 | 73.3 g | jarambit v0.31.0"
  },
  "search_fitness": "unchanged"
 }

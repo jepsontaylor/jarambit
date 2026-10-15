@@ -390,16 +390,22 @@ def _solid_tip(spec, commit, rs, sha):
             solid = dict(stored.get('stored_solid') or {})
             missing = [name for name in SOLVER_FIELDS
                        if not isinstance(solid.get(name), (int, float)) or isinstance(solid.get(name), bool)]
+            sf = solid.get('SF_nodal_max')
+            complete = bool(not missing and isinstance(sf, (int, float)) and not isinstance(sf, bool))
             # A stored SF without every solver field stays out of G.
             detail = {
-                'SF_nodal_max': solid.get('SF_nodal_max'),
+                'SF_nodal_max': sf if isinstance(sf, (int, float)) and not isinstance(sf, bool) else None,
                 'n_tet': solid.get('n_tet'), 'n_dof': solid.get('n_dof'), 'ksp_its': solid.get('ksp_its'),
                 'NL': solid.get('NL'), 'NSUB': solid.get('NSUB'),
-                'missing': missing, 'solve_rerun': False,
-                'copied_from_another_genome': False, 'entered_as_solver_run': False,
+                'missing': missing, 'solve_rerun': bool(stored.get('solve_rerun')),
+                'copied_from_another_genome': False, 'entered_as_solver_run': complete,
                 'genome_data_row_matches_csv': stored.get('genome_data_row_matches_csv'),
                 'd1_sha256': stored.get('d1_sha256'),
             }
+            if complete:
+                return _case('solid.tip', 'solver_run', 'pass', solver='solid_skfem_p2', geometry_sha256=sha,
+                             source_commit=commit, evidence_path=spec.get('tip_mesh'),
+                             detail=detail, g_inputs={'solid_tip_sf_nodal_max': sf})
             return _case('solid.tip', 'solver_run', 'incomplete', solver='solid_skfem_p2', geometry_sha256=sha,
                          source_commit=commit, evidence_path=spec.get('tip_mesh'),
                          reason='missing ' + ', '.join(missing), detail=detail)
@@ -512,6 +518,7 @@ def subject_catalog():
         'w271c_11522': {
             'rs': 'evidence/rs_v2/w271c_11522.json', 'd1': None,
             'genome': 'evidence/rs_v2/genomes/w271c_11522.csv',
+            'tip_mesh': 'evidence/cad_battery/tip_mesh/w271c_11522.json',
             'plate_gci': 'evidence/cad_battery/plate_gci/w271c_11522.json',
             'side_path': w11522_side, 'side_sha': w11522_sha, 'side_seq': w11522_seq,
             'd1_searched': _d1_searched('w271c_11522'),

@@ -67,28 +67,27 @@ class Records(unittest.TestCase):
 
     def test_tip_counts_match_the_stored_solves(self):
         expected = {
-            'g3': {'n_tet': 739584, 'n_dof': 3169395, 'ksp_its': 74, 'sf': 1.6003},
-            'w271b_11772': {'n_tet': 603648, 'n_dof': 2590443, 'ksp_its': 85, 'sf': 0.8337},
+            'g3': {'n_tet': 739584, 'n_dof': 3169395, 'ksp_its': 74, 'sf': 1.6003, 'rerun': False, 'G': 1.0036274369238576},
+            'w271b_11772': {'n_tet': 603648, 'n_dof': 2590443, 'ksp_its': 85, 'sf': 0.8337, 'rerun': False, 'G': 0.7505798795492734},
+            'w271b_11860': {'n_tet': 76560, 'n_dof': 351297, 'ksp_its': 54, 'sf': 0.814, 'rerun': True, 'G': 0.7216545740786019},
+            'w271c_11522': {'n_tet': 80160, 'n_dof': 367767, 'ksp_its': 57, 'sf': 1.033, 'rerun': True, 'G': 0.7597240123135478},
         }
         for name, want in expected.items():
             tip = next(case for case in self.records[name]['cases'] if case['id'] == 'solid.tip')
             self.assertEqual(tip['status'], 'pass')
-            self.assertEqual(tip['detail']['solve_rerun'], False)
+            self.assertEqual(tip['detail']['solve_rerun'], want['rerun'])
             self.assertEqual(tip['detail']['n_tet'], want['n_tet'])
             self.assertEqual(tip['detail']['n_dof'], want['n_dof'])
             self.assertEqual(tip['detail']['ksp_its'], want['ksp_its'])
             self.assertEqual(tip['g_inputs']['solid_tip_sf_nodal_max'], want['sf'])
             self.assertNotIn('plate_tipsub_screen_sf', self.records[name]['global_fitness']['inputs'])
             self.assertEqual(self.records[name]['global_fitness']['status'], 'COMPLETE')
-            self.assertIsNotNone(self.records[name]['global_fitness']['G'])
-        for name in ('c10a', 'c93', 'c92', 'c10c', 'w271b_11860', 'w271c_11522'):
+            self.assertAlmostEqual(self.records[name]['global_fitness']['G'], want['G'], places=12)
+            self.assertEqual(self.records[name]['solver_run_count'], 1)
+        for name in ('c10a', 'c93', 'c92', 'c10c'):
             tip = next(case for case in self.records[name]['cases'] if case['id'] == 'solid.tip')
             self.assertNotEqual(tip['status'], 'pass')
             self.assertNotIn('solid_tip_sf_nodal_max', self.records[name]['global_fitness']['inputs'])
-        self.assertAlmostEqual(self.records['g3']['global_fitness']['G'], 1.0036274369238576, places=12)
-        self.assertAlmostEqual(self.records['w271b_11772']['global_fitness']['G'], 0.7505798795492734, places=12)
-        self.assertEqual(self.records['g3']['solver_run_count'], 1)
-        self.assertEqual(self.records['w271b_11772']['solver_run_count'], 1)
         for name in ('c92', 'c93'):
             tip = next(case for case in self.records[name]['cases'] if case['id'] == 'solid.tip')
             self.assertEqual(tip['status'], 'blocked')
@@ -98,31 +97,32 @@ class Records(unittest.TestCase):
         c10a_tip = next(case for case in self.records['c10a']['cases'] if case['id'] == 'solid.tip')
         self.assertEqual(c10a_tip['status'], 'blocked')
         self.assertEqual(c10a_tip['detail']['inventory_solver_runs'], 0)
-        tip = next(case for case in self.records['w271b_11860']['cases'] if case['id'] == 'solid.tip')
+
+    def test_stored_solid_tip_without_ksp_its_stays_incomplete_and_out_of_g(self):
+        from unittest.mock import patch
+        from ops.ci import cad_battery
+        real_load = cad_battery._load
+
+        def load_without_ksp(rel):
+            doc = real_load(rel)
+            if rel == 'evidence/cad_battery/tip_mesh/w271b_11860.json' and doc:
+                doc = json.loads(json.dumps(doc))
+                doc['stored_solid']['ksp_its'] = None
+            return doc
+
+        with patch('ops.ci.cad_battery._load', side_effect=load_without_ksp):
+            rec = build_subject('w271b_11860', 'a' * 40, {'analytic': 'pass', 'gci': 'pass', 'claims': 'pass'})
+        tip = next(case for case in rec['cases'] if case['id'] == 'solid.tip')
         self.assertEqual(tip['status'], 'incomplete')
         self.assertEqual(tip['reason'], 'missing ksp_its')
         self.assertEqual(tip['detail']['missing'], ['ksp_its'])
-        self.assertEqual(tip['detail']['n_tet'], 76560)
-        self.assertEqual(tip['detail']['n_dof'], 351297)
         self.assertIsNone(tip['detail']['ksp_its'])
-        self.assertEqual(tip['detail']['SF_nodal_max'], 0.814)
         self.assertFalse(tip['detail']['entered_as_solver_run'])
         self.assertNotIn('g_inputs', tip)
-        fitness = self.records['w271b_11860']['global_fitness']
-        self.assertIsNone(fitness['G'])
-        self.assertEqual(fitness['status'], 'INCOMPLETE')
-        self.assertEqual(fitness['inputs']['spg'], 3.69093)
-        self.assertEqual(fitness['inputs']['aes_score'], 0.6332)
-        self.assertEqual(fitness['inputs']['mass_g'], 73.32648797691759)
-        self.assertEqual(fitness['inputs']['seq_ratio'], 0.8917967778864481)
-        self.assertNotIn('solid_tip_sf_nodal_max', fitness['inputs'])
-        self.assertNotIn('plate_tipsub_screen_sf', fitness['inputs'])
-        self.assertNotIn('twist_tipzone_sf_strict', fitness['inputs'])
-        tip = next(case for case in self.records['w271c_11522']['cases'] if case['id'] == 'solid.tip')
-        self.assertEqual(tip['status'], 'incomplete')
-        self.assertFalse(tip['detail']['found'])
-        self.assertTrue(any('w271c_11522' in item for item in tip['detail']['searched']))
-        self.assertTrue(any('jarambit_w271' in item for item in tip['detail']['searched']))
+        self.assertEqual(rec['solver_run_count'], 0)
+        self.assertIsNone(rec['global_fitness']['G'])
+        self.assertEqual(rec['global_fitness']['status'], 'INCOMPLETE')
+        self.assertNotIn('solid_tip_sf_nodal_max', rec['global_fitness']['inputs'])
 
     def test_g3_sequence_stays_failed_and_c10c_is_not_restored(self):
         seq = next(case for case in self.records['g3']['cases'] if case['id'] == 'plate.seq')

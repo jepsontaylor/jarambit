@@ -169,9 +169,9 @@ jobs:
           (attempt/'python-tests.log').write_bytes(run.stdout)
           log = run.stdout.decode()
           print(log, flush=True)
-          assert run.returncode == 0 and 'Ran 18 tests' in log and log.rstrip().endswith('OK')
+          assert run.returncode == 0 and 'Ran 28 tests' in log and log.rstrip().endswith('OK')
           records = re.findall(r'^test_\w+ \(([^)]+)\) \.\.\. ok$', log, re.M)
-          assert len(records) == 18, 'All controls must execute; no skipped required tests'
+          assert len(records) == 28, 'All controls must execute; no skipped required tests'
           release = json.loads((root/'assurance/policies/release-v1.json').read_bytes())
           catalog = build_catalog(release, policy['source_input_sha256'])
           (attempt/'catalog.json').write_text(json.dumps(catalog) + '\n')

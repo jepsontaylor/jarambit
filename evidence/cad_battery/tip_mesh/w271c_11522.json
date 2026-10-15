@@ -1,0 +1,27 @@
+{
+ "schema": "jarambit.stored_solid_tip.v1",
+ "subject": "w271c_11522",
+ "solve_rerun": true,
+ "copied_from_another_genome": false,
+ "entered_as_solver_run": true,
+ "genome_data_row_matches_csv": true,
+ "d1_sha256": "b0f469388c9fbed04553c09803b6edc8db5a8909f3f9b197c113da69c850323c",
+ "solid_sha256": "f1ef453c1e9dfb9e3341870fef0009fff916b818c23d74ef484993f06856aa2d",
+ "genome_csv_sha256": "735d7c49199393af55653525fd19dfb6a0e075bb1e1c34c661e8cea39ab70276",
+ "source_host_path": "/home/ubuntu/jarambit/out_custody/jarambit_w271/out/solidcert_w271c_11522/w271c_11522_solid.json",
+ "note": "Fresh NL4/NSUB1 skfem/pyamg solve on w271c_11522_D1.json (n_tet=80160, n_dof=367767, ksp_its=57, rel.res=7.0e-11, SF_nodal_max=1.033).",
+ "metrics": {
+  "spg": 3.43528,
+  "aes_score": 0.6498
+ },
+ "stored_solid": {
+  "SF_nodal_max": 1.033,
+  "n_tet": 80160,
+  "n_dof": 367767,
+  "ksp_its": 57,
+  "NL": 4,
+  "NSUB": 1,
+  "R_CUT": 30.0
+ },
+ "missing": []
+}
