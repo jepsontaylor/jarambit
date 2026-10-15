@@ -23,7 +23,8 @@ class GenReadme(unittest.TestCase):
             'docs/figures/engineering_gates/fig1_evolutionary_trajectories.png',
             'docs/figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png',
             'docs/figures/engineering_gates/fig3_cad_and_fem_gallery.png',
-            '### 12-Subject × 18-Evaluator CAD Battery & Multi-Wave Progression',
+            '### 13-Subject × 18-Evaluator CAD Battery & Multi-Wave Progression',
+            '`w275_s2909_c01`',
             '`w274_s2905_c01`',
             '### 178-Group (356-Control) Scientific Assurance Catalog',
         ):

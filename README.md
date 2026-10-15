@@ -44,7 +44,7 @@ Verdicts are scoped to a requirement set (`requirements/RS-karambit-v1.toml`): *
 
 <img src="docs/figures/engineering_gates/fig3_cad_and_fem_gallery.png" width="96%" alt="CAD thickness and von Mises stress gallery across historical g3, W271c, W273, and SWITCHBACK C10a"/>
 
-*Engineering gates & evolutionary verification gallery (`ops/render/engineering_gates_paper_figs.py`, [full paper](docs/ENGINEERING_GATES_AND_EVOLUTION.md)): (1) multi-wave evolutionary progression across W27 → W271b/c → W272 → W273 and C9.2–C10c B-rep studies; (2) 11-subject × 18-evaluator CAD battery status matrix, 3-level P2 tetrahedral Roache GCI convergence, and independent `dolfinx` vs `skfem` cross-solver verification; (3) real CAD thickness fields $t(x,y)$ and certified DKT+CST von Mises stress fields across evolved genomes and B-rep candidates.*
+*Engineering gates & evolutionary verification gallery (`ops/render/engineering_gates_paper_figs.py`, [full paper](docs/ENGINEERING_GATES_AND_EVOLUTION.md)): (1) multi-wave evolutionary progression across W27 → W271b/c → W272 → W273 → W274 → W275 and C9.2–C10c B-rep studies; (2) 18-evaluator CAD battery status matrix, 3-level P2 tetrahedral Roache GCI convergence, and independent `dolfinx` vs `skfem` cross-solver verification; (3) real CAD thickness fields $t(x,y)$ and certified DKT+CST von Mises stress fields across evolved genomes and B-rep candidates.*
 <!-- GEN:FIGS:END -->
 
 > **SWITCHBACK Rev C.9.3 (rc3, current RC)** — [`designs/switchback/C9.3/`](designs/switchback/C9.3/README.md): B-rep STEP, drawings and FEM plates from the hiking-karambit study; all C.9-study gates V1–V8 pass with ≥ 5 % margin (governor V3 spine SF 1.597, 66.773 g). C.9.3 is a release candidate, not the design of record: the gates are the C.9 study set, not an RS-karambit-v2 verdict from this repo, and nothing is machined or tested.
@@ -131,14 +131,15 @@ RS-karambit-v2 structural cases — first-yield safety factors (L7: fatigue/endu
 
 **0 of 4 named designs pass every RS-karambit-v2 hard gate.** An unverified gate (no evidence) never counts as met. No design is promoted.
 
-### 12-Subject × 18-Evaluator CAD Battery & Multi-Wave Progression (`evidence/cad_battery/*.json`, `docs/ENGINEERING_GATES_AND_EVOLUTION.md`)
+### 13-Subject × 18-Evaluator CAD Battery & Multi-Wave Progression (`evidence/cad_battery/*.json`, `docs/ENGINEERING_GATES_AND_EVOLUTION.md`)
 
-Every candidate in the 12-subject CAD battery is evaluated against all 18 standardized evaluators (`build.analytic`, `build.gci_contracts`, `build.claims`, `build.dolfinx`, `geom.unit`, `geom.one_solid`, `geom.mass`, `geom.pin`, `plate.loads`, `plate.seq`, `plate.l7`, `plate.gci`, `side.a1`–`side.a4`, `solid.tip`, `solid.whole_part`), and the `crescent --evolve` loop enforces an opt-in live 14-check CAD battery gate via `JARAMBIT_CAD_BATTERY=1` (`ops/ci/evaluate_cad_candidate.py`). Full methodology and derivations: [docs/ENGINEERING_GATES_AND_EVOLUTION.md](docs/ENGINEERING_GATES_AND_EVOLUTION.md).
+Every candidate in the 13-subject CAD battery is evaluated against all 18 standardized evaluators (`build.analytic`, `build.gci_contracts`, `build.claims`, `build.dolfinx`, `geom.unit`, `geom.one_solid`, `geom.mass`, `geom.pin`, `plate.loads`, `plate.seq`, `plate.l7`, `plate.gci`, `side.a1`–`side.a4`, `solid.tip`, `solid.whole_part`), and the `crescent-evolve` loop enforces an opt-in live CAD battery gate via `JARAMBIT_CAD_BATTERY=1` (`ops/ci/evaluate_cad_candidate.py`). Full methodology and derivations: [docs/ENGINEERING_GATES_AND_EVOLUTION.md](docs/ENGINEERING_GATES_AND_EVOLUTION.md).
 
 | subject | role | mass (g) | hunter lat (N) / SPG (N/g) | cert `seq_ratio` | Winkler+bore `seq` (`side.a4`) | buckling $P_{\text{cr}}$ (N) | P2 solid tip SF (`dolfinx` / `skfem`, $\Delta$) | 18-case tally (`pass` / `fail` / `blocked`) |
 |---|---|---|---|---|---|---|---|---|
 | `g3` | `genome` | 84.80 | 351.7 / 4.147 | 0.959 | 2.790 | 2723 | 1.534 / 1.534 (0.00 %) | `11 / 4 / 3` |
-| `w274_s2905_c01` | `genome` | 84.98 | 267.7 / 3.150 | 1.273 | *blocked* | *blocked* | 1.304 / 1.304 (0.00 %) | `11 / 4 / 3` |
+| `w275_s2909_c01` | `genome` | 81.77 | 274.4 / 3.356 | 1.206 | 3.373 | 3412 | 1.297 / 1.297 (0.02 %) | `11 / 4 / 3` |
+| `w274_s2905_c01` | `genome` | 84.98 | 267.7 / 3.150 | 1.273 | 2.721 | 2693 | 1.304 / 1.304 (0.00 %) | `11 / 4 / 3` |
 | `w273_s2904_c01` | `genome` | 78.59 | 309.7 / 3.940 | 1.001 | 4.465 | 1861 | 0.875 / 0.875 (0.05 %) | `11 / 4 / 3` |
 | `w271c_11522` | `genome` | 79.96 | 274.7 / 3.435 | 0.778 | 3.067 | 2934 | 1.033 / 1.033 (0.00 %) | `11 / 4 / 3` |
 | `w272_s2902_c01` | `genome` | 79.43 | 309.7 / 3.899 | 1.000 | 4.604 | 1473 | 0.875 / 0.875 (0.05 %) | `10 / 5 / 3` |
@@ -150,7 +151,7 @@ Every candidate in the 12-subject CAD battery is evaluated against all 18 standa
 | `c92` | `native_cad` | 66.76 | *blocked (B-rep)* | *blocked* | *blocked* | *blocked* | *blocked* | `8 / 0 / 10` |
 | `c10c` | `archived_not_on_main` | 67.09 | *blocked (B-rep)* | *blocked* | *blocked* | *blocked* | *blocked* | `7 / 1 / 10` |
 
-**Battery total across 12 subjects × 18 evaluators (216 cells):** `116 pass`, `37 fail`, `63 blocked`. Every genome subject (`8/8`) clears the `side.a4` Winkler grip-foundation + radial/tangential bore-pin sequence check and linear buckling ($P_{\text{cr}} \gg 260\text{ N}$), and agrees within $\le 0.45\%$ between independent `dolfinx` and `skfem` 3D P2 solid-tip solves; `w274_s2905_c01` (`84.98 g`, `G1 = 0.7701`, `W_CAD = +1.4634`) clears both certified `seq_ratio = 1.488 >= 1.20` and 3D P2 solid-tip `SF = 1.304 >= 1.0`.
+**Battery total across 13 subjects × 18 evaluators (234 cells):** `127 pass`, `41 fail`, `66 blocked`. Every genome subject (`9/9`) clears the `side.a4` Winkler grip-foundation + radial/tangential bore-pin sequence check and linear buckling ($P_{\text{cr}} \gg 260\text{ N}$), and agrees within $\le 0.45\%$ between independent `dolfinx` and `skfem` 3D P2 solid-tip solves; `w275_s2909_c01` (`81.77 g`, `G1 = 0.8015`, `W_CAD = +1.5589`) and `w274_s2905_c01` (`84.98 g`, `G1 = 0.7701`, `W_CAD = +1.4634`) clear both certified `seq_ratio >= 1.20` and 3D P2 solid-tip `SF >= 1.0`.
 
 ### 178-Group (356-Control) Scientific Assurance Catalog (`T00`–`T19`, `docs/v1/science/tests/TEST_CASE_CATALOG.json`)
 
@@ -203,22 +204,28 @@ cargo test --release
 ## Quick start
 
 ```bash
-# 1. Evaluate a committed crescent genome (certification + strict 0.0625 mm² DKT+CST plate + RS-karambit-v2 report)
-./target/release/jarambit crescent --evaluate-genome \
-  evidence/rs_v2/w273_xbabe3/s2904/wave273_xbabe3_s2904_c01_fit_genome.csv \
-  --out /tmp/jarambit_quickstart_eval
+# 1. Re-screen a committed crescent genome (certification + strict 0.0625 mm² DKT+CST plate + 18-case CAD battery + G1)
+./target/release/jarambit crescent-d1 \
+  --genomes w275_s2909_c01=evidence/rs_v2/w275_ultrarunner/w275_s2909_c01_genome.csv \
+  --threads 4 --out /tmp/jarambit_quickstart_d1
+python3 -B ops/ci/cad_battery.py \
+  --evaluate-genome w275_s2909_c01=evidence/rs_v2/w275_ultrarunner/w275_s2909_c01_genome.csv \
+  --analytic pass --gci pass --claims pass --dolfinx pass \
+  --out-dir /tmp/jarambit_quickstart_battery
 
-# 2. Run a crescent MAP-Elites + island GA evolutionary search with the live 14-check CAD battery gate enabled
-JARAMBIT_CAD_BATTERY=1 ./target/release/jarambit crescent --evolve \
-  --gens 10 --pop 24 --islands 4 --threads 16 --seed 2904 \
+# 2. Run a crescent MAP-Elites + island GA evolutionary search with the live CAD battery gate enabled
+JARAMBIT_CAD_BATTERY=1 ./target/release/jarambit crescent-evolve \
+  --gens 2 --pop 12 --islands 2 --threads 8 --seed 2909 \
+  --seeds evidence/rs_v2/w275_ultrarunner/w275_s2909_c01_genome.csv \
   --out /tmp/jarambit_quickstart_evolve
 
-# 3. Verify the committed 11-subject × 18-evaluator CAD battery and the 178-group (356-control) scientific assurance suite
-python3 -B ops/ci/cad_battery.py --check
-python3 -B ops/ci/science_suite.py
+# 3. Verify the committed 13-subject × 18-evaluator CAD battery and the 178-group (356-control) scientific assurance suite
+python3 -B -m unittest ops.ci.tests.test_cad_battery -v
+python3 -B ops/ci/science_suite.py inventory
+python3 -B -m unittest discover -s research/science_v1 -p "test_*.py" -v
 
-# 4. Regenerate and verify deterministic engineering-gates figures and public documentation blocks
-python3 -B ops/render/engineering_gates_paper_figs.py --check
+# 4. Verify deterministic engineering-gates figures and public documentation blocks
+python3 -B ops/ci/verify_figures.py
 python3 -B ops/ci/gen_readme.py --check
 python3 -B ops/ci/gen_whitepaper.py --check
 python3 -B ops/ci/gen_status.py --check
