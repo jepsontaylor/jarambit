@@ -46,15 +46,9 @@ jobs:
           export PATH="${toolchain}:${PATH}"
           export RUSTC="${toolchain}/rustc"
           test -x "$RUSTC"
-          # Offline cargo fails closed when the runner index has crates but no config.json.
-          cargo_home="${CARGO_HOME:-$HOME/.cargo}"
-          mapfile -t configs < <(find "$cargo_home/registry/index" -name config.json -type f 2>/dev/null || true)
-          if [ "${#configs[@]}" -lt 1 ]; then
-            echo "cargo index config.json missing under ${cargo_home}/registry/index" >&2
-            echo "CARGO_HOME=${CARGO_HOME:-unset}" >&2
-            exit 1
-          fi
-          printf 'cargo index config: %s\n' "${configs[@]}"
+          # Runner caches can retain index entries while losing config.json or crate archives.
+          # Rehydrate through Cargo, then prove the locked offline fetch succeeds.
+          python3 -B ops/ci/ensure_cargo_cache.py --cargo "${toolchain}/cargo"
           "${toolchain}/cargo" \
             build --release --offline --locked --jobs 1 -p jarambit-evidence \
             --example claim_report --message-format=json > "$attempt/build.jsonl"
