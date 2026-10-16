@@ -25,14 +25,18 @@
   "w278_s2922_c01",
   "w279_s2928_c01",
   "w280_s2931_c01",
-  "w281_s2932_c01"
+  "w281_s2932_c01",
+  "w282_p14_c01",
+  "w282_p10_c02"
  ],
- "source_commit": "9c3936fad678bf4b7687962146e041a683e3eb01",
+ "source_commit": "82f450f7fb418e28c4b229031920dec5454435f3",
  "search_fitness": "unchanged",
  "files": [
   "evidence/cad_battery/w278_s2922_c01.json",
   "evidence/cad_battery/w279_s2928_c01.json",
   "evidence/cad_battery/w280_s2931_c01.json",
-  "evidence/cad_battery/w281_s2932_c01.json"
+  "evidence/cad_battery/w281_s2932_c01.json",
+  "evidence/cad_battery/w282_p14_c01.json",
+  "evidence/cad_battery/w282_p10_c02.json"
  ]
 }

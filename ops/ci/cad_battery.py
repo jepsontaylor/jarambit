@@ -707,6 +707,19 @@ def subject_catalog():
             'side_sha': w281_2932_sha, 'side_seq': w281_2932_seq,
         },
     }
+    for subject in ('w282_p14_c01', 'w282_p10_c02'):
+        base = f'evidence/rs_v2/w282_ultrarunner/{subject}'
+        side = ROOT / f'{base}_a1a3.json'
+        genomes[subject] = {
+            'rs': f'{base}_rs.json', 'd1': None,
+            'genome': f'{base}_genome.csv',
+            'tip_mesh': f'{base}_solid_tip.json',
+            'plate_gci': f'{base}_plate_gci.json',
+            'side_a4': f'{base}_a4.json',
+            'side_path': f'{base}_a1a3.json' if side.is_file() else None,
+            'side_sha': _sha256(side) if side.is_file() else None,
+            'side_seq': json.loads(side.read_text()).get('seq_ratio_this_mesh') if side.is_file() else None,
+        }
     return native, genomes
 
 

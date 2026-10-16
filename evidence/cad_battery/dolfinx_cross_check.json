@@ -2250,6 +2250,40 @@
       },
       "status": "pass",
       "within_2pct": true
+    },
+    "w282_p10_c02": {
+      "dolfinx": {
+        "SF_nodal_avg": 1.496,
+        "SF_nodal_max": 1.4094,
+        "ksp_its": 73,
+        "n_dof": 416583,
+        "n_tet": 91008
+      },
+      "rel_err_nodal_avg": 0.0,
+      "rel_err_nodal_max": 0.000284,
+      "skfem": {
+        "SF_nodal_avg": 1.496,
+        "SF_nodal_max": 1.409
+      },
+      "status": "pass",
+      "within_2pct": true
+    },
+    "w282_p14_c01": {
+      "dolfinx": {
+        "SF_nodal_avg": 1.4958,
+        "SF_nodal_max": 1.4093,
+        "ksp_its": 73,
+        "n_dof": 416583,
+        "n_tet": 91008
+      },
+      "rel_err_nodal_avg": 0.000134,
+      "rel_err_nodal_max": 0.000213,
+      "skfem": {
+        "SF_nodal_avg": 1.496,
+        "SF_nodal_max": 1.409
+      },
+      "status": "pass",
+      "within_2pct": true
     }
   },
   "tolerance_rel": 0.02
