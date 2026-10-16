@@ -107,6 +107,16 @@ pub fn strength_margin(r: &Rec) -> f64 {
     r.fem.as_ref().map_or(0.0, |f| [f.lat_rob / 260.0, f.ring_rob / 1500.0, f.seq_ratio / fem::SEQ_TARGET, f.twist_body_sf, f.twist_tipzone_sf]
         .iter().cloned().fold(f64::INFINITY, f64::min) - 1.0).max(0.0)
 }
+/// Knee-capped structural reserve bonus for all-gates evolution: rewards up to +5.5% reserve on
+/// `lat_rob / 260` and `seq_ratio / 1.20` and up to +8.5% reserve on `twist_tipzone_sf`, then saturates.
+pub fn reserve_bonus(r: &Rec) -> f64 {
+    r.fem.as_ref().map_or(0.0, |f| {
+        let r_lat = ((f.lat_rob / 260.0 - 1.0).clamp(0.0, 0.055)) / 0.055;
+        let r_seq = ((f.seq_ratio / fem::SEQ_TARGET - 1.0).clamp(0.0, 0.055)) / 0.055;
+        let r_tw = ((f.twist_tipzone_sf - 1.0).clamp(0.0, 0.085)) / 0.085;
+        0.012 * r_lat + 0.012 * r_seq + 0.006 * r_tw
+    })
+}
 
 /// Cap-free fitness (PR-0.31.2, Jepson directive: no hard mass caps).
 /// Infeasible: graded constraint-violation penalty, always < 0 (aes -200.., gates -100.., no FEM -50,
@@ -126,7 +136,8 @@ pub fn fitness(r: &Rec) -> f64 {
         Some(_) if r.n_win + r.n_perf < min_through() => -0.09 + 0.08 * ((r.n_win + r.n_perf) as f64 / min_through() as f64),
         Some(_) => {
             let (mw, ms) = if ag { (0.025, 0.05) } else { (MARGIN_W, MARGIN_SCALE) };
-            1.0 + mass_reward(r.mass_g) - mass_over_penalty(r.mass_g) + mw * (1.0 - (-strength_margin(r) / ms).exp())
+            let r_bon = if ag { reserve_bonus(r) } else { 0.0 };
+            1.0 + mass_reward(r.mass_g) - mass_over_penalty(r.mass_g) + mw * (1.0 - (-strength_margin(r) / ms).exp()) + r_bon
                 + 0.02 * r.aes.score.clamp(0.0, 1.0) + 0.02 * r.novelty.clamp(0.0, 1.0) } }
 }
 /// Back-compat shim: the tip-twist floor is now always hard; the flag is ignored.

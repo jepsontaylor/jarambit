@@ -1753,6 +1753,166 @@
       },
       "status": "pass",
       "within_2pct": true
+    },
+    "w278_s2922_c01": {
+      "NL": 4,
+      "NSUB": 1,
+      "dolfinx": {
+        "SF_nodal_avg": 1.4574,
+        "SF_nodal_max": 1.3819,
+        "ksp_its": 73,
+        "n_dof": 416583,
+        "sallow_MPa": 729.76,
+        "vm_nodal_avg_MPa": 500.73,
+        "vm_nodal_max_MPa": 528.06
+      },
+      "n_dof": 416583,
+      "observable": {
+        "basis": {
+          "block_size": 1,
+          "cell": "tetrahedron",
+          "degree": 1,
+          "discontinuous": true,
+          "family": "P",
+          "value_shape": []
+        },
+        "content_hash": "sha256(json.dumps(sort_keys=True, separators=(',', ':'), ensure_ascii=False, allow_nan=False))",
+        "content_sha256": "0a8a39f4871e866d8a32f917b61c0bb332a01ff3876c2eaee40f2c5847bbf3ed",
+        "formula": "sqrt(3/2 dev(s):dev(s))",
+        "frame": "cartesian_xyz_right_handed",
+        "gci_observable": {
+          "id": "dg_vm_interpolation.v1@0a8a39f4871e866d",
+          "metric": "von_mises_stress",
+          "projection": "dg_vm_interpolation.v1",
+          "region": "whole_domain",
+          "units": "MPa"
+        },
+        "map": {
+          "coordinate_degree": 1,
+          "reference_to_physical": "Lagrange coordinate element"
+        },
+        "mesh": {
+          "algorithm": "sha256(shape|bytes of x<f8, geometry dofmap<i8, c2v array<i8, offsets<i8)",
+          "cells": 91008,
+          "coordinate_degree": 1,
+          "geometry_nodes": 19615,
+          "sha256": "1ed78d88f6c0fd18072afd1ab04d307e5a0bd374f1523064058aea9e05c84022",
+          "vertices": 19615
+        },
+        "not": [
+          "l2_projection",
+          "nodal_smoothing",
+          "volume_weighting"
+        ],
+        "operator": "dg_vm_interpolation.v1",
+        "quantity": "von_mises_stress",
+        "region": {
+          "id": "whole_domain"
+        },
+        "sampling": {
+          "dofs_per_cell": 4,
+          "interpolation_ident": true,
+          "kind": "cell_interpolation_points",
+          "reference_points": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        "unit_system": [
+          "mm",
+          "N",
+          "MPa"
+        ],
+        "units": "MPa"
+      },
+      "rel_err_nodal_avg": 0.000274,
+      "rel_err_nodal_max": 7.2e-05,
+      "roi": {
+        "cut_distance": {
+          "min_exclusive": 3.0
+        },
+        "empty": "refused",
+        "id": "tip_annulus_roi.v1",
+        "tip_distance": {
+          "max_exclusive": 15.0,
+          "min_inclusive": 4.0
+        },
+        "units": "mm"
+      },
+      "roi_vertices": 6930,
+      "skfem_reference": {
+        "NL": 4,
+        "NSUB": 1,
+        "SF_nodal_avg": 1.457,
+        "SF_nodal_max": 1.382,
+        "ksp_its": 55,
+        "n_dof": 416583,
+        "sallow_MPa": 729.8,
+        "vm_nodal_avg_MPa": 500.7,
+        "vm_nodal_max_MPa": 528.1
+      },
+      "solver_settings": {
+        "atol": 1e-50,
+        "divtol": 10000.0,
+        "effective_options": {
+          "s07_df1e4cdd819d_0_mg_levels_ksp_type": "chebyshev",
+          "s07_df1e4cdd819d_0_mg_levels_pc_type": "jacobi"
+        },
+        "effective_options_sha256": "9ba447daafd37a41371d561362028e7217cfca79049fb1df4760bcb18fbc4332",
+        "ksp_its": 73,
+        "ksp_norm_type": 1,
+        "ksp_reason": 2,
+        "ksp_residual_norm": 8.718280632755397e-11,
+        "ksp_type": "cg",
+        "max_it": 5000,
+        "model": "dolfinx3d_isotropic_linear_elasticity.cg_gamg.v1",
+        "pc_type": "gamg",
+        "prefix": "s07_df1e4cdd819d_0_",
+        "provider": {
+          "dolfinx_git": "4116cca8cf91f1a7e877d38039519349b3e08620",
+          "module_files": {
+            "basix": "/dolfinx-env/lib/python3.12/site-packages/basix/__init__.py",
+            "dolfinx": "/usr/local/dolfinx-real/lib/python3.12/dist-packages/dolfinx/__init__.py",
+            "mpi4py": "/dolfinx-env/lib/python3.12/site-packages/mpi4py/__init__.py",
+            "numpy": "/ext_sp/numpy/__init__.py",
+            "petsc4py": "/dolfinx-env/lib/python3.12/site-packages/petsc4py/__init__.py",
+            "ufl": "/dolfinx-env/lib/python3.12/site-packages/ufl/__init__.py"
+          },
+          "mpi_library": "MPICH Version:      4.2.2",
+          "petsc": "3.22.0",
+          "petsc_int": "int32",
+          "scalar": "float64",
+          "versions": {
+            "basix": "0.9.0",
+            "dolfinx": "0.9.0",
+            "mpi4py": "4.0.0",
+            "numpy": "2.5.4",
+            "petsc4py": "3.22.0",
+            "ufl": "2024.2.0"
+          }
+        },
+        "rtol": 1e-10
+      },
+      "status": "pass",
+      "within_2pct": true
     }
   },
   "tolerance_rel": 0.02

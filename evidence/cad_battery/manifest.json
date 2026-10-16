@@ -22,13 +22,11 @@
   "gate.rs_v2"
  ],
  "subjects": [
-  "w276_s2913_c01",
-  "w277_s2919_c01"
+  "w278_s2922_c01"
  ],
- "source_commit": "ada034b09e5682f64f777423167d3f7537a04cce",
+ "source_commit": "9c3936fad678bf4b7687962146e041a683e3eb01",
  "search_fitness": "unchanged",
  "files": [
-  "evidence/cad_battery/w276_s2913_c01.json",
-  "evidence/cad_battery/w277_s2919_c01.json"
+  "evidence/cad_battery/w278_s2922_c01.json"
  ]
 }

@@ -240,8 +240,14 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     let mut novel: Vec<&qd::Rec> = ro.all.iter().filter(|r| r.legal()).collect(); novel.sort_by(|a, b| b.novelty.partial_cmp(&a.novelty).unwrap());
     let mut order: Vec<(&str, &qd::Rec)> = Vec::new();
     if qd::all_gates_env() {
-        for r in light.iter().take(16) { order.push(("light", r)); }
-        for r in cand.iter().take(16) { order.push(("fit", r)); }
+        let mut res1: Vec<&qd::Rec> = ro.all.iter().filter(|r| qd::feasible(r) && r.g.v[jarambit_crescent::genome::ISO_ZH] < 0.5 && r.fem.as_ref().map_or(false, |f| f.lat_rob >= 273.0 && f.seq_ratio >= 1.23 && f.twist_tipzone_sf >= 1.08)).collect();
+        res1.sort_by(|a, b| a.mass_g.partial_cmp(&b.mass_g).unwrap());
+        let mut res2: Vec<&qd::Rec> = ro.all.iter().filter(|r| qd::feasible(r) && r.g.v[jarambit_crescent::genome::ISO_ZH] < 0.5 && r.fem.as_ref().map_or(false, |f| f.lat_rob >= 270.0 && f.seq_ratio >= 1.22 && f.twist_tipzone_sf >= 1.08)).collect();
+        res2.sort_by(|a, b| a.mass_g.partial_cmp(&b.mass_g).unwrap());
+        for r in res1.iter().take(12) { order.push(("res", r)); }
+        for r in res2.iter().take(12) { order.push(("res", r)); }
+        for r in light.iter().take(10) { order.push(("light", r)); }
+        for r in cand.iter().take(10) { order.push(("fit", r)); }
         for r in novel.iter().take(4) { order.push(("novel", r)); }
     } else {
         for (i, r) in cand.iter().enumerate() { if i < 30 { order.push(("fit", r)); } }
@@ -251,7 +257,7 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     let mut picked: Vec<(String, qd::Rec, fem::Fem, fem::Fields)> = Vec::new(); let (mut n_try, mut n_fail) = (0usize, 0usize);
     let mut seen: Vec<Genome> = Vec::new(); let mut cert_rows = String::from("kind,id,gen,mass_g,t,search_lat_rob,cert_lat_rob,cert_ring_rob,sf_hiker,sf_hunter,sf_ring,twist_sf_1p82_joint3d,floors_ok_cert,spg_cert,aes,novelty,relief_frac,n_win,n_perf,strict_lat_rob_0p0625,strict_ok,seq_ratio_cert,seq_case,seq_ok,twist_tip_sf_default_hard,twist_body_sf,twist_tipzone_sf_strict,t_joint,cert_pass_all,twist_floor_ok_body_and_tipsub,mass_band_74_77,blade_min_in,promote_eligible_pending_aesthetic_signoff\n");
     let mut queue: Vec<(&str, &qd::Rec)> = Vec::new();
-    let q_cap = if qd::all_gates_env() { (5 * n_cert).max(32) } else { (2 * n_cert).max(12) };
+    let q_cap = if qd::all_gates_env() { (6 * n_cert).max(36) } else { (2 * n_cert).max(12) };
     for (kind, r) in order { if queue.len() >= q_cap { break; } // P1: floors-OK designs that miss only the seq>=1.2 proxy are still certified + plated (labelled FAIL), so the wave is documented
         let floors_only = r.g.p1() && r.rejects.is_empty() && r.aes.pass && r.fem.as_ref().map_or(false, |f| f.floors_ok);
         if seen.contains(&r.g) || !(r.legal() || floors_only) { continue; } seen.push(r.g.clone()); queue.push((kind, r)); }
