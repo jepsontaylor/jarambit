@@ -488,19 +488,23 @@ def make_w279_gate_margins_fig():
     return fig_path
 
 
-def _parse_ascii_stl(stl_path: Path):
-    tris = []
-    cur = []
-    with stl_path.open('r', encoding='utf-8') as fh:
-        for line in fh:
-            s = line.strip()
-            if s.startswith('vertex '):
-                parts = s.split()
-                cur.append((float(parts[1]), float(parts[2]), float(parts[3])))
-                if len(cur) == 3:
-                    tris.append(cur)
-                    cur = []
-    return np.asarray(tris, dtype=np.float64)
+def _build_3d_tris_from_d1(d1_doc: dict):
+    mesh = d1_doc['mesh']
+    xy = np.asarray(mesh['xy'], dtype=np.float64)
+    t_idx = np.asarray(mesh['tris'], dtype=np.int64)
+    te = np.asarray(mesh['te'], dtype=np.float64)
+    # Nodal half-thickness via averaging element thicknesses
+    nodal_sum = np.zeros(len(xy), dtype=np.float64)
+    nodal_cnt = np.zeros(len(xy), dtype=np.float64)
+    for k in range(3):
+        np.add.at(nodal_sum, t_idx[:, k], 0.5 * te)
+        np.add.at(nodal_cnt, t_idx[:, k], 1.0)
+    hz = nodal_sum / np.maximum(nodal_cnt, 1.0)
+    verts_top = np.column_stack([xy[:, 0], xy[:, 1], hz])
+    verts_bot = np.column_stack([xy[:, 0], xy[:, 1], -hz])
+    tris_top = verts_top[t_idx]
+    tris_bot = verts_bot[t_idx[:, [0, 2, 1]]]
+    return np.concatenate([tris_top, tris_bot], axis=0), te
 
 
 def make_web_studio_fig():
@@ -513,17 +517,17 @@ def make_web_studio_fig():
     ev, p_ev = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json')
     rs, p_rs = _load_json('evidence/rs_v2/w283_p14_c01.json')
     bat, p_bat = _load_json('evidence/cad_battery/w283_p14_c01.json')
-    p_stl = ROOT / 'web' / 'public' / 'data' / 'meshes' / 'w283_p14_c01.stl'
+    d1, p_d1 = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json')
     p_gen = ROOT / 'evidence' / 'rs_v2' / 'w283_ultrarunner' / 'w283_p14_c01_genome.csv'
-    inputs = [p_ev, p_rs, p_bat, p_stl, p_gen]
+    inputs = [p_ev, p_rs, p_bat, p_d1, p_gen]
 
     gen_lines = p_gen.read_text(encoding='utf-8').strip().splitlines()
     gen_hdr = gen_lines[0].split(',')
     gen_val = gen_lines[1].split(',')
     edge_t_mm = float(gen_val[gen_hdr.index('edge_t')])
 
-    tris = _parse_ascii_stl(p_stl)
-    n_tris = len(tris)
+    tris, te_elem = _build_3d_tris_from_d1(d1)
+    n_tris = int(ev['cad']['facets'])
     em = ev['engineering_metrics']
     wsc = ev['weighted_cad_score']
     g1_val = float(bat['global_fitness']['G'])
@@ -532,7 +536,7 @@ def make_web_studio_fig():
     fig, (ax3d, ax_ui) = plt.subplots(1, 2, figsize=(17.6, 6.8), dpi=160, gridspec_kw={'width_ratios': [1.15, 1.0]})
     fig.patch.set_facecolor('#0d1117')
 
-    # Left panel: 3D CAD Viewport isometric render of w283_p14_c01.stl
+    # Left panel: 3D CAD Viewport isometric render of w283_p14_c01
     ax3d.set_facecolor('#161b22')
     for sp in ax3d.spines.values():
         sp.set_color('#30363d')
@@ -563,7 +567,7 @@ def make_web_studio_fig():
         np.clip(base_rgb[0] * int_ord, 0, 1),
         np.clip(base_rgb[1] * int_ord, 0, 1),
         np.clip(base_rgb[2] * int_ord, 0, 1),
-        np.full(n_tris, 0.98),
+        np.full(len(tris), 0.98),
     ])
 
     poly = PolyCollection(polys_2d, facecolors=face_colors, edgecolors='none', linewidths=0.0, zorder=3)
