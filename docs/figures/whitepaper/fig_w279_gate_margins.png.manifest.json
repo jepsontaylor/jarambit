@@ -1,13 +1,13 @@
 {
  "figure": "docs/figures/whitepaper/fig_w279_gate_margins.png",
- "figure_sha256": "e8ff0dea71591cc7c01f3a48bdb0b98260f521cb6aff653e178d85b23e719d1e",
+ "figure_sha256": "d9faccb14723b4f441bce852bb93f1bd2be5327a680de752b92bbbec82b3e8e5",
  "inputs": {
-  "evidence/cad_battery/w279_s2928_c01.json": "4b3d5f889ab5ce4038598d589fd0690297ff7df4e04a2c57592db26d2fa65bd3",
-  "evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_D1.json": "b87601e8e6f335012391ff78f5f13c7493a0609bd3336c2cda9b3f32d3a2dd6f",
-  "evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_a4.json": "1c46456c0c75e262dc0be04570d1ae159cdac30fba90a118751b9eead081a17d",
-  "evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_cad_eval.json": "e5e8f3c17bfe4579313cd9421b888e3d666c5bacd481f7c234937210320e599f",
-  "evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_plate_gci.json": "e91488ecfe8e580fd3b80651ffb1b4b41576032ef4b30ad9fbdaeb377ddc2d47",
-  "evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_solid_tip.json": "b923b6c8ff6ce133745dd59e17b3f6090db9c74f628b525e60b5c4a7fb22489f"
+  "evidence/cad_battery/w280_s2931_c01.json": "bf031a37a6781a2bd15a429611917abdcd8e88c1a147ce7b510ce9d63ee81ef0",
+  "evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_D1.json": "1104fc856d7eba16f28d0697811f1e55ebeae00ca9259f2aedea79e829e9c7b1",
+  "evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_a4.json": "2e89f66640d9155122e40c2ff63cbdea08953bb831206513caf90f0a96a79d4d",
+  "evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_cad_eval.json": "71b1491227e9cb8002234c711bc181ccfca8605781b0e0ad24f5a03bb724d34a",
+  "evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_plate_gci.json": "821741ff7c3164d4f27e9b2abc8760db3f5f85ae7b1b64d4359152907f9c0aec",
+  "evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_solid_tip.json": "871fbc4cfbab290cca2ea532fc4f5c2a0d7a2f64dac0054aaf65ee23d6628b9c"
  },
  "norms": {},
  "schema": 1,

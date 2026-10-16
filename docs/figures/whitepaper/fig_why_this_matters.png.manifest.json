@@ -1,6 +1,6 @@
 {
  "figure": "docs/figures/whitepaper/fig_why_this_matters.png",
- "figure_sha256": "abb66e449b5014fa38e51d6647422ffe038619fbe6575e11a1887624c3359d9c",
+ "figure_sha256": "12bd0c1409b546a6ceb5ffe99455b2767d289a7de13b3154fead499ccc515556",
  "inputs": {
   "docs/market/2026-10-13/benchmark.json": "fee4c4143e0a6ec548c1b5ae0695f9a78c5f0260725650528ea5983c24e48edd",
   "docs/market/2026-10-13/census.json": "871c17a50d205feae5a93100ab212d2ddf06354d3d5fcf17c95c51ff313f7893",
@@ -14,14 +14,16 @@
   "evidence/cad_battery/w277_s2919_c01.json": "034254c50bf3c87d1b38ab4aff9ca388c533ad7460ca11e62c2f5758ffc0a41d",
   "evidence/cad_battery/w278_s2922_c01.json": "97ac98772e10a2f031fdcf8285c954a07ae15ded0a0c7c305080ffd1731da115",
   "evidence/cad_battery/w279_s2928_c01.json": "4b3d5f889ab5ce4038598d589fd0690297ff7df4e04a2c57592db26d2fa65bd3",
+  "evidence/cad_battery/w280_s2931_c01.json": "bf031a37a6781a2bd15a429611917abdcd8e88c1a147ce7b510ce9d63ee81ef0",
   "evidence/fem_solid/verify_0.30.2.json": "4778735a2e5fcd44e071e3d1013e9190ce0c6b2af637896890f6dfbade2d9008",
   "evidence/rs_v2/w274_calibrated/w274_s2905_c01_cad_eval.json": "888e32246eeb329bc6c15e0b3cd0676bacef18067ad72ee5682b3aea7a854883",
   "evidence/rs_v2/w275_ultrarunner/w275_s2909_c01_cad_eval.json": "258e7a05f138e1eab9d5094c4063233eee131f7fce22dd5506d7b0a69de0f2cf",
   "evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_cad_eval.json": "319eac13625e73f447c168ed430322dfa92fcec27526ca92620f3fd836c5fc1d",
   "evidence/rs_v2/w277_ultrarunner/w277_s2919_c01_cad_eval.json": "eb5cf75a21f33de1b6152059d86f698fb91a6c95387e7f5c56a2b30635f32f71",
   "evidence/rs_v2/w278_ultrarunner/w278_s2922_c01_cad_eval.json": "9b4b0344b19fd855872553bebebadc89fbadfa7c2a44baa3aac9e05e1b83d663",
-  "evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_D1.json": "b87601e8e6f335012391ff78f5f13c7493a0609bd3336c2cda9b3f32d3a2dd6f",
-  "evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_cad_eval.json": "e5e8f3c17bfe4579313cd9421b888e3d666c5bacd481f7c234937210320e599f"
+  "evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_cad_eval.json": "e5e8f3c17bfe4579313cd9421b888e3d666c5bacd481f7c234937210320e599f",
+  "evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_D1.json": "1104fc856d7eba16f28d0697811f1e55ebeae00ca9259f2aedea79e829e9c7b1",
+  "evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_cad_eval.json": "71b1491227e9cb8002234c711bc181ccfca8605781b0e0ad24f5a03bb724d34a"
  },
  "norms": {},
  "schema": 1,

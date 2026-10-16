@@ -28,8 +28,8 @@ class GenWhitepaper(unittest.TestCase):
         self.assertIn('figures/whitepaper/fig_w279_gate_margins.png', page1)
         self.assertNotIn('media/g3_tip+00_t60_tt3_turntable.gif', page1)
         self.assertNotIn('figures/whitepaper/wave27_g3_tip+00_t60_tt3_STEP_3D.png', page1)
-        ev = json.load(open(os.path.join(ROOT, 'evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_cad_eval.json'), encoding='utf-8'))
-        bat = json.load(open(os.path.join(ROOT, 'evidence/cad_battery/w279_s2928_c01.json'), encoding='utf-8'))
+        ev = json.load(open(os.path.join(ROOT, 'evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_cad_eval.json'), encoding='utf-8'))
+        bat = json.load(open(os.path.join(ROOT, 'evidence/cad_battery/w280_s2931_c01.json'), encoding='utf-8'))
         em = ev['engineering_metrics']
         self.assertIn(f'{em["mass_g"]:.3f} g', page1)
         self.assertIn(f'{em["mass_3d_g"]:.3f} g', page1)

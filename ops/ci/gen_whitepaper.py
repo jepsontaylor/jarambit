@@ -57,10 +57,11 @@ def hero(context=None):
     min_g = min(float(r['weight_g']) for r in plotted)
     max_g = max(float(r['weight_g']) for r in plotted)
     pct_below_med = 100.0 * (1.0 - em['mass_g'] / med_g)
+    rec_wave = rec_subj.split('_')[0]
     L = [
-        '### Page-1 Hero Figures — Why This Matters & Current Record (`w279_s2928_c01`) Gate Margins',
+        f'### Page-1 Hero Figures — Why This Matters & Current Record (`{rec_subj}`) Gate Margins',
         '',
-        '![Why this matters: all-gates winner mass vs wave (w20 through w279) and market comparison against 77 commercial karambits](figures/whitepaper/fig_why_this_matters.png)',
+        f'![Why this matters: all-gates winner mass vs wave (w20 through {rec_wave}) and market comparison against 77 commercial karambits](figures/whitepaper/fig_why_this_matters.png)',
         '',
         f'*Fig. 0a — Why this matters (`ops/render/whitepaper_hero_figs.py`, manifest `docs/figures/whitepaper/fig_why_this_matters.png.manifest.json`, verified by `ops/ci/verify_figures.py`): '
         f'(a) mass vs. wave across every wave winner from Wave 20 (`{w20["label"]}`, `{w20["mass_g"]:.3f} g`, `seq = {w20["seq_ratio"]:.3f} < 1.20`) and first all-16-gates `W_CAD_v2` winner '
@@ -71,8 +72,8 @@ def hero(context=None):
         '',
         f'![All 16 engineering gates and margin vs threshold for {rec_subj}](figures/whitepaper/fig_w279_gate_margins.png)',
         '',
-        f'*Fig. 0b — All {n_tot} engineering gates (`{n_pass}/{n_tot}` pass) for `{rec_subj}` (`evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_cad_eval.json`, '
-        f'`evidence/cad_battery/w279_s2928_c01.json`, manifest `docs/figures/whitepaper/fig_w279_gate_margins.png.manifest.json`): '
+        f'*Fig. 0b — All {n_tot} engineering gates (`{n_pass}/{n_tot}` pass) for `{rec_subj}` (`evidence/rs_v2/{rec_wave}_ultrarunner/{rec_subj}_cad_eval.json`, '
+        f'`evidence/cad_battery/{rec_subj}.json`, manifest `docs/figures/whitepaper/fig_w279_gate_margins.png.manifest.json`): '
         f'(a) normalized structural safety ratios ($\\text{{value}}/\\text{{threshold}} \\ge 1.0$) and reserve percentages (`strict_lat = {em["strict_lat_rob_0p0625_n"]:.1f} N` / `SF = {em["sf_hunter_strict"]:.4f}` `+{100.0 * (em["sf_hunter_strict"] - 1.0):.2f} %`, '
         f'`twist_strict SF = {em["twist_tipzone_sf_strict"]:.3f}` `+{100.0 * (em["twist_tipzone_sf_strict"] - 1.0):.2f} %`, `twist_tip SF = {em["twist_tip_sf"]:.3f}` `+{100.0 * (em["twist_tip_sf"] - 1.0):.2f} %`, '
         f'`solid_tip_3d P2 SF = {em["solid_tip_sf_nodal_max"]:.4f}` `+{100.0 * (em["solid_tip_sf_nodal_max"] - 1.0):.2f} %`, `seq_ratio_cert = {em["seq_ratio_cert"]:.3f} >= 1.20` `+{100.0 * (em["seq_ratio_cert"] / 1.20 - 1.0):.2f} %`, '

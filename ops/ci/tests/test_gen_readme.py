@@ -20,13 +20,13 @@ class GenReadme(unittest.TestCase):
     def test_record_badges_generated_from_committed_json(self):
         from ops.ci import gen_readme
         rec_subj, rec_eval, rec_bat = gen_readme.current_record()
-        self.assertEqual(rec_subj, 'w279_s2928_c01')
+        self.assertEqual(rec_subj, 'w280_s2931_c01')
         em = rec_eval['engineering_metrics']
         wsc = rec_eval['weighted_cad_score']
         g1 = rec_bat['global_fitness']['G']
-        self.assertAlmostEqual(em['mass_g'], 77.535, places=3)
-        self.assertAlmostEqual(em['mass_3d_g'], 77.4142, places=3)
-        self.assertAlmostEqual(g1, 0.8737531289757889, places=6)
+        self.assertAlmostEqual(em['mass_g'], 76.965, places=3)
+        self.assertAlmostEqual(em['mass_3d_g'], 76.8339, places=3)
+        self.assertAlmostEqual(g1, 0.87764625, places=6)
 
         t = open(os.path.join(ROOT, 'README.md'), encoding='utf-8').read()
         head_match = re.search(r'<!-- GEN:HEAD:BEGIN -->\n(.*?)\n<!-- GEN:HEAD:END -->', t, re.S)
@@ -49,6 +49,7 @@ class GenReadme(unittest.TestCase):
             '## Quick start',
             'docs/WHITEPAPER.md',
             'docs/ENGINEERING_GATES_AND_EVOLUTION.md',
+            '`w280_s2931_c01`',
             '`w279_s2928_c01`',
             '`w278_s2922_c01`',
             '`w277_s2919_c01`',
@@ -96,6 +97,7 @@ class GenReadme(unittest.TestCase):
             ('w277_s2919_c01', 'evidence/rs_v2/w277_ultrarunner/w277_s2919_c01_rs.json'),
             ('w278_s2922_c01', 'evidence/rs_v2/w278_ultrarunner/w278_s2922_c01_rs.json'),
             ('w279_s2928_c01', 'evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_rs.json'),
+            ('w280_s2931_c01', 'evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_rs.json'),
         ):
             with open(os.path.join(ROOT, rel), encoding='utf-8') as fh:
                 r = json.load(fh)
