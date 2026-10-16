@@ -98,6 +98,8 @@ class Records(unittest.TestCase):
             'w279_s2928_c01': {'n_tet': 91008, 'n_dof': 416583, 'ksp_its': 74, 'sf': 1.3866, 'rerun': True, 'G': 0.8737531289757889},
             'w280_s2931_c01': {'n_tet': 91008, 'n_dof': 416583, 'ksp_its': 74, 'sf': 1.3866, 'rerun': True, 'G': 0.87764625},
             'w281_s2932_c01': {'n_tet': 91008, 'n_dof': 416583, 'ksp_its': 73, 'sf': 1.4094, 'rerun': True, 'G': 0.8808251249999999},
+            'w282_p10_c02': {'n_tet': 91008, 'n_dof': 416583, 'ksp_its': 73, 'sf': 1.4094, 'rerun': True, 'G': 0.8811007499999999},
+            'w282_p14_c01': {'n_tet': 91008, 'n_dof': 416583, 'ksp_its': 73, 'sf': 1.4093, 'rerun': True, 'G': 0.8782097499999999},
         }
         for name, want in expected.items():
             tip = next(case for case in self.records[name]['cases'] if case['id'] == 'solid.tip')
@@ -213,7 +215,7 @@ class Records(unittest.TestCase):
                 case = next(row for row in self.records[name]['cases'] if row['id'] == case_id)
                 self.assertNotEqual(case['status'], 'pass')
                 self.assertNotIn('3e419ac1', json.dumps(case))
-        for name in ('w271b_11772', 'w271b_11860', 'w271c_11522', 'w272_s2902_c01', 'w273_s2904_c01', 'w273_s2903_c04', 'w274_s2905_c01', 'w275_s2909_c01', 'w276_s2913_c01', 'w277_s2919_c01', 'w278_s2922_c01', 'w279_s2928_c01', 'w280_s2931_c01', 'w281_s2932_c01'):
+        for name in ('w271b_11772', 'w271b_11860', 'w271c_11522', 'w272_s2902_c01', 'w273_s2904_c01', 'w273_s2903_c04', 'w274_s2905_c01', 'w275_s2909_c01', 'w276_s2913_c01', 'w277_s2919_c01', 'w278_s2922_c01', 'w279_s2928_c01', 'w280_s2931_c01', 'w281_s2932_c01', 'w282_p10_c02', 'w282_p14_c01'):
             for case_id in ('side.a1', 'side.a2', 'side.a3'):
                 case = next(row for row in self.records[name]['cases'] if row['id'] == case_id)
                 self.assertEqual(case['status'], 'pass')
@@ -235,6 +237,8 @@ class Records(unittest.TestCase):
             ('w279_s2928_c01', 'fail'),
             ('w280_s2931_c01', 'fail'),
             ('w281_s2932_c01', 'fail'),
+            ('w282_p10_c02', 'fail'),
+            ('w282_p14_c01', 'fail'),
         ):
             gci = next(row for row in self.records[name]['cases'] if row['id'] == 'plate.gci')
             self.assertEqual(gci['status'], want_status)
@@ -302,7 +306,9 @@ class Records(unittest.TestCase):
         ev279 = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w279_ultrarunner' / 'w279_s2928_c01_cad_eval.json').read_text(encoding='utf-8'))
         ev280 = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w280_ultrarunner' / 'w280_s2931_c01_cad_eval.json').read_text(encoding='utf-8'))
         ev281 = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w281_ultrarunner' / 'w281_s2932_c01_cad_eval.json').read_text(encoding='utf-8'))
-        for ev in (ev274, ev275, ev276, ev277, ev278, ev279, ev280, ev281):
+        ev282_p10 = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w282_ultrarunner' / 'w282_p10_c02_cad_eval.json').read_text(encoding='utf-8'))
+        ev282_p14 = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w282_ultrarunner' / 'w282_p14_c01_cad_eval.json').read_text(encoding='utf-8'))
+        for ev in (ev274, ev275, ev276, ev277, ev278, ev279, ev280, ev281, ev282_p10, ev282_p14):
             w = ev['weighted_cad_score']
             self.assertEqual(w['metric'], 'W_CAD_v2_ultrarunner_karambit')
             self.assertTrue(w['all_engineering_gates_pass'])
@@ -314,7 +320,7 @@ class Records(unittest.TestCase):
             self.assertAlmostEqual(sum(w['weights'].values()), 1.0, places=6)
             self.assertEqual(w['weights']['w_mass'], 0.70)
 
-        # Verify strict progression: w281_s2932_c01 (75.911 g) < w280_s2931_c01 (76.965 g) < w279_s2928_c01 (77.535 g) < w278_s2922_c01 (78.58 g) < w277_s2919_c01 (79.509 g) < w276_s2913_c01 (79.995 g) < w275_s2909_c01 (81.774 g) < w274_s2905_c01 (84.98 g)
+        # Verify strict progression: w282_p14_c01 (75.568 g) < w282_p10_c02 (75.836 g) < w281_s2932_c01 (75.911 g) < w280_s2931_c01 (76.965 g) < w279_s2928_c01 (77.535 g) < w278_s2922_c01 (78.58 g) < w277_s2919_c01 (79.509 g) < w276_s2913_c01 (79.995 g) < w275_s2909_c01 (81.774 g) < w274_s2905_c01 (84.98 g)
         self.assertLess(ev275['engineering_metrics']['mass_g'], ev274['engineering_metrics']['mass_g'])
         self.assertGreater(ev275['weighted_cad_score']['W_CAD'], ev274['weighted_cad_score']['W_CAD'])
         self.assertGreater(ev275['global_fitness_G1']['G'], ev274['global_fitness_G1']['G'])
@@ -359,6 +365,12 @@ class Records(unittest.TestCase):
         self.assertGreater(ev281['engineering_metrics']['seq_ratio_cert'], ev280['engineering_metrics']['seq_ratio_cert'])
         self.assertGreater(ev281['engineering_metrics']['twist_tipzone_sf_strict'], ev280['engineering_metrics']['twist_tipzone_sf_strict'])
         self.assertGreater(ev281['engineering_metrics']['solid_tip_sf_nodal_max'], ev280['engineering_metrics']['solid_tip_sf_nodal_max'])
+        self.assertLess(ev282_p10['engineering_metrics']['mass_g'], ev281['engineering_metrics']['mass_g'])
+        self.assertLess(ev282_p10['cad']['mass_3d_g'], ev281['cad']['mass_3d_g'])
+        self.assertGreater(ev282_p10['weighted_cad_score']['W_CAD'], ev281['weighted_cad_score']['W_CAD'])
+        self.assertGreater(ev282_p10['global_fitness_G1']['G'], ev281['global_fitness_G1']['G'])
+        self.assertLess(ev282_p14['engineering_metrics']['mass_g'], ev282_p10['engineering_metrics']['mass_g'])
+        self.assertLess(ev282_p14['cad']['mass_3d_g'], ev282_p10['cad']['mass_3d_g'])
 
         # Verify that 1 g of mass savings beats excess strength above the +8% survival knee
         w = ev276['weighted_cad_score']
@@ -471,6 +483,45 @@ class Records(unittest.TestCase):
                 os.environ.pop('JARAMBIT_CAD_BATTERY', None)
             else:
                 os.environ['JARAMBIT_CAD_BATTERY'] = old
+
+    def test_score_cad_turnkey_handoff_all_modes(self):
+        from pathlib import Path
+        import tempfile
+        from ops.ci.score_cad import score_cad
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = Path(tmp) / 'scorecards'
+            # Mode 1: Catalog subject (w282_p14_c01)
+            sc_cat = score_cad('w282_p14_c01', out_dir, run_solid=False)
+            self.assertEqual(sc_cat['schema'], 'jarambit.master_cad_scorecard.v1')
+            self.assertTrue(sc_cat['weighted_cad_score']['all_engineering_gates_pass'])
+            self.assertEqual(len(sc_cat['weighted_cad_score']['gates']), 16)
+            self.assertTrue(all(sc_cat['weighted_cad_score']['gates'].values()))
+            self.assertAlmostEqual(sc_cat['weighted_cad_score']['W_CAD'], 1.779046, places=5)
+            self.assertAlmostEqual(sc_cat['global_fitness_G1']['G'], 0.87820975, places=6)
+            self.assertEqual(sc_cat['global_fitness_G1']['status'], 'COMPLETE')
+            self.assertEqual(len(sc_cat['cad_battery']['cases']), 18)
+            self.assertTrue((out_dir / 'w282_p14_c01_master_scorecard.json').is_file())
+            self.assertTrue((out_dir / 'w282_p14_c01_master_scorecard.md').is_file())
+
+            # Mode 2: Native B-rep CAD subject (c10a)
+            sc_c10a = score_cad('c10a', out_dir, run_solid=False)
+            self.assertFalse(sc_c10a['weighted_cad_score']['all_engineering_gates_pass'])
+            self.assertLess(sc_c10a['weighted_cad_score']['W_CAD'], 0.0)
+            self.assertEqual(sc_c10a['global_fitness_G1']['status'], 'COMPLETE')
+            self.assertEqual(len(sc_c10a['cad_battery']['cases']), 18)
+            self.assertTrue(sc_c10a['cad']['watertight_exact'])
+            self.assertLess(sc_c10a['cad']['rel_mass_diff'], 0.01)
+
+            # Mode 3: Standalone 3D STEP geometry (--force-standalone-cad)
+            step_path = ROOT / 'evidence' / 'rs_v2' / 'w282_ultrarunner' / 'w282_p14_c01.step'
+            sc_step = score_cad(str(step_path), out_dir, run_solid=False, force_standalone_cad=True)
+            self.assertTrue(sc_step['weighted_cad_score']['all_engineering_gates_pass'])
+            self.assertGreater(sc_step['weighted_cad_score']['W_CAD'], 1.0)
+            self.assertEqual(sc_step['global_fitness_G1']['status'], 'COMPLETE')
+            self.assertEqual(len(sc_step['cad_battery']['cases']), 18)
+            self.assertTrue(sc_step['cad']['watertight_exact'])
+            self.assertLess(sc_step['cad']['rel_mass_diff'], 0.005)
 
 
 if __name__ == '__main__':

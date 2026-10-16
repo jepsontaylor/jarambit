@@ -101,6 +101,7 @@ def load_wave_winners():
         ('w279', 'evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_cad_eval.json', 'evidence/cad_battery/w279_s2928_c01.json'),
         ('w280', 'evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_cad_eval.json', 'evidence/cad_battery/w280_s2931_c01.json'),
         ('w281', 'evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_cad_eval.json', 'evidence/cad_battery/w281_s2932_c01.json'),
+        ('w282', 'evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json', 'evidence/cad_battery/w282_p14_c01.json'),
     ]
     wcad_winners = []
     for wtag, eval_rel, bat_rel in wcad_specs:
@@ -136,7 +137,7 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
 
     # Shaded regime background
     ax.axvspan(-0.5, n_v1 - 0.5, color='#1f2937', alpha=0.35, label='Waves 20–27e: RS-karambit-v1 screen (seq < 1.20 soft)')
-    ax.axvspan(n_v1 - 0.5, len(all_pts) - 0.3, color='#0f291e', alpha=0.42, label='Waves 274–281: All 16 Gates PASS (seq ≥ 1.20 hard + 3D solid tip)')
+    ax.axvspan(n_v1 - 0.5, len(all_pts) - 0.3, color='#0f291e', alpha=0.42, label='Waves 274–282: All 16 Gates PASS (seq ≥ 1.20 hard + 3D solid tip)')
 
     # 80 g target line
     ax.axhline(80.0, color='#ffa657', linestyle='--', linewidth=1.4, label='Soft Mass Target (80.00 g)')
@@ -152,12 +153,12 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
     # Plot W_CAD_v2 16-gate winners (2.5D raster + 3D solid)
     ax.plot(xs_wcad, ys_wcad, '-s', color='#3fb950', linewidth=2.6, markersize=8.0,
             markerfacecolor='#3fb950', markeredgecolor='#f0f6fc', markeredgewidth=1.1,
-            label='2.5D Raster Mass — W274–W281 All-16-Gates Winners', zorder=5)
+            label='2.5D Raster Mass — W274–W282 All-16-Gates Winners', zorder=5)
     ax.plot(xs_wcad, ys_wcad_3d, '--D', color='#d2a8ff', linewidth=1.8, markersize=6.0,
             markerfacecolor='#d2a8ff', markeredgecolor='#0d1117', markeredgewidth=0.9,
-            label=f"3D Solid STEP/STL Mass — W274–W281 ({100.0 * abs(wcad_winners[-1]['mass_g'] - wcad_winners[-1]['mass_3d_g']) / wcad_winners[-1]['mass_g']:.2f}% parity on W281)", zorder=6)
+            label=f"3D Solid STEP/STL Mass — W274–W282 ({100.0 * abs(wcad_winners[-1]['mass_g'] - wcad_winners[-1]['mass_3d_g']) / wcad_winners[-1]['mass_g']:.2f}% parity on W282)", zorder=6)
 
-    # Highlight current record w281_s2932_c01
+    # Highlight current record w282_p14_c01
     rec = wcad_winners[-1]
     rx = xs[-1]
     ax.scatter([rx], [rec['mass_g']], s=260, marker='*', color='#ffd33d', edgecolors='#f0f6fc', linewidths=1.3, zorder=8,
@@ -180,6 +181,7 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
         'w278': (10, 12),
         'w279': (-8, -16),
         'w280': (10, 12),
+        'w281': (-6, 12),
     }
     for i, p in enumerate(all_pts):
         if i == len(all_pts) - 1:
@@ -187,14 +189,14 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
         m = p['mass_g']
         ox, oy = pos_map.get(p['wave'], (0, 12))
         lbl_txt = f"{p['mass_g']:.2f} g"
-        if not compact and p['wave'] in ('w20', 'w25', 'w27', 'w274', 'w276', 'w278', 'w280'):
+        if not compact and p['wave'] in ('w20', 'w25', 'w27', 'w274', 'w276', 'w278', 'w281'):
             lbl_txt = f"{p['label']}\n{p['mass_g']:.2f} g"
         ax.annotate(lbl_txt, (xs[i], m), xytext=(ox, oy), textcoords='offset points',
                     ha='center', va='center', color='#e6edf3', fontsize=7.5 if compact else 8.0, fontweight='bold')
 
-    # Prominent callout box for record w281_s2932_c01 kept strictly inside axis bounds
+    # Prominent callout box for record w282_p14_c01 kept strictly inside axis bounds
     callout = (
-        f"RECORD: {rec['label']} (Wave 281)\n"
+        f"RECORD: {rec['label']} (Wave 282)\n"
         f"• 2.5D Raster: {rec['mass_g']:.3f} g  |  3D Solid: {rec['mass_3d_g']:.3f} g\n"
         f"• Locked G1 = {rec['g1']:.6f}  |  W_CAD = +{rec['w_cad']:.4f}\n"
         f"• strict_lat = {rec['strict_lat_n']:.1f} N  |  seq = {rec['seq_ratio']:.3f}  |  3D tip SF = {rec['solid_tip_sf']:.4f}"
@@ -214,7 +216,7 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
     ax.set_xticks(xs)
     ax.set_xticklabels([f"{p['wave'].upper()}\n({p['label'][:8]})" for p in all_pts], fontsize=7.4, rotation=20, ha='right')
     ax.set_ylabel('Finished Titanium Knife Mass (g)', fontsize=10.5, fontweight='bold')
-    ax.set_xlabel('Evolutionary Wave (All-Gates Winners, W20 → W281)', fontsize=10.5, fontweight='bold')
+    ax.set_xlabel('Evolutionary Wave (All-Gates Winners, W20 → W282)', fontsize=10.5, fontweight='bold')
     ax.set_ylim(73.4, 88.8)
     ax.set_xlim(-0.6, len(all_pts) - 0.2)
     ax.grid(True, color='#21262d', linestyle='--', linewidth=0.7, alpha=0.8)
@@ -239,7 +241,7 @@ def make_readme_hero_fig():
     _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False)
     rec = wcad_winners[-1]
     ax.set_title(
-        f"jarambit Multi-Wave Mass Progression (W20 → W281): Record {rec['label']} at {rec['mass_g']:.3f} g ({rec['mass_3d_g']:.3f} g 3D Solid, G1 = {rec['g1']:.6f})",
+        f"jarambit Multi-Wave Mass Progression (W20 → W282): Record {rec['label']} at {rec['mass_g']:.3f} g ({rec['mass_3d_g']:.3f} g 3D Solid, G1 = {rec['g1']:.6f})",
         fontsize=11.8, fontweight='bold', pad=12,
     )
     leg = ax.legend(loc='upper right', facecolor='#0d1117', edgecolor='#30363d', fontsize=8.2, ncol=2)
@@ -262,7 +264,7 @@ def make_why_this_matters_fig():
     census_rows, p_census = _load_json('docs/market/2026-10-13/census.json')
     market_sum, p_msum = _load_json('docs/market/2026-10-13/summary.json')
     bench_doc, p_bench = _load_json('docs/market/2026-10-13/benchmark.json')
-    d1_w279, p_d1_w279 = _load_json('evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_D1.json')
+    d1_w279, p_d1_w279 = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_D1.json')
     inputs.extend([p_census, p_msum, p_bench, p_d1_w279])
 
     rec = wcad_winners[-1]
@@ -284,7 +286,7 @@ def make_why_this_matters_fig():
 
     # Panel (a): Mass vs Wave curve
     _plot_mass_vs_wave(ax0, v1_winners, wcad_winners, compact=True)
-    ax0.set_title('(a) Evolutionary Mass Reduction Across All-Gates Winners (W20 → W281)', fontsize=11.0, fontweight='bold', pad=10)
+    ax0.set_title('(a) Evolutionary Mass Reduction Across All-Gates Winners (W20 → W282)', fontsize=11.0, fontweight='bold', pad=10)
     leg0 = ax0.legend(loc='upper right', facecolor='#0d1117', edgecolor='#30363d', fontsize=7.4)
     for txt in leg0.get_texts():
         txt.set_color('#c9d1d9')
@@ -380,12 +382,12 @@ def make_w279_gate_margins_fig():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     fig_path = OUT_DIR / 'fig_w279_gate_margins.png'
 
-    ev, p_ev = _load_json('evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_cad_eval.json')
-    d1, p_d1 = _load_json('evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_D1.json')
-    gci, p_gci = _load_json('evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_plate_gci.json')
-    a4, p_a4 = _load_json('evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_a4.json')
-    st, p_st = _load_json('evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_solid_tip.json')
-    bat, p_bat = _load_json('evidence/cad_battery/w281_s2932_c01.json')
+    ev, p_ev = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json')
+    d1, p_d1 = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_D1.json')
+    gci, p_gci = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_plate_gci.json')
+    a4, p_a4 = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_a4.json')
+    st, p_st = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_solid_tip.json')
+    bat, p_bat = _load_json('evidence/cad_battery/w282_p14_c01.json')
     inputs = [p_ev, p_d1, p_gci, p_a4, p_st, p_bat]
 
     em = ev['engineering_metrics']

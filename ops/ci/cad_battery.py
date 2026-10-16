@@ -904,17 +904,18 @@ def evaluate_genome_pipeline(entry: str, commit: str, probes: dict, out_dir: Pat
             gci_path.parent.mkdir(parents=True, exist_ok=True)
             gci_path.write_text(json.dumps(gci_doc, indent=2, sort_keys=True) + '\n', encoding='utf-8')
 
+    existing_d1 = None
+    for cand_d1 in (gpath.parent / f'{label}_D1.json', gpath.parent / f'{label}.json', (out_dir / '_battery_work' / f'{label}_D1.json')):
+        if cand_d1.is_file():
+            try:
+                doc = json.loads(cand_d1.read_text(encoding='utf-8'))
+                if isinstance(doc.get('mesh'), dict) and isinstance(doc.get('metrics'), dict):
+                    existing_d1 = cand_d1
+                    break
+            except Exception:
+                pass
+
     if not a4_path.is_file() and jarambit_bin.is_file() and rs_path.is_file() and a1a3_path.is_file():
-        existing_d1 = None
-        for cand_d1 in (gpath.parent / f'{label}_D1.json', gpath.parent / f'{label}.json'):
-            if cand_d1.is_file():
-                try:
-                    doc = json.loads(cand_d1.read_text(encoding='utf-8'))
-                    if isinstance(doc.get('mesh'), dict) and isinstance(doc.get('metrics'), dict):
-                        existing_d1 = cand_d1
-                        break
-                except Exception:
-                    pass
         if existing_d1 is not None:
             a4_rec = eval_side_a4(label, existing_d1, rs_path, a1a3_path)
             a4_path.parent.mkdir(parents=True, exist_ok=True)
@@ -926,6 +927,11 @@ def evaluate_genome_pipeline(entry: str, commit: str, probes: dict, out_dir: Pat
                     cwd=ROOT, env=_child_env(D1_PLATES='1'), check=True,
                 )
                 d1_tmp = Path(tmp) / f'{label}_D1.json'
+                if not in_catalog and d1_tmp.is_file():
+                    d1_saved = out_dir / '_battery_work' / f'{label}_D1.json'
+                    d1_saved.parent.mkdir(parents=True, exist_ok=True)
+                    d1_saved.write_text(d1_tmp.read_text(encoding='utf-8'), encoding='utf-8')
+                    existing_d1 = d1_saved
                 a4_rec = eval_side_a4(label, d1_tmp, rs_path, a1a3_path)
                 a4_path.parent.mkdir(parents=True, exist_ok=True)
                 a4_path.write_text(json.dumps(a4_rec, indent=2, sort_keys=True) + '\n', encoding='utf-8')
@@ -933,11 +939,16 @@ def evaluate_genome_pipeline(entry: str, commit: str, probes: dict, out_dir: Pat
     custom_spec = None
     if not in_catalog:
         side_seq = json.loads(a1a3_path.read_text(encoding='utf-8')).get('seq_ratio_this_mesh') if a1a3_path.is_file() else None
+        tip_cand = None
+        for tc in (gpath.parent / f'{label}_solid_tip.json', out_dir / '_battery_work' / f'{label}_solid_tip.json', out_dir / f'{label}_solid_tip.json'):
+            if tc.is_file():
+                tip_cand = tc
+                break
         custom_spec = {
             'rs': str(rs_path),
-            'd1': None,
+            'd1': str(existing_d1) if existing_d1 is not None and existing_d1.is_file() else None,
             'genome': str(gpath),
-            'tip_mesh': None,
+            'tip_mesh': str(tip_cand) if tip_cand is not None else None,
             'plate_gci': str(gci_path) if gci_path.is_file() else None,
             'side_a4': str(a4_path) if a4_path.is_file() else None,
             'side_path': str(a1a3_path) if a1a3_path.is_file() else None,

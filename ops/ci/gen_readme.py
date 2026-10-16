@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generate the data-bearing blocks of README.md (issue #35). Deterministic: no clock, no git, no network.
 Every number comes from a committed, CI-validated source:
-  docs/VERSION · evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_cad_eval.json ·
-  evidence/cad_battery/w281_s2932_c01.json · docs/wave27_diversity/plates/wave27_D1_index.json ·
+  docs/VERSION · evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json ·
+  evidence/cad_battery/w282_p14_c01.json · docs/wave27_diversity/plates/wave27_D1_index.json ·
   requirements/RS-karambit-v{1,2}.toml · crates/crescent/src/qd.rs + fem.rs constants ·
   docs/v1/science/tests/TEST_CASE_CATALOG.json
 Blocks: <!-- GEN:HEAD:BEGIN --> ... <!-- GEN:HEAD:END -->, <!-- GEN:FIGS:BEGIN --> ... <!-- GEN:FIGS:END -->,
@@ -24,7 +24,7 @@ DESIGN = LABEL[:-3]
 FIG = 'docs/figures/whitepaper'
 EG_FIG = 'docs/figures/engineering_gates'
 BATTERY_SUBJECTS = (
-    'g3', 'w281_s2932_c01', 'w280_s2931_c01', 'w279_s2928_c01', 'w278_s2922_c01', 'w277_s2919_c01', 'w276_s2913_c01', 'w275_s2909_c01', 'w274_s2905_c01', 'w273_s2904_c01', 'w271c_11522', 'w272_s2902_c01',
+    'g3', 'w282_p14_c01', 'w282_p10_c02', 'w281_s2932_c01', 'w280_s2931_c01', 'w279_s2928_c01', 'w278_s2922_c01', 'w277_s2919_c01', 'w276_s2913_c01', 'w275_s2909_c01', 'w274_s2905_c01', 'w273_s2904_c01', 'w271c_11522', 'w272_s2902_c01',
     'w273_s2903_c04', 'w271b_11772', 'w271b_11860',
     'c10a', 'c93', 'c92', 'c10c',
 )
@@ -37,6 +37,8 @@ CAD_EVAL_PATHS = (
     ('w279_s2928_c01', 'evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_cad_eval.json'),
     ('w280_s2931_c01', 'evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_cad_eval.json'),
     ('w281_s2932_c01', 'evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_cad_eval.json'),
+    ('w282_p10_c02', 'evidence/rs_v2/w282_ultrarunner/w282_p10_c02_cad_eval.json'),
+    ('w282_p14_c01', 'evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json'),
 )
 
 

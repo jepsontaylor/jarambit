@@ -107,21 +107,35 @@ pub fn strength_margin(r: &Rec) -> f64 {
     r.fem.as_ref().map_or(0.0, |f| [f.lat_rob / 260.0, f.ring_rob / 1500.0, f.seq_ratio / fem::SEQ_TARGET, f.twist_body_sf, f.twist_tipzone_sf]
         .iter().cloned().fold(f64::INFINITY, f64::min) - 1.0).max(0.0)
 }
-/// Knee-capped structural reserve bonus for all-gates evolution: rewards up to +5.5% reserve on
-/// `lat_rob / 260` and `seq_ratio / 1.20` and up to +8.5% reserve on `twist_tipzone_sf`, then saturates.
-pub fn reserve_bonus(r: &Rec) -> f64 {
-    r.fem.as_ref().map_or(0.0, |f| {
-        let r_lat = ((f.lat_rob / 260.0 - 1.0).clamp(0.0, 0.055)) / 0.055;
-        let r_seq = ((f.seq_ratio / fem::SEQ_TARGET - 1.0).clamp(0.0, 0.055)) / 0.055;
-        let r_tw = ((f.twist_tipzone_sf - 1.0).clamp(0.0, 0.085)) / 0.085;
-        0.012 * r_lat + 0.012 * r_seq + 0.006 * r_tw
-    })
+fn knee(x: f64, tau: f64) -> f64 {
+    if x <= 0.0 { 0.0 } else { 1.0 - (-x / tau.max(1e-9)).exp() }
+}
+
+/// W_CAD_v2 combined fitness weighting for feasible all-gates candidates (70% mass on [92g -> 74g],
+/// 12% karambit authenticity, 10% knee-capped survival buffer, 5% knee-capped sequence buffer, 3% carry/fatigue stability).
+pub fn w_cad_v2_feasible(r: &Rec) -> f64 {
+    let Some(f) = &r.fem else { return -50.0; };
+    let lin_m = (92.0 - r.mass_g) / (92.0 - 74.0);
+    let log_m = (92.0 / r.mass_g.max(20.0)).ln() / (92.0_f64 / 74.0).ln();
+    let s_mass = (0.65 * lin_m + 0.35 * log_m).clamp(0.0, 1.0);
+    let s_aes = ((r.aes.score - 0.50) / 0.20).clamp(0.0, 1.0);
+    let s_hook = ((r.blade.hook_drop - 25.0) / 10.0).clamp(0.0, 1.0);
+    let s_curve = ((r.aes.inside_concave.min(r.aes.spine_convex) - 0.85) / 0.12).clamp(0.0, 1.0);
+    let s_karambit = 0.50 * s_aes + 0.25 * s_hook + 0.25 * s_curve;
+    let k_hunter = knee(f.lat_rob / 260.0 - 1.0, 0.03);
+    let k_twist = knee(f.twist_tipzone_sf - 1.0, 0.03);
+    let k_body = knee(f.twist_body_sf - 1.0, 0.03);
+    let s_survival = 0.45 * k_hunter + 0.40 * k_twist + 0.15 * k_body;
+    let s_seq = knee((f.seq_ratio - fem::SEQ_TARGET) / fem::SEQ_TARGET, 0.025);
+    let s_carry = 0.60 * r.novelty.clamp(0.0, 1.0) + 0.40 * knee(f.fat_sf - 1.0, 0.20);
+    1.0 + 0.70 * s_mass + 0.12 * s_karambit + 0.10 * s_survival + 0.05 * s_seq + 0.03 * s_carry
 }
 
 /// Cap-free fitness (PR-0.31.2, Jepson directive: no hard mass caps).
 /// Infeasible: graded constraint-violation penalty, always < 0 (aes -200.., gates -100.., no FEM -50,
 /// FEM floors -1-10*deficit, seq/twist (-1, -0.1) graded by the violated ratios).
-/// Feasible: F = 1 + ln-mass reward + MARGIN_W*(1 - exp(-margin/0.1)) + 0.02*A + 0.02*min(novelty, 1)  (always >= 1).
+/// Feasible: under JARAMBIT_ALL_GATES=1, directly evaluates W_CAD_v2 combined fitness in [1.0, 2.0];
+/// otherwise F = 1 + ln-mass reward + MARGIN_W*(1 - exp(-margin/0.1)) + 0.02*A + 0.02*min(novelty, 1) (always >= 1).
 pub fn fitness(r: &Rec) -> f64 {
     if !r.aes.pass { return -200.0 - r.aes.fails.len() as f64 - r.aes.hausdorff; }
     if !r.rejects.is_empty() { return -100.0 - r.rejects.len() as f64; }
@@ -135,10 +149,15 @@ pub fn fitness(r: &Rec) -> f64 {
         // through-lattice experiment lane: feasible but too few through-features ranks below every feasible design that has them
         Some(_) if r.n_win + r.n_perf < min_through() => -0.09 + 0.08 * ((r.n_win + r.n_perf) as f64 / min_through() as f64),
         Some(_) => {
-            let (mw, ms) = if ag { (0.025, 0.05) } else { (MARGIN_W, MARGIN_SCALE) };
-            let r_bon = if ag { reserve_bonus(r) } else { 0.0 };
-            1.0 + mass_reward(r.mass_g) - mass_over_penalty(r.mass_g) + mw * (1.0 - (-strength_margin(r) / ms).exp()) + r_bon
-                + 0.02 * r.aes.score.clamp(0.0, 1.0) + 0.02 * r.novelty.clamp(0.0, 1.0) } }
+            if ag {
+                w_cad_v2_feasible(r)
+            } else {
+                1.0 + mass_reward(r.mass_g) - mass_over_penalty(r.mass_g)
+                    + MARGIN_W * (1.0 - (-strength_margin(r) / MARGIN_SCALE).exp())
+                    + 0.02 * r.aes.score.clamp(0.0, 1.0) + 0.02 * r.novelty.clamp(0.0, 1.0)
+            }
+        }
+    }
 }
 /// Back-compat shim: the tip-twist floor is now always hard; the flag is ignored.
 pub fn fitness_opt(r: &Rec, _tiptwist: bool) -> f64 { fitness(r) }
