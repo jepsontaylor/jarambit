@@ -29,7 +29,10 @@ class BoundedCITests(unittest.TestCase):
                 payload.write_text('import json,os,subprocess,time\n'
                                    'from pathlib import Path\n'
                                    'p=subprocess.Popen(["sleep","30"],start_new_session=True)\n'
-                                   f'Path({str(pidfile)!r}).write_text(json.dumps([os.getpid(),p.pid]))\n'
+                                   f'target=Path({str(pidfile)!r})\n'
+                                   'tmp=target.with_suffix(".tmp")\n'
+                                   'tmp.write_text(json.dumps([os.getpid(),p.pid]))\n'
+                                   'tmp.replace(target)\n'
                                    'time.sleep(30)\n')
                 body = folder / 'body.sh'
                 body.write_text('exec python3 "' + str(payload) + '"\n')
@@ -39,10 +42,17 @@ class BoundedCITests(unittest.TestCase):
                 owned = []
                 try:
                     deadline = time.monotonic() + 15
-                    while not pidfile.exists() and process.poll() is None and time.monotonic() < deadline:
+                    raw_pids = ''
+                    while process.poll() is None and time.monotonic() < deadline:
+                        if pidfile.is_file():
+                            raw_pids = pidfile.read_text().strip()
+                            if raw_pids:
+                                break
                         time.sleep(0.02)
-                    self.assertTrue(pidfile.exists(), 'bounded body did not start')
-                    owned = json.loads(pidfile.read_text())
+                    if not raw_pids and pidfile.is_file():
+                        raw_pids = pidfile.read_text().strip()
+                    self.assertTrue(bool(raw_pids), 'bounded body did not write non-empty pidfile')
+                    owned = json.loads(raw_pids)
                     process.send_signal(signum)
                     stdout, stderr = process.communicate(timeout=10)
                     self.assertEqual(process.returncode, 128 + signum, stdout + stderr)
