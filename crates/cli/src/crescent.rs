@@ -508,21 +508,26 @@ pub fn d1(csvs: &str, threads: usize, out: &str) -> bool {
 pub fn should_run_cad_battery_from(flag: Option<&str>, depth: Option<&str>) -> bool {
     flag == Some("1") && depth != Some("1")
 }
-fn cad_battery_command(out: &str, label: &str, genome_csv: &str) -> std::process::Command {
-    let mut cmd = std::process::Command::new("python3");
-    cmd.env_remove("JARAMBIT_CAD_BATTERY")
-        .env("JARAMBIT_CAD_BATTERY_DEPTH", "1")
-        .args(["ops/ci/cad_battery.py", "--evaluate-genome", &format!("{label}={genome_csv}"),
-               "--out-dir", out,
-               "--analytic", "pass", "--gci", "pass", "--claims", "pass", "--dolfinx", "pass"]);
-    cmd
+fn default_battery_probes() -> jarambit_crescent::battery::Probes {
+    jarambit_crescent::battery::Probes::default()
 }
 fn maybe_run_cad_battery(out: &str, label: &str, genome_csv: &str) {
     let flag = std::env::var("JARAMBIT_CAD_BATTERY").ok();
     let depth = std::env::var("JARAMBIT_CAD_BATTERY_DEPTH").ok();
     if !should_run_cad_battery_from(flag.as_deref(), depth.as_deref()) { return; }
-    let status = cad_battery_command(out, label, genome_csv).status();
-    if let Err(e) = status { eprintln!("cad_battery({label}): {e}"); }
+    let root = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+    let entry = format!("{label}={genome_csv}");
+    let probes = default_battery_probes();
+    if let Err(e) = jarambit_crescent::battery::run_cad_battery_native(
+        &root,
+        None,
+        Some(&entry),
+        std::path::Path::new(out),
+        None,
+        &probes,
+    ) {
+        eprintln!("cad_battery({label}): {e}");
+    }
 }
 
 pub fn evolve_tail_hook(out: &str, label: &str) {
@@ -530,7 +535,7 @@ pub fn evolve_tail_hook(out: &str, label: &str) {
 }
 #[cfg(test)]
 mod design_entry_tests {
-    use super::{cad_battery_command, design_entry, should_run_cad_battery_from};
+    use super::{default_battery_probes, design_entry, should_run_cad_battery_from};
     #[test]
     fn bare_path_is_named_by_stem() {
         assert_eq!(design_entry("out/x/w271b_11772.csv"), ("w271b_11772".to_string(), "out/x/w271b_11772.csv"));
@@ -545,9 +550,9 @@ mod design_entry_tests {
         assert!(should_run_cad_battery_from(Some("1"), None));
         assert!(should_run_cad_battery_from(Some("1"), Some("0")));
         assert!(!should_run_cad_battery_from(Some("1"), Some("1")));
-        let cmd = cad_battery_command("/tmp/jb_out", "lbl", "/tmp/jb_out/lbl_genome.csv");
-        let envs: Vec<_> = cmd.get_envs().collect();
-        assert!(envs.contains(&(std::ffi::OsStr::new("JARAMBIT_CAD_BATTERY"), None)));
-        assert!(envs.contains(&(std::ffi::OsStr::new("JARAMBIT_CAD_BATTERY_DEPTH"), Some(std::ffi::OsStr::new("1")))));
+        let probes = default_battery_probes();
+        assert_eq!(probes.analytic.as_str(), "pass");
+        assert_eq!(probes.dolfinx.as_deref(), Some("pass"));
     }
 }
+

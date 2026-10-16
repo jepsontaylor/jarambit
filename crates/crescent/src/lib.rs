@@ -16,8 +16,13 @@ pub mod fem;
 pub mod export;
 pub mod qd;
 pub mod record;
+pub mod g1;
+pub mod gci;
+pub mod cad_ingest;
+pub mod battery;
 pub use genome::Genome;
 pub use pheno::{build, Pheno};
 
 #[cfg(test)]
 mod tests;
+
