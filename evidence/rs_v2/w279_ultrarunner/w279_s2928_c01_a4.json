@@ -1,0 +1,34 @@
+{
+  "bore_support": {
+    "k_flange_n_per_mm": 100000.0,
+    "k_radial_n_per_mm": 50000.0,
+    "k_tangential_n_per_mm": 5000.0,
+    "model": "radial_pin_bearing_and_flange",
+    "n_bore_nodes": 131
+  },
+  "buckling_critical_load_n": 2427.8904743752964,
+  "buckling_eigenvalue": 9.338040286058833,
+  "certified_model": "run_b ring-hole clamp in all 5 DOFs",
+  "certified_seq_ratio": 1.2022212649660606,
+  "changes_seq_ratio": false,
+  "d1_sha256": "b87601e8e6f335012391ff78f5f13c7493a0609bd3336c2cda9b3f32d3a2dd6f",
+  "eigensolver": "scipy.sparse.linalg.eigsh",
+  "genome": "evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_genome.csv",
+  "genome_sha256": "56fb45ba5f98862c89eacd8c5d49ecd42b091497b1464981bd46b7a77371106c",
+  "grip_foundation_stiffness": {
+    "k_foundation_n_per_mm3": 200.0,
+    "model": "winkler_grip_pad_foundation",
+    "n_grip_nodes": 6281
+  },
+  "mesh_max_area_mm2": 0.25,
+  "n_elem": 25429,
+  "n_node": 13613,
+  "partial_solver_edit": false,
+  "schema": "jarambit.side_report.a4.v1",
+  "status": "pass",
+  "subject": "w279_s2928_c01",
+  "supported_blade_peak_mpa_per_n": 1.9404241692067608,
+  "supported_hand_peak_mpa_per_n": 0.5003770715524224,
+  "supported_seq_ratio": 3.877923828896846,
+  "supported_vs_certified_seq_delta": 2.675702563930785
+}

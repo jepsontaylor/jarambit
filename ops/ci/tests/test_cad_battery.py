@@ -15,13 +15,13 @@ LIVE = (
     'g3', 'w271b_11772', 'w271b_11860', 'w271c_11522',
     'w272_s2902_c01', 'w273_s2904_c01', 'w273_s2903_c04',
     'w274_s2905_c01', 'w275_s2909_c01', 'w276_s2913_c01', 'w277_s2919_c01',
-    'w278_s2922_c01',
+    'w278_s2922_c01', 'w279_s2928_c01',
 )
 GENOMES = (
     'g3', 'w271b_11772', 'w271b_11860', 'w271c_11522',
     'w272_s2902_c01', 'w273_s2904_c01', 'w273_s2903_c04',
     'w274_s2905_c01', 'w275_s2909_c01', 'w276_s2913_c01', 'w277_s2919_c01',
-    'w278_s2922_c01',
+    'w278_s2922_c01', 'w279_s2928_c01',
 )
 
 
@@ -93,6 +93,7 @@ class Records(unittest.TestCase):
             'w276_s2913_c01': {'n_tet': 90384, 'n_dof': 413613, 'ksp_its': 61, 'sf': 1.3393, 'rerun': True, 'G': 0.8322600494582232},
             'w277_s2919_c01': {'n_tet': 90384, 'n_dof': 413613, 'ksp_its': 61, 'sf': 1.3393, 'rerun': True, 'G': 0.8347854224687924},
             'w278_s2922_c01': {'n_tet': 91008, 'n_dof': 416583, 'ksp_its': 73, 'sf': 1.3819, 'rerun': True, 'G': 0.8618220969105294},
+            'w279_s2928_c01': {'n_tet': 91008, 'n_dof': 416583, 'ksp_its': 74, 'sf': 1.3866, 'rerun': True, 'G': 0.8737531289757889},
         }
         for name, want in expected.items():
             tip = next(case for case in self.records[name]['cases'] if case['id'] == 'solid.tip')
@@ -208,7 +209,7 @@ class Records(unittest.TestCase):
                 case = next(row for row in self.records[name]['cases'] if row['id'] == case_id)
                 self.assertNotEqual(case['status'], 'pass')
                 self.assertNotIn('3e419ac1', json.dumps(case))
-        for name in ('w271b_11772', 'w271b_11860', 'w271c_11522', 'w272_s2902_c01', 'w273_s2904_c01', 'w273_s2903_c04', 'w274_s2905_c01', 'w275_s2909_c01', 'w276_s2913_c01', 'w277_s2919_c01', 'w278_s2922_c01'):
+        for name in ('w271b_11772', 'w271b_11860', 'w271c_11522', 'w272_s2902_c01', 'w273_s2904_c01', 'w273_s2903_c04', 'w274_s2905_c01', 'w275_s2909_c01', 'w276_s2913_c01', 'w277_s2919_c01', 'w278_s2922_c01', 'w279_s2928_c01'):
             for case_id in ('side.a1', 'side.a2', 'side.a3'):
                 case = next(row for row in self.records[name]['cases'] if row['id'] == case_id)
                 self.assertEqual(case['status'], 'pass')
@@ -227,6 +228,7 @@ class Records(unittest.TestCase):
             ('w276_s2913_c01', 'fail'),
             ('w277_s2919_c01', 'fail'),
             ('w278_s2922_c01', 'fail'),
+            ('w279_s2928_c01', 'fail'),
         ):
             gci = next(row for row in self.records[name]['cases'] if row['id'] == 'plate.gci')
             self.assertEqual(gci['status'], want_status)
@@ -291,7 +293,8 @@ class Records(unittest.TestCase):
         ev276 = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w276_ultrarunner' / 'w276_s2913_c01_cad_eval.json').read_text(encoding='utf-8'))
         ev277 = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w277_ultrarunner' / 'w277_s2919_c01_cad_eval.json').read_text(encoding='utf-8'))
         ev278 = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w278_ultrarunner' / 'w278_s2922_c01_cad_eval.json').read_text(encoding='utf-8'))
-        for ev in (ev274, ev275, ev276, ev277, ev278):
+        ev279 = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w279_ultrarunner' / 'w279_s2928_c01_cad_eval.json').read_text(encoding='utf-8'))
+        for ev in (ev274, ev275, ev276, ev277, ev278, ev279):
             w = ev['weighted_cad_score']
             self.assertEqual(w['metric'], 'W_CAD_v2_ultrarunner_karambit')
             self.assertTrue(w['all_engineering_gates_pass'])
@@ -303,7 +306,7 @@ class Records(unittest.TestCase):
             self.assertAlmostEqual(sum(w['weights'].values()), 1.0, places=6)
             self.assertEqual(w['weights']['w_mass'], 0.70)
 
-        # Verify strict progression: w278_s2922_c01 (78.58 g) < w277_s2919_c01 (79.509 g) < w276_s2913_c01 (79.995 g) < w275_s2909_c01 (81.774 g) < w274_s2905_c01 (84.98 g)
+        # Verify strict progression: w279_s2928_c01 (77.535 g) < w278_s2922_c01 (78.58 g) < w277_s2919_c01 (79.509 g) < w276_s2913_c01 (79.995 g) < w275_s2909_c01 (81.774 g) < w274_s2905_c01 (84.98 g)
         self.assertLess(ev275['engineering_metrics']['mass_g'], ev274['engineering_metrics']['mass_g'])
         self.assertGreater(ev275['weighted_cad_score']['W_CAD'], ev274['weighted_cad_score']['W_CAD'])
         self.assertGreater(ev275['global_fitness_G1']['G'], ev274['global_fitness_G1']['G'])
@@ -323,6 +326,13 @@ class Records(unittest.TestCase):
         self.assertGreaterEqual(ev278['engineering_metrics']['strict_lat_rob_0p0625_n'], 273.0)
         self.assertGreater(ev278['engineering_metrics']['seq_ratio_cert'], ev277['engineering_metrics']['seq_ratio_cert'])
         self.assertGreater(ev278['engineering_metrics']['twist_tipzone_sf_strict'], ev277['engineering_metrics']['twist_tipzone_sf_strict'])
+        self.assertLess(ev279['engineering_metrics']['mass_g'], ev278['engineering_metrics']['mass_g'])
+        self.assertLess(ev279['cad']['mass_3d_g'], 78.0)
+        self.assertGreater(ev279['weighted_cad_score']['W_CAD'], ev278['weighted_cad_score']['W_CAD'])
+        self.assertGreater(ev279['global_fitness_G1']['G'], ev278['global_fitness_G1']['G'])
+        self.assertGreaterEqual(ev279['engineering_metrics']['strict_lat_rob_0p0625_n'], 273.0)
+        self.assertGreater(ev279['engineering_metrics']['strict_lat_rob_0p0625_n'], ev278['engineering_metrics']['strict_lat_rob_0p0625_n'])
+        self.assertGreater(ev279['engineering_metrics']['twist_tipzone_sf_strict'], ev278['engineering_metrics']['twist_tipzone_sf_strict'])
 
         # Verify that 1 g of mass savings beats excess strength above the +8% survival knee
         w = ev276['weighted_cad_score']
