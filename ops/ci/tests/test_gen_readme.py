@@ -23,8 +23,9 @@ class GenReadme(unittest.TestCase):
             'docs/figures/engineering_gates/fig1_evolutionary_trajectories.png',
             'docs/figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png',
             'docs/figures/engineering_gates/fig3_cad_and_fem_gallery.png',
-            '### 16-Subject × 18-Evaluator CAD Battery & Multi-Wave Progression',
+            '### 17-Subject × 18-Evaluator CAD Battery & Multi-Wave Progression',
             '#### Margin-vs-Mass Pareto Progression',
+            '`w279_s2928_c01`',
             '`w278_s2922_c01`',
             '`w277_s2919_c01`',
             '`w276_s2913_c01`',
@@ -66,6 +67,7 @@ class GenReadme(unittest.TestCase):
             ('w276_s2913_c01', 'evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_rs.json'),
             ('w277_s2919_c01', 'evidence/rs_v2/w277_ultrarunner/w277_s2919_c01_rs.json'),
             ('w278_s2922_c01', 'evidence/rs_v2/w278_ultrarunner/w278_s2922_c01_rs.json'),
+            ('w279_s2928_c01', 'evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_rs.json'),
         ):
             with open(os.path.join(ROOT, rel), encoding='utf-8') as fh:
                 r = json.load(fh)
