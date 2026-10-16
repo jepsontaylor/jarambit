@@ -1,7 +1,7 @@
 # Engineering Gates, Multi-Fidelity Physics, and Evolutionary Dynamics in `jarambit`
 
 **Authors:** Jepson Taylor & the `jarambit` Engineering/Assurance Pipeline  
-**Document Version:** `0.32.6` — `2026-10-16` (synchronized with [`docs/VERSION`](VERSION) and [`docs/WHITEPAPER.md`](WHITEPAPER.md))  
+**Document Version:** `0.32.7` — `2026-10-16` (synchronized with [`docs/VERSION`](VERSION) and [`docs/WHITEPAPER.md`](WHITEPAPER.md))  
 **Canonical Evidence Schemas:** `jarambit.cad_battery.v1` · `RS-karambit-v1` · `RS-karambit-v2` · `GLOBAL_METRIC = G1`
 
 ---

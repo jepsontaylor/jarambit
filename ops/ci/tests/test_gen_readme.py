@@ -1,5 +1,8 @@
-import os, re, subprocess, sys, unittest
+import json, os, re, subprocess, sys, unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
 
 class GenReadme(unittest.TestCase):
     def test_check_passes(self):
@@ -14,33 +17,58 @@ class GenReadme(unittest.TestCase):
         self.assertNotIn('seq ≥ 1.2 is still soft', t)
         self.assertNotRegex(t, r'watertight STEP')
 
-    def test_showcase_install_quickstart_and_claim_admission(self):
+    def test_record_badges_generated_from_committed_json(self):
+        from ops.ci import gen_readme
+        rec_subj, rec_eval, rec_bat = gen_readme.current_record()
+        self.assertEqual(rec_subj, 'w279_s2928_c01')
+        em = rec_eval['engineering_metrics']
+        wsc = rec_eval['weighted_cad_score']
+        g1 = rec_bat['global_fitness']['G']
+        self.assertAlmostEqual(em['mass_g'], 77.535, places=3)
+        self.assertAlmostEqual(em['mass_3d_g'], 77.4142, places=3)
+        self.assertAlmostEqual(g1, 0.8737531289757889, places=6)
+
+        t = open(os.path.join(ROOT, 'README.md'), encoding='utf-8').read()
+        head_match = re.search(r'<!-- GEN:HEAD:BEGIN -->\n(.*?)\n<!-- GEN:HEAD:END -->', t, re.S)
+        self.assertIsNotNone(head_match)
+        head_block = head_match.group(1)
+        self.assertIn(f'record-{rec_subj.replace("_", "__")}', head_block)
+        self.assertIn(f'mass-{em["mass_g"]:.3f}%20g%20%28{em["mass_3d_g"]:.3f}%20g%203D%29', head_block)
+        self.assertIn(f'G1-{g1:.6f}', head_block)
+        self.assertIn(f'W__CAD-%2B{wsc["W_CAD"]:.4f}', head_block)
+        # Ensure stale Wave-27 badges are never emitted in GEN:HEAD
+        self.assertNotIn('mass-84.80%20g', head_block)
+        self.assertNotIn('G1-0.9804', head_block)
+
+    def test_short_readme_hero_plot_install_quickstart_and_claim_admission(self):
         t = open(os.path.join(ROOT, 'README.md'), encoding='utf-8').read()
         for section in (
+            'docs/figures/whitepaper/fig_readme_mass_vs_wave.png',
+            '## What it is',
             '## Install',
             '## Quick start',
+            'docs/WHITEPAPER.md',
             'docs/ENGINEERING_GATES_AND_EVOLUTION.md',
-            'docs/figures/engineering_gates/fig1_evolutionary_trajectories.png',
-            'docs/figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png',
-            'docs/figures/engineering_gates/fig3_cad_and_fem_gallery.png',
-            '### 17-Subject × 18-Evaluator CAD Battery & Multi-Wave Progression',
-            '#### Margin-vs-Mass Pareto Progression',
             '`w279_s2928_c01`',
             '`w278_s2922_c01`',
             '`w277_s2919_c01`',
             '`w276_s2913_c01`',
             '`w275_s2909_c01`',
             '`w274_s2905_c01`',
-            '### 178-Group (356-Control) Scientific Assurance Catalog',
         ):
             self.assertIn(section, t)
-        if ROOT not in sys.path:
-            sys.path.insert(0, ROOT)
+        # Hero figure must appear near the top before Install, Quick start, and Market weight comparison
+        idx_hero = t.index('docs/figures/whitepaper/fig_readme_mass_vs_wave.png')
+        idx_install = t.index('## Install')
+        idx_quick = t.index('## Quick start')
+        idx_market = t.index('## Market weight comparison')
+        self.assertLess(idx_hero, idx_install)
+        self.assertLess(idx_install, idx_quick)
+        self.assertLess(idx_quick, idx_market)
         from ops.ci import claim_admission
         self.assertEqual(claim_admission.public_document_check(ROOT), [])
 
     def test_every_battery_and_pareto_number_traces_to_committed_json(self):
-        import json
         t = open(os.path.join(ROOT, 'README.md'), encoding='utf-8').read()
         eg = open(os.path.join(ROOT, 'docs/ENGINEERING_GATES_AND_EVOLUTION.md'), encoding='utf-8').read()
         m = re.search(
@@ -77,4 +105,3 @@ class GenReadme(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

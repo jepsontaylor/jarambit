@@ -10,7 +10,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, 'ops', 'ci'))
 from ops.ci import rs_verdicts  # noqa: E402
-from gen_readme import rd, js, toml, f  # noqa: E402
+from gen_readme import rd, js, toml, f, current_record  # noqa: E402
 
 WP = 'docs/WHITEPAPER.md'
 COMP = 'docs/figures/components/components.json'
@@ -35,6 +35,51 @@ def status(context=None):
             f'{"no design is promoted and this version is a release candidate, not v1.0.0" if n == 0 else "see §IV-A"}. '
             'The v1 gate set (RS-karambit-v2) adds human-maximum loads, seq ≥ 1.2 as a hard gate, fatigue and ring handling to the v1 screen; '
             'Table IV-A lists every shortfall.')
+
+
+def hero(context=None):
+    rec_subj, rec_eval, rec_bat = current_record()
+    em = rec_eval['engineering_metrics']
+    wsc = rec_eval['weighted_cad_score']
+    g1 = rec_bat['global_fitness']['G']
+    gates = wsc['gates']
+    n_pass = sum(1 for ok in gates.values() if ok)
+    n_tot = len(gates)
+    w20 = js('docs/wave_reports/wave20_25_winners.json')['winners'][0]
+    w274 = js('evidence/rs_v2/w274_calibrated/w274_s2905_c01_cad_eval.json')['engineering_metrics']
+    census_rows = js('docs/market/2026-10-13/census.json')
+    mkt = js('docs/market/2026-10-13/summary.json')
+    plotted = [r for r in census_rows if r.get('plot_eligible') and r.get('weight_g') is not None]
+    n_plotted = len(plotted)
+    n_heavier = sum(1 for r in plotted if float(r['weight_g']) > em['mass_g'])
+    pct_heavier = 100.0 * n_heavier / n_plotted
+    med_g = float(mkt['market_median_g'])
+    min_g = min(float(r['weight_g']) for r in plotted)
+    max_g = max(float(r['weight_g']) for r in plotted)
+    pct_below_med = 100.0 * (1.0 - em['mass_g'] / med_g)
+    L = [
+        '### Page-1 Hero Figures — Why This Matters & Current Record (`w279_s2928_c01`) Gate Margins',
+        '',
+        '![Why this matters: all-gates winner mass vs wave (w20 through w279) and market comparison against 77 commercial karambits](figures/whitepaper/fig_why_this_matters.png)',
+        '',
+        f'*Fig. 0a — Why this matters (`ops/render/whitepaper_hero_figs.py`, manifest `docs/figures/whitepaper/fig_why_this_matters.png.manifest.json`, verified by `ops/ci/verify_figures.py`): '
+        f'(a) mass vs. wave across every wave winner from Wave 20 (`{w20["label"]}`, `{w20["mass_g"]:.3f} g`, `seq = {w20["seq_ratio"]:.3f} < 1.20`) and first all-16-gates `W_CAD_v2` winner '
+        f'`w274_s2905_c01` (`{w274["mass_g"]:.3f} g`, `seq = {w274["seq_ratio_cert"]:.3f} >= 1.20`) down to the current all-gates record **`{rec_subj}` at `{em["mass_g"]:.3f} g` '
+        f'(`{em["mass_3d_g"]:.3f} g` 3D solid), `G1 = {g1:.6f}`, `W_CAD = +{wsc["W_CAD"]:.4f}`**; '
+        f'(b) comparison against the source-audited {n_plotted}-entry commercial karambit census (`docs/market/2026-10-13/census.json`, `docs/market/2026-10-13/summary.json`, median `{med_g:.2f} g`, '
+        f'range `{min_g:.2f}–{max_g:.2f} g`), where `{rec_subj}` (`{em["mass_g"]:.3f} g`) is `{pct_below_med:.1f} %` below the commercial median and lighter than `{n_heavier} / {n_plotted}` (`{pct_heavier:.1f} %`) plotted knives.*',
+        '',
+        f'![All 16 engineering gates and margin vs threshold for {rec_subj}](figures/whitepaper/fig_w279_gate_margins.png)',
+        '',
+        f'*Fig. 0b — All {n_tot} engineering gates (`{n_pass}/{n_tot}` pass) for `{rec_subj}` (`evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_cad_eval.json`, '
+        f'`evidence/cad_battery/w279_s2928_c01.json`, manifest `docs/figures/whitepaper/fig_w279_gate_margins.png.manifest.json`): '
+        f'(a) normalized structural safety ratios ($\\text{{value}}/\\text{{threshold}} \\ge 1.0$) and reserve percentages (`strict_lat = {em["strict_lat_rob_0p0625_n"]:.1f} N` / `SF = {em["sf_hunter_strict"]:.4f}` `+{100.0 * (em["sf_hunter_strict"] - 1.0):.2f} %`, '
+        f'`twist_strict SF = {em["twist_tipzone_sf_strict"]:.3f}` `+{100.0 * (em["twist_tipzone_sf_strict"] - 1.0):.2f} %`, `twist_tip SF = {em["twist_tip_sf"]:.3f}` `+{100.0 * (em["twist_tip_sf"] - 1.0):.2f} %`, '
+        f'`solid_tip_3d P2 SF = {em["solid_tip_sf_nodal_max"]:.4f}` `+{100.0 * (em["solid_tip_sf_nodal_max"] - 1.0):.2f} %`, `seq_ratio_cert = {em["seq_ratio_cert"]:.3f} >= 1.20` `+{100.0 * (em["seq_ratio_cert"] / 1.20 - 1.0):.2f} %`, '
+        f'`side.a4 supported seq = {em["seq_ratio_supported_a4"]:.3f}`, `buckling P_cr = {260.0 * em["buckling_eigenvalue_a4"]:.1f} N`, `dolfinx vs skfem = {100.0 * em["solid_tip_dolfinx_rel_err"]:.4f} % <= 2.0 %`); '
+        f'(b) exact metrics and thresholds for all {n_tot} `W_CAD_v2` gates (historical Wave-27 `g3_tip+00_t60_tt3` 3D CAD and FEM plates remain in §III-G and §III-H).*',
+    ]
+    return '\n'.join(L)
 
 
 def methods(context=None):
@@ -89,11 +134,11 @@ def rsv2_table(context=None):
 
 
 def render(text, context=None):
-    for name, fn in (('WP_STATUS', status), ('WP_METHODS', methods), ('WP_COMPONENTS', components), ('WP_RSV2', rsv2_table)):
-        pat = re.compile(rf'(<!-- GEN:{name}:BEGIN -->\n).*?(\n<!-- GEN:{name}:END -->)', re.S)
+    for name, fn in (('WP_STATUS', status), ('WP_HERO', hero), ('WP_METHODS', methods), ('WP_COMPONENTS', components), ('WP_RSV2', rsv2_table)):
+        pat = re.compile(rf'(<!-- GEN:{name}:BEGIN -->\n)(?:.*?\n)?(<!-- GEN:{name}:END -->)', re.S)
         if not pat.search(text):
             raise SystemExit(f'gen_whitepaper: {WP} lacks the GEN:{name} block')
-        text = pat.sub(lambda m: m.group(1) + fn(context) + m.group(2), text)
+        text = pat.sub(lambda m: m.group(1) + fn(context) + '\n' + m.group(2), text)
     if context is not None:
         text = rs_verdicts.replace_claim_block(text, context)
     return text
