@@ -1,0 +1,106 @@
+{
+  "binary_sha256": "53699a10aeabc237adcb36fe93f7e840c815d57525b7aa816fabc741ab3c5477",
+  "controlled_probe_recipes": [
+    "probes/probe_recipe.json",
+    "probes2/probe_recipe.json"
+  ],
+  "environment": {
+    "JARAMBIT_ALL_GATES": "1",
+    "JARAMBIT_CAD_BATTERY": "1",
+    "JARAMBIT_CERT_STRICT": "1",
+    "JARAMBIT_SEARCH_BIAS_LAT": "1",
+    "JARAMBIT_SEARCH_BIAS_RING": "1"
+  },
+  "full_validation_candidates": [
+    {
+      "probe": "p14",
+      "role": "lighter mass Pareto candidate",
+      "subject": "w282_p14_c01"
+    },
+    {
+      "probe": "p10",
+      "role": "reserve-preserving Pareto candidate",
+      "subject": "w282_p10_c02"
+    }
+  ],
+  "full_validation_native_pools": 4,
+  "initial_probe": {
+    "environment": {
+      "JARAMBIT_ALL_GATES": "1",
+      "JARAMBIT_CAD_BATTERY": "1",
+      "JARAMBIT_CERT_STRICT": "1",
+      "JARAMBIT_SEARCH_BIAS_LAT": "1",
+      "JARAMBIT_SEARCH_BIAS_RING": "1"
+    },
+    "parameters": {
+      "area_mm2": 4.0,
+      "cert": 6,
+      "gens": 16,
+      "islands": 4,
+      "kick": 0.2,
+      "migrate": 4,
+      "pop": 32,
+      "seed": 2934,
+      "threads": 8
+    },
+    "status": "stopped after no coarse-mesh feasible designs; results retained in biased_probe"
+  },
+  "parameters": {
+    "area_mm2": 4.0,
+    "cert": 6,
+    "gens": 16,
+    "islands": 4,
+    "kick": 0.2,
+    "migrate": 4,
+    "pop": 32,
+    "seed": 2934,
+    "threads": 8
+  },
+  "record_baseline": "evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_cad_eval.json",
+  "relocation": "Only artifact paths were rebound from scratch to committed evidence; numerical fields, genomes and mesh arrays were preserved.",
+  "roles": {
+    "w282_p10_c02": "lateral-reserve peer; improves mass, W_CAD and G1 versus w281 winner",
+    "w282_p14_c01": "mass record; lower lateral and failure-sequence reserves"
+  },
+  "seeds": [
+    {
+      "path": "evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_genome.csv",
+      "sha256": "6de776dfd45031b1697c13072afc5555eb7b8402a38defe593eaece6022b413e"
+    },
+    {
+      "path": "evidence/rs_v2/w281_ultrarunner/w281_s2932_c02_light_genome.csv",
+      "sha256": "f5474b26e9b4dee656ca51f1b34cc4d9e0fd7f023f14598fab5a7d24afbd313a"
+    },
+    {
+      "path": "evidence/rs_v2/w281_ultrarunner/w281_s2932_c03_cert_genome.csv",
+      "sha256": "18e9a234fe50194e222254fe442289a3540291211612f2bea0d24c691a74c6f6"
+    }
+  ],
+  "solid_runtime": {
+    "NL": 4,
+    "NSUB": 1,
+    "R_CUT_mm": 30,
+    "container_image_id": "sha256:628f40dd62c7f37962ccadc5a745f23d52c56b2ac3ad9b9b6a86c567c07aa27b",
+    "python": "/home/ubuntu/.venvs/jarambit-sheath/bin/python",
+    "versions": {
+      "numpy": "2.5.4",
+      "pyamg": "5.3.0",
+      "scipy": "1.18.1",
+      "skfem": "12.0.2"
+    }
+  },
+  "source_commit": "82f450f7fb418e28c4b229031920dec5454435f3",
+  "source_files_sha256": {
+    "crates/cli/src/crescent.rs": "cfe0dbd9791695bf0edad23c8a3c6a0cf6954992b2c5ada0d8591c7128e20c0f",
+    "crates/crescent/src/fem.rs": "8af4f5b3871de1f596f99c1e1e8167a63c5367e582810192ed15594d0a7355b6",
+    "crates/crescent/src/genome.rs": "ab9ebcbcbc9a7f686bc679ff7b7292f5e641940ab7cd8cf77970aa6f5275dad6",
+    "crates/crescent/src/qd.rs": "fe3d057eeec74c3278b46027265406ec0ee97dd65938ae49cb003e08ee5b3a5f",
+    "fem_solid/cross_check.py": "32b21c6b4edc64731652c860e0f85d1ee5b4fec45b5869ccd86a677cfe386c98",
+    "fem_solid/gci.py": "61889a0e6a6459c8afbafe0c37758584711490b1db232799122eb3af1e4491da",
+    "fem_solid/tip_solid.py": "710d870b15b1cd4b5cbe9f37eeeb781911b6f218df92a96f26aab8f4d78c29fc",
+    "metrics/global_metric.py": "fc8d4cee369550413db640982b07054fd42e026e453ed5a020426aaf59be04e9",
+    "ops/ci/evaluate_cad_candidate.py": "575429040c4e4ea9966bb4f0346ca6998228ba4276198804cdf68191f87d62ce",
+    "ops/ci/side_a4.py": "f7a49fa378ca5aa9b0ca661db975723c04f727fde6b5f168822e15593202aeca"
+  },
+  "wave": "w282"
+}

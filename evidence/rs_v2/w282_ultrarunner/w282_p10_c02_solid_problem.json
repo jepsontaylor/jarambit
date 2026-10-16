@@ -1,0 +1,12 @@
+{
+  "mesh_npz": "evidence/rs_v2/w282_ultrarunner/w282_p10_c02_solid_mesh.npz",
+  "mesh_sha256": "87aed30b2d3985c1e9a549408ddcf56b5d57b12dbb883405934d79756c8cb6f1",
+  "original_raw_skfem_sha256": "57159f49666de89e0b1ecd4e3fd0226e9c7816de6a6f984aa5c8fb34e216e068",
+  "purpose": "exact mesh/load/BC arrays passed to both independent solvers",
+  "raw_skfem_sha256": "4f9a41dafdbdc1cbc652605c4e24589a4a7656117a4654db1e1c80fcd30b29e1",
+  "schema": "jarambit.solid_problem_capture.v1",
+  "scikit_fem_relative_residual": 7.8e-11,
+  "scikit_fem_solve_seconds": 411,
+  "source_design": "evidence/rs_v2/w282_ultrarunner/w282_p10_c02_D1.json",
+  "subject": "w282_p10_c02"
+}

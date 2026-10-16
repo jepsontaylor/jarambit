@@ -1,0 +1,102 @@
+D1 w282_p10_c02: lat_at (99.24886101595668, 6.900802309850515) lat20 301.1 twist_at (187.6479155896931, -49.23434096596537)
+# D1 re-screen — screening yield 828 MPa (TIMET min, provisional), JOINT thin+hot, chord-torsion floor 1.82 N*m
+
+Certification min(0.25, 0.125 mm^2) unbiased; strict 0.0625 mm^2 unbiased; joint factor = ((t_j-0.1)/t_j)^2 x yield(100C)/yield(20C) (ring: ^1), t_j = thinnest knot (P1) else stock. PASS @828 joint = hiker 180 / hunter 260 / ring 1500 N at certification AND hunter at strict. P1 PASS also needs seq ratio >= 1.2. Twist floor (OWNER LOCK 2026-10-11 14:52 MT): **body AND tip submodel** both >= 1.82 N*m (hard, certification); **tip-only** (1.82 N*m at the 2 mm tip patch, peak outside 4 mm, St-Venant 3D at the peak) ALWAYS reported, not the gate; **body** = same torque, peak > 15 mm from the tip with its own 3D factor; **tip submodel** = peak restricted to the 4-15 mm tip annulus at the strict 0.0625 mesh with its own 3D factor. Seq ratio = hand-zone / blade-zone yield-onset load (min over lateral, chord-torsion, pry). PROMOTE-ELIGIBLE (OWNER LOCK) = C.6 aesthetic + all hard gates (blade >= 3.375 in on all three) + 828 joint floors + strict hunter + seq >= 1.2 + twist body AND tip-sub; mass is SOFT (Jepson 2026-10-12: G penalty / target < 80 g then < 70 g, 74-77 band reported, not a gate); hunter aim 286 reported. NOTHING is promoted without human aesthetic sign-off.
+
+| design | mass g | t (t_joint) mm | A pass | gates | joint lat N (cert) | SF hiker | SF hunter | joint ring N | SF ring | strict 0.0625 joint lat N (SF hunter) | PASS @828 joint | aim 286 | pre-D1 lat_rob 880/min N | **tip-only twist SF (default hard)** | body twist SF (+3D) | tip-submodel SF (4-15 mm, strict) | peak dist from tip mm | seq ratio (case) | P1 PASS (floors+strict+seq) | twist floor (body AND tip-sub) | mass 74-77 | blade min in | **PROMOTE-ELIGIBLE** (pending aesthetic sign-off) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| w282_p10_c02 | 75.84 | 5.9 (5.90) | yes | ok | 265.4 | 1.474 | 1.021 | 14388 | 9.59 | 267.4 (1.028) | **PASS** | no | 291.9 | **1.14 PASS** | 3.01 PASS | 1.12 PASS | 4.2 | 1.21 (lateral) PASS | **PASS** | PASS | yes | 3.436 | **YES** |
+
+PLATE {"sigma_per_Nmm": 0.2918, "at": [187.65, -49.23], "dist_tip": 4.237872946551267, "t_local": 3.032, "b_section": 10.95, "kc_3d": 1.205, "sigma_plate_MPa": 531.076, "sigma_plate_x_kc_MPa": 639.7597943459148, "SF_plate_raw": 1.3741067196758026, "SF_plate_d1": 1.1406704621140538}
+components in R_CUT disk: 1 (kept the tip component, 1896 plate tris)
+mesh: 91008 P2 tets, 416583 dof, assembled 555s
+load: 240 vertices, torque 1820.0 N*mm, netF -1.14e-13, M_n -7.11e-14
+clamp: 300 vertices on cut (R_CUT 30.0 mm), 3537 dofs
+AMG-CG its 55
+solved 411s rel.res 7.8e-11
+{
+ "design": "/home/ubuntu/jarambit/scratch/w282_run/w282_p10_c02/w282_p10_c02_D1.json",
+ "T_Nmm": 1820.0,
+ "sallow_joint_MPa": 729.8,
+ "JK2": 0.8813,
+ "plate": {
+  "sigma_per_Nmm": 0.2918,
+  "at": [
+   187.65,
+   -49.23
+  ],
+  "dist_tip": 4.237872946551267,
+  "t_local": 3.032,
+  "b_section": 10.95,
+  "kc_3d": 1.205,
+  "sigma_plate_MPa": 531.076,
+  "sigma_plate_x_kc_MPa": 639.7597943459148,
+  "SF_plate_raw": 1.3741067196758026,
+  "SF_plate_d1": 1.1406704621140538
+ },
+ "solid": {
+  "PATCH_mm": 2.0,
+  "n_tet": 91008,
+  "n_dof": 416583,
+  "R_CUT": 30.0,
+  "NL": 4,
+  "NSUB": 1,
+  "nodal_avg_peak": {
+   "MPa": 487.8,
+   "at": [
+    188.46,
+    -49.48,
+    1.34
+   ],
+   "dist": 4.03
+  },
+  "nodal_max_peak": {
+   "MPa": 517.8,
+   "at": [
+    188.46,
+    -49.48,
+    1.34
+   ],
+   "dist": 4.03
+  },
+  "elem_mean_peak": {
+   "MPa": 453.9,
+   "at": [
+    187.57,
+    -49.47,
+    1.2
+   ]
+  },
+  "SF_solid_nodal_avg": 1.496,
+  "SF_solid_nodal_max": 1.409,
+  "SF_solid_elem_mean": 1.608,
+  "twist_rot_check": null,
+  "wall_s": 972.6
+ },
+ "profile_MPa": {
+  "plate_raw": {
+   "4-5": 531.076,
+   "5-6": 363.09000000000003,
+   "6-8": 258.076,
+   "8-10": 191.82799999999997,
+   "10-12": 202.566,
+   "12-15": 213.12199999999999,
+   "15-20": 196.924,
+   "20-25": 162.708
+  },
+  "solid_nodal_avg": {
+   "4-5": 487.8,
+   "5-6": 314.1,
+   "6-8": 235.1,
+   "8-10": 185.6,
+   "10-12": 216.4,
+   "12-15": 224.2,
+   "15-20": 180.4,
+   "20-25": 138.2
+  }
+ }
+}
+w282_p10_c02: all_hard=false unverified=["gate_s_tip_point_brep"]
+wrote /home/ubuntu/jarambit/scratch/w282_run/w282_p10_c02/w282_p10_c02_a1a3.json
+seq_ratio_0.25=1.217564 case=lateral committed=0.959083
+[w282_p10_c02] mass=75.84g (3D 75.62g) karambit=True (ring=24.9mm, hook=41.9mm) SPG=3.500 lat=265.4N (strict 267.4N) seq=1.215 tw_strict=1.125 solid_tip=1.409 promote=True all_gates=True W_CAD=1.7978 G1=0.8811
