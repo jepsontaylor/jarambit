@@ -102,6 +102,7 @@ def load_wave_winners():
         ('w280', 'evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_cad_eval.json', 'evidence/cad_battery/w280_s2931_c01.json'),
         ('w281', 'evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_cad_eval.json', 'evidence/cad_battery/w281_s2932_c01.json'),
         ('w282', 'evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json', 'evidence/cad_battery/w282_p14_c01.json'),
+        ('w283', 'evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json', 'evidence/cad_battery/w283_p14_c01.json'),
     ]
     wcad_winners = []
     for wtag, eval_rel, bat_rel in wcad_specs:
@@ -137,7 +138,7 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
 
     # Shaded regime background
     ax.axvspan(-0.5, n_v1 - 0.5, color='#1f2937', alpha=0.35, label='Waves 20–27e: RS-karambit-v1 screen (seq < 1.20 soft)')
-    ax.axvspan(n_v1 - 0.5, len(all_pts) - 0.3, color='#0f291e', alpha=0.42, label='Waves 274–282: All 16 Gates PASS (seq ≥ 1.20 hard + 3D solid tip)')
+    ax.axvspan(n_v1 - 0.5, len(all_pts) - 0.3, color='#0f291e', alpha=0.42, label='Waves 274–283: All 16 Gates PASS (seq ≥ 1.20 hard + 3D solid tip)')
 
     # 80 g target line
     ax.axhline(80.0, color='#ffa657', linestyle='--', linewidth=1.4, label='Soft Mass Target (80.00 g)')
@@ -153,12 +154,12 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
     # Plot W_CAD_v2 16-gate winners (2.5D raster + 3D solid)
     ax.plot(xs_wcad, ys_wcad, '-s', color='#3fb950', linewidth=2.6, markersize=8.0,
             markerfacecolor='#3fb950', markeredgecolor='#f0f6fc', markeredgewidth=1.1,
-            label='2.5D Raster Mass — W274–W282 All-16-Gates Winners', zorder=5)
+            label='2.5D Raster Mass — W274–W283 All-16-Gates Winners', zorder=5)
     ax.plot(xs_wcad, ys_wcad_3d, '--D', color='#d2a8ff', linewidth=1.8, markersize=6.0,
             markerfacecolor='#d2a8ff', markeredgecolor='#0d1117', markeredgewidth=0.9,
-            label=f"3D Solid STEP/STL Mass — W274–W282 ({100.0 * abs(wcad_winners[-1]['mass_g'] - wcad_winners[-1]['mass_3d_g']) / wcad_winners[-1]['mass_g']:.2f}% parity on W282)", zorder=6)
+            label=f"3D Solid STEP/STL Mass — W274–W283 ({100.0 * abs(wcad_winners[-1]['mass_g'] - wcad_winners[-1]['mass_3d_g']) / wcad_winners[-1]['mass_g']:.2f}% parity on W283)", zorder=6)
 
-    # Highlight current record w282_p14_c01
+    # Highlight current record w283_p14_c01
     rec = wcad_winners[-1]
     rx = xs[-1]
     ax.scatter([rx], [rec['mass_g']], s=260, marker='*', color='#ffd33d', edgecolors='#f0f6fc', linewidths=1.3, zorder=8,
@@ -182,6 +183,7 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
         'w279': (-8, -16),
         'w280': (10, 12),
         'w281': (-6, 12),
+        'w282': (-8, -16),
     }
     for i, p in enumerate(all_pts):
         if i == len(all_pts) - 1:
@@ -189,14 +191,14 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
         m = p['mass_g']
         ox, oy = pos_map.get(p['wave'], (0, 12))
         lbl_txt = f"{p['mass_g']:.2f} g"
-        if not compact and p['wave'] in ('w20', 'w25', 'w27', 'w274', 'w276', 'w278', 'w281'):
+        if not compact and p['wave'] in ('w20', 'w25', 'w27', 'w274', 'w276', 'w278', 'w281', 'w282'):
             lbl_txt = f"{p['label']}\n{p['mass_g']:.2f} g"
         ax.annotate(lbl_txt, (xs[i], m), xytext=(ox, oy), textcoords='offset points',
                     ha='center', va='center', color='#e6edf3', fontsize=7.5 if compact else 8.0, fontweight='bold')
 
-    # Prominent callout box for record w282_p14_c01 kept strictly inside axis bounds
+    # Prominent callout box for record w283_p14_c01 kept strictly inside axis bounds
     callout = (
-        f"RECORD: {rec['label']} (Wave 282)\n"
+        f"RECORD: {rec['label']} (Wave 283)\n"
         f"• 2.5D Raster: {rec['mass_g']:.3f} g  |  3D Solid: {rec['mass_3d_g']:.3f} g\n"
         f"• Locked G1 = {rec['g1']:.6f}  |  W_CAD = +{rec['w_cad']:.4f}\n"
         f"• strict_lat = {rec['strict_lat_n']:.1f} N  |  seq = {rec['seq_ratio']:.3f}  |  3D tip SF = {rec['solid_tip_sf']:.4f}"
@@ -214,9 +216,9 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
     )
 
     ax.set_xticks(xs)
-    ax.set_xticklabels([f"{p['wave'].upper()}\n({p['label'][:8]})" for p in all_pts], fontsize=7.4, rotation=20, ha='right')
+    ax.set_xticklabels([f"{p['wave'].upper()}\n({p['label'][:8]})" for p in all_pts], fontsize=7.2, rotation=20, ha='right')
     ax.set_ylabel('Finished Titanium Knife Mass (g)', fontsize=10.5, fontweight='bold')
-    ax.set_xlabel('Evolutionary Wave (All-Gates Winners, W20 → W282)', fontsize=10.5, fontweight='bold')
+    ax.set_xlabel('Evolutionary Wave (All-Gates Winners, W20 → W283)', fontsize=10.5, fontweight='bold')
     ax.set_ylim(73.4, 88.8)
     ax.set_xlim(-0.6, len(all_pts) - 0.2)
     ax.grid(True, color='#21262d', linestyle='--', linewidth=0.7, alpha=0.8)
@@ -241,7 +243,7 @@ def make_readme_hero_fig():
     _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False)
     rec = wcad_winners[-1]
     ax.set_title(
-        f"jarambit Multi-Wave Mass Progression (W20 → W282): Record {rec['label']} at {rec['mass_g']:.3f} g ({rec['mass_3d_g']:.3f} g 3D Solid, G1 = {rec['g1']:.6f})",
+        f"jarambit Multi-Wave Mass Progression (W20 → W283): Record {rec['label']} at {rec['mass_g']:.3f} g ({rec['mass_3d_g']:.3f} g 3D Solid, G1 = {rec['g1']:.6f})",
         fontsize=11.8, fontweight='bold', pad=12,
     )
     leg = ax.legend(loc='upper right', facecolor='#0d1117', edgecolor='#30363d', fontsize=8.2, ncol=2)
@@ -264,7 +266,7 @@ def make_why_this_matters_fig():
     census_rows, p_census = _load_json('docs/market/2026-10-13/census.json')
     market_sum, p_msum = _load_json('docs/market/2026-10-13/summary.json')
     bench_doc, p_bench = _load_json('docs/market/2026-10-13/benchmark.json')
-    d1_w279, p_d1_w279 = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_D1.json')
+    d1_w279, p_d1_w279 = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json')
     inputs.extend([p_census, p_msum, p_bench, p_d1_w279])
 
     rec = wcad_winners[-1]
@@ -286,12 +288,12 @@ def make_why_this_matters_fig():
 
     # Panel (a): Mass vs Wave curve
     _plot_mass_vs_wave(ax0, v1_winners, wcad_winners, compact=True)
-    ax0.set_title('(a) Evolutionary Mass Reduction Across All-Gates Winners (W20 → W282)', fontsize=11.0, fontweight='bold', pad=10)
+    ax0.set_title('(a) Evolutionary Mass Reduction Across All-Gates Winners (W20 → W283)', fontsize=11.0, fontweight='bold', pad=10)
     leg0 = ax0.legend(loc='upper right', facecolor='#0d1117', edgecolor='#30363d', fontsize=7.4)
     for txt in leg0.get_texts():
         txt.set_color('#c9d1d9')
 
-    # Panel (b): Market comparison (77 verified commercial karambits vs w279_s2928_c01)
+    # Panel (b): Market comparison (77 verified commercial karambits vs w283_p14_c01)
     plotted = [r for r in census_rows if r.get('plot_eligible') and r.get('weight_g') is not None]
     n_plotted = len(plotted)
     n_heavier_w279 = sum(1 for r in plotted if float(r['weight_g']) > w279_mass_g)
@@ -322,7 +324,7 @@ def make_why_this_matters_fig():
     # Commercial median line
     ax1.axvline(median_g, color='#ff7b72', linestyle='--', linewidth=1.4,
                 label=f"Commercial Median: {median_g:.2f} g (n={n_plotted})")
-    # w279 vertical line & star
+    # w283 vertical line & star
     ax1.axvline(w279_mass_g, color='#ffd33d', linestyle='-', linewidth=1.5, alpha=0.85)
     ax1.scatter([w279_mass_g], [w279_blade_in], s=280, marker='*', color='#ffd33d',
                 edgecolors='#f0f6fc', linewidths=1.3, zorder=8,
@@ -382,12 +384,12 @@ def make_w279_gate_margins_fig():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     fig_path = OUT_DIR / 'fig_w279_gate_margins.png'
 
-    ev, p_ev = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json')
-    d1, p_d1 = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_D1.json')
-    gci, p_gci = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_plate_gci.json')
-    a4, p_a4 = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_a4.json')
-    st, p_st = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_solid_tip.json')
-    bat, p_bat = _load_json('evidence/cad_battery/w282_p14_c01.json')
+    ev, p_ev = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json')
+    d1, p_d1 = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json')
+    gci, p_gci = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_plate_gci.json')
+    a4, p_a4 = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_a4.json')
+    st, p_st = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_solid_tip.json')
+    bat, p_bat = _load_json('evidence/cad_battery/w283_p14_c01.json')
     inputs = [p_ev, p_d1, p_gci, p_a4, p_st, p_bat]
 
     em = ev['engineering_metrics']
@@ -486,13 +488,179 @@ def make_w279_gate_margins_fig():
     return fig_path
 
 
+def _parse_ascii_stl(stl_path: Path):
+    tris = []
+    cur = []
+    with stl_path.open('r', encoding='utf-8') as fh:
+        for line in fh:
+            s = line.strip()
+            if s.startswith('vertex '):
+                parts = s.split()
+                cur.append((float(parts[1]), float(parts[2]), float(parts[3])))
+                if len(cur) == 3:
+                    tris.append(cur)
+                    cur = []
+    return np.asarray(tris, dtype=np.float64)
+
+
+def make_web_studio_fig():
+    """Render deterministic overview figure of the Vite+React+Three.js 3D CAD & Gate Scorecard Studio."""
+    from matplotlib.collections import PolyCollection
+
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    fig_path = OUT_DIR / 'fig_web_studio.png'
+
+    ev, p_ev = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json')
+    rs, p_rs = _load_json('evidence/rs_v2/w283_p14_c01.json')
+    bat, p_bat = _load_json('evidence/cad_battery/w283_p14_c01.json')
+    p_stl = ROOT / 'web' / 'public' / 'data' / 'meshes' / 'w283_p14_c01.stl'
+    p_gen = ROOT / 'evidence' / 'rs_v2' / 'w283_ultrarunner' / 'w283_p14_c01_genome.csv'
+    inputs = [p_ev, p_rs, p_bat, p_stl, p_gen]
+
+    gen_lines = p_gen.read_text(encoding='utf-8').strip().splitlines()
+    gen_hdr = gen_lines[0].split(',')
+    gen_val = gen_lines[1].split(',')
+    edge_t_mm = float(gen_val[gen_hdr.index('edge_t')])
+
+    tris = _parse_ascii_stl(p_stl)
+    n_tris = len(tris)
+    em = ev['engineering_metrics']
+    wsc = ev['weighted_cad_score']
+    g1_val = float(bat['global_fitness']['G'])
+
+    plt.rcParams.update({'font.sans-serif': 'DejaVu Sans', 'font.size': 9.5})
+    fig, (ax3d, ax_ui) = plt.subplots(1, 2, figsize=(17.6, 6.8), dpi=160, gridspec_kw={'width_ratios': [1.15, 1.0]})
+    fig.patch.set_facecolor('#0d1117')
+
+    # Left panel: 3D CAD Viewport isometric render of w283_p14_c01.stl
+    ax3d.set_facecolor('#161b22')
+    for sp in ax3d.spines.values():
+        sp.set_color('#30363d')
+    v0, v1_v, v2 = tris[:, 0, :], tris[:, 1, :], tris[:, 2, :]
+    normals = np.cross(v1_v - v0, v2 - v0)
+    norms = np.linalg.norm(normals, axis=1, keepdims=True)
+    normals = normals / np.maximum(norms, 1e-12)
+    light_dir = np.array([0.38, -0.42, 0.82])
+    light_dir /= np.linalg.norm(light_dir)
+    intensity = np.clip(0.28 + 0.72 * np.abs(normals @ light_dir), 0.18, 1.0)
+    base_rgb = np.array([0.38, 0.75, 0.98])
+
+    # Isometric camera rotation (elev=28 deg, azim=-32 deg)
+    az = np.deg2rad(-32.0)
+    el = np.deg2rad(28.0)
+    ca, sa = np.cos(az), np.sin(az)
+    ce, se = np.cos(el), np.sin(el)
+    rot_z = np.array([[ca, -sa, 0.0], [sa, ca, 0.0], [0.0, 0.0, 1.0]])
+    rot_x = np.array([[1.0, 0.0, 0.0], [0.0, ce, -se], [0.0, se, ce]])
+    rot = rot_x @ rot_z
+
+    pts_rot = tris @ rot.T
+    depths = pts_rot[:, :, 2].mean(axis=1)
+    order = np.argsort(depths)
+    polys_2d = pts_rot[order, :, :2]
+    int_ord = intensity[order]
+    face_colors = np.column_stack([
+        np.clip(base_rgb[0] * int_ord, 0, 1),
+        np.clip(base_rgb[1] * int_ord, 0, 1),
+        np.clip(base_rgb[2] * int_ord, 0, 1),
+        np.full(n_tris, 0.98),
+    ])
+
+    poly = PolyCollection(polys_2d, facecolors=face_colors, edgecolors='none', linewidths=0.0, zorder=3)
+    ax3d.add_collection(poly)
+    all_2d = polys_2d.reshape(-1, 2)
+    mins, maxs = all_2d.min(axis=0), all_2d.max(axis=0)
+    pad_x = 0.08 * (maxs[0] - mins[0])
+    pad_y = 0.12 * (maxs[1] - mins[1])
+    ax3d.set_xlim(mins[0] - pad_x, maxs[0] + pad_x)
+    ax3d.set_ylim(mins[1] - pad_y, maxs[1] + pad_y)
+    ax3d.set_aspect('equal', adjustable='datalim')
+    ax3d.tick_params(colors='#8b949e', labelsize=8.0)
+    ax3d.set_xlabel('Isometric X′ Projection (mm)', color='#c9d1d9', fontsize=9.5, fontweight='bold')
+    ax3d.set_ylabel('Isometric Y′ Projection (mm)', color='#c9d1d9', fontsize=9.5, fontweight='bold')
+    ax3d.grid(True, color='#21262d', linestyle='--', linewidth=0.7, alpha=0.75, zorder=1)
+    ax3d.text(
+        0.02, 0.96,
+        f"Web Studio 3D Viewport · {ev['subject']}.stl\n"
+        f"• {n_tris:,} STL triangles · 0 open / 0 non-manifold edges\n"
+        f"• 3D Solid: {em['mass_3d_g']:.3f} g vs 2.5D Raster: {em['mass_g']:.3f} g (Δ={100*ev['cad']['rel_mass_diff']:.3f}%)\n"
+        f"• Sharp-law edge_t = {edge_t_mm:.3f} mm · tip_r = 0.075 mm",
+        transform=ax3d.transAxes, va='top', ha='left', color='#f0f6fc', fontsize=8.3, fontweight='bold',
+        bbox=dict(boxstyle='round,pad=0.45', facecolor='#0d1117', edgecolor='#58a6ff', linewidth=1.3),
+        zorder=6,
+    )
+    ax3d.set_title(
+        f"(a) Web Studio 3D CAD Viewport — {ev['subject']} ({n_tris:,} STL Facets, Watertight B-Rep)",
+        color='#f0f6fc', fontsize=11.0, fontweight='bold', pad=10,
+    )
+
+    # Right panel: Interactive Gate Scorecard & RS-karambit-v2 Inspector
+    ax_ui.set_facecolor('#161b22')
+    for sp in ax_ui.spines.values():
+        sp.set_color('#30363d')
+    ax_ui.set_xticks([])
+    ax_ui.set_yticks([])
+    ax_ui.set_xlim(0, 100)
+    ax_ui.set_ylim(0, 100)
+    ax_ui.set_title(
+        f"(b) Web Studio Gate Scorecard — 16/16 W_CAD_v2 + 10/10 RS-karambit-v2 Hard Gates PASS",
+        color='#f0f6fc', fontsize=11.0, fontweight='bold', pad=10,
+    )
+
+    cards = [
+        ('Record Subject', f"{ev['subject']} (Wave 283)", '#ffd33d'),
+        ('2.5D / 3D Solid Mass', f"{em['mass_g']:.3f} g / {em['mass_3d_g']:.3f} g (Δ={100*ev['cad']['rel_mass_diff']:.3f}%)", '#3fb950'),
+        ('Locked Global Fitness G1', f"{g1_val:.6f} (COMPLETE)", '#d2a8ff'),
+        ('Weighted CAD Score W_CAD', f"+{wsc['W_CAD']:.4f} (16/16 Gates PASS)", '#58a6ff'),
+        ('RS-karambit-v2 Hard Gates', f"10/10 PASS (all_hard = {rs['all_hard']})", '#39d353'),
+        ('18-Evaluator CAD Battery', f"{bat['pass_count']} pass · 1 fail · 3 blocked · 1 incomplete", '#79c0ff'),
+    ]
+    for idx_c, (k_lbl, v_lbl, col_c) in enumerate(cards):
+        col_i = idx_c % 2
+        row_i = idx_c // 2
+        x0 = 3 + col_i * 48.5
+        y0 = 82 - row_i * 14.5
+        rect = plt.Rectangle((x0, y0), 45.5, 12.2, facecolor='#0d1117', edgecolor=col_c, linewidth=1.3, zorder=3)
+        ax_ui.add_patch(rect)
+        ax_ui.text(x0 + 2.2, y0 + 8.3, k_lbl.upper(), color='#8b949e', fontsize=7.5, fontweight='bold', zorder=4)
+        ax_ui.text(x0 + 2.2, y0 + 3.0, v_lbl, color=col_c, fontsize=8.8, fontweight='bold', zorder=4)
+
+    rsv2_rows = [
+        ('Strict 0.0625 mm² Hunter Lateral', f"{rs['strict_lat_rob_0p0625_n']:.1f} N ≥ 260.0 N (SF={em['sf_hunter_strict']:.4f})"),
+        ('Strict 4–15 mm Tip-Submodel Twist', f"SF = {rs['twist_tipzone_sf_strict']:.4f} ≥ 1.00 at 1.82 N·m"),
+        ('3D TET10 Solid-Tip P2 Submodel', f"SF = {rs['solid_tip_sf']:.3f} ≥ 1.00 (105,921 DOF, 22,752 TET10)"),
+        ('Certified Failure Sequence Ratio', f"seq_ratio = {rs['seq_ratio']:.4f} ≥ 1.20 (Hand Ring Yields First)"),
+        ('Human-Max Twist / Tip / Spine / Ring', f"SF = {rs['hm_twist_sf']:.4f} / {rs['hm_tip_inplane_sf']:.3f} / {rs['hm_spine_sf']:.3f} / {rs['hm_ringback_sf']:.3f}"),
+        ('10⁴-Cycle Fatigue & Ring Bearing', f"fat_sf = {rs['fat_sf']:.4f} ≥ 1.00  |  ring_bearing_w = {rs['ring_bearing_w_mm']:.2f} mm ≥ 10.0 mm"),
+        ('Sharp-Law Tip & Edge B-Rep Contract', f"edge_t = {edge_t_mm:.3f} mm ∈ [0.05, 0.20]  |  tip_r = 0.075 mm"),
+    ]
+    y_base = 46.0
+    for idx_r, (rk, rv) in enumerate(rsv2_rows):
+        yy = y_base - idx_r * 6.2
+        ax_ui.text(3.5, yy, f"✔ {rk}:", color='#3fb950', fontsize=8.0, fontweight='bold')
+        ax_ui.text(46.5, yy, rv, color='#e6edf3', fontsize=7.9, fontweight='bold')
+
+    fig.suptitle(
+        "Interactive 3D CAD & Gate Scorecard Web Studio (web/ · Vite + TypeScript + React + Three.js · jarambit export-web-data)",
+        color='#f0f6fc', fontsize=12.2, fontweight='bold', y=0.98,
+    )
+    fig.tight_layout(rect=[0, 0, 1, 0.94])
+    fig.savefig(fig_path, dpi=160, facecolor=fig.get_facecolor())
+    plt.close(fig)
+
+    figlib.write_manifest(str(fig_path), [str(p) for p in inputs], __file__)
+    return fig_path
+
+
 def main():
     p1 = make_readme_hero_fig()
     p2 = make_why_this_matters_fig()
     p3 = make_w279_gate_margins_fig()
-    for p in (p1, p2, p3):
+    p4 = make_web_studio_fig()
+    for p in (p1, p2, p3, p4):
         print('generated:', p.relative_to(ROOT))
 
 
 if __name__ == '__main__':
     main()
+

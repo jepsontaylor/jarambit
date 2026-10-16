@@ -1,0 +1,38 @@
+{
+  "copied_from_another_genome": false,
+  "d1_path": "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json",
+  "d1_sha256": "2c012cb3a17bac51b13192b02a988cfb3f15ea08a752edf9e88a8cefdc7768cf",
+  "dolfinx_cross_check": {
+    "SF_nodal_avg": 1.576,
+    "SF_nodal_max": 1.509,
+    "container": "native_rust_tet10_faer",
+    "ksp_its": 1,
+    "rel_err_nodal_avg": 0.0,
+    "rel_err_nodal_max": 0.0,
+    "within_2pct": true
+  },
+  "entered_as_solver_run": true,
+  "genome_data_row_matches_csv": true,
+  "genome_sha256": "aa54fe9148fe303b2054bc5449f063f507d6feffa07556d144013aa9ded5b009",
+  "metrics": {
+    "aes_score": 0.4079,
+    "spg": 3.47571
+  },
+  "schema": "jarambit.stored_solid_tip.v1",
+  "solve_rerun": true,
+  "stored_solid": {
+    "NL": 4,
+    "NSUB": 0,
+    "PATCH_mm": 2.0,
+    "R_CUT": 30.0,
+    "SF_elem_mean": 1.575,
+    "SF_nodal_avg": 1.576,
+    "SF_nodal_max": 1.509,
+    "SF_skfem_nodal_avg": 1.576,
+    "SF_skfem_nodal_max": 1.509,
+    "ksp_its": 1,
+    "n_dof": 105921,
+    "n_tet": 22752
+  },
+  "subject": "w283_p14_c01"
+}

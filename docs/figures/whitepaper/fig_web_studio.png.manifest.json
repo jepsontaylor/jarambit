@@ -1,0 +1,14 @@
+{
+ "figure": "docs/figures/whitepaper/fig_web_studio.png",
+ "figure_sha256": "95cb4dec657f7fe744b700fbd0743f37b2077bfb0204bb7ca414bc8fd3b6313d",
+ "inputs": {
+  "evidence/cad_battery/w283_p14_c01.json": "2b3fa9c3b40f311b1754869d4c98af85b9f1eec95b22f68edf2a13aa9b62bbfa",
+  "evidence/rs_v2/w283_p14_c01.json": "41a1eb6e383f936712b72e3ea9f268cded25ea1f8e3d06c517c96c44c40a57bc",
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "b8edcc0251ac08a5dce859a4a07278739582799b175ac92416c9a41c3bb2a8fe",
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv": "aa54fe9148fe303b2054bc5449f063f507d6feffa07556d144013aa9ded5b009",
+  "web/public/data/meshes/w283_p14_c01.stl": "71614663c1254baef53313386f51fdd45b258875f1648a1728b91a6967c0184d"
+ },
+ "norms": {},
+ "schema": 1,
+ "script": "ops/render/whitepaper_hero_figs.py"
+}

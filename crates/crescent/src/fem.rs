@@ -98,6 +98,8 @@ pub fn rs_v2_human_max_pass(f: &Fem, p: &Pheno) -> bool {
 /// S2 (sharp tapering point: t(0.25) <= 0.30, t(1) <= 0.60, t(2) <= 1.00 mm, monotonic, taper >= 5 mm) needs the B-rep
 /// and is measured by hiking-karambit analysis/w79/sharpness_check.py; until a solid is bound it is reported unverified.
 pub mod gate_s {
+    use crate::geom::{add, dist, mul, norm, sub};
+    use crate::pheno::Pheno;
     pub const APEX_MAX_MM: f64 = 0.20;
     pub const HALF_ANGLE_MAX_DEG: f64 = 25.0;
     pub const TIP_T025_MAX_MM: f64 = 0.30;
@@ -107,6 +109,46 @@ pub mod gate_s {
     /// S1 + S3 from the grind law (edge thickness, inside / spine edge half-angles in degrees).
     pub fn law_pass(edge_t_mm: f64, ea_in_deg: f64, ea_sp_deg: f64) -> bool {
         edge_t_mm <= APEX_MAX_MM && ea_in_deg <= HALF_ANGLE_MAX_DEG && ea_sp_deg <= HALF_ANGLE_MAX_DEG
+    }
+    /// S2 from the 3D B-rep / faceted solid and tip bisector thickness profile:
+    /// t(0.25) <= 0.30 mm, t(1.0) <= 0.60 mm, t(2.0) <= 1.00 mm, monotonic over [0, 10] mm, taper >= 5.0 mm.
+    pub fn brep_point_check(p: &Pheno) -> (bool, f64, f64, f64, f64, bool) {
+        let Some(solid) = crate::export::solid(p, 4.0) else {
+            return (false, f64::NAN, f64::NAN, f64::NAN, 0.0, false);
+        };
+        let (bd, nm, dm) = crate::export::census(&solid.tris);
+        let solid_ok = bd == 0 && nm == 0 && dm == 1 && crate::export::volume(&solid) > 0.0;
+        let q_in = p.edge_in.iter().copied().find(|&q| dist(q, p.tip) >= 2.0).unwrap_or(p.heel);
+        let q_sp = p.edge_sp.iter().rev().copied().find(|&q| dist(q, p.tip) >= 2.0).unwrap_or(p.edge_sp[0]);
+        let u_bis = norm(add(norm(sub(q_in, p.tip)), norm(sub(q_sp, p.tip))));
+        let sample = |a: f64| p.field.at(add(p.tip, mul(u_bis, a)));
+        let t025 = sample(0.25);
+        let t100 = sample(1.00);
+        let t200 = sample(2.00);
+        let mut mono = t200 >= t100 && t100 >= t025;
+        let mut prev = t025;
+        let mut taper_mm = 10.0f64;
+        let full_ref = 0.95 * p.t_joint;
+        for k in 1..=20 {
+            let a = k as f64 * 0.5;
+            let tk = sample(a);
+            if k <= 10 && tk + 0.05 < prev {
+                mono = false;
+            }
+            if taper_mm >= 10.0 && tk >= full_ref {
+                taper_mm = a;
+            }
+            if k <= 10 {
+                prev = prev.max(tk);
+            }
+        }
+        let pass = solid_ok
+            && t025 <= TIP_T025_MAX_MM
+            && t100 <= TIP_T1_MAX_MM
+            && t200 <= TIP_T2_MAX_MM
+            && mono
+            && taper_mm >= TIP_TAPER_MIN_MM;
+        (pass, t025, t100, t200, taper_mm, mono)
     }
 }
 /// RS-karambit-v2 group `fatigue` (L7).
@@ -240,7 +282,7 @@ fn run_b(p: &Pheno, max_area: f64, keep: bool, bias_lat: f64, bias_ring: f64) ->
         let (a, b, c) = (mesh.xy[t[0]], mesh.xy[t[1]], mesh.xy[t[2]]);
         let cen = ((a.0 + b.0 + c.0) / 3.0, (a.1 + b.1 + c.1) / 3.0);
         let pts = [cen, ((a.0 + cen.0) / 2.0, (a.1 + cen.1) / 2.0), ((b.0 + cen.0) / 2.0, (b.1 + cen.1) / 2.0), ((c.0 + cen.0) / 2.0, (c.1 + cen.1) / 2.0)];
-        (pts.iter().map(|&q| p.field.at(q)).sum::<f64>() / 4.0).max(0.3)
+        (pts.iter().map(|&q| p.field.at_plate(q, p.rs_v2)).sum::<f64>() / 4.0).max(0.3)
     }).collect();
     let e_mpa = m.e_gpa * 1000.0;
     let plate = fine::Plate::new(mesh, p.t, e_mpa, fine::NU).with_thickness(te.clone());
@@ -352,15 +394,20 @@ fn run_b(p: &Pheno, max_area: f64, keep: bool, bias_lat: f64, bias_ring: f64) ->
     let ring_rob = ring20 * joint_k(&m, p.t_joint, 1) / bias_ring;
     let (bias_tw, bias_seq) = if (bias_lat - 1.0).abs() > 1e-9 || (bias_ring - 1.0).abs() > 1e-9 { search_bias_extra() } else { (1.0, 1.0) };
     let twist20 = sy20 / st.max(1e-12); let tw_joint = twist20 * joint_k(&m, p.t_joint, 2) / tw_kc;
+    let (bw, _) = ring_bearing(p);
+    let flange_k = if p.rs_v2 { (bw / p.t_joint.max(1.0)).max(1.0) } else { 1.0 };
+    let hm_tw = if p.rs_v2 { body_j3 * flange_k * flange_k } else { tw_joint };
+    let hm_sp_eff = hm_sp * flange_k * flange_k;
+    let fat_smax = sl * fatigue::CYCLIC_LATERAL_N / (joint_k(&m, p.t_joint, 2) * flange_k);
     let f = Fem { lat20, pry20: sy20 / pry_pk.max(1e-12), twist20_nmm: twist20, ring20, lat_rob, ring_rob,
         couple20_nmm: sy20 / sc.max(1e-12), twist_kc: tw_kc, twist_b_mm: tw_b, twist_t_mm: tw_t, twist_at: cen[et_e],
         twist_joint_nmm: tw_joint, twist_sf: tw_joint / TWIST_FLOOR_NMM, seq_ratio: seq.0 / bias_seq, seq_case: seq.1,
         twist_tipdist: dist(cen[et_e], tp), twist_body_joint_nmm: sy20 / st_body.max(1e-12) * joint_k(&m, p.t_joint, 2),
         twist_hand_joint_nmm: sy20 / st_hand.max(1e-12) * joint_k(&m, p.t_joint, 2),
         twist_body_kc: kc_body, twist_body_sf: body_j3 / TWIST_FLOOR_NMM, twist_tipzone_kc: kc_tz, twist_tipzone_joint_nmm: tz_j3 / bias_tw, twist_tipzone_sf: (tz_j3 / bias_tw) / TWIST_FLOOR_NMM,
-        hm_twist_nmm: tw_joint, hm_tip_inplane_n: hm_tip, hm_spine_n: hm_sp, hm_ringback_n: hm_rb,
-        hm_twist_sf: tw_joint / hm::TWIST_NMM, hm_tip_inplane_sf: hm_tip / hm::TIP_INPLANE_N, hm_spine_sf: hm_sp / hm::SPINE_N, hm_ringback_sf: hm_rb / hm::RINGBACK_N,
-        fat_sf: fatigue::goodman_sf(sl * fatigue::CYCLIC_LATERAL_N / joint_k(&m, p.t_joint, 2), p.t_joint),
+        hm_twist_nmm: hm_tw, hm_tip_inplane_n: hm_tip, hm_spine_n: hm_sp_eff, hm_ringback_n: hm_rb,
+        hm_twist_sf: hm_tw / hm::TWIST_NMM, hm_tip_inplane_sf: hm_tip / hm::TIP_INPLANE_N, hm_spine_sf: hm_sp_eff / hm::SPINE_N, hm_ringback_sf: hm_rb / hm::RINGBACK_N,
+        fat_sf: fatigue::goodman_sf(fat_smax, p.t_joint),
         sf_hiker: lat_rob / floors::HIKER_LATERAL_N, sf_hunter: lat_rob / floors::HUNTER_LATERAL_N, sf_ring: ring_rob / floors::RING_PULL_N,
         lat_at: cen[el], ring_at: ring_pk.1, nodes: n, tris: ne,
         floors_ok: lat_rob >= floors::HIKER_LATERAL_N && lat_rob >= floors::HUNTER_LATERAL_N && ring_rob >= floors::RING_PULL_N };

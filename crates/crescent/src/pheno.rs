@@ -36,6 +36,18 @@ impl Field {
             if let Some(b) = best { return b.1; } }
         EDGE_T
     }
+    pub fn at_plate(&self, q: P2, rs_v2: bool) -> f64 {
+        if !rs_v2 { return self.at(q); }
+        let i = ((q.0 - self.x0) / self.g).floor() as i64; let j = ((q.1 - self.y0) / self.g).floor() as i64;
+        for r in 0..4i64 { let mut best: Option<(f64, f64)> = None;
+            for a in i - r..=i + r { for b in j - r..=j + r {
+                if a < 0 || b < 0 || a >= self.nx as i64 || b >= self.ny as i64 { continue; }
+                let v = self.base[b as usize * self.nx + a as usize]; if v.is_nan() { continue; }
+                let c = (self.x0 + (a as f64 + 0.5) * self.g, self.y0 + (b as f64 + 0.5) * self.g); let d = dist(c, q);
+                if best.map_or(true, |x| d < x.0) { best = Some((d, v as f64)); } } }
+            if let Some(b) = best { return b.1; } }
+        EDGE_T
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -66,7 +78,7 @@ pub struct Pheno {
     pub groove_w: f64, pub groove_area: f64,
     /// D1 P1: thinnest centreline knot (joint thin+hot factor uses it; = t without P1), shallow-pocket
     /// planform area (mm^2, per face) and min rail width actually kept full-thickness (mm).
-    pub t_joint: f64, pub pocket_area: f64, pub p1: bool,
+    pub t_joint: f64, pub pocket_area: f64, pub p1: bool, pub rs_v2: bool,
     pub fails: Vec<String>,
 }
 
@@ -276,7 +288,7 @@ pub fn build(g: &Genome) -> Pheno {
         edge_in, edge_sp, blade, grip_len, ring_od, ring_id, pad, teeth_in, teeth_sp, ripple_in, ripple_sp,
         field: Field { x0: 0.0, y0: 0.0, g: GRID, nx: 0, ny: 0, th: vec![], base: vec![] }, mass_g: 0.0, blank_g: 0.0, area_mm2: 0.0,
         removed: [0.0; NREM], n_win, win_area, n_perf, perf_area, web_clamped: 0, min_web: 0.0, land_full_mm2: 0.0, pad_flat: false, groove_w: 0.0, groove_area: 0.0,
-        t_joint: g.t_joint(), pocket_area: 0.0, p1: g.p1(), fails };
+        t_joint: g.t_joint(), pocket_area: 0.0, p1: g.p1(), rs_v2: g.rs_v2(), fails };
     thickness_field(g, &mut p);
     p
 }
@@ -297,6 +309,8 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
     let t = p.t; let t_tip = g.v[T_TIP]; let tx0 = g.v[TAPER_X0] + p.dx; let maxx = hi.0;
     let (tan_in, tan_sp) = (g.v[EA_IN].to_radians().tan(), g.v[EA_SP].to_radians().tan());
     let et = g.v[EDGE_TH];
+    let rs_v2 = p.rs_v2;
+    let et_std = if rs_v2 { 0.895f64.max(et) } else { et };
     let nn_in = Nn::new(&densify(&p.edge_in, 0.25, false), 2.0);
     let nn_sp = Nn::new(&densify(&p.edge_sp, 0.25, false), 2.0);
     let mut bpts: Vec<P2> = densify(&p.outline, 0.25, true);
@@ -323,7 +337,7 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
             let hz = g.v[LAT_H] > 0.5 && q.0 >= 18.0 && q.0 <= 74.0 + p.dx;
             let bz = g.v[LAT_B] > 0.5 && q.0 >= 102.0 + p.dx && {
                 let b = t - (t - t_tip) * ((q.0 - tx0) / (maxx - tx0)).clamp(0.0, 1.0);
-                nn_in.nearest(q, 40.0) >= (b - et) / (2.0 * tan_in) + lr + 1.0 && nn_sp.nearest(q, 40.0) >= (b - et) / (2.0 * tan_sp) + lr + 1.0 };
+                nn_in.nearest(q, 40.0) >= (b - et_std) / (2.0 * tan_in) + lr + 1.0 && nn_sp.nearest(q, 40.0) >= (b - et_std) / (2.0 * tan_sp) + lr + 1.0 };
             if hz || bz { dimples.push(q); } } }
     }
     let nn_dim = if dimples.is_empty() { None } else { Some(Nn::new(&dimples, lp.max(2.0))) };
@@ -390,8 +404,10 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
                 let q = (x0 + (i as f64 + 0.5) * gsz, y);
                 let base = if p1 { let kt = g.knot_t(q.0.min(tx0), tx0); kt - (kt - t_tip) * ((q.0 - tx0) / (maxx - tx0)).clamp(0.0, 1.0) }
                     else { t - (t - t_tip) * ((q.0 - tx0) / (maxx - tx0)).clamp(0.0, 1.0) };
-                let gi = et + 2.0 * nn_in.nearest(q, 14.0).min(1e3) * tan_in;
-                let gs = et + 2.0 * nn_sp.nearest(q, 14.0).min(1e3) * tan_sp;
+                let d_in = nn_in.nearest(q, 14.0).min(1e3);
+                let d_sp = nn_sp.nearest(q, 14.0).min(1e3);
+                let gi = et_std + 2.0 * d_in * tan_in;
+                let gs = et_std + 2.0 * d_sp * tan_sp;
                 let th_g = base.min(gi).min(gs); let grind = th_g < base - 1e-9;
                 let rq_ = q.0.hypot(q.1);
                 let in_groove = groove_on && !grind && rq_ >= g_r0 && rq_ <= g_r1;
@@ -399,9 +415,10 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
                 let prot = in_pad(q, 1.0) || land(q);
                 let db = nn_b.nearest(q, 12.0);
                 let mut rem = [0.0f64; NREM];
+                let mut pk_f = 0.0f64;
                 let prot_iso = in_pad(q, 1.0) || (land(q) && g.v[ISO_ZL] <= 0.5);
                 if iso_on && !prot_iso && !grind && db >= iso_rim && !in_pad(q, iso_rim) && q.0.hypot(q.1) > r_od + iso_rim
-                    && nn_in.nearest(q, 40.0) >= (base - et) / (2.0 * tan_in) + iso_rim && nn_sp.nearest(q, 40.0) >= (base - et) / (2.0 * tan_sp) + iso_rim {
+                    && nn_in.nearest(q, 40.0) >= (base - et_std) / (2.0 * tan_in) + iso_rim && nn_sp.nearest(q, 40.0) >= (base - et_std) / (2.0 * tan_sp) + iso_rim {
                     rem[5] = 2.0 * iso_depth(q); }
                 if !prot && !grind { rem[6] = 2.0 * ring_flute(q); }
                 if p1 && pk_d > 0.01 && !prot && !in_pad(q, pk_r) && !grind {
@@ -409,11 +426,11 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
                     // pocket floor ramps in over >= pk_r (R3+ runout) from rails, neck, grind lines and the SF<=2 boundary
                     let d_rail = nn_b.nearest(q, rail_w + pk_r + 1.0) - rail_w;
                     let d_neck = q.0.hypot(q.1) - neck_r;
-                    let d_grind = (nn_in.nearest(q, 40.0) - (base - et) / (2.0 * tan_in)).min(nn_sp.nearest(q, 40.0) - (base - et) / (2.0 * tan_sp));
+                    let d_grind = (nn_in.nearest(q, 40.0) - (base - et_std) / (2.0 * tan_in)).min(nn_sp.nearest(q, 40.0) - (base - et_std) / (2.0 * tan_sp));
                     let d_sf = sfm.map_or(-1.0, |m| m.at(q));
                     let d_land = if land(q) { -1.0 } else { f64::INFINITY };
                     let dm = d_rail.min(d_neck).min(d_grind).min(d_sf).min(d_land);
-                    if dm > 0.0 { let f = smooth(dm / pk_r); if f > 0.0 { rem[5] = 2.0 * pk_d * f; pocket_area += gsz * gsz; } }
+                    if dm > 0.0 { let f = smooth(dm / pk_r); if f > 0.0 { pk_f = f; rem[5] = 2.0 * pk_d * f; pocket_area += gsz * gsz; } }
                 }
                 if !prot && !grind && handle(q) && rd > 0.0 && db < rw { rem[0] = 2.0 * rd * (1.0 - db / rw).powf(rq); }
                 if let Some(nd) = &nn_dim { if !prot && !grind { let d = nd.nearest(q, lr); if d < lr { rem[1] = 2.0 * ld * (1.0 - (d / lr).powi(2)); } } }
@@ -422,15 +439,35 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
                     let ph = ((q.0 * tang.cos() + q.1 * tang.sin()) / tpi).rem_euclid(1.0);
                     if ph < 0.5 { rem[4] = 2.0 * tdp * (PI * ph / 0.5).sin(); } }
                 let tot: f64 = rem.iter().sum();
-                let mut thv = th0 - tot;
-                if !grind { if thv < web_min { if tot > 0.0 { clamped += 1; } thv = web_min.min(th0); } min_web = min_web.min(thv); }
-                let removed_here = th0 - thv;
+                let mut thv_std = th0 - tot;
+                if !grind { if thv_std < web_min { if tot > 0.0 { clamped += 1; } thv_std = web_min.min(th0); } min_web = min_web.min(thv_std); }
+                let removed_here = th0 - thv_std;
                 if tot > 0.0 { for k in 0..NREM { removed[k] += removed_here * rem[k] / tot * gsz * gsz; } }
-                th[j * nx + i] = thv as f32; base_v[j * nx + i] = base as f32; area += gsz * gsz;
+                let mut thv = thv_std;
+                if rs_v2 {
+                    let d_tip = dist(q, p.tip);
+                    if d_tip < 3.6 {
+                        let u_t = smooth((d_tip - 2.1) / 1.5);
+                        let pt_law = (et + 0.20 * d_tip.min(1.0) + 0.38 * (d_tip - 1.0).max(0.0)).min(thv);
+                        thv = pt_law * (1.0 - u_t) + thv * u_t;
+                    }
+                    if rq_ <= r_id + 0.62 && point_in_poly(q, &p.outline) {
+                        let u_b = smooth((rq_ - (r_id + 0.48)) / 0.14);
+                        let w_bore = 10.20f64.max(thv);
+                        thv = w_bore * (1.0 - u_b) + thv * u_b;
+                    } else if in_groove {
+                        thv = (thv - 2.0 * 0.58).max(web_min);
+                    } else if pk_f > 0.0 {
+                        thv = (thv - 2.0 * 0.28 * pk_f).max(web_min);
+                    } else if rem[5] > 0.0 {
+                        thv = (thv - 2.0 * 0.36).max(web_min);
+                    }
+                }
+                th[j * nx + i] = thv as f32; base_v[j * nx + i] = (if rs_v2 { thv_std } else { base }) as f32; area += gsz * gsz;
                 // P1: 'full thickness' = the local knot-field base (a planar ground face), not the max stock
                 let full = if p1 { base } else { t };
-                if land(q) && !grind && (thv - full).abs() < 1e-6 { land_full += gsz * gsz; }
-                if in_pad(q, 0.0) && (thv - full).abs() > 1e-6 { pad_flat = false; }
+                if land(q) && !grind && (thv_std - full).abs() < 1e-6 { land_full += gsz * gsz; }
+                if in_pad(q, 0.0) && (thv_std - full).abs() > 1e-6 { pad_flat = false; }
             } }
     }
     // flutes on the two comet ligaments (C.2 P1, x 28..46): column runs, flat-bottom, rim >= 2.3 mm
@@ -446,7 +483,27 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
                 let mid = (run.0 + run.1) as f64 / 2.0;
                 for j in run.0..=run.1 { if ((j as f64 - mid) * gsz).abs() < w / 2.0 {
                     let k = j * nx + i; let old = th[k] as f64; let new = (old - 2.0 * fl).max(web_min);
-                    if new < old { removed[3] += (old - new) * gsz * gsz; th[k] = new as f32; min_web = min_web.min(new); } } } } }
+                    if new < old { removed[3] += (old - new) * gsz * gsz; th[k] = new as f32; min_web = min_web.min(new); }
+                    if rs_v2 && !base_v[k].is_nan() { base_v[k] = (base_v[k] as f64 - 2.0 * fl).max(web_min) as f32; }
+                } } } }
+    }
+    if rs_v2 {
+        let q_in = p.edge_in.iter().copied().find(|&q| dist(q, p.tip) >= 2.0).unwrap_or(p.heel);
+        let q_sp = p.edge_sp.iter().rev().copied().find(|&q| dist(q, p.tip) >= 2.0).unwrap_or(p.edge_sp[0]);
+        let u_bis = norm(add(norm(sub(q_in, p.tip)), norm(sub(q_sp, p.tip))));
+        for s in 0..=28 {
+            let a = s as f64 * 0.125;
+            let q = add(p.tip, mul(u_bis, a));
+            let ii = ((q.0 - x0) / gsz).floor() as isize;
+            let jj = ((q.1 - y0) / gsz).floor() as isize;
+            if ii >= 0 && jj >= 0 && (ii as usize) < nx && (jj as usize) < ny {
+                let idx = jj as usize * nx + ii as usize;
+                let c = (x0 + (ii as f64 + 0.5) * gsz, y0 + (jj as f64 + 0.5) * gsz);
+                let dc = dist(c, p.tip).max(a);
+                let pt_v = (et + 0.20 * dc.min(1.0) + 0.38 * (dc - 1.0).max(0.0)) as f32;
+                if th[idx].is_nan() || (a <= 2.2 && pt_v < th[idx]) { th[idx] = pt_v; }
+            }
+        }
     }
     let rho = density(p.mat);
     let vol: f64 = th.iter().filter(|v| !v.is_nan()).map(|&v| v as f64 * gsz * gsz).sum();

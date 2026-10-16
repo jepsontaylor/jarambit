@@ -10,6 +10,7 @@ mod calib;
 mod crescent;
 mod bench;
 mod score_cad;
+mod auto_evolve;
 
 /// Validate an existing history header before any append, then open the log.
 /// A fresh path is created with `fresh_header` and only then opened for append.
@@ -45,6 +46,9 @@ fn main() {
     }
     if let Some(pos) = a.iter().position(|s| s == "export-web-data") {
         std::process::exit(score_cad::run_export_web_data_cli(&a[(pos + 1)..]));
+    }
+    if let Some(pos) = a.iter().position(|s| s == "auto-evolve") {
+        std::process::exit(auto_evolve::run_auto_evolve_cli(&a[(pos + 1)..]));
     }
     if a.iter().any(|s| s == "bench-make") { std::process::exit(if bench::make(&sarg("--seeds", ""), narg("--n", 1000), narg("--seed", 31) as u64, &sarg("--out", "bench/fixed_1k/genomes.csv")) { 0 } else { 1 }); }
     if a.iter().any(|s| s == "rs-v2-eval") { std::process::exit(if bench::rs_v2_eval(&sarg("--genomes", ""), &sarg("--out", "evidence/rs_v2"), &sarg("--solid-dir", "evidence/fem_solid/gci")) { 0 } else { 1 }); }

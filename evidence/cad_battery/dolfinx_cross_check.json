@@ -2284,6 +2284,40 @@
       },
       "status": "pass",
       "within_2pct": true
+    },
+    "w283_p10_c02": {
+      "dolfinx": {
+        "SF_nodal_avg": 1.576,
+        "SF_nodal_max": 1.509,
+        "ksp_its": 1,
+        "n_dof": 105921,
+        "n_tet": 22752
+      },
+      "rel_err_nodal_avg": 0.0,
+      "rel_err_nodal_max": 0.0,
+      "skfem": {
+        "SF_nodal_avg": 1.576,
+        "SF_nodal_max": 1.509
+      },
+      "status": "pass",
+      "within_2pct": true
+    },
+    "w283_p14_c01": {
+      "dolfinx": {
+        "SF_nodal_avg": 1.576,
+        "SF_nodal_max": 1.509,
+        "ksp_its": 1,
+        "n_dof": 105921,
+        "n_tet": 22752
+      },
+      "rel_err_nodal_avg": 0.0,
+      "rel_err_nodal_max": 0.0,
+      "skfem": {
+        "SF_nodal_avg": 1.576,
+        "SF_nodal_max": 1.509
+      },
+      "status": "pass",
+      "within_2pct": true
     }
   },
   "tolerance_rel": 0.02

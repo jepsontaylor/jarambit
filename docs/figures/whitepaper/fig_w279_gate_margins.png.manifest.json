@@ -1,13 +1,13 @@
 {
  "figure": "docs/figures/whitepaper/fig_w279_gate_margins.png",
- "figure_sha256": "44450397bad6701aa91487de0f7df8bd203fffd4d5d8a69b61f8897ab2d216e6",
+ "figure_sha256": "fcfd782dc465ddee2b135d963cd168134895a835f67f64f4fc83696760b8fb43",
  "inputs": {
-  "evidence/cad_battery/w282_p14_c01.json": "c27cef877ec99acad038cf449719c83dfe18c50105e392a2a0fb29f442a86d08",
-  "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_D1.json": "184e454feca52afffd156ce1b607025fb50dc3eca0687b835b36ef8f48c5fc46",
-  "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_a4.json": "1a8dd5c6f33227c0ced3d03235fbabf4f6302038dd2cd2f9149835e7472f85a4",
-  "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json": "afdfa9676e988928159274a8b046b4bb02521f274abcf618938cef9dcb29db17",
-  "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_plate_gci.json": "1072033331cbac4c256f28fbe448a866fca712c9a86daa1649eadd8b7874705c",
-  "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_solid_tip.json": "5c30ca658549e08f87801921890746248f531fda52cf181570346ca3edfe02d7"
+  "evidence/cad_battery/w283_p14_c01.json": "2b3fa9c3b40f311b1754869d4c98af85b9f1eec95b22f68edf2a13aa9b62bbfa",
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json": "2c012cb3a17bac51b13192b02a988cfb3f15ea08a752edf9e88a8cefdc7768cf",
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_a4.json": "63772779cfefdffe85e54d397f7b879e8575313e6818aab47a0a93074f4f0ef2",
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "b8edcc0251ac08a5dce859a4a07278739582799b175ac92416c9a41c3bb2a8fe",
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_plate_gci.json": "e61377407877f54dda14487359bef621b81ffa4aec85acc8bd1d3da4a61c4707",
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_solid_tip.json": "8c81f1ca0affab86579b9225b5b80d0e16c5fb8a1d1e3fe0851b029cf48e6ab6"
  },
  "norms": {},
  "schema": 1,

@@ -1,7 +1,9 @@
 docs/figures/whitepaper/wave27_g3_tip+00_t60_tt3_STEP_3D.png  # hero render (PR-0.29.4)
-docs/figures/whitepaper/fig_readme_mass_vs_wave.png  # README hero mass vs wave progression (w20..w279)
+docs/figures/whitepaper/fig_readme_mass_vs_wave.png  # README hero mass vs wave progression (w20..w283)
 docs/figures/whitepaper/fig_why_this_matters.png  # whitepaper page-1 why this matters (mass vs wave + market comparison)
-docs/figures/whitepaper/fig_w279_gate_margins.png  # whitepaper page-1 w279_s2928_c01 16-gate margins
+docs/figures/whitepaper/fig_w279_gate_margins.png  # whitepaper page-1 w283_p14_c01 16-gate margins
+docs/figures/whitepaper/fig_web_studio.png  # interactive 3D CAD & gate scorecard web studio overview
 docs/figures/engineering_gates/fig1_evolutionary_trajectories.png  # evolutionary trajectories & QD archive
 docs/figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png  # 17x18 CAD battery, GCI & DOLFINx cross-check
 docs/figures/engineering_gates/fig3_cad_and_fem_gallery.png  # real 3D CAD & FEM gallery
+

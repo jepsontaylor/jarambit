@@ -131,9 +131,12 @@ impl Genome {
     /// from the ring wall genes: rims 1.6 mm to bore and OD, 0.6 mm per face).
     pub fn c6_seed(t: f64) -> Self { Self::c4_seed(t) }
     pub fn get(&self, i: usize) -> f64 { self.v[i] }
+    pub fn rs_v2(&self) -> bool { self.v.len() > EDGE_TH && self.v[EDGE_TH].is_finite() && self.v[EDGE_TH] >= 0.05 && self.v[EDGE_TH] <= crate::fem::gate_s::APEX_MAX_MM }
     pub fn clamp(&mut self) {
+        let et_raw = self.v.get(EDGE_TH).copied().unwrap_or(0.5);
         let b = bounds();
         for (x, (lo, hi)) in self.v.iter_mut().zip(&b) { *x = if x.is_finite() { x.clamp(*lo, *hi) } else { *lo }; }
+        if et_raw.is_finite() && (0.05..0.50).contains(&et_raw) { self.v[EDGE_TH] = et_raw; }
         self.v[T] = q01(self.v[T]).clamp(T_MIN, t_max());
         self.v[T_TIP] = self.v[T_TIP].min(self.v[T] - 0.5);
         // holder stack: t + 2 wall + 2 x 0.2 clearance <= 9.0 mm

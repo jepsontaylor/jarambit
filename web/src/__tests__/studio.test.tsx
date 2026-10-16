@@ -9,10 +9,18 @@ import { DEFAULT_STUDIO_BUNDLE } from '../data/defaultDataset';
 import { parseStepFacetedMesh, parseStlMesh } from '../utils/stlParser';
 
 describe('Jarambit 3D CAD & Gate Scorecard Studio', () => {
-  it('contains all 21 catalog subjects and 18 evaluator cases (378 cells) in DEFAULT_STUDIO_BUNDLE', () => {
+  it('contains all 23 catalog subjects and 18 evaluator cases (414 cells) in DEFAULT_STUDIO_BUNDLE', () => {
     expect(DEFAULT_STUDIO_BUNDLE.schema).toBe('jarambit.web_studio_bundle.v1');
     expect(DEFAULT_STUDIO_BUNDLE.case_ids).toHaveLength(18);
-    expect(DEFAULT_STUDIO_BUNDLE.subjects).toHaveLength(21);
+    expect(DEFAULT_STUDIO_BUNDLE.subjects).toHaveLength(23);
+
+    const w283 = DEFAULT_STUDIO_BUNDLE.featured_scorecards.w283_p14_c01;
+    expect(w283).toBeDefined();
+    expect(w283.weighted_cad_score.all_engineering_gates_pass).toBe(true);
+    expect(w283.weighted_cad_score.W_CAD).toBeCloseTo(1.795572, 4);
+    expect(w283.global_fitness_G1.G).toBeCloseTo(0.913855, 5);
+    expect(w283.cad.watertight_exact).toBe(true);
+    expect(w283.cad.mass_3d_g).toBeCloseTo(75.199, 2);
 
     const w282 = DEFAULT_STUDIO_BUNDLE.featured_scorecards.w282_p14_c01;
     expect(w282).toBeDefined();
@@ -90,19 +98,19 @@ END-ISO-10303-21;`;
     const appHtml = renderToString(<App />);
     expect(appHtml).toContain('3D CAD &amp; Multi-Solver Gate Scorecard Studio');
     expect(appHtml).toContain('ALL 16 GATES PASS');
-    expect(appHtml).toContain('1.779046');
-    expect(appHtml).toContain('0.878210');
+    expect(appHtml).toContain('1.795575');
+    expect(appHtml).toContain('0.913855');
 
-    const peerSc = DEFAULT_STUDIO_BUNDLE.featured_scorecards.w282_p10_c02;
+    const peerSc = DEFAULT_STUDIO_BUNDLE.featured_scorecards.w283_p10_c02;
     const peerHtml = renderToString(
       <GateScorecardPanel
-        subjectId="w282_p10_c02"
+        subjectId="w283_p10_c02"
         scorecard={peerSc}
         batteryRecord={peerSc.cad_battery}
       />,
     );
-    expect(peerHtml).toContain('1.797848');
-    expect(peerHtml).toContain('0.881101');
+    expect(peerHtml).toContain('1.816593');
+    expect(peerHtml).toContain('0.916719');
 
     const c10aSc = DEFAULT_STUDIO_BUNDLE.featured_scorecards.c10a;
     const c10aHtml = renderToString(

@@ -425,7 +425,8 @@ pub fn rasterize_and_extract_archetype(
         return Err("Empty 2.5D thickness projection".into());
     }
 
-    let t_stock_mm = round_n(percentile(&valid_th, 99.5), 3);
+    let p995 = percentile(&valid_th, 99.5);
+    let t_stock_mm = round_n(if p995 > 7.5 { percentile(&valid_th, 95.0) } else { p995 }, 3);
     let t_joint_mm = round_n(percentile(&valid_th, 85.0), 3);
     let mass_raster_g = round_n(sum_th * (g_step * g_step) * TI64_DENSITY_G_PER_MM3, 4);
     let rel_mass_diff = (census.mass_3d_g - mass_raster_g).abs() / mass_raster_g.max(1e-9);

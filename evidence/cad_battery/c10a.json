@@ -1,288 +1,275 @@
 {
- "schema": "jarambit.cad_battery.subject.v1",
- "subject": "c10a",
- "role": "native_cad",
- "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
- "cases": [
-  {
-   "id": "build.analytic",
-   "kind": "software_contract",
-   "status": "pass",
-   "solver": "analytic",
-   "geometry_sha256": null,
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "crates/physics/tests/invariance.rs",
-   "fresh_this_lane": false
-  },
-  {
-   "id": "build.gci_contracts",
-   "kind": "software_contract",
-   "status": "pass",
-   "solver": "gci",
-   "geometry_sha256": null,
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "fem_solid/tests/test_gci.py",
-   "fresh_this_lane": false
-  },
-  {
-   "id": "build.claims",
-   "kind": "software_contract",
-   "status": "pass",
-   "solver": null,
-   "geometry_sha256": null,
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "ops/ci/check_claims.py",
-   "fresh_this_lane": false,
-   "detail": {
-    "expected_unaided_exit": 2,
-    "reason": "independent_caller_admission_unavailable"
-   }
-  },
-  {
-   "id": "build.dolfinx",
-   "kind": "software_contract",
-   "status": "pass",
-   "solver": "solid_dolfinx",
-   "geometry_sha256": null,
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "evidence/cad_battery/dolfinx_cross_check.json",
-   "fresh_this_lane": false,
-   "detail": {
-    "container_image": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
-    "script": "fem_solid/cross_check.py",
-    "all_within_2pct": true,
-    "tolerance_rel": 0.02,
-    "subjects_checked": [
-     "g3",
-     "w271b_11772",
-     "w271b_11860",
-     "w271c_11522",
-     "w272_s2902_c01",
-     "w273_s2903_c04",
-     "w273_s2904_c01"
-    ]
-   }
-  },
-  {
-   "id": "geom.unit",
-   "kind": "gate",
-   "status": "pass",
-   "solver": null,
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
-   "fresh_this_lane": false,
-   "detail": {
-    "units": "mm",
-    "units_source": "step_declaration"
-   }
-  },
-  {
-   "id": "geom.one_solid",
-   "kind": "gate",
-   "status": "pass",
-   "solver": null,
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
-   "fresh_this_lane": false,
-   "detail": {
-    "solids": 1
-   }
-  },
-  {
-   "id": "geom.mass",
-   "kind": "derived",
-   "status": "pass",
-   "solver": null,
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
-   "fresh_this_lane": false,
-   "detail": {
-    "step_g": 64.84116307039213,
-    "readme_g": 64.841,
-    "stl_g": 64.8483944338768,
-    "step_vs_readme": {
-     "status": "PASS",
-     "rel": 2.5149271623446703e-06,
-     "tolerance": 0.001
+  "cases": [
+    {
+      "evidence_path": "crates/physics/tests/invariance.rs",
+      "fresh_this_lane": false,
+      "geometry_sha256": null,
+      "id": "build.analytic",
+      "kind": "software_contract",
+      "solver": "analytic",
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "pass"
     },
-    "stl_vs_readme": {
-     "status": "PASS",
-     "rel": 0.00011403947929260022,
-     "tolerance": 0.01
+    {
+      "evidence_path": "fem_solid/tests/test_gci.py",
+      "fresh_this_lane": false,
+      "geometry_sha256": null,
+      "id": "build.gci_contracts",
+      "kind": "software_contract",
+      "solver": "gci",
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "expected_unaided_exit": 2,
+        "reason": "independent_caller_admission_unavailable"
+      },
+      "evidence_path": "ops/ci/check_claims.py",
+      "fresh_this_lane": false,
+      "geometry_sha256": null,
+      "id": "build.claims",
+      "kind": "software_contract",
+      "solver": null,
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "all_within_2pct": true,
+        "container_image": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+        "script": "fem_solid/cross_check.py",
+        "subjects_checked": [
+          "g3",
+          "w271b_11772",
+          "w271b_11860",
+          "w271c_11522",
+          "w272_s2902_c01",
+          "w273_s2903_c04",
+          "w273_s2904_c01",
+          "w274_s2905_c01",
+          "w275_s2909_c01",
+          "w276_s2913_c01",
+          "w277_s2919_c01",
+          "w278_s2922_c01",
+          "w279_s2928_c01",
+          "w280_s2931_c01",
+          "w281_s2932_c01",
+          "w282_p10_c02",
+          "w282_p14_c01",
+          "w283_p10_c02",
+          "w283_p14_c01"
+        ],
+        "tolerance_rel": 0.02
+      },
+      "evidence_path": "evidence/cad_battery/dolfinx_cross_check.json",
+      "fresh_this_lane": false,
+      "geometry_sha256": null,
+      "id": "build.dolfinx",
+      "kind": "software_contract",
+      "solver": "solid_dolfinx",
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "pass"
+    },
+    {
+      "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "geom.unit",
+      "kind": "gate",
+      "reason": "no mesh bound",
+      "solver": null,
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
+    },
+    {
+      "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "geom.one_solid",
+      "kind": "gate",
+      "reason": "no mesh bound",
+      "solver": null,
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
+    },
+    {
+      "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "geom.mass",
+      "kind": "gate",
+      "reason": "no mesh bound",
+      "solver": null,
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
+    },
+    {
+      "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "geom.pin",
+      "kind": "gate",
+      "reason": "no mesh bound",
+      "solver": null,
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
+    },
+    {
+      "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "plate.loads",
+      "kind": "derived",
+      "reason": "no mesh bound",
+      "solver": "plate_cst_dkt",
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
+    },
+    {
+      "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "plate.seq",
+      "kind": "derived",
+      "reason": "no mesh bound",
+      "solver": "plate_cst_dkt",
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
+    },
+    {
+      "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "plate.l7",
+      "kind": "derived",
+      "reason": "no mesh bound",
+      "solver": "plate_cst_dkt",
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
+    },
+    {
+      "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "plate.gci",
+      "kind": "derived",
+      "reason": "no mesh bound",
+      "solver": "plate_cst_dkt",
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
+    },
+    {
+      "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "side.a1",
+      "kind": "derived",
+      "reason": "no mesh bound",
+      "solver": "plate_cst_dkt",
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
+    },
+    {
+      "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "side.a2",
+      "kind": "derived",
+      "reason": "no mesh bound",
+      "solver": "plate_cst_dkt",
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
+    },
+    {
+      "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "side.a3",
+      "kind": "derived",
+      "reason": "no mesh bound",
+      "solver": "plate_cst_dkt",
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
+    },
+    {
+      "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "side.a4",
+      "kind": "derived",
+      "reason": "no mesh bound",
+      "solver": "plate_cst_dkt",
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
+    },
+    {
+      "detail": {
+        "NL": 4,
+        "NSUB": 1,
+        "R_CUT": 30.0,
+        "SF_nodal_avg": 0.2216,
+        "SF_nodal_max": 0.2101,
+        "dolfinx_cross_check": {
+          "SF_nodal_avg": 0.2216,
+          "SF_nodal_max": 0.2101,
+          "container": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+          "ksp_its": 172,
+          "rel_err_nodal_avg": 0.0,
+          "rel_err_nodal_max": 0.0,
+          "within_2pct": true
+        },
+        "entered_as_solver_run": true,
+        "ksp_its": 125,
+        "n_dof": 372357,
+        "n_tet": 80496
+      },
+      "evidence_path": "evidence/cad_battery/side/c10a_solid_tip.json",
+      "fresh_this_lane": false,
+      "g_inputs": {
+        "solid_tip_sf_nodal_max": 0.2101
+      },
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "solid.tip",
+      "kind": "solver_run",
+      "solver": "solid_skfem_p2",
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "pass"
+    },
+    {
+      "evidence_path": null,
+      "fresh_this_lane": false,
+      "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
+      "id": "gate.rs_v2",
+      "kind": "gate",
+      "reason": "B-rep is not an RS-karambit-v2 genome",
+      "solver": null,
+      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "status": "blocked"
     }
-   },
-   "g_inputs": {
-    "mass_g": 64.84116307039213
-   }
-  },
-  {
-   "id": "geom.pin",
-   "kind": "software_contract",
-   "status": "pass",
-   "solver": null,
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
-   "fresh_this_lane": false,
-   "detail": {
-    "candidate_status": "INCOMPLETE",
-    "product_pass": false
-   }
-  },
-  {
-   "id": "plate.loads",
-   "kind": "derived",
-   "status": "blocked",
-   "solver": "plate_cst_dkt",
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
-   "fresh_this_lane": false,
-   "reason": "no mesh bound"
-  },
-  {
-   "id": "plate.seq",
-   "kind": "derived",
-   "status": "blocked",
-   "solver": "plate_cst_dkt",
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
-   "fresh_this_lane": false,
-   "reason": "no mesh bound"
-  },
-  {
-   "id": "plate.l7",
-   "kind": "derived",
-   "status": "blocked",
-   "solver": "plate_cst_dkt",
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
-   "fresh_this_lane": false,
-   "reason": "no mesh bound"
-  },
-  {
-   "id": "plate.gci",
-   "kind": "derived",
-   "status": "blocked",
-   "solver": "plate_cst_dkt",
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
-   "fresh_this_lane": false,
-   "reason": "no mesh bound"
-  },
-  {
-   "id": "side.a1",
-   "kind": "derived",
-   "status": "blocked",
-   "solver": "plate_cst_dkt",
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
-   "fresh_this_lane": false,
-   "reason": "no mesh bound"
-  },
-  {
-   "id": "side.a2",
-   "kind": "derived",
-   "status": "blocked",
-   "solver": "plate_cst_dkt",
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
-   "fresh_this_lane": false,
-   "reason": "no mesh bound"
-  },
-  {
-   "id": "side.a3",
-   "kind": "derived",
-   "status": "blocked",
-   "solver": "plate_cst_dkt",
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
-   "fresh_this_lane": false,
-   "reason": "no mesh bound"
-  },
-  {
-   "id": "side.a4",
-   "kind": "derived",
-   "status": "blocked",
-   "solver": "plate_cst_dkt",
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "designs/switchback/C10a/cad/switchback_revC10a_ground.step",
-   "fresh_this_lane": false,
-   "reason": "no mesh bound"
-  },
-  {
-   "id": "solid.tip",
-   "kind": "solver_run",
-   "status": "pass",
-   "solver": "solid_skfem_p2",
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": "evidence/cad_battery/side/c10a_solid_tip.json",
-   "fresh_this_lane": false,
-   "detail": {
-    "SF_nodal_max": 0.2101,
-    "SF_nodal_avg": 0.2216,
-    "n_tet": 80496,
-    "n_dof": 372357,
-    "ksp_its": 125,
-    "NL": 4,
-    "NSUB": 1,
-    "R_CUT": 30.0,
-    "dolfinx_cross_check": {
-     "SF_nodal_avg": 0.2216,
-     "SF_nodal_max": 0.2101,
-     "container": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
-     "ksp_its": 172,
-     "rel_err_nodal_avg": 0.0,
-     "rel_err_nodal_max": 0.0,
-     "within_2pct": true
-    },
-    "entered_as_solver_run": true
-   },
-   "g_inputs": {
-    "solid_tip_sf_nodal_max": 0.2101
-   }
-  },
-  {
-   "id": "gate.rs_v2",
-   "kind": "gate",
-   "status": "blocked",
-   "solver": null,
-   "geometry_sha256": "441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7",
-   "source_commit": "d5d1fa6432a7a68c880069d092619ea406cfb416",
-   "evidence_path": null,
-   "fresh_this_lane": false,
-   "reason": "B-rep is not an RS-karambit-v2 genome"
-  }
- ],
- "pass_count": 9,
- "solver_run_count": 1,
- "solver_run_objects": 1,
- "global_fitness": {
-  "metric": "G1",
-  "inputs": {
-   "mass_g": 64.84116307039213,
-   "solid_tip_sf_nodal_max": 0.2101
-  },
-  "G": null,
-  "status": "INCOMPLETE",
-  "provisional": null,
-  "missing": [
-   "spg: missing",
-   "aes_score: missing",
-   "seq_ratio: missing"
   ],
-  "title": "G INCOMPLETE (3 missing) | 64.8 g | jarambit v0.32.0"
- },
- "search_fitness": "unchanged"
+  "global_fitness": {
+    "G": null,
+    "inputs": {
+      "solid_tip_sf_nodal_max": 0.2101
+    },
+    "metric": "G1",
+    "missing": [
+      "spg: missing",
+      "aes_score: missing",
+      "mass_g: missing",
+      "seq_ratio: missing"
+    ],
+    "provisional": null,
+    "status": "INCOMPLETE",
+    "title": "G INCOMPLETE (4 missing) | mass n/a | jarambit v1.0.0"
+  },
+  "pass_count": 5,
+  "role": "native_cad",
+  "schema": "jarambit.cad_battery.subject.v1",
+  "search_fitness": "unchanged",
+  "solver_run_count": 1,
+  "solver_run_objects": 1,
+  "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+  "subject": "c10a"
 }

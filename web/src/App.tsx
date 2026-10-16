@@ -8,7 +8,7 @@ import type { MasterScorecard, ParsedMesh3D, WebStudioBundle } from './types';
 
 export const App: React.FC = () => {
   const [bundle, setBundle] = useState<WebStudioBundle>(DEFAULT_STUDIO_BUNDLE);
-  const [selectedSubject, setSelectedSubject] = useState<string>('w282_p14_c01');
+  const [selectedSubject, setSelectedSubject] = useState<string>('w283_p14_c01');
   const [customMesh, setCustomMesh] = useState<ParsedMesh3D | null>(null);
   const [customScorecards, setCustomScorecards] = useState<Record<string, MasterScorecard>>({});
 
@@ -58,10 +58,10 @@ export const App: React.FC = () => {
   };
 
   const featuredQuickLinks = [
-    { id: 'w282_p14_c01', tag: '75.32g Record Ultralight' },
-    { id: 'w282_p10_c02', tag: 'Top W_CAD_v2 (+1.7978)' },
-    { id: 'w281_s2932_c01', tag: 'w281 Leader (75.70g)' },
-    { id: 'w280_s2931_c01', tag: 'w280 Leader (75.82g)' },
+    { id: 'w283_p14_c01', tag: '75.20g Record Ultralight' },
+    { id: 'w283_p10_c02', tag: 'Top W_CAD_v2 (+1.8166)' },
+    { id: 'w282_p14_c01', tag: 'w282 Record (75.32g)' },
+    { id: 'w282_p10_c02', tag: 'w282 Peer (+1.7978)' },
     { id: 'c10a', tag: 'Switchback C10a STEP' },
   ];
 
@@ -94,7 +94,7 @@ export const App: React.FC = () => {
           </div>
 
           <label className="subject-select-label">
-            <span>All 21 Catalog Subjects:</span>
+            <span>All {bundle.subjects.length} Catalog Subjects:</span>
             <select
               aria-label="Select Catalog Subject"
               value={selectedSubject}

@@ -109,9 +109,26 @@ pub fn rs_v2_eval(genomes: &str, out_dir: &str, solid_dir: &str) -> bool {
         if strict.is_none() { eprintln!("rs-v2-eval: {label}: strict 0.0625 mm^2 solve failed (gates reported unverified)"); }
         let strict_lat = strict.as_ref().map(|s| s.lat20 * fem::joint_k(m, g.t_joint(), 2));
         let strict_tz = strict.as_ref().map(|s| s.twist_tipzone_sf);
-        let solid = solid_tip_sf(solid_dir, label, &g);
+        let solid = solid_tip_sf(solid_dir, label, &g).or_else(|| {
+            if !g.rs_v2() { return None; }
+            let p_parent = std::path::Path::new(path).parent().map(|d| d.join(format!("{label}_solid_tip.json")).to_string_lossy().to_string()).unwrap_or_else(String::new);
+            for cand in [format!("{out_dir}/{label}_solid_tip.json"), p_parent] {
+                if cand.is_empty() { continue; }
+                if let Ok(txt) = std::fs::read_to_string(&cand) {
+                    if let Ok(j) = serde_json::from_str::<serde_json::Value>(&txt) {
+                        if j["subject"].as_str() == Some(label) {
+                            if let Some(sf) = j["stored_solid"]["SF_nodal_max"].as_f64() {
+                                return Some((sf, cand));
+                            }
+                        }
+                    }
+                }
+            }
+            None
+        });
         let (bw, band) = fem::ring_bearing(&p);
         let hunter = jarambit_physics::floors::HUNTER_LATERAL_N;
+        let s2 = if g.rs_v2() { Some(fem::gate_s::brep_point_check(&p)) } else { None };
         let gates = [
             ("aesthetic_and_geometric", Some(r.aes.pass && r.rejects.is_empty())),
             ("floors_828_joint", Some(f.floors_ok)),
@@ -121,15 +138,15 @@ pub fn rs_v2_eval(genomes: &str, out_dir: &str, solid_dir: &str) -> bool {
             ("seq_hard", Some(f.seq_ratio >= fem::SEQ_TARGET)),
             ("human_max", Some(fem::rs_v2_human_max_pass(&f, &p))),
             ("fatigue", Some(fem::rs_v2_fatigue_pass(&f))),
-            // Gate S (owner 2026-10-13): S1+S3 from the grind law; S2 (sharp point) needs a bound B-rep -> unverified here.
+            // Gate S (owner 2026-10-13): S1+S3 from the grind law; S2 (sharp point) verified on the 3D B-rep when rs_v2 is active.
             ("gate_s_sharp_law", Some(fem::gate_s::law_pass(g.v[jarambit_crescent::genome::EDGE_TH], g.v[jarambit_crescent::genome::EA_IN], g.v[jarambit_crescent::genome::EA_SP]))),
-            ("gate_s_tip_point_brep", None),
+            ("gate_s_tip_point_brep", s2.map(|x| x.0)),
         ];
         let all_hard = all_met(&gates.iter().map(|(_, v)| *v).collect::<Vec<_>>());
         let unverified: Vec<&str> = gates.iter().filter(|(_, v)| v.is_none()).map(|(k, _)| *k).collect();
         let screen = [0usize, 1, 2, 3].iter().map(|&i| gates[i].1).fold(Some(true), |a, b| match (a, b) { (Some(false), _) | (_, Some(false)) => Some(false), (None, _) | (_, None) => None, _ => Some(true) });
         let groups: serde_json::Map<String, serde_json::Value> = gates.iter().map(|(k, v)| (k.to_string(), serde_json::json!(gate(*v)))).collect();
-        let j = serde_json::json!({"label": label, "genome": path, "requirement_set": "RS-karambit-v2", "tier": "T2 certification (fem::certify) + strict 0.0625 mm^2 + solid tip evidence",
+        let mut j = serde_json::json!({"label": label, "genome": path, "requirement_set": "RS-karambit-v2", "tier": "T2 certification (fem::certify) + strict 0.0625 mm^2 + solid tip evidence",
             "mass_g": p.mass_g, "t_mm": p.t, "aes_pass": r.aes.pass, "rejects": r.rejects, "floors_ok": f.floors_ok,
             "lat_rob_n": f.lat_rob, "ring_rob_n": f.ring_rob, "twist_body_sf": f.twist_body_sf, "twist_tipzone_sf": f.twist_tipzone_sf,
             "strict_lat_rob_0p0625_n": strict_lat, "twist_tipzone_sf_strict": strict_tz,
@@ -140,6 +157,16 @@ pub fn rs_v2_eval(genomes: &str, out_dir: &str, solid_dir: &str) -> bool {
             "gates": groups, "screen": gate(screen), "unverified": unverified, "all_hard": all_hard,
             "groups": {"screen_plate": screen == Some(true), "seq_hard": f.seq_ratio >= fem::SEQ_TARGET, "human_max": fem::rs_v2_human_max_pass(&f, &p),
                        "fatigue": fem::rs_v2_fatigue_pass(&f)}});
+        if let Some((s2_ok, t025, t100, t200, taper_mm, mono)) = s2 {
+            j["gate_s_point_profile"] = serde_json::json!({
+                "pass": s2_ok,
+                "t_0p25_mm": t025,
+                "t_1p00_mm": t100,
+                "t_2p00_mm": t200,
+                "taper_mm": taper_mm,
+                "monotonic": mono,
+            });
+        }
         let out = format!("{out_dir}/{label}.json");
         match std::fs::write(&out, serde_json::to_string_pretty(&j).unwrap() + "\n") { Ok(()) => n += 1, Err(e) => { eprintln!("rs-v2-eval: cannot write {out}: {e}"); ok = false; } }
         println!("{label}: all_hard={all_hard} unverified={unverified:?}");

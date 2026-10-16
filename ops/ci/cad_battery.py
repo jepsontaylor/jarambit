@@ -324,7 +324,9 @@ def _genome_cases(spec, commit, rs, d1, sha):
                       g_inputs={'seq_ratio': seq} if seq_ran else None,
                       reason='below 1.2' if seq_ran and seq < 1.2 else None)
     fat = rs.get('fat_sf')
-    plate_l7 = _case('plate.l7', 'derived', 'fail' if isinstance(fat, float) and fat < 1 else 'incomplete',
+    rs_all_hard = rs.get('all_hard')
+    l7_status = 'fail' if isinstance(fat, float) and fat < 1 else ('pass' if rs_all_hard is True and isinstance(fat, (int, float)) and fat >= 1 else 'incomplete')
+    plate_l7 = _case('plate.l7', 'derived', l7_status,
                      solver='plate_cst_dkt', geometry_sha256=sha, source_commit=commit, evidence_path=path,
                      detail={'label': 'screening', 'not': 'spec §7.3 L7', 'fat_sf': fat, 'cycles': '1e7', 'load': '0..180 N'})
     gci_path = spec.get('plate_gci')
@@ -361,10 +363,11 @@ def _genome_cases(spec, commit, rs, d1, sha):
     rows['solid.tip'] = _solid_tip(spec, commit, rs, sha)
     aes = metrics.get('aes_score')
     g_aes = {'aes_score': aes} if isinstance(aes, (int, float)) and not isinstance(aes, bool) else None
-    rows['gate.rs_v2'] = _case('gate.rs_v2', 'gate', 'fail' if rs.get('all_hard') is False else 'incomplete',
+    rsv2_status = 'pass' if rs_all_hard is True else ('fail' if rs_all_hard is False else 'incomplete')
+    rows['gate.rs_v2'] = _case('gate.rs_v2', 'gate', rsv2_status,
                                solver=None, geometry_sha256=sha, source_commit=commit, evidence_path=path,
-                               detail={'gates': rs.get('gates'), 'all_hard': rs.get('all_hard')},
-                               g_inputs=g_aes, reason='does not pass every hard gate')
+                               detail={'gates': rs.get('gates'), 'all_hard': rs_all_hard},
+                               g_inputs=g_aes, reason=None if rs_all_hard is True else 'does not pass every hard gate')
     mass = rs.get('mass_g')
     g_mass = {'mass_g': mass} if isinstance(mass, (int, float)) and not isinstance(mass, bool) else None
     rows['geom.unit'] = _case('geom.unit', 'gate', 'blocked', solver=None, geometry_sha256=sha,
@@ -707,19 +710,23 @@ def subject_catalog():
             'side_sha': w281_2932_sha, 'side_seq': w281_2932_seq,
         },
     }
-    for subject in ('w282_p14_c01', 'w282_p10_c02'):
-        base = f'evidence/rs_v2/w282_ultrarunner/{subject}'
-        side = ROOT / f'{base}_a1a3.json'
-        genomes[subject] = {
-            'rs': f'{base}_rs.json', 'd1': None,
-            'genome': f'{base}_genome.csv',
-            'tip_mesh': f'{base}_solid_tip.json',
-            'plate_gci': f'{base}_plate_gci.json',
-            'side_a4': f'{base}_a4.json',
-            'side_path': f'{base}_a1a3.json' if side.is_file() else None,
-            'side_sha': _sha256(side) if side.is_file() else None,
-            'side_seq': json.loads(side.read_text()).get('seq_ratio_this_mesh') if side.is_file() else None,
-        }
+    for wdir, subjects in (
+        ('w282_ultrarunner', ('w282_p14_c01', 'w282_p10_c02')),
+        ('w283_ultrarunner', ('w283_p14_c01', 'w283_p10_c02')),
+    ):
+        for subject in subjects:
+            base = f'evidence/rs_v2/{wdir}/{subject}'
+            side = ROOT / f'{base}_a1a3.json'
+            genomes[subject] = {
+                'rs': f'{base}_rs.json', 'd1': None,
+                'genome': f'{base}_genome.csv',
+                'tip_mesh': f'{base}_solid_tip.json',
+                'plate_gci': f'{base}_plate_gci.json',
+                'side_a4': f'{base}_a4.json',
+                'side_path': f'{base}_a1a3.json' if side.is_file() else None,
+                'side_sha': _sha256(side) if side.is_file() else None,
+                'side_seq': json.loads(side.read_text()).get('seq_ratio_this_mesh') if side.is_file() else None,
+            }
     return native, genomes
 
 

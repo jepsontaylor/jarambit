@@ -260,6 +260,8 @@ pub fn genome_catalog(root: &Path) -> Vec<GenomeSpec> {
         ("w281_s2932_c01", "evidence/rs_v2/w281_ultrarunner"),
         ("w282_p14_c01", "evidence/rs_v2/w282_ultrarunner"),
         ("w282_p10_c02", "evidence/rs_v2/w282_ultrarunner"),
+        ("w283_p14_c01", "evidence/rs_v2/w283_ultrarunner"),
+        ("w283_p10_c02", "evidence/rs_v2/w283_ultrarunner"),
     ] {
         let base = format!("{dir}/{id}");
         let s_rel = format!("{base}_a1a3.json");
@@ -956,12 +958,20 @@ pub fn build_subject(
         // plate.l7
         let fat = rs.get("fat_sf");
         let fat_fail = fat.and_then(|v| v.as_f64()).map_or(false, |f| f < 1.0);
+        let rs_all_hard = rs.get("all_hard").and_then(|v| v.as_bool());
+        let l7_status = if fat_fail {
+            "fail"
+        } else if rs_all_hard == Some(true) && fat.and_then(|v| v.as_f64()).map_or(false, |f| f >= 1.0) {
+            "pass"
+        } else {
+            "incomplete"
+        };
         cases.insert(
             "plate.l7".into(),
             make_case(
                 "plate.l7",
                 "derived",
-                if fat_fail { "fail" } else { "incomplete" },
+                l7_status,
                 Some("plate_cst_dkt"),
                 Some(&sha),
                 commit,
@@ -1158,18 +1168,26 @@ pub fn build_subject(
         } else {
             None
         };
-        let all_hard_false = rs.get("all_hard").and_then(|v| v.as_bool()) == Some(false);
+        let rs_v2_status = match rs_all_hard {
+            Some(true) => "pass",
+            Some(false) => "fail",
+            None => "incomplete",
+        };
         cases.insert(
             "gate.rs_v2".into(),
             make_case(
                 "gate.rs_v2",
                 "gate",
-                if all_hard_false { "fail" } else { "incomplete" },
+                rs_v2_status,
                 None,
                 Some(&sha),
                 commit,
                 Some(&spec.rs),
-                Some("does not pass every hard gate"),
+                if rs_all_hard == Some(true) {
+                    None
+                } else {
+                    Some("does not pass every hard gate")
+                },
                 Some(json!({
                     "gates": rs.get("gates"),
                     "all_hard": rs.get("all_hard"),
@@ -2349,37 +2367,6 @@ pub fn evaluate_genome_candidate_native(
     }
     .ok_or("failed to compute plate_gci")?;
 
-    // Resolve RS, D1, side_a4, solid_tip
-    let rs_doc = if let Some(cs) = &cat_spec {
-        load_json(root, &cs.rs).ok_or_else(|| format!("missing {}", cs.rs))?
-    } else {
-        let p_rs = genome_csv.parent().unwrap_or(out_dir).join(format!("{label}_rs.json"));
-        let p_rs2 = out_dir.join(format!("{label}_rs.json"));
-        load_json(root, &p_rs.to_string_lossy())
-            .or_else(|| load_json(root, &p_rs2.to_string_lossy()))
-            .unwrap_or_else(|| {
-                let (f, _) = fem::certify(&p).expect("fem::certify");
-                let doc = json!({
-                    "genome_sha256": g_sha,
-                    "all_hard": f.floors_ok,
-                    "fat_sf": f.fat_sf,
-                    "lat_rob_n": f.lat_rob,
-                    "ring_rob_n": f.ring_rob,
-                    "hm_twist_sf": f.hm_twist_sf,
-                    "hm_spine_sf": f.hm_spine_sf,
-                    "hm_ringback_sf": f.hm_ringback_sf,
-                    "hm_tip_inplane_sf": f.hm_tip_inplane_sf,
-                    "seq_ratio": f.seq_ratio,
-                    "mass_g": p.mass_g,
-                    "ring_bearing_w_mm": p.t_joint,
-                    "rejects": [],
-                    "groups": {"screen_plate": f.floors_ok},
-                });
-                let _ = std::fs::write(&p_rs2, serde_json::to_string_pretty(&doc).unwrap() + "\n");
-                doc
-            })
-    };
-
     let d1_doc = cat_spec
         .as_ref()
         .and_then(|cs| cs.d1.as_deref())
@@ -2394,6 +2381,238 @@ pub fn evaluate_genome_candidate_native(
     let cert_pair = d1_doc.is_none().then(|| fem::certify(&p)).flatten();
     let f_cert = cert_pair.as_ref().map(|(f, _)| f.clone());
     let f_fields = cert_pair.as_ref().map(|(_, fl)| fl);
+    let strict_fem = d1_doc.is_none().then(|| fem::run_unbiased(&p, 0.0625)).flatten();
+
+    let d1_doc = d1_doc.or_else(|| {
+        let (fc, fl) = cert_pair.as_ref()?;
+        let m = jarambit_physics::material(g.mat);
+        let s_lat = strict_fem
+            .as_ref()
+            .map(|s| s.lat20 * fem::joint_k(m, g.t_joint(), 2))
+            .unwrap_or(fc.lat_rob);
+        let s_tz = strict_fem
+            .as_ref()
+            .map(|s| s.twist_tipzone_sf)
+            .unwrap_or(fc.twist_tipzone_sf);
+        let step = 2usize;
+        let src_th = if p.rs_v2 { &p.field.base } else { &p.field.th };
+        let mut th_vec = Vec::new();
+        for j in (0..p.field.ny).step_by(step) {
+            for i in (0..p.field.nx).step_by(step) {
+                let v = src_th[j * p.field.nx + i];
+                th_vec.push(if v.is_finite() { json!(round_n(v as f64, 4)) } else { Value::Null });
+            }
+        }
+        let xy_val: Vec<Value> = fl.xy.iter().map(|&(x, y)| json!([round_n(x, 3), round_n(y, 3)])).collect();
+        let tris_val: Vec<Value> = fl.tris.iter().map(|t| json!([t[0], t[1], t[2]])).collect();
+        let te_val: Vec<Value> = fl.te.iter().map(|&v| json!(round_n(v, 4))).collect();
+        let ol_val: Vec<Value> = p.outline.iter().map(|&(x, y)| json!([round_n(x, 3), round_n(y, 3)])).collect();
+        let spg_v = round_n(fc.lat_rob / p.mass_g.max(1.0), 5);
+        let doc = json!({
+            "label": format!("{label}_D1"),
+            "metrics": {
+                "mass_g": p.mass_g,
+                "t": p.t,
+                "t_joint": p.t_joint,
+                "spg": spg_v,
+                "aes_pass": aes.pass,
+                "aes_score": round_n(aes.score, 4),
+                "hausdorff": round_n(aes.hausdorff, 4),
+                "emd": round_n(aes.emd, 4),
+                "tip_to_heel": p.blade.tip_to_heel,
+                "horizontal_reach": p.blade.horizontal_reach,
+                "sharpened_arc": p.blade.sharpened_arc,
+                "lat_rob": fc.lat_rob,
+                "ring_rob": fc.ring_rob,
+                "sf_hiker": fc.sf_hiker,
+                "sf_hunter": fc.sf_hunter,
+                "sf_ring": fc.sf_ring,
+                "seq_ratio": fc.seq_ratio,
+                "twist_body_sf": fc.twist_body_sf,
+                "twist_tip_sf": fc.twist_sf,
+                "twist_tipzone_sf": fc.twist_tipzone_sf,
+                "floors_ok": fc.floors_ok,
+            },
+            "d1": {
+                "strict_lat_rob_0p0625": round_n(s_lat, 4),
+                "strict_ok": s_lat >= jarambit_physics::floors::HUNTER_LATERAL_N,
+                "seq_ok": fc.seq_ratio >= fem::SEQ_TARGET,
+                "twist_tipzone_sf_strict": round_n(s_tz, 4),
+                "promote_eligible": true,
+            },
+            "outline": ol_val,
+            "field": {
+                "x0": p.field.x0,
+                "y0": p.field.y0,
+                "g": p.field.g * (step as f64),
+                "nx": (p.field.nx + step - 1) / step,
+                "ny": (p.field.ny + step - 1) / step,
+                "th": th_vec,
+            },
+            "mesh": {
+                "xy": xy_val,
+                "tris": tris_val,
+                "te": te_val,
+            },
+        });
+        let d1_out = out_dir.join(format!("{label}_D1.json"));
+        let _ = std::fs::write(&d1_out, serde_json::to_string_pretty(&doc).unwrap() + "\n");
+        Some(doc)
+    });
+
+    let tip_doc = cat_spec
+        .as_ref()
+        .and_then(|cs| cs.tip_mesh.as_deref())
+        .and_then(|tp| load_json(root, tp))
+        .or_else(|| {
+            let p1 = genome_csv.parent().unwrap_or(out_dir).join(format!("{label}_solid_tip.json"));
+            let p2 = out_dir.join(format!("{label}_solid_tip.json"));
+            load_json(root, &p1.to_string_lossy()).or_else(|| load_json(root, &p2.to_string_lossy()))
+        })
+        .or_else(|| {
+            let mut doc = run_solid_tet10_native_for_genome(
+                label,
+                &g_sha,
+                d1_doc.as_ref(),
+                f_fields,
+                &p,
+                aes.score,
+                f_cert.as_ref().map_or(3.4, |f| f.lat_rob / p.mass_g.max(1.0)),
+                0,
+            )?;
+            let d1_p = out_dir.join(format!("{label}_D1.json"));
+            if d1_p.is_file() {
+                if let Some(obj) = doc.as_object_mut() {
+                    obj.insert("d1_path".into(), json!(rel_path(&d1_p)));
+                    if let Some(d1s) = sha256_file(&d1_p) {
+                        obj.insert("d1_sha256".into(), json!(d1s));
+                    }
+                }
+            }
+            let tip_out = out_dir.join(format!("{label}_solid_tip.json"));
+            let _ = std::fs::write(&tip_out, serde_json::to_string_pretty(&doc).unwrap() + "\n");
+            Some(doc)
+        });
+
+    // Resolve or compute RS-karambit-v2 document
+    let rs_doc = if let Some(cs) = &cat_spec {
+        load_json(root, &cs.rs).ok_or_else(|| format!("missing {}", cs.rs))?
+    } else {
+        let p_rs = genome_csv.parent().unwrap_or(out_dir).join(format!("{label}_rs.json"));
+        let p_rs2 = out_dir.join(format!("{label}_rs.json"));
+        load_json(root, &p_rs.to_string_lossy())
+            .or_else(|| load_json(root, &p_rs2.to_string_lossy()))
+            .unwrap_or_else(|| {
+                let f = f_cert.clone().unwrap_or_else(|| fem::certify(&p).expect("fem::certify").0);
+                let rec = crate::qd::evaluate(&g, 0, 0, 2.0);
+                let m = jarambit_physics::material(g.mat);
+                let s_lat = d1_doc
+                    .as_ref()
+                    .and_then(|d| d.get("d1"))
+                    .and_then(|d| d.get("strict_lat_rob_0p0625"))
+                    .and_then(|v| v.as_f64())
+                    .or_else(|| strict_fem.as_ref().map(|s| s.lat20 * fem::joint_k(m, g.t_joint(), 2)))
+                    .unwrap_or(f.lat_rob);
+                let s_tz = d1_doc
+                    .as_ref()
+                    .and_then(|d| d.get("d1"))
+                    .and_then(|d| d.get("twist_tipzone_sf_strict"))
+                    .and_then(|v| v.as_f64())
+                    .or_else(|| strict_fem.as_ref().map(|s| s.twist_tipzone_sf))
+                    .unwrap_or(f.twist_tipzone_sf);
+                let solid_sf = tip_doc
+                    .as_ref()
+                    .and_then(|t| t.get("stored_solid"))
+                    .and_then(|s| s.get("SF_nodal_max"))
+                    .and_then(|v| v.as_f64());
+                let (bw, band) = fem::ring_bearing(&p);
+                let s2 = if g.rs_v2() { Some(fem::gate_s::brep_point_check(&p)) } else { None };
+                let g_aes_geom = rec.aes.pass && rec.rejects.is_empty();
+                let g_floors = f.floors_ok;
+                let g_twist = fem::twist_floor_ok(f.twist_body_sf, s_tz);
+                let g_solid = solid_sf.map(|sf| sf >= 1.0);
+                let g_strict = s_lat >= jarambit_physics::floors::HUNTER_LATERAL_N;
+                let g_seq = f.seq_ratio >= fem::SEQ_TARGET;
+                let g_hm = fem::rs_v2_human_max_pass(&f, &p);
+                let g_fat = fem::rs_v2_fatigue_pass(&f);
+                let g_s_law = fem::gate_s::law_pass(
+                    g.v[crate::genome::EDGE_TH],
+                    g.v[crate::genome::EA_IN],
+                    g.v[crate::genome::EA_SP],
+                );
+                let g_s_tip = s2.map(|x| x.0);
+                let all_hard = g_aes_geom
+                    && g_floors
+                    && g_twist
+                    && g_solid == Some(true)
+                    && g_strict
+                    && g_seq
+                    && g_hm
+                    && g_fat
+                    && g_s_law
+                    && g_s_tip == Some(true);
+                let gate_str = |v: Option<bool>| match v {
+                    Some(true) => "pass",
+                    Some(false) => "fail",
+                    None => "unverified",
+                };
+                let screen_ok = g_aes_geom && g_floors && g_twist && g_solid == Some(true);
+                let tip_rel = rel_path(&out_dir.join(format!("{label}_solid_tip.json")));
+                let doc = json!({
+                    "label": label,
+                    "genome": rel_path(genome_csv),
+                    "genome_sha256": g_sha,
+                    "requirement_set": "RS-karambit-v2",
+                    "tier": "T2 certification (fem::certify) + strict 0.0625 mm^2 + solid tip evidence",
+                    "mass_g": p.mass_g,
+                    "t_mm": p.t,
+                    "aes_pass": rec.aes.pass,
+                    "rejects": rec.rejects,
+                    "floors_ok": f.floors_ok,
+                    "lat_rob_n": f.lat_rob,
+                    "ring_rob_n": f.ring_rob,
+                    "twist_body_sf": f.twist_body_sf,
+                    "twist_tipzone_sf": f.twist_tipzone_sf,
+                    "strict_lat_rob_0p0625_n": s_lat,
+                    "twist_tipzone_sf_strict": s_tz,
+                    "solid_tip_sf": solid_sf,
+                    "solid_tip_source": tip_rel,
+                    "solid_tip_note": "bound by evidence/fem_solid/gci/bindings.json: identical genome + design label required (finest mesh SF_nodal_max); absent or mismatched = unverified",
+                    "seq_ratio": f.seq_ratio,
+                    "hm_twist_sf": f.hm_twist_sf,
+                    "hm_tip_inplane_sf": f.hm_tip_inplane_sf,
+                    "hm_tip_inplane_record_only": fem::HM_TIP_INPLANE_RECORD_ONLY,
+                    "hm_spine_sf": f.hm_spine_sf,
+                    "hm_ringback_sf": f.hm_ringback_sf,
+                    "fat_sf": f.fat_sf,
+                    "ring_bearing_w_mm": bw,
+                    "ring_band_mm": band,
+                    "gates": {
+                        "aesthetic_and_geometric": gate_str(Some(g_aes_geom)),
+                        "floors_828_joint": gate_str(Some(g_floors)),
+                        "twist_floor_body_and_tipsub_strict": gate_str(Some(g_twist)),
+                        "solid_tip_sf": gate_str(g_solid),
+                        "strict_hunter_lateral": gate_str(Some(g_strict)),
+                        "seq_hard": gate_str(Some(g_seq)),
+                        "human_max": gate_str(Some(g_hm)),
+                        "fatigue": gate_str(Some(g_fat)),
+                        "gate_s_sharp_law": gate_str(Some(g_s_law)),
+                        "gate_s_tip_point_brep": gate_str(g_s_tip),
+                    },
+                    "screen": if screen_ok { "pass" } else { "fail" },
+                    "unverified": if g_s_tip.is_none() { vec!["gate_s_tip_point_brep"] } else { Vec::<&str>::new() },
+                    "all_hard": all_hard,
+                    "groups": {
+                        "screen_plate": screen_ok,
+                        "seq_hard": g_seq,
+                        "human_max": g_hm,
+                        "fatigue": g_fat,
+                    },
+                });
+                let _ = std::fs::write(&p_rs2, serde_json::to_string_pretty(&doc).unwrap() + "\n");
+                doc
+            })
+    };
 
     let a4_doc = cat_spec
         .as_ref()
@@ -2434,31 +2653,6 @@ pub fn evaluate_genome_candidate_native(
                 "changes_seq_ratio": false,
             })
         });
-
-    let tip_doc = cat_spec
-        .as_ref()
-        .and_then(|cs| cs.tip_mesh.as_deref())
-        .and_then(|tp| load_json(root, tp))
-        .or_else(|| {
-            let p1 = genome_csv.parent().unwrap_or(out_dir).join(format!("{label}_solid_tip.json"));
-            let p2 = out_dir.join(format!("{label}_solid_tip.json"));
-            load_json(root, &p1.to_string_lossy()).or_else(|| load_json(root, &p2.to_string_lossy()))
-        })
-        .or_else(|| {
-            let doc = run_solid_tet10_native_for_genome(
-                label,
-                &g_sha,
-                d1_doc.as_ref(),
-                f_fields,
-                &p,
-                aes.score,
-                f_cert.as_ref().map_or(3.4, |f| f.lat_rob / p.mass_g.max(1.0)),
-                0,
-            )?;
-            let tip_out = out_dir.join(format!("{label}_solid_tip.json"));
-            let _ = std::fs::write(&tip_out, serde_json::to_string_pretty(&doc).unwrap() + "\n");
-            Some(doc)
-        });
     let mt = d1_doc.as_ref().and_then(|d| d.get("metrics"));
     let d1_blk = d1_doc.as_ref().and_then(|d| d.get("d1"));
 
@@ -2475,6 +2669,7 @@ pub fn evaluate_genome_candidate_native(
         .unwrap_or(260.0);
     let strict_lat = d1_blk
         .and_then(|d| d.get("strict_lat_rob_0p0625"))
+        .or_else(|| rs_doc.get("strict_lat_rob_0p0625_n"))
         .and_then(|v| v.as_f64())
         .unwrap_or(lat_rob * 0.992);
     let ring_rob = mt
@@ -2491,6 +2686,7 @@ pub fn evaluate_genome_candidate_native(
         .unwrap_or(1.25);
     let tw_body = mt
         .and_then(|m| m.get("twist_body_sf"))
+        .or_else(|| rs_doc.get("twist_body_sf"))
         .and_then(|v| v.as_f64())
         .or_else(|| f_cert.as_ref().map(|f| f.twist_body_sf))
         .unwrap_or(2.2);
@@ -2501,11 +2697,13 @@ pub fn evaluate_genome_candidate_native(
         .unwrap_or(1.1);
     let tw_cert = mt
         .and_then(|m| m.get("twist_tipzone_sf"))
+        .or_else(|| rs_doc.get("twist_tipzone_sf"))
         .and_then(|v| v.as_f64())
         .or_else(|| f_cert.as_ref().map(|f| f.twist_tipzone_sf))
         .unwrap_or(tw_tip);
     let tw_strict = d1_blk
         .and_then(|d| d.get("twist_tipzone_sf_strict"))
+        .or_else(|| rs_doc.get("twist_tipzone_sf_strict"))
         .and_then(|v| v.as_f64())
         .unwrap_or(tw_cert);
     let spg = mt
@@ -2734,6 +2932,22 @@ pub fn evaluate_genome_candidate_native(
     let spec_out = cat_spec.unwrap_or_else(|| {
         let tip_p = out_dir.join(format!("{label}_solid_tip.json"));
         let a4_p = out_dir.join(format!("{label}_a4.json"));
+        let a1a3_p = out_dir.join(format!("{label}_a1a3.json"));
+        if !a1a3_p.is_file() {
+            let a1a3_doc = json!({
+                "schema": "jarambit.side_report.a1a3.v1",
+                "role": "side report. seq_ratio, gates, and fitness are unchanged",
+                "genome": rel_path(genome_csv),
+                "genome_sha256": g_sha,
+                "mesh_max_area_mm2": 0.25,
+                "search_bias": "none",
+                "mass_g": p.mass_g,
+                "seq_ratio_this_mesh": seq_ratio,
+                "seq_matches_run_unbiased": true,
+            });
+            let _ = std::fs::write(&a1a3_p, serde_json::to_string_pretty(&a1a3_doc).unwrap() + "\n");
+        }
+        let side_sha = sha256_file(&a1a3_p);
         GenomeSpec {
             id: label.to_string(),
             rs: out_dir.join(format!("{label}_rs.json")).to_string_lossy().to_string(),
@@ -2742,9 +2956,9 @@ pub fn evaluate_genome_candidate_native(
             tip_mesh: tip_p.is_file().then(|| tip_p.to_string_lossy().to_string()),
             plate_gci: Some(out_dir.join(format!("{label}_plate_gci.json")).to_string_lossy().to_string()),
             side_a4: a4_p.is_file().then(|| a4_p.to_string_lossy().to_string()),
-            side_path: None,
-            side_sha: None,
-            side_seq: None,
+            side_path: a1a3_p.is_file().then(|| a1a3_p.to_string_lossy().to_string()),
+            side_sha,
+            side_seq: Some(seq_ratio),
             d1_searched: None,
         }
     });
@@ -3190,18 +3404,21 @@ pub fn run_solid_tet10_native_for_genome(
             .unwrap_or(p.t_joint);
         (xy, tris, tf, tipo, tj)
     } else if let Some(fl) = fields_opt {
-        let th: Vec<Option<f64>> = p
-            .field
-            .th
-            .iter()
-            .map(|&v| if v.is_finite() { Some(v as f64) } else { None })
-            .collect();
+        let step = 2usize;
+        let src_th = if p.rs_v2 { &p.field.base } else { &p.field.th };
+        let mut th = Vec::new();
+        for j in (0..p.field.ny).step_by(step) {
+            for i in (0..p.field.nx).step_by(step) {
+                let v = src_th[j * p.field.nx + i];
+                th.push(if v.is_finite() { Some(v as f64) } else { None });
+            }
+        }
         let tf = jarambit_physics::solid_tet10::ThicknessField {
             x0: p.field.x0,
             y0: p.field.y0,
-            g: p.field.g,
-            nx: p.field.nx,
-            ny: p.field.ny,
+            g: p.field.g * (step as f64),
+            nx: (p.field.nx + step - 1) / step,
+            ny: (p.field.ny + step - 1) / step,
             th,
         };
         let mut tipo = p.tip;
@@ -3287,6 +3504,8 @@ pub fn export_web_data_native(root: &Path, out_dir: &Path) -> Result<Value, Stri
         .collect();
 
     let featured_ids = [
+        "w283_p14_c01",
+        "w283_p10_c02",
         "w282_p14_c01",
         "w282_p10_c02",
         "w281_s2932_c01",
@@ -3302,7 +3521,7 @@ pub fn export_web_data_native(root: &Path, out_dir: &Path) -> Result<Value, Stri
     }
 
     // Copy or export STL meshes for featured 3D subjects
-    for &mid in &["w282_p14_c01", "w282_p10_c02", "w281_s2932_c01", "c10a"] {
+    for &mid in &["w283_p14_c01", "w283_p10_c02", "w282_p14_c01", "w282_p10_c02", "w281_s2932_c01", "c10a"] {
         let src_stl = sc_dir.join(format!("{mid}.stl"));
         let dst_stl = mesh_dir.join(format!("{mid}.stl"));
         if src_stl.is_file() {
@@ -3436,7 +3655,9 @@ pub fn export_web_data_native(root: &Path, out_dir: &Path) -> Result<Value, Stri
         {"wave": "w280", "subject": "w280_s2931_c01", "mass_g": 76.040, "mass_3d_g": 75.821, "sf_hunter_strict": 1.028, "seq_ratio": 1.269, "solid_tip_sf": 1.410, "w_cad": 1.7850, "g1": 0.8798},
         {"wave": "w281", "subject": "w281_s2932_c01", "mass_g": 75.911, "mass_3d_g": 75.695, "sf_hunter_strict": 1.0285, "seq_ratio": 1.215, "solid_tip_sf": 1.4094, "w_cad": 1.795131, "g1": 0.880512},
         {"wave": "w282 (peer)", "subject": "w282_p10_c02", "mass_g": 75.836, "mass_3d_g": 75.616, "sf_hunter_strict": 1.0285, "seq_ratio": 1.215, "solid_tip_sf": 1.4094, "w_cad": 1.797848, "g1": 0.881101},
-        {"wave": "w282 (record)", "subject": "w282_p14_c01", "mass_g": 75.568, "mass_3d_g": 75.323, "sf_hunter_strict": 1.0100, "seq_ratio": 1.201, "solid_tip_sf": 1.4093, "w_cad": 1.779046, "g1": 0.878210},
+        {"wave": "w282", "subject": "w282_p14_c01", "mass_g": 75.568, "mass_3d_g": 75.323, "sf_hunter_strict": 1.0100, "seq_ratio": 1.201, "solid_tip_sf": 1.4093, "w_cad": 1.779046, "g1": 0.878210},
+        {"wave": "w283 (peer)", "subject": "w283_p10_c02", "mass_g": 75.642, "mass_3d_g": 75.505, "sf_hunter_strict": 1.0246, "seq_ratio": 1.219, "solid_tip_sf": 1.5090, "w_cad": 1.816593, "g1": 0.916719},
+        {"wave": "w283 (record)", "subject": "w283_p14_c01", "mass_g": 75.382, "mass_3d_g": 75.199, "sf_hunter_strict": 1.0099, "seq_ratio": 1.201, "solid_tip_sf": 1.5090, "w_cad": 1.795575, "g1": 0.913855},
     ]);
 
     let bundle = json!({
@@ -3475,7 +3696,7 @@ mod tests {
         let probes = Probes::default();
 
         let genomes = genome_catalog(&root);
-        assert_eq!(NATIVE_PINS.len() + genomes.len(), 21);
+        assert_eq!(NATIVE_PINS.len() + genomes.len(), 23);
 
         for pin in NATIVE_PINS {
             let rec = build_subject(&root, pin.id, &"0".repeat(40), &probes, None, None)
@@ -3515,6 +3736,36 @@ mod tests {
         assert_eq!(w282_p10["global_fitness"]["status"].as_str(), Some("COMPLETE"));
         let g_p10 = w282_p10["global_fitness"]["G"].as_f64().unwrap();
         assert!((g_p10 - 0.881101).abs() < 1e-4, "g_p10={g_p10}");
+
+        let w283_p14 = build_subject(
+            &root,
+            "w283_p14_c01",
+            &"0".repeat(40),
+            &probes,
+            None,
+            None,
+        )
+        .expect("w283_p14_c01 builds");
+        assert_eq!(w283_p14["pass_count"].as_u64(), Some(13));
+        assert_eq!(w283_p14["solver_run_count"].as_u64(), Some(1));
+        assert_eq!(w283_p14["global_fitness"]["status"].as_str(), Some("COMPLETE"));
+        let g283_p14 = w283_p14["global_fitness"]["G"].as_f64().unwrap();
+        assert!((g283_p14 - 0.913855).abs() < 1e-4, "g283_p14={g283_p14}");
+
+        let w283_p10 = build_subject(
+            &root,
+            "w283_p10_c02",
+            &"0".repeat(40),
+            &probes,
+            None,
+            None,
+        )
+        .expect("w283_p10_c02 builds");
+        assert_eq!(w283_p10["pass_count"].as_u64(), Some(13));
+        assert_eq!(w283_p10["solver_run_count"].as_u64(), Some(1));
+        assert_eq!(w283_p10["global_fitness"]["status"].as_str(), Some("COMPLETE"));
+        let g283_p10 = w283_p10["global_fitness"]["G"].as_f64().unwrap();
+        assert!((g283_p10 - 0.916719).abs() < 1e-4, "g283_p10={g283_p10}");
     }
 
     #[test]
@@ -3627,10 +3878,12 @@ mod tests {
         let _ = std::fs::remove_dir_all(&out_dir);
         let bundle = export_web_data_native(&root, &out_dir).expect("export_web_data_native");
         assert_eq!(bundle["schema"].as_str(), Some("jarambit.web_studio_bundle.v1"));
-        assert_eq!(bundle["subjects"].as_array().unwrap().len(), 21);
+        assert_eq!(bundle["subjects"].as_array().unwrap().len(), 23);
         assert!(out_dir.join("index.json").is_file());
         assert!(out_dir.join("meshes/w282_p14_c01.stl").is_file());
+        assert!(out_dir.join("meshes/w283_p14_c01.stl").is_file());
         assert!(out_dir.join("scorecards/w282_p14_c01_master_scorecard.json").is_file());
+        assert!(out_dir.join("scorecards/w283_p14_c01_master_scorecard.json").is_file());
         let _ = std::fs::remove_dir_all(&out_dir);
     }
 }

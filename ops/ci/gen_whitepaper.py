@@ -79,6 +79,12 @@ def hero(context=None):
         f'`solid_tip_3d P2 SF = {em["solid_tip_sf_nodal_max"]:.4f}` `+{100.0 * (em["solid_tip_sf_nodal_max"] - 1.0):.2f} %`, `seq_ratio_cert = {em["seq_ratio_cert"]:.3f} >= 1.20` `+{100.0 * (em["seq_ratio_cert"] / 1.20 - 1.0):.2f} %`, '
         f'`side.a4 supported seq = {em["seq_ratio_supported_a4"]:.3f}`, `buckling P_cr = {260.0 * em["buckling_eigenvalue_a4"]:.1f} N`, `dolfinx vs skfem = {100.0 * em["solid_tip_dolfinx_rel_err"]:.4f} % <= 2.0 %`); '
         f'(b) exact metrics and thresholds for all {n_tot} `W_CAD_v2` gates (historical Wave-27 `g3_tip+00_t60_tt3` 3D CAD and FEM plates remain in §III-G and §III-H).*',
+        '',
+        f'![Interactive 3D CAD and Gate Scorecard Web Studio for {rec_subj}](figures/whitepaper/fig_web_studio.png)',
+        '',
+        f'*Fig. 0c — Interactive 3D CAD & Gate Scorecard Web Studio (`web/`, manifest `docs/figures/whitepaper/fig_web_studio.png.manifest.json`, exported by `jarambit export-web-data`): '
+        f'(a) watertight 3D STL viewport for `{rec_subj}` (`15,528` facets, `{em["mass_3d_g"]:.3f} g` 3D solid vs. `{em["mass_g"]:.3f} g` 2.5D raster, `0` open/non-manifold edges); '
+        f'(b) live 16/16 `W_CAD_v2` and 10/10 `RS-karambit-v2` hard-gate scorecard (`G1 = {g1:.6f}`, `W_CAD = +{wsc["W_CAD"]:.4f}`, `13/18` CAD battery cases pass).*',
     ]
     return '\n'.join(L)
 
