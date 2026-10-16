@@ -563,6 +563,10 @@ def subject_catalog():
     w279_2928_path = ROOT / w279_2928_side
     w279_2928_sha = _sha256(w279_2928_path) if w279_2928_path.is_file() else None
     w279_2928_seq = json.loads(w279_2928_path.read_text(encoding='utf-8')).get('seq_ratio_this_mesh') if w279_2928_path.is_file() else None
+    w280_2931_side = 'evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_a1a3.json'
+    w280_2931_path = ROOT / w280_2931_side
+    w280_2931_sha = _sha256(w280_2931_path) if w280_2931_path.is_file() else None
+    w280_2931_seq = json.loads(w280_2931_path.read_text(encoding='utf-8')).get('seq_ratio_this_mesh') if w280_2931_path.is_file() else None
     native = {
         'c10a': 'C10a', 'c93': 'C93', 'c92': 'C92', 'c10c': 'C10c',
     }
@@ -679,6 +683,15 @@ def subject_catalog():
             'side_a4': 'evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_a4.json',
             'side_path': w279_2928_side if w279_2928_sha else None,
             'side_sha': w279_2928_sha, 'side_seq': w279_2928_seq,
+        },
+        'w280_s2931_c01': {
+            'rs': 'evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_rs.json', 'd1': None,
+            'genome': 'evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_genome.csv',
+            'tip_mesh': 'evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_solid_tip.json',
+            'plate_gci': 'evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_plate_gci.json',
+            'side_a4': 'evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_a4.json',
+            'side_path': w280_2931_side if w280_2931_sha else None,
+            'side_sha': w280_2931_sha, 'side_seq': w280_2931_seq,
         },
     }
     return native, genomes

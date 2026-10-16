@@ -270,15 +270,16 @@ pub fn run_islands_with(cfg: &IslandCfg, ev: &EvalFn, mut log: impl FnMut(&str),
     let mut rng = Rng(b.seed);
     let mut seeds = cfg.seeds.clone(); if seeds.is_empty() { seeds.push(Genome::c4_seed(b.t_seed)); }
     let mut next_id = 0usize; let mut cnt = Counters::default();
+    let sig_scale: f64 = std::env::var("JARAMBIT_SIGMA_SCALE").ok().and_then(|v| v.parse().ok()).unwrap_or(1.0);
     let mut init: Vec<Birth> = Vec::new();
     for isl in 0..k { for j in 0..b.pop {
         let s = &seeds[(isl + j) % seeds.len()];
-        let (g, op) = if j < seeds.len().min(4) { (s.clone(), "seed") } else if rng.f64() < cfg.kick_frac { (s.machining_kick(&mut rng).mutate(&mut rng, 0.05), "seed_kick_mutate") } else { (s.mutate(&mut rng, if j % 4 == 0 { 0.2 } else { 0.08 }), "seed_mutate") };
+        let (g, op) = if j < seeds.len().min(4) { (s.clone(), "seed") } else if rng.f64() < cfg.kick_frac { (s.machining_kick(&mut rng).mutate(&mut rng, 0.05 * sig_scale), "seed_kick_mutate") } else { (s.mutate(&mut rng, (if j % 4 == 0 { 0.2 } else { 0.08 }) * sig_scale), "seed_mutate") };
         init.push(birth(g, &mut next_id, vec![], op, isl)); } }
     cnt.fresh_evals += init.len() as u64;
     let ev0 = eval_batch_with(init, 0, b, ev);
     let mut pops: Vec<Vec<Rec>> = ev0.chunks(b.pop).map(|c| c.to_vec()).collect();
-    let sig: Vec<f64> = (0..k).map(|i| 0.05 + 0.12 * i as f64 / (k.max(2) - 1) as f64).collect();
+    let sig: Vec<f64> = (0..k).map(|i| (0.05 + 0.12 * i as f64 / (k.max(2) - 1) as f64) * sig_scale).collect();
     let mut all: Vec<Rec> = Vec::new();
     let mut nov_mem: Vec<[f64; DESC_N]> = Vec::new();
     let mut archive: std::collections::BTreeMap<(usize, usize), Rec> = std::collections::BTreeMap::new();
@@ -328,7 +329,7 @@ pub fn run_islands_with(cfg: &IslandCfg, ev: &EvalFn, mut log: impl FnMut(&str),
                 let (pa, ia, from_arch) = if !arch.is_empty() && rng.f64() < 0.3 { let x = &arch[(rng.f64() * arch.len() as f64) as usize]; (x.0.clone(), x.1, true) } else { let (g, i) = tour(&mut rng); (g, i, false) };
                 let (mut child, mut parents, mut op) = if rng.f64() < 0.5 { let (pb, ib) = tour(&mut rng); (pa.crossover(&pb, &mut rng).mutate(&mut rng, sig[isl] * 0.6), vec![ia, ib], if from_arch { "archive_crossover_mutate" } else { "crossover_mutate" }) }
                     else { (pa.mutate(&mut rng, sig[isl]), vec![ia], if from_arch { "archive_mutate" } else { "mutate" }) };
-                if rng.f64() < 0.04 { child = child.machining_kick(&mut rng); op = match op { "crossover_mutate" => "crossover_mutate_kick", "archive_crossover_mutate" => "archive_crossover_mutate_kick", "archive_mutate" => "archive_mutate_kick", _ => "mutate_kick" }; }
+                if cfg.kick_frac > 0.0 && rng.f64() < 0.04 { child = child.machining_kick(&mut rng); op = match op { "crossover_mutate" => "crossover_mutate_kick", "archive_crossover_mutate" => "archive_crossover_mutate_kick", "archive_mutate" => "archive_mutate_kick", _ => "mutate_kick" }; }
                 parents.dedup();
                 kids.push(birth(child, &mut next_id, std::mem::take(&mut parents), op, isl));
             }

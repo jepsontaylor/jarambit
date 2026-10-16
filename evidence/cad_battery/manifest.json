@@ -23,12 +23,14 @@
  ],
  "subjects": [
   "w278_s2922_c01",
-  "w279_s2928_c01"
+  "w279_s2928_c01",
+  "w280_s2931_c01"
  ],
  "source_commit": "9c3936fad678bf4b7687962146e041a683e3eb01",
  "search_fitness": "unchanged",
  "files": [
   "evidence/cad_battery/w278_s2922_c01.json",
-  "evidence/cad_battery/w279_s2928_c01.json"
+  "evidence/cad_battery/w279_s2928_c01.json",
+  "evidence/cad_battery/w280_s2931_c01.json"
  ]
 }

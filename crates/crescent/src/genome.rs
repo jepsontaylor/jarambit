@@ -185,23 +185,27 @@ impl Genome {
         let op = (r.f64() * 6.0) as usize;
         let span = |i: usize| b[i].1 - b[i].0;
         let jig = |g: &mut Genome, i: usize, r: &mut Rng, s: f64| { g.v[i] += r.normal() * s * span(i); };
+        let fine = sigma < 0.025;
+        let sil_s = if fine { sigma * 0.1 } else { sigma };
         match op {
-            0 => { for i in 0..NG { if r.f64() < 0.15 { jig(&mut g, i, r, sigma); } } }
-            1 => { let c = r.range(0.0, N_CP as f64); let w = r.range(1.5, 5.0); let a = r.normal() * sigma * 6.0;
+            0 => { for i in 0..NG { if (!fine || i != T) && r.f64() < 0.15 { jig(&mut g, i, r, if i < N_CP { sil_s } else { sigma }); } } }
+            1 => { let c = r.range(0.0, N_CP as f64); let w = r.range(1.5, 5.0); let a = r.normal() * sil_s * 6.0;
                    for i in 0..N_CP { let d = (i as f64 - c).abs().min(N_CP as f64 - (i as f64 - c).abs());
                        g.v[i] += a * (-(d / w).powi(2)).exp() * (cp_delta(i) / 3.5); }
-                   if r.f64() < 0.3 { jig(&mut g, DROP, r, sigma); } if r.f64() < 0.3 { jig(&mut g, GRIP_DX, r, sigma); } }
-            2 => { for i in [T, T_TIP, TAPER_X0, RELIEF_D, RELIEF_W, RELIEF_Q, EA_IN, EA_SP, RING_WALL, EDGE_TH] { if r.f64() < 0.5 { jig(&mut g, i, r, sigma * 1.5); } }
+                   if !fine && r.f64() < 0.3 { jig(&mut g, DROP, r, sigma); } if !fine && r.f64() < 0.3 { jig(&mut g, GRIP_DX, r, sigma); } }
+            2 => { for i in [T, T_TIP, TAPER_X0, RELIEF_D, RELIEF_W, RELIEF_Q, EA_IN, EA_SP, RING_WALL, EDGE_TH] { if (!fine || i != T) && r.f64() < 0.5 { jig(&mut g, i, r, sigma * 1.5); } }
                    if g.p1() { for i in [K0, K0 + 1, K0 + 2, K0 + 3, K0 + 4, K_N] { if r.f64() < 0.5 { jig(&mut g, i, r, sigma * 1.5); } } } }
-            5 if g.p1() => { for i in [RAIL_W, NECK_L, POCKET_D, POCKET_R, K_N, K0, K0 + 1, K0 + 2, K0 + 3, K0 + 4, T, FUL_D, RING_WALL, NECK_FILLET] { if r.f64() < 0.4 { jig(&mut g, i, r, sigma * 1.5); } } }
+            5 if g.p1() => { for i in [RAIL_W, NECK_L, POCKET_D, POCKET_R, K_N, K0, K0 + 1, K0 + 2, K0 + 3, K0 + 4, T, FUL_D, RING_WALL, NECK_FILLET] { if (!fine || i != T) && r.f64() < 0.4 { jig(&mut g, i, r, sigma * 1.5); } } }
             3 => { for i in [LAT_D, LAT_P, LAT_F, LAT_A] { if r.f64() < 0.6 { jig(&mut g, i, r, sigma * 1.5); } }
-                   if r.f64() < 0.2 { g.v[LAT_H] = 1.0 - g.v[LAT_H]; } if r.f64() < 0.2 { g.v[LAT_B] = 1.0 - g.v[LAT_B]; } }
-            5 => { for i in [ISO_D, ISO_P, ISO_RIB, ISO_A, ISO_RIM, ISO_XB, ISO_XH, ISO_GR, WIN_S0, WIN_S1, WIN_W, WIN_FILL, WIN_DECAY, RFL_D, RFL_W, RFL_ARC, PERF_D, PERF_GAP, PERF_A, PERF_E, PERF_XH, T] { if r.f64() < 0.4 { jig(&mut g, i, r, sigma * 1.5); } }
-                   for z in [ISO_ZB, ISO_ZH, ISO_ZL, PERF_ZL, PERF_ZH] { if r.f64() < 0.12 { g.v[z] = 1.0 - g.v[z]; } }
-                   if r.f64() < 0.25 { g.v[WIN_N] += if r.f64() < 0.5 { -1.0 } else { 1.0 }; } }
-            _ => { for i in [FUL_D, FUL_W, FUL_S0, FUL_S1, FLUTE, TEX_MODE, TEX_D, TEX_P, TEX_A, COMET_W0, COMET_W1, COMET_BOW, EYE, CAIRN] { if r.f64() < 0.4 { jig(&mut g, i, r, sigma * 1.5); } } }
+                   if !fine { if r.f64() < 0.2 { g.v[LAT_H] = 1.0 - g.v[LAT_H]; } if r.f64() < 0.2 { g.v[LAT_B] = 1.0 - g.v[LAT_B]; } } }
+            5 => { for i in [ISO_D, ISO_P, ISO_RIB, ISO_A, ISO_RIM, ISO_XB, ISO_XH, ISO_GR, WIN_S0, WIN_S1, WIN_W, WIN_FILL, WIN_DECAY, RFL_D, RFL_W, RFL_ARC, PERF_D, PERF_GAP, PERF_A, PERF_E, PERF_XH, T] { if (!fine || i != T) && r.f64() < 0.4 { jig(&mut g, i, r, sigma * 1.5); } }
+                   if !fine {
+                       for z in [ISO_ZB, ISO_ZH, ISO_ZL, PERF_ZL, PERF_ZH] { if r.f64() < 0.12 { g.v[z] = 1.0 - g.v[z]; } }
+                       if r.f64() < 0.25 { g.v[WIN_N] += if r.f64() < 0.5 { -1.0 } else { 1.0 }; }
+                   } }
+            _ => { for i in [FUL_D, FUL_W, FUL_S0, FUL_S1, FLUTE, TEX_MODE, TEX_D, TEX_P, TEX_A, COMET_W0, COMET_W1, COMET_BOW, EYE, CAIRN] { if (!fine || i != TEX_MODE) && r.f64() < 0.4 { jig(&mut g, i, r, sigma * 1.5); } } }
         }
-        if r.f64() < 0.03 { g.mat = if g.mat == TiGrade::Ti6Al4V { TiGrade::Ti3Al2_5V } else { TiGrade::Ti6Al4V }; }
+        if !fine && r.f64() < 0.03 { g.mat = if g.mat == TiGrade::Ti6Al4V { TiGrade::Ti3Al2_5V } else { TiGrade::Ti6Al4V }; }
         g.clamp(); g
     }
     pub fn crossover(&self, o: &Self, r: &mut Rng) -> Self {

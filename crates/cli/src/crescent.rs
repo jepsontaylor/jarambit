@@ -240,12 +240,12 @@ pub fn evolve(out: &str, wave: &str, pop: usize, islands: usize, gens: usize, th
     let mut novel: Vec<&qd::Rec> = ro.all.iter().filter(|r| r.legal()).collect(); novel.sort_by(|a, b| b.novelty.partial_cmp(&a.novelty).unwrap());
     let mut order: Vec<(&str, &qd::Rec)> = Vec::new();
     if qd::all_gates_env() {
-        use jarambit_crescent::genome::{COMET_W0, ISO_ZH, PERF_ZH, RELIEF_D, RELIEF_Q};
-        let stable_seq = |r: &&qd::Rec| r.g.v[ISO_ZH] < 0.5 && r.g.v[PERF_ZH] < 0.5 && r.g.v[RELIEF_D] <= 0.35 && r.g.v[RELIEF_Q] >= 1.90 && r.g.v[COMET_W0] <= 10.20;
+        use jarambit_crescent::genome::{COMET_W0, ISO_D, ISO_ZH, PERF_ZH, RELIEF_D, RELIEF_Q, RELIEF_W};
+        let stable_seq = |r: &&qd::Rec| r.g.v[ISO_ZH] < 0.5 && r.g.v[PERF_ZH] < 0.5 && r.g.v[RELIEF_D] <= 0.35 && r.g.v[RELIEF_Q] >= 1.90 && r.g.v[COMET_W0] <= 10.20 && r.g.v[ISO_D] <= 1.345 && r.g.v[RELIEF_W] <= 2.985;
         let mut res1: Vec<&qd::Rec> = ro.all.iter().filter(|r| qd::feasible(r) && stable_seq(r) && r.fem.as_ref().map_or(false, |f| f.lat_rob >= 273.0 && f.seq_ratio >= 1.20 && f.twist_tipzone_sf >= 1.08)).collect();
-        res1.sort_by(|a, b| a.mass_g.partial_cmp(&b.mass_g).unwrap());
-        let mut res2: Vec<&qd::Rec> = ro.all.iter().filter(|r| qd::feasible(r) && r.g.v[ISO_ZH] < 0.5 && r.fem.as_ref().map_or(false, |f| f.lat_rob >= 270.0 && f.seq_ratio >= 1.21 && f.twist_tipzone_sf >= 1.08)).collect();
-        res2.sort_by(|a, b| a.mass_g.partial_cmp(&b.mass_g).unwrap());
+        res1.sort_by(|a, b| (a.op == "seed").cmp(&(b.op == "seed")).then_with(|| a.mass_g.partial_cmp(&b.mass_g).unwrap()));
+        let mut res2: Vec<&qd::Rec> = ro.all.iter().filter(|r| qd::feasible(r) && stable_seq(r) && r.mass_g >= 77.00 && r.mass_g <= 77.48 && r.fem.as_ref().map_or(false, |f| f.lat_rob >= 273.0 && f.seq_ratio >= 1.20 && f.twist_tipzone_sf >= 1.08)).collect();
+        res2.sort_by(|a, b| (a.op == "seed").cmp(&(b.op == "seed")).then_with(|| a.mass_g.partial_cmp(&b.mass_g).unwrap()));
         for r in res1.iter().take(14) { order.push(("res", r)); }
         for r in res2.iter().take(10) { order.push(("res", r)); }
         for r in light.iter().take(10) { order.push(("light", r)); }
