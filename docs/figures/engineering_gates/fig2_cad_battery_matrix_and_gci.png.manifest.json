@@ -6,7 +6,7 @@
     "evidence/cad_battery/c10c.json": "4df748c7b67e77b87d253a5113643b8ce818bc376bc19e555a5288a4faf12f6b",
     "evidence/cad_battery/c92.json": "faa8c987a8cff96b1932e7a1751916f2db907e3b78ff7beb78c14b2112651b07",
     "evidence/cad_battery/c93.json": "1768649a3816a614cb6cae46e622d0ceed133b047d8b3b8efbf0e29ecde1ff70",
-    "evidence/cad_battery/dolfinx_cross_check.json": "916bbd1a3b7a6b52069c3d55b5312b947f97c7346681264ef986bcebda5e4612",
+    "evidence/cad_battery/dolfinx_cross_check.json": "a36b8159dd6336f9b26b28931b235c2041af58c31c933eea9e78fdd2bcbbd9db",
     "evidence/cad_battery/g3.json": "63bd4184a93ffe672423812eea931fbc005f74cff0065e83e1db0edcd5b56e37",
     "evidence/cad_battery/plate_gci/g3.json": "93a0a1e461f13bda465afbe23ad286ddd876c8aacca1a93450e923a086285969",
     "evidence/cad_battery/plate_gci/w271b_11772.json": "7222e22235b2aa14fcccd44014c1f15db2fcc990a0fc871b2f948cb4a970a8dd",
@@ -28,7 +28,8 @@
     "evidence/cad_battery/w271c_11522.json": "e2a761f5b241f003c7cc02294a311889ad8753893583817bf918e6e49fdceb89",
     "evidence/cad_battery/w272_s2902_c01.json": "036058025b1cfae52c39123898c182e8a934edf05e648d835d50718d0a2b05b6",
     "evidence/cad_battery/w273_s2903_c04.json": "7e7d7748c5a3fbe12351bff4af217f053249066afe9bb81e739351b93f0797e4",
-    "evidence/cad_battery/w273_s2904_c01.json": "9b07cbb021248c2c7ba806b9b4caf3f960d8bdcf1a6e4d556a7e9f85148c03ef"
+    "evidence/cad_battery/w273_s2904_c01.json": "9b07cbb021248c2c7ba806b9b4caf3f960d8bdcf1a6e4d556a7e9f85148c03ef",
+    "evidence/cad_battery/w281_s2932_c01.json": "4c035bfd42fde132d59a2fedd0a6366b2ffaa5883b3738172df0ce2fd37e687e"
   },
   "norms": {
     "safety_factor": {

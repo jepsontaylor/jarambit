@@ -1,0 +1,187 @@
+{
+  "genome": "evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_genome.csv",
+  "genome_sha256": "6de776dfd45031b1697c13072afc5555eb7b8402a38defe593eaece6022b413e",
+  "karambit": {
+    "aes_pass": true,
+    "aes_score": 0.40790298534998176,
+    "grip_len_mm": 61.820920644150554,
+    "groove_area_mm2": 189.375,
+    "groove_w_mm": 2.000796830296464,
+    "hook_drop_mm": 41.90475205408508,
+    "horizontal_reach_mm": 87.2755323841522,
+    "inside_concave": 1.0,
+    "lobe_prom_mm": 9.96666331755084,
+    "ring_id_mm": 24.9,
+    "ring_wall_mm": 5.200796830296465,
+    "seat_depth_mm": 0.7181367763523134,
+    "sharpened_arc_mm": 101.00956114466297,
+    "spine_convex": 0.9224137931034483,
+    "teeth_in": 15,
+    "teeth_sp": 14,
+    "tip_to_heel_mm": 96.81439354585426
+  },
+  "levels_fine_to_coarse": [
+    {
+      "h_mm": 0.5,
+      "lat20_n": 308.3702568730652,
+      "max_area_mm2": 0.25,
+      "mesh_sha256": "6baf61d969c940bbd51b0ef7c8231a3e0cf1101ee912a654cba1503f4f3a7497",
+      "n_elem": 25266,
+      "n_node": 13534,
+      "seq_ratio": 1.2233103040138726,
+      "sf_hunter": 1.0453120016776174
+    },
+    {
+      "h_mm": 1.0,
+      "lat20_n": 311.314831685578,
+      "max_area_mm2": 1.0,
+      "mesh_sha256": "2f405241a600dad272140a36d47ec701ff90afe9623e21d29eef7267cff858e3",
+      "n_elem": 6837,
+      "n_node": 3892,
+      "seq_ratio": 1.1953125605235306,
+      "sf_hunter": 1.0552935071008989
+    },
+    {
+      "h_mm": 2.0,
+      "lat20_n": 304.0959113433179,
+      "max_area_mm2": 4.0,
+      "mesh_sha256": "a66237e0e7c9f3f212ddb2d474211705f29d8d25e30b3d3413e8be59acf02f02",
+      "n_elem": 3143,
+      "n_node": 1966,
+      "seq_ratio": 1.23173297628002,
+      "sf_hunter": 1.030822845924178
+    }
+  ],
+  "primary_observable": "seq_ratio",
+  "refinement_ratio_r": 2.0,
+  "schema": "jarambit.plate_gci.v1",
+  "seq_ratio_gci": {
+    "admitted": false,
+    "asymptotic_validation": "not_established",
+    "f_ext": null,
+    "fit_status": "oscillatory",
+    "gci_fine": null,
+    "levels": [
+      {
+        "h": 0.5,
+        "mesh": {
+          "id": "w281_s2932_c01_area_0.25",
+          "revision": "rev1",
+          "sha256": "6baf61d969c940bbd51b0ef7c8231a3e0cf1101ee912a654cba1503f4f3a7497"
+        },
+        "observable": {
+          "id": "plate_seq_ratio",
+          "metric": "seq_ratio",
+          "projection": "plate_cst_dkt",
+          "region": "blade_vs_ring_neck",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 1.0,
+        "mesh": {
+          "id": "w281_s2932_c01_area_1.0",
+          "revision": "rev1",
+          "sha256": "2f405241a600dad272140a36d47ec701ff90afe9623e21d29eef7267cff858e3"
+        },
+        "observable": {
+          "id": "plate_seq_ratio",
+          "metric": "seq_ratio",
+          "projection": "plate_cst_dkt",
+          "region": "blade_vs_ring_neck",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 2.0,
+        "mesh": {
+          "id": "w281_s2932_c01_area_4.0",
+          "revision": "rev1",
+          "sha256": "a66237e0e7c9f3f212ddb2d474211705f29d8d25e30b3d3413e8be59acf02f02"
+        },
+        "observable": {
+          "id": "plate_seq_ratio",
+          "metric": "seq_ratio",
+          "projection": "plate_cst_dkt",
+          "region": "blade_vs_ring_neck",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      }
+    ],
+    "method_id": "relative_gci.v2",
+    "monotone": false,
+    "observable_valid": true,
+    "p": null,
+    "reason": "oscillatory_sequence",
+    "relative_error_available": false,
+    "sequence_valid": true
+  },
+  "sf_hunter_gci": {
+    "admitted": false,
+    "asymptotic_validation": "not_established",
+    "f_ext": null,
+    "fit_status": "oscillatory",
+    "gci_fine": null,
+    "levels": [
+      {
+        "h": 0.5,
+        "mesh": {
+          "id": "w281_s2932_c01_area_0.25",
+          "revision": "rev1",
+          "sha256": "6baf61d969c940bbd51b0ef7c8231a3e0cf1101ee912a654cba1503f4f3a7497"
+        },
+        "observable": {
+          "id": "plate_sf_hunter",
+          "metric": "sf_hunter",
+          "projection": "plate_cst_dkt",
+          "region": "blade_outside_4mm",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 1.0,
+        "mesh": {
+          "id": "w281_s2932_c01_area_1.0",
+          "revision": "rev1",
+          "sha256": "2f405241a600dad272140a36d47ec701ff90afe9623e21d29eef7267cff858e3"
+        },
+        "observable": {
+          "id": "plate_sf_hunter",
+          "metric": "sf_hunter",
+          "projection": "plate_cst_dkt",
+          "region": "blade_outside_4mm",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      },
+      {
+        "h": 2.0,
+        "mesh": {
+          "id": "w281_s2932_c01_area_4.0",
+          "revision": "rev1",
+          "sha256": "a66237e0e7c9f3f212ddb2d474211705f29d8d25e30b3d3413e8be59acf02f02"
+        },
+        "observable": {
+          "id": "plate_sf_hunter",
+          "metric": "sf_hunter",
+          "projection": "plate_cst_dkt",
+          "region": "blade_outside_4mm",
+          "units": "ratio"
+        },
+        "refinement": "uniform_h"
+      }
+    ],
+    "method_id": "relative_gci.v2",
+    "monotone": false,
+    "observable_valid": true,
+    "p": null,
+    "reason": "oscillatory_sequence",
+    "relative_error_available": false,
+    "sequence_valid": true
+  },
+  "subject": "w281_s2932_c01"
+}
