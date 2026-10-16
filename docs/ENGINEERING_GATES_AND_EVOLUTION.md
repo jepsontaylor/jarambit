@@ -244,7 +244,7 @@ Every evaluator, numerical solver, RNG stream, checkpoint serializer, and claim-
 
 ---
 
-## V. Evolutionary Search Mechanics & Multi-Wave Behavioral Analysis (`w1` $\rightarrow$ `w273`)
+## V. Evolutionary Search Mechanics & Multi-Wave Behavioral Analysis (`w1` $\rightarrow$ `w277`)
 
 ### V-A. Island Genetic Algorithm, Constraint-Dominated Selection & Cap-Free Objective
 
@@ -264,17 +264,18 @@ Implemented in [`crates/crescent/src/qd.rs`](../crates/crescent/src/qd.rs#L100-L
 4. **Lossless Checkpointing (`jarambit-ckpt 2`) & Append-Only Zstd Event Lineage (`*.jevl`):**
    Every generation writes a lossless checkpoint ([`crates/crescent/src/checkpoint.rs`](../crates/crescent/src/checkpoint.rs)) serializing all 128 floating-point genes in exact IEEE-754 hexadecimal representation (`{:016x}`) alongside the exact `SplitMix64` RNG state, ensuring zero-drift bit-identical continuation across restarts (`T03`). Simultaneously, every candidate evaluation is appended to a zstd-compressed JSONL event stream (`events.jevl`) recording parent IDs, operator tags, full gate metrics, and timing.
 
-### V-B. Multi-Wave Evolutionary Behavior (`w6` $\rightarrow$ `w13` $\rightarrow$ `w15` $\rightarrow$ `w16` $\rightarrow$ `w27` $\rightarrow$ `w271` $\rightarrow$ `w272` $\rightarrow$ `w273`)
+### V-B. Multi-Wave Evolutionary Behavior (`w6` $\rightarrow$ `w13` $\rightarrow$ `w15` $\rightarrow$ `w16` $\rightarrow$ `w27` $\rightarrow$ `w271` $\rightarrow$ `w272` $\rightarrow$ `w273` $\rightarrow$ `w274` $\rightarrow$ `w275` $\rightarrow$ `w276` $\rightarrow$ `w277`)
 
 ![Figure 1 — Evolutionary Search Progression, MAP-Elites QD Archive, and Pareto / G1 Trajectory](figures/engineering_gates/fig1_evolutionary_trajectories.png)
 
 **Figure 1** (generated deterministically by [`ops/render/engineering_gates_paper_figs.py`](../ops/render/engineering_gates_paper_figs.py) from committed telemetry and verified by [`fig1_evolutionary_trajectories.png.manifest.json`](figures/engineering_gates/fig1_evolutionary_trajectories.png.manifest.json)) illustrates three fundamental evolutionary phenomena across the project history:
 
-1. **Step-Wise Punctuated Equilibrium in Best Strength-Per-Gram (Figure 1a):**
+1. **Step-Wise Punctuated Equilibrium in Best Strength-Per-Gram & All-Gates Mass Reduction (Figure 1a):**
    - In **Wave 6 (`docs/crescent/history.csv`, 40 gens)**, introducing the `C.4`-anchored spline genotype with pocket relief rapidly lifted best search-tier SPG from $1.76\text{ N/g}$ at Gen 0 to $3.29\text{ N/g}$ by Gen 35 as infeasible geometries were purged in the first 6 generations.
    - In **Wave 13 (`wave13_c6`, 120 gens)** and **Wave 15 (`wave15_c6_long`, 240 gens)**, unlocking the `C.6` annular ring groove and continuous 3D bevel/relief thickness law enabled sustained SPG climbs from $3.82\text{ N/g}$ to **$4.076\text{ N/g}$** (`wave13_c6`) and **$4.068\text{ N/g}$** (`wave15_c6_long`).
    - In **Wave 16 (`wave16_c6_through4`, 240 gens)**, enforcing 4 mandatory through-windows (`genus == 5`) shifted the baseline SPG to $3.57\text{ N/g}$ at Gen 0, followed by 180 generations of ligament-routing refinement to reach $3.790\text{ N/g}$.
    - In **Wave 272 (`evidence/rs_v2/w272_xbabe3/s2902`, 120 gens)** and **Wave 273 (`evidence/rs_v2/w273_xbabe3/s2904`, 40 gens)**, activating `P1` sequence-ratio pressure drove evolution along the `seq_ratio >= 1.0` ridge while reducing mass below $79\text{ g}$.
+   - In **Waves 274–277 (`evidence/rs_v2/w274_calibrated` through `w277_ultrarunner`)**, activating full `JARAMBIT_ALL_GATES=1` + `JARAMBIT_CAD_BATTERY=1` (`W_CAD_v2`) enforced certified $\text{seq\_ratio} \ge 1.20$, strict $0.0625\text{ mm}^2$ lateral/twist, holder-envelope, and 3D P2 solid-tip $\text{SF} \ge 1.0$ inside the search loop, driving all-gates mass down from $84.98\text{ g}$ (`w274_s2905_c01`) $\rightarrow$ $81.77\text{ g}$ (`w275_s2909_c01`) $\rightarrow$ $79.995\text{ g}$ (`w276_s2913_c01`) $\rightarrow$ **$79.509\text{ g}$ raster / $79.656\text{ g}$ 3D solid** (`w277_s2919_c01`, `W_CAD = +1.6604`, `G1 = 0.8348`) and **$79.026\text{ g}$** (`w277_s2920_c01` ultralight peer).
 2. **2D MAP-Elites Niche Illumination (Figure 1b):**
    Across the combined QD archives (`wave13_c6`, `wave16_c6_through4`, `w272_s2902`, `w273_s2903`, `w273_s2904`), **64 of the 120 `(relief_bin, mass_bin)` niches** are populated with fully legal elites spanning $72\text{ g}$ (`bin 1`) to $92\text{ g}$ (`bin 10`) and relief fractions up to $18.5\%$ (`bin 7`). The highest SPG density ($3.80\text{--}3.89\text{ N/g}$) concentrates in the high-relief, sub-$76\text{ g}$ corner (`bins (5..6, 0..3)`), demonstrating that deep pocket relief in the neutral handle web simultaneously lowers mass and improves strength-per-gram.
 3. **Cross-Wave Mass vs Certified SPG & `G1` Trajectory (Figure 1c):**
@@ -393,13 +394,14 @@ python3 -B ops/ci/verify_figures.py
 python3 -B ops/ci/verify_media.py
 python3 -B ops/render/patent/figures.py --verify docs/patent/figures/figures.json
 
-# 2. Run the 18-evaluator CAD battery across all 11 CAD subjects
-/home/ubuntu/.venvs/jarambit-cad/bin/python -B ops/ci/cad_battery.py \
+# 2. Run the 18-evaluator CAD battery across all 15 CAD subjects
+python3 -B ops/ci/cad_battery.py \
   --all --analytic pass --gci pass --claims pass --dolfinx pass --measure-native
 
 # 3. Evaluate any single genome CSV end-to-end (Rust multi-tier FEM + 18-case CAD battery + G1)
-cargo run --release -p jarambit -- crescent --evaluate-genome \
-  evidence/rs_v2/w273_xbabe3/s2904/w273_s2904_c01_genome.csv
+python3 -B ops/ci/cad_battery.py \
+  --evaluate-genome evidence/rs_v2/w277_ultrarunner/w277_s2919_c01_genome.csv \
+  --out-dir /tmp/jarambit_quickstart_battery
 
 # 4. Run the full 178-group (356-control) T00-T19 scientific assurance suite
 python3 -B ops/ci/science_suite.py
