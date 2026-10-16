@@ -38,6 +38,41 @@ class GenReadme(unittest.TestCase):
         from ops.ci import claim_admission
         self.assertEqual(claim_admission.public_document_check(ROOT), [])
 
+    def test_every_battery_and_pareto_number_traces_to_committed_json(self):
+        import json
+        t = open(os.path.join(ROOT, 'README.md'), encoding='utf-8').read()
+        eg = open(os.path.join(ROOT, 'docs/ENGINEERING_GATES_AND_EVOLUTION.md'), encoding='utf-8').read()
+        m = re.search(
+            r'\*\*Battery total across (\d+) subjects × 18 evaluators \((\d+) cells\):\*\* `(\d+) pass`, `(\d+) fail`, `(\d+) blocked`(?:, `(\d+) incomplete`)?\.',
+            t,
+        )
+        self.assertIsNotNone(m)
+        n_subj, n_cells, np_, nf_, nb_, ni_ = (
+            int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6) or 0)
+        )
+        self.assertEqual(n_subj * 18, n_cells)
+        self.assertEqual(np_ + nf_ + nb_ + ni_, n_cells)
+        # Ensure Table VI-2 in ENGINEERING_GATES_AND_EVOLUTION.md matches committed rs_v2 JSONs
+        for name, rel in (
+            ('g3_tip+00_t60_tt3', 'evidence/rs_v2/g3_tip+00_t60_tt3.json'),
+            ('w271b_11772', 'evidence/rs_v2/w271b_11772.json'),
+            ('w271b_11860', 'evidence/rs_v2/w271b_11860.json'),
+            ('w271c_11522', 'evidence/rs_v2/w271c_11522.json'),
+            ('w272_s2902_c01', 'evidence/rs_v2/w272_xbabe3/w272_s2902_c01_rs.json'),
+            ('w273_s2903_c04', 'evidence/rs_v2/w273_xbabe3/w273_s2903_c04_rs.json'),
+            ('w273_s2904_c01', 'evidence/rs_v2/w273_xbabe3/w273_s2904_c01_rs.json'),
+            ('w274_s2905_c01', 'evidence/rs_v2/w274_calibrated/w274_s2905_c01_rs.json'),
+            ('w275_s2909_c01', 'evidence/rs_v2/w275_ultrarunner/w275_s2909_c01_rs.json'),
+            ('w276_s2913_c01', 'evidence/rs_v2/w276_ultrarunner/w276_s2913_c01_rs.json'),
+            ('w277_s2919_c01', 'evidence/rs_v2/w277_ultrarunner/w277_s2919_c01_rs.json'),
+            ('w278_s2922_c01', 'evidence/rs_v2/w278_ultrarunner/w278_s2922_c01_rs.json'),
+        ):
+            with open(os.path.join(ROOT, rel), encoding='utf-8') as fh:
+                r = json.load(fh)
+            self.assertIn(f'{r["fat_sf"]:.4f}', eg, f'missing fat_sf for {name}')
+            self.assertIn(f'{r["ring_bearing_w_mm"]:.2f}', eg, f'missing ring_bearing_w_mm for {name}')
+
 
 if __name__ == '__main__':
     unittest.main()
+

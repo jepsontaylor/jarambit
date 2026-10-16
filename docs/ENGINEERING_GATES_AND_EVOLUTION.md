@@ -15,7 +15,7 @@
 
 > [!IMPORTANT]
 > **Honest Qualification Verdict (`RS-karambit-v1` vs `RS-karambit-v2`)**
-> - Under **`RS-karambit-v1` (Screen) & `W_CAD_v2` All-Gates Calibration**, `g3_tip+00_t60_tt3` (`84.80 g`, `G1 = 1.0036` fine / `0.9804` prod, 3D solid tip $\text{SF} = 1.6002$) and `w271c_11522` (`79.96 g`, `G1 = 0.7597`, 3D solid tip $\text{SF} = 1.0332$) satisfy the 3D solid tip submodel floor ($\text{SF}_{\text{tip}} \ge 1.0$ at $1.82\text{ N}\cdot\text{m}$), `w272_s2902_c01` (`79.43 g`, $\text{seq\_ratio} = 1.0002$) and `w273_s2904_c01` (`78.59 g`, $\text{SPG} = 3.941\text{ N/g}$, $\text{seq\_ratio} = 1.0012$, `G1 = 0.7603`) push failure-sequence ratio above unity below $80\text{ g}$, and the all-gates calibrated waves `w274_s2905_c01` (`84.98 g`, $\text{seq\_ratio} = 1.273$, 3D solid tip $\text{SF} = 1.304$, `W_CAD = +1.4634`, `G1 = 0.7701`), `w275_s2909_c01` (`81.77 g`, $\text{seq\_ratio} = 1.206$, 3D solid tip $\text{SF} = 1.297$, `W_CAD = +1.5589`, `G1 = 0.8015`), sub-$80\text{ g}$ `w276_s2913_c01` (`79.995 g` raster / `80.050 g` 3D solid, $\text{seq\_ratio} = 1.213$, 3D solid tip $\text{SF} = 1.339$, `W_CAD = +1.6381`, `G1 = 0.8323`), `w277_s2919_c01` (`79.509 g` raster / `79.656 g` 3D solid, $\text{seq\_ratio} = 1.218$, 3D solid tip $\text{SF} = 1.339$, `W_CAD = +1.6604`, `G1 = 0.8348`), and high-reserve `w278_s2922_c01` (`78.580 g` raster / `78.597 g` 3D solid, strict lateral $273.2\text{ N}$ / $+5.1\%$ reserve, $\text{seq\_ratio} = 1.223$, $\text{twist\_tip} = 1.098$, $\text{twist\_strict} = 1.098$, 3D solid tip $\text{SF} = 1.3819$, `W_CAD = +1.7021`, `G1 = 0.8618`, alongside Pareto peers `w278_s2922_c02_light` at `77.877 g` raster / `77.85 g` 3D solid and `w278_s2922_c03_seq124` at `79.042 g` with $\text{seq\_ratio} = 1.240$) simultaneously clear certified $\text{seq\_ratio} \ge 1.20$, strict hunter lateral $\ge 260\text{ N}$, strict tip-submodel twist $\text{SF} \ge 1.0$, and 3D P2 solid-tip $\text{SF} \ge 1.0$.
+> - Under **`RS-karambit-v1` (Screen) & `W_CAD_v2` All-Gates Calibration**, `g3_tip+00_t60_tt3` (`84.80 g`, `G1 = 1.0036` fine / `0.9804` prod, 3D solid tip $\text{SF} = 1.6003$) and `w271c_11522` (`79.96 g`, `G1 = 0.7597`, 3D solid tip $\text{SF} = 1.0330$) satisfy the 3D solid tip submodel floor ($\text{SF}_{\text{tip}} \ge 1.0$ at $1.82\text{ N}\cdot\text{m}$), `w272_s2902_c01` (`79.43 g`, $\text{seq\_ratio} = 1.0000$) and `w273_s2904_c01` (`78.59 g`, $\text{SPG} = 3.940\text{ N/g}$, $\text{seq\_ratio} = 1.0012$, `G1 = 0.7603`) push failure-sequence ratio to unity below $80\text{ g}$, and the all-gates calibrated waves `w274_s2905_c01` (`84.98 g`, $\text{seq\_ratio} = 1.273$, 3D solid tip $\text{SF} = 1.3040$, `W_CAD = +1.4634`, `G1 = 0.7701`), `w275_s2909_c01` (`81.77 g`, $\text{seq\_ratio} = 1.206$, 3D solid tip $\text{SF} = 1.2967$, `W_CAD = +1.5589`, `G1 = 0.8015`), sub-$80\text{ g}$ `w276_s2913_c01` (`79.995 g` raster / `80.050 g` 3D solid, $\text{seq\_ratio} = 1.213$, 3D solid tip $\text{SF} = 1.3393$, `W_CAD = +1.6381`, `G1 = 0.8323`), `w277_s2919_c01` (`79.509 g` raster / `79.656 g` 3D solid, $\text{seq\_ratio} = 1.218$, 3D solid tip $\text{SF} = 1.3393$, `W_CAD = +1.6604`, `G1 = 0.8348`), and high-reserve `w278_s2922_c01` (`78.580 g` raster / `78.597 g` 3D solid, strict lateral $273.2\text{ N}$ / $+5.1\%$ reserve, $\text{seq\_ratio} = 1.223$, $\text{twist\_tip} = 1.098$, $\text{twist\_strict} = 1.098$, 3D solid tip $\text{SF} = 1.3819$, `W_CAD = +1.7021`, `G1 = 0.8618`, alongside committed Pareto seed genomes `w277_s2920_c01_genome.csv`, `w278_s2922_c02_light_genome.csv`, and `w278_s2922_c03_seq124_genome.csv`) simultaneously clear certified $\text{seq\_ratio} \ge 1.20$, strict hunter lateral $\ge 260\text{ N}$, strict tip-submodel twist $\text{SF} \ge 1.0$, and 3D P2 solid-tip $\text{SF} \ge 1.0$.
 > - Under **`RS-karambit-v2` (v1 Promotion & Human-Maximum Gate Set)**, **0 of 16 evaluated CAD subjects** pass every hard gate (`hm_twist_sf >= 1.0` at $16.2\text{ N}\cdot\text{m}$, `hm_spine_sf >= 1.0` at $3427\text{ N}$, and `ring_bearing_w_mm >= 10.0\text{ mm}`). Consequently, **0 designs are promoted to `v1.0.0`**, and all public claims are machine-checked by [`ops/ci/check_claims.py`](../ops/ci/check_claims.py) and [`ops/ci/claim_admission.py`](../ops/ci/claim_admission.py).
 
 ---
@@ -275,7 +275,7 @@ Implemented in [`crates/crescent/src/qd.rs`](../crates/crescent/src/qd.rs#L100-L
    - In **Wave 13 (`wave13_c6`, 120 gens)** and **Wave 15 (`wave15_c6_long`, 240 gens)**, unlocking the `C.6` annular ring groove and continuous 3D bevel/relief thickness law enabled sustained SPG climbs from $3.82\text{ N/g}$ to **$4.076\text{ N/g}$** (`wave13_c6`) and **$4.068\text{ N/g}$** (`wave15_c6_long`).
    - In **Wave 16 (`wave16_c6_through4`, 240 gens)**, enforcing 4 mandatory through-windows (`genus == 5`) shifted the baseline SPG to $3.57\text{ N/g}$ at Gen 0, followed by 180 generations of ligament-routing refinement to reach $3.790\text{ N/g}$.
    - In **Wave 272 (`evidence/rs_v2/w272_xbabe3/s2902`, 120 gens)** and **Wave 273 (`evidence/rs_v2/w273_xbabe3/s2904`, 40 gens)**, activating `P1` sequence-ratio pressure drove evolution along the `seq_ratio >= 1.0` ridge while reducing mass below $79\text{ g}$.
-   - In **Waves 274–278 (`evidence/rs_v2/w274_calibrated` through `w278_ultrarunner`)**, activating full `JARAMBIT_ALL_GATES=1` + `JARAMBIT_CAD_BATTERY=1` (`W_CAD_v2`) enforced certified $\text{seq\_ratio} \ge 1.20$, strict $0.0625\text{ mm}^2$ lateral/twist, holder-envelope, and 3D P2 solid-tip $\text{SF} \ge 1.0$ inside the search loop, driving all-gates mass down from $84.98\text{ g}$ (`w274_s2905_c01`) $\rightarrow$ $81.77\text{ g}$ (`w275_s2909_c01`) $\rightarrow$ $79.995\text{ g}$ (`w276_s2913_c01`) $\rightarrow$ $79.509\text{ g}$ (`w277_s2919_c01`) $\rightarrow$ **$78.580\text{ g}$ raster / $78.597\text{ g}$ 3D solid** (`w278_s2922_c01`, strict lateral $273.2\text{ N}$ / $+5.1\%$ reserve, `W_CAD = +1.7021`, `G1 = 0.8618`) and **$77.877\text{ g}$** (`w278_s2922_c02_light` ultralight peer).
+   - In **Waves 274–278 (`evidence/rs_v2/w274_calibrated` through `w278_ultrarunner`)**, activating full `JARAMBIT_ALL_GATES=1` + `JARAMBIT_CAD_BATTERY=1` (`W_CAD_v2`) enforced certified $\text{seq\_ratio} \ge 1.20$, strict $0.0625\text{ mm}^2$ lateral/twist, holder-envelope, and 3D P2 solid-tip $\text{SF} \ge 1.0$ inside the search loop, driving all-gates mass down from $84.979\text{ g}$ (`w274_s2905_c01`) $\rightarrow$ $81.774\text{ g}$ (`w275_s2909_c01`) $\rightarrow$ $79.995\text{ g}$ (`w276_s2913_c01`) $\rightarrow$ $79.509\text{ g}$ (`w277_s2919_c01`) $\rightarrow$ **$78.580\text{ g}$ raster / $78.597\text{ g}$ 3D solid** (`w278_s2922_c01`, strict lateral $273.2\text{ N}$ / $+5.1\%$ reserve, `W_CAD = +1.7021`, `G1 = 0.8618`, alongside committed Pareto seed genomes `w277_s2920_c01_genome.csv`, `w278_s2922_c02_light_genome.csv`, and `w278_s2922_c03_seq124_genome.csv`).
 2. **2D MAP-Elites Niche Illumination (Figure 1b):**
    Across the combined QD archives (`wave13_c6`, `wave16_c6_through4`, `w272_s2902`, `w273_s2903`, `w273_s2904`), **64 of the 120 `(relief_bin, mass_bin)` niches** are populated with fully legal elites spanning $72\text{ g}$ (`bin 1`) to $92\text{ g}$ (`bin 10`) and relief fractions up to $18.5\%$ (`bin 7`). The highest SPG density ($3.80\text{--}3.89\text{ N/g}$) concentrates in the high-relief, sub-$76\text{ g}$ corner (`bins (5..6, 0..3)`), demonstrating that deep pocket relief in the neutral handle web simultaneously lowers mass and improves strength-per-gram.
 3. **Cross-Wave Mass vs Certified SPG & `G1` Trajectory (Figure 1c):**
@@ -285,35 +285,30 @@ Implemented in [`crates/crescent/src/qd.rs`](../crates/crescent/src/qd.rs#L100-L
 |:---|---:|---:|---:|---:|---:|---:|---:|---:|:---|
 | `wave20 c11_fit` | 6.0 | 83.40 | 333.1 | 3.994 | 0.9260 | 1.1640 | 0.6730 | **0.8480** | First `RS-karambit-v1` screen pass (`w20`) |
 | `wave25 c01_fit` | 6.0 | 82.00 | 305.5 | 3.726 | 0.8790 | 1.5270 | 0.6480 | **0.9520** | Thickened tip taper (`dt_tip`) boosts 3D tip SF |
-| `g3_tip+00_t60_tt3` (`w27`) | 6.0 | 84.80 | 351.7 | 4.148 | 0.9591 | **1.6002** | 0.6655 | **1.0036** (`0.9804` prod) | Peak `G1` & 3D solid tip SF ($+0.3\text{ mm}$ tip stock) |
-| `w271b_11772` (`w271b`) | 5.8 | 79.43 | 307.2 | 3.868 | 0.8842 | 0.8331 | 0.6661 | **0.7510** | Sub-$80\text{ g}$ mass reduction via $5.8\text{ mm}$ stock |
-| `w271b_11860` (`w271b`) | 5.8 | 73.37 | 270.8 | 3.690 | 0.8923 | 0.8136 | 0.6383 | **0.7222** | Ultra-light $73.37\text{ g}$ frontier elite |
-| `w271c_11522` (`w271c`) | 5.8 | 79.96 | 274.7 | 3.435 | 0.7811 | **1.0332** | 0.6978 | **0.7597** | Sub-$80\text{ g}$ **and** 3D solid tip $\text{SF} \ge 1.0$ |
-| `w272_s2902_c01` (`w272`) | 5.8 | 79.43 | 307.6 | 3.873 | **1.0002** | 0.8746 | 0.6462 | **0.7524** | First sub-$80\text{ g}$ candidate with $\text{seq\_ratio} \ge 1.0$ |
-| `w273_s2903_c04` (`w273`) | 5.8 | 78.69 | 306.8 | 3.899 | **1.0079** | 0.8749 | 0.6317 | **0.7512** | Further mass trim ($-0.74\text{ g}$) + $\text{seq\_ratio} = 1.008$ |
-| `w273_s2904_c01` (`w273`) | 5.8 | 78.59 | 309.7 | **3.941** | **1.0012** | 0.8748 | 0.6626 | **0.7603** | Best sub-$80\text{ g}$ `G1` ($0.7603$) prior to `W_CAD_v2` |
-| `w274_s2905_c01` (`w274`) | 6.0 | 84.98 | 267.7 | 3.150 | **1.2730** | **1.3040** | 0.3547 | **0.7701** | First all-16-gates pass (`seq >= 1.20`, `solid_tip >= 1.0`, `W_CAD = +1.4634`) |
-| `w275_s2909_c01` (`w275`) | 6.0 | 81.77 | 274.4 | 3.356 | **1.2060** | **1.2967** | 0.3694 | **0.8015** | Sub-$82\text{ g}$ all-16-gates pass (`-3.21 g`, `W_CAD = +1.5589`) |
-| `w276_s2913_c01` (`w276`) | 5.9 | 79.995 | 274.8 | 3.435 | **1.2130** | **1.3393** | 0.3886 | **0.8323** | First sub-$80\text{ g}$ 2.5D raster all-16-gates pass (`W_CAD = +1.6381`) |
-| `w277_s2919_c01` (`w277`) | 5.9 | 79.509 (`79.656` 3D) | 273.2 | 3.436 | **1.2180** | **1.3393** | 0.3896 | **0.8348** | Sub-$80\text{ g}$ on both 2.5D & 3D solid, all 16 gates pass (`W_CAD = +1.6604`) |
-| `w277_s2920_c01` (`w277`) | 5.8 | 79.026 (`79.031` 3D) | 266.3 | 3.369 | **1.2020** | *plate-cert* | 0.3888 | **0.8246** | Wave 277 ultralight sub-$79.05\text{ g}$ peer (all strict plate gates pass) |
+| `g3_tip+00_t60_tt3` (`w27`) | 6.0 | 84.802 | 351.7 | 4.147 | 0.9591 | **1.6003** | 0.6486 | **1.0036** (`0.9804` prod) | Peak `G1` & 3D solid tip SF ($+0.3\text{ mm}$ tip stock) |
+| `w271b_11772` (`w271b`) | 5.8 | 78.552 | 306.3 | 3.900 | 0.8823 | 0.8337 | 0.6928 | **0.7506** | Sub-$80\text{ g}$ mass reduction via $5.8\text{ mm}$ stock |
+| `w271b_11860` (`w271b`) | 5.8 | 73.326 | 270.6 | 3.691 | 0.8918 | 0.8140 | 0.6332 | **0.7217** | Ultra-light $73.33\text{ g}$ frontier elite |
+| `w271c_11522` (`w271c`) | 5.8 | 79.962 | 274.7 | 3.435 | 0.7784 | **1.0330** | 0.6498 | **0.7597** | Sub-$80\text{ g}$ **and** 3D solid tip $\text{SF} \ge 1.0$ |
+| `w272_s2902_c01` (`w272`) | 5.8 | 79.426 | 309.7 | 3.899 | **1.0000** | 0.8750 | 0.6271 | **0.7524** | First sub-$80\text{ g}$ candidate with $\text{seq\_ratio} \ge 1.0$ |
+| `w273_s2903_c04` (`w273`) | 5.8 | 79.299 | 307.0 | 3.871 | **1.0088** | 0.8750 | 0.6271 | **0.7509** | Further mass trim ($-0.13\text{ g}$) + $\text{seq\_ratio} = 1.009$ |
+| `w273_s2904_c01` (`w273`) | 5.8 | 78.585 | 309.7 | **3.940** | **1.0012** | 0.8750 | 0.6271 | **0.7603** | Best sub-$80\text{ g}$ `G1` ($0.7603$) prior to `W_CAD_v2` |
+| `w274_s2905_c01` (`w274`) | 6.0 | 84.979 | 267.7 | 3.150 | **1.2730** | **1.3040** | 0.3896 | **0.7701** | First all-16-gates pass (`seq >= 1.20`, `solid_tip >= 1.0`, `W_CAD = +1.4634`) |
+| `w275_s2909_c01` (`w275`) | 6.0 | 81.774 | 274.4 | 3.356 | **1.2056** | **1.2967** | 0.3896 | **0.8015** | Sub-$82\text{ g}$ all-16-gates pass (`-3.205 g`, `W_CAD = +1.5589`) |
+| `w276_s2913_c01` (`w276`) | 5.9 | 79.995 | 274.8 | 3.435 | **1.2129** | **1.3393** | 0.3896 | **0.8323** | First sub-$80\text{ g}$ 2.5D raster all-16-gates pass (`W_CAD = +1.6381`) |
+| `w277_s2919_c01` (`w277`) | 5.9 | 79.509 (`79.656` 3D) | 273.2 | 3.436 | **1.2183** | **1.3393** | 0.3896 | **0.8348** | Sub-$80\text{ g}$ on both 2.5D & 3D solid, all 16 gates pass (`W_CAD = +1.6604`) |
 | `w278_s2922_c01` (`w278`) | 5.9 | **78.580** (`78.597` 3D) | 273.4 | **3.480** | **1.2229** | **1.3819** | 0.4079 | **0.8618** | Sub-$78.60\text{ g}$ 2.5D & 3D solid, `+5.1%` strict lat reserve, all 16 gates pass (`W_CAD = +1.7021`) |
-| `w278_s2922_c02_light` (`w278`) | 5.9 | **77.877** (`77.850` 3D) | 272.8 | **3.502** | **1.2200** | *plate-cert* | — | *plate* | Ultralight sub-$77.9\text{ g}$ Pareto peer (all strict plate gates pass) |
 
-#### Table V-2: Margin-vs-Mass Pareto Progression (`W27` $\rightarrow$ `W278`, `evidence/rs_v2/w27*/*_cad_eval.json`)
+#### Table V-2: Margin-vs-Mass Pareto Progression (`W27` $\rightarrow$ `W278`, `evidence/wave27/g3_tip+00_t60_tt3_D1.json`, `evidence/rs_v2/w271c_11522.json`, `evidence/rs_v2/w27*/*_cad_eval.json`)
 
 | Candidate | Wave / Cohort | Mass 2.5D / 3D (g) | Strict $0.0625\text{ mm}^2$ Lateral (N / SF / Reserve) | Strict $4\text{--}15\text{ mm}$ Tip-Sub Twist SF (Reserve) | Cert `seq_ratio` (Reserve vs $1.20$) | 3D P2 Solid-Tip SF (Reserve vs $1.00$) | `side.a4` Winkler `seq` / $P_{\text{cr}}$ (N) | `W_CAD` | Locked `G1` | 16-Gate Status |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|:---|
-| `g3_tip+00_t60_tt3` | Wave 27 provisional | `84.802` / `84.860` | `340.8 N` / `1.311` (`+31.1%`) | `1.458` (`+45.8%`) | `0.959` (`-20.1%` **FAIL**) | `1.6003` (`+60.0%`) | `2.790` / `2722 N` | `-0.2407` | `0.9804` (`1.0036` fine) | **FAIL** (`seq < 1.20`, holder box) |
-| `w271c_11522` | Wave 271c mass push | `79.962` / `—` | `266.4 N` / `1.025` (`+2.5%`) | `0.842` (`-15.8%` **FAIL**) | `0.778` (`-35.2%` **FAIL**) | `1.0330` (`+3.3%`) | `3.066` / `2938 N` | `-0.5800` | `0.7597` | **FAIL** (`seq < 1.20`, `twist_strict < 1.0`) |
+| `g3_tip+00_t60_tt3` | Wave 27 provisional | `84.802` / `84.860` | `340.8 N` / `1.311` (`+31.1%`) | `1.458` (`+45.8%`) | `0.959` (`-20.1%` **FAIL**) | `1.6003` (`+60.0%`) | `2.790` / `2723 N` | *pre-`W_CAD`* | `0.9804` (`1.0036` fine) | **FAIL** (`seq < 1.20`, holder box) |
+| `w271c_11522` | Wave 271c mass push | `79.962` / `—` | `266.4 N` / `1.025` (`+2.5%`) | `0.842` (`-15.8%` **FAIL**) | `0.778` (`-35.1%` **FAIL**) | `1.0330` (`+3.3%`) | `3.067` / `2934 N` | *pre-`W_CAD`* | `0.7597` (`COMPLETE`) | **FAIL** (`seq < 1.20`, `twist_strict < 1.0`) |
 | `w274_s2905_c01` | Wave 274 `W_CAD_v2` | `84.979` / `85.021` | `266.8 N` / `1.026` (`+2.6%`) | `1.068` (`+6.8%`) | `1.273` (`+6.1%`) | `1.3040` (`+30.4%`) | `2.721` / `2693 N` | `+1.4634` | `0.7701` (`COMPLETE`) | **16/16 pass** (baseline all-gates) |
-| `w275_s2909_c01` | Wave 275 `W_CAD_v2` | `81.774` / `81.804` | `273.3 N` / `1.051` (`+5.1%`) | `1.062` (`+6.2%`) | `1.206` (`+0.5%`) | `1.2967` (`+29.7%`) | `3.373` / `3412 N` | `+1.5589` | `0.8015` (`COMPLETE`) | **16/16 pass** (`-3.21 g` vs `w274`) |
-| `w276_s2913_c01` | Wave 276 `W_CAD_v2` | `79.995` / `80.050` | `272.0 N` / `1.046` (`+4.6%`) | `1.095` (`+9.5%`) | `1.213` (`+1.1%`) | `1.3393` (`+33.9%`) | `4.096` / `2343 N` | `+1.6381` | `0.8323` (`COMPLETE`) | **16/16 pass** (sub-$80\text{ g}$ raster; `-4.98 g` vs `w274`) |
-| `w277_s2919_c01` | Wave 277 `W_CAD_v2` | `79.509` / `79.656` | `270.3 N` / `1.040` (`+4.0%`) | `1.095` (`+9.5%`) | `1.218` (`+1.5%`) | `1.3393` (`+33.9%`) | `3.400` / `1949 N` | `+1.6604` | `0.8348` (`COMPLETE`) | **16/16 pass** (sub-$80\text{ g}$ 2.5D & 3D; `-5.47 g` vs `w274`) |
-| `w278_s2922_c01` | Wave 278 `W_CAD_v2` | `78.580` / `78.597` | `273.2 N` / `1.051` (`+5.1%`) | `1.098` (`+9.8%`) | `1.223` (`+1.9%`) | `1.3819` (`+38.2%`) | `3.569` / `3051 N` | `+1.7021` | `0.8618` (`COMPLETE`) | **16/16 pass** (strictly dominates `w277`; `-6.40 g` vs `w274`) |
-| `w277_s2920_c01` | Wave 277 ultralight | `79.026` / `79.031` | `262.3 N` / `1.009` (`+0.9%`) | `1.088` (`+8.8%`) | `1.202` (`+0.2%`) | *plate-certified* | — | *peer* | `0.8246` (*plate*) | **all strict plate gates pass** (`-5.95 g` vs `w274`) |
-| `w278_s2922_c03_seq124` | Wave 278 high-`seq` | `79.042` / `—` | `270.7 N` / `1.041` (`+4.1%`) | `1.100` (`+10.0%`) | `1.240` (`+3.3%`) | *plate-certified* | — | *peer* | *plate* | **all strict plate gates pass** (`+3.3%` `seq` reserve) |
-| `w278_s2922_c02_light` | Wave 278 ultralight | `77.877` / `77.850` | `270.0 N` / `1.038` (`+3.8%`) | `1.046` (`+4.6%`) | `1.220` (`+1.7%`) | *plate-certified* | — | *peer* | *plate* | **all strict plate gates pass** (`-7.10 g` vs `w274`) |
+| `w275_s2909_c01` | Wave 275 `W_CAD_v2` | `81.774` / `81.804` | `273.3 N` / `1.051` (`+5.1%`) | `1.062` (`+6.2%`) | `1.206` (`+0.5%`) | `1.2967` (`+29.7%`) | `3.373` / `3412 N` | `+1.5589` | `0.8015` (`COMPLETE`) | **16/16 pass** (`-3.205 g` vs `w274`) |
+| `w276_s2913_c01` | Wave 276 `W_CAD_v2` | `79.995` / `80.050` | `272.0 N` / `1.046` (`+4.6%`) | `1.095` (`+9.5%`) | `1.213` (`+1.1%`) | `1.3393` (`+33.9%`) | `4.096` / `2343 N` | `+1.6381` | `0.8323` (`COMPLETE`) | **16/16 pass** (sub-$80\text{ g}$ raster; `-4.984 g` vs `w274`) |
+| `w277_s2919_c01` | Wave 277 `W_CAD_v2` | `79.509` / `79.656` | `270.3 N` / `1.040` (`+4.0%`) | `1.095` (`+9.5%`) | `1.218` (`+1.5%`) | `1.3393` (`+33.9%`) | `3.400` / `1949 N` | `+1.6604` | `0.8348` (`COMPLETE`) | **16/16 pass** (sub-$80\text{ g}$ 2.5D & 3D; `-5.470 g` vs `w274`) |
+| `w278_s2922_c01` | Wave 278 `W_CAD_v2` | `78.580` / `78.597` | `273.2 N` / `1.051` (`+5.1%`) | `1.098` (`+9.8%`) | `1.223` (`+1.9%`) | `1.3819` (`+38.2%`) | `3.569` / `3051 N` | `+1.7021` | `0.8618` (`COMPLETE`) | **16/16 pass** (strictly dominates `w277`; `-6.399 g` vs `w274`) |
 
 ---
 
@@ -329,44 +324,44 @@ Implemented in [`crates/crescent/src/qd.rs`](../crates/crescent/src/qd.rs#L100-L
 
 | Subject | Type | Mass (g) | Passed / 18 | Failed | Blocked | 3D Solid Tip $\text{SF}_{\text{tip}}$ (`scikit-fem` / `DOLFINx`) | Plate GCI (`seq` / `hunter`) | Certified `seq_ratio` | Supported `seq_ratio` (`A4`) | Buckling $\lambda_{\text{cr}}$ (`A4`) | Global Fitness $G_1$ |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| [`g3`](../evidence/cad_battery/g3.json) | 128-gene CSV + STL | 84.80 | **11/18** | 4 | 3 | `1.6002` (`1.5341` / `1.5341`) | `0.15%` / `0.07%` | 0.9591 | 2.7901 | 10.47 | **1.0036** |
-| [`w278_s2922_c01`](../evidence/cad_battery/w278_s2922_c01.json) | 128-gene CSV + STEP/STL | 78.58 | **11/18** | 4 | 3 | `1.3819` (`1.3820` / `1.3819`) | oscillatory / oscillatory | **1.2229** | 3.5687 | 11.74 | **0.8618** |
-| [`w277_s2919_c01`](../evidence/cad_battery/w277_s2919_c01.json) | 128-gene CSV + STEP/STL | 79.51 | **11/18** | 4 | 3 | `1.3393` (`1.3390` / `1.3393`) | oscillatory / `0.08%` | **1.2183** | 3.3997 | 7.50 | **0.8348** |
-| [`w276_s2913_c01`](../evidence/cad_battery/w276_s2913_c01.json) | 128-gene CSV + STEP/STL | 80.00 | **11/18** | 4 | 3 | `1.3393` (`1.3390` / `1.3393`) | oscillatory / `0.08%` | **1.2131** | 4.0958 | 9.01 | **0.8323** |
-| [`w275_s2909_c01`](../evidence/cad_battery/w275_s2909_c01.json) | 128-gene CSV + STEP/STL | 81.77 | **11/18** | 4 | 3 | `1.2967` (`1.2970` / `1.2967`) | oscillatory / `0.08%` | **1.2058** | 3.3728 | 13.12 | **0.8015** |
-| [`w274_s2905_c01`](../evidence/cad_battery/w274_s2905_c01.json) | 128-gene CSV + STEP/STL | 84.98 | **11/18** | 4 | 3 | `1.3040` (`1.3040` / `1.3040`) | oscillatory / `0.09%` | **1.2732** | 2.7212 | 10.36 | **0.7701** |
-| [`w273_s2904_c01`](../evidence/cad_battery/w273_s2904_c01.json) | 128-gene CSV | 78.59 | **11/18** | 4 | 3 | `0.8748` (`0.8748` / `0.8752`) | `1.19%` / `0.36%` | 1.0012 | 4.4628 | 7.21 | **0.7603** |
-| [`w271c_11522`](../evidence/cad_battery/w271c_11522.json) | 128-gene CSV | 79.96 | **11/18** | 4 | 3 | `1.0332` (`1.0332` / `1.0332`) | `0.34%` / `0.05%` | 0.7811 | 3.0660 | 11.30 | **0.7597** |
-| [`w272_s2902_c01`](../evidence/cad_battery/w272_s2902_c01.json) | 128-gene CSV | 79.43 | **10/18** | 5 | 3 | `0.8746` (`0.8746` / `0.8750`) | `10.17%` / `0.58%` | 1.0002 | 4.5993 | 5.72 | **0.7524** |
-| [`w273_s2903_c04`](../evidence/cad_battery/w273_s2903_c04.json) | 128-gene CSV | 78.69 | **10/18** | 5 | 3 | `0.8749` (`0.8749` / `0.8753`) | `7.19%` / `2.45%` | 1.0079 | 4.6401 | 9.09 | **0.7512** |
-| [`w271b_11772`](../evidence/cad_battery/w271b_11772.json) | 128-gene CSV + STL | 79.43 | **10/18** | 5 | 3 | `0.8331` (`0.8331` / `0.8331`) | `6.14%` / `0.06%` | 0.8842 | 3.8226 | 11.44 | **0.7510** |
-| [`w271b_11860`](../evidence/cad_battery/w271b_11860.json) | 128-gene CSV | 73.37 | **10/18** | 5 | 3 | `0.8136` (`0.8136` / `0.8140`) | `6.70%` / `0.05%` | 0.8923 | 3.4050 | 7.36 | **0.7222** |
+| [`g3`](../evidence/cad_battery/g3.json) | 128-gene CSV + STL | 84.80 | **11/18** | 4 | 3 | `1.6003` (`1.5341` / `1.5341`) | `1.38%` / oscillatory | 0.9591 | 2.7901 | 10.47 | **1.0036** |
+| [`w278_s2922_c01`](../evidence/cad_battery/w278_s2922_c01.json) | 128-gene CSV + STEP/STL | 78.58 | **8/18** (`+3 inc.`) | 4 | 3 | `1.3819` (`1.3820` / `1.3819`) | oscillatory / oscillatory | **1.2229** | 3.5687 | 11.74 | **0.8618** |
+| [`w277_s2919_c01`](../evidence/cad_battery/w277_s2919_c01.json) | 128-gene CSV + STEP/STL | 79.51 | **11/18** | 4 | 3 | `1.3393` (`1.3390` / `1.3393`) | oscillatory / oscillatory | **1.2183** | 3.3997 | 7.50 | **0.8348** |
+| [`w276_s2913_c01`](../evidence/cad_battery/w276_s2913_c01.json) | 128-gene CSV + STEP/STL | 79.99 | **11/18** | 4 | 3 | `1.3393` (`1.3390` / `1.3393`) | oscillatory / oscillatory | **1.2129** | 4.0962 | 9.01 | **0.8323** |
+| [`w275_s2909_c01`](../evidence/cad_battery/w275_s2909_c01.json) | 128-gene CSV + STEP/STL | 81.77 | **11/18** | 4 | 3 | `1.2967` (`1.2970` / `1.2967`) | oscillatory / oscillatory | **1.2056** | 3.3735 | 13.12 | **0.8015** |
+| [`w274_s2905_c01`](../evidence/cad_battery/w274_s2905_c01.json) | 128-gene CSV + STEP/STL | 84.98 | **11/18** | 4 | 3 | `1.3040` (`1.3040` / `1.3040`) | oscillatory / oscillatory | **1.2730** | 2.7215 | 10.36 | **0.7701** |
+| [`w273_s2904_c01`](../evidence/cad_battery/w273_s2904_c01.json) | 128-gene CSV | 78.59 | **11/18** | 4 | 3 | `0.8750` (`0.8750` / `0.8746`) | `37.08%` / nonpositive | 1.0012 | 4.4649 | 7.16 | **0.7603** |
+| [`w271c_11522`](../evidence/cad_battery/w271c_11522.json) | 128-gene CSV | 79.96 | **11/18** | 4 | 3 | `1.0330` (`1.0330` / `1.0330`) | `5.36%` / `15.88%` | 0.7784 | 3.0674 | 11.28 | **0.7597** |
+| [`w272_s2902_c01`](../evidence/cad_battery/w272_s2902_c01.json) | 128-gene CSV | 79.43 | **10/18** | 5 | 3 | `0.8750` (`0.8750` / `0.8746`) | oscillatory / nonpositive | 1.0000 | 4.6037 | 5.67 | **0.7524** |
+| [`w273_s2903_c04`](../evidence/cad_battery/w273_s2903_c04.json) | 128-gene CSV | 79.30 | **10/18** | 5 | 3 | `0.8750` (`0.8750` / `0.8746`) | oscillatory / nonpositive | 1.0088 | 4.6367 | 9.06 | **0.7509** |
+| [`w271b_11772`](../evidence/cad_battery/w271b_11772.json) | 128-gene CSV + STL | 78.55 | **10/18** | 5 | 3 | `0.8337` (`0.8327` / `0.8327`) | nonpositive / oscillatory | 0.8823 | 3.8195 | 11.38 | **0.7506** |
+| [`w271b_11860`](../evidence/cad_battery/w271b_11860.json) | 128-gene CSV | 73.33 | **10/18** | 5 | 3 | `0.8140` (`0.8140` / `0.8144`) | nonpositive / oscillatory | 0.8918 | 3.4063 | 7.28 | **0.7217** |
 | [`c10a`](../evidence/cad_battery/c10a.json) | Native B-Rep STEP/STL | 64.84 | **9/18** | 0 | 9 | `0.2101` (`0.2101` / `0.2101`) | Blocked (B-Rep) | Blocked | Blocked | Blocked | `INCOMPLETE` |
 | [`c93`](../evidence/cad_battery/c93.json) | Native B-Rep STEP/STL | 66.77 | **8/18** | 0 | 10 | Blocked | Blocked | Blocked | Blocked | Blocked | `INCOMPLETE` |
-| [`c92`](../evidence/cad_battery/c92.json) | Native B-Rep STEP/STL | 67.97 | **8/18** | 0 | 10 | Blocked | Blocked | Blocked | Blocked | Blocked | `INCOMPLETE` |
-| [`c10c`](../evidence/cad_battery/c10c.json) | Native B-Rep STEP/STL | 53.78 | **7/18** | 1 | 10 | Blocked | Blocked | Blocked | Blocked | Blocked | `INCOMPLETE` |
+| [`c92`](../evidence/cad_battery/c92.json) | Native B-Rep STEP/STL | 66.76 | **8/18** | 0 | 10 | Blocked | Blocked | Blocked | Blocked | Blocked | `INCOMPLETE` |
+| [`c10c`](../evidence/cad_battery/c10c.json) | Native B-Rep STEP/STL | 67.09 | **7/18** | 1 | 10 | Blocked | Blocked | Blocked | Blocked | Blocked | `INCOMPLETE` |
 
 #### Table VI-2: `RS-karambit-v2` Detailed Gate Breakdown Across Evolved Genomes (`evidence/rs_v2/`)
 
 | Genome | `w20_hard_pass` (`RS-karambit-v1`) | `solid_tip_sf` ($\ge 1.0$) | `seq_ratio` ($\ge 1.20$) | `hm_twist_sf` ($16.2\text{ N}\cdot\text{m}$, $\ge 1.0$) | `hm_spine_sf` ($3427\text{ N}$, $\ge 1.0$) | `hm_ringback_sf` ($3000\text{ N}$, $\ge 1.0$) | `l7_goodman_sf` ($10^7$ cyc, $\ge 1.0$) | `ring_bearing_w` ($\ge 10.0\text{ mm}$) | `RS-karambit-v2` Overall Verdict |
 |:---|:---:|---:|---:|---:|---:|---:|---:|---:|:---:|
-| `g3_tip+00_t60_tt3` | `pass` | **1.6002** | 0.9591 | 0.3055 | 0.4418 | **2.6840** | **1.1489** | 6.00 | `FAIL` |
-| `w271b_11772` | `FAIL` | 0.8331 | 0.8842 | 0.2581 | 0.4150 | **2.5210** | 0.9960 | 5.80 | `FAIL` |
-| `w271b_11860` | `FAIL` | 0.8136 | 0.8923 | 0.2333 | 0.3712 | **2.2266** | 0.8780 | 5.80 | `FAIL` |
-| `w271c_11522` | `pass` | **1.0332** | 0.7811 | 0.1726 | 0.3729 | **2.2564** | 0.8907 | 5.80 | `FAIL` |
-| `w272_s2902_c01` | `FAIL` | 0.8746 | 1.0002 | 0.2449 | 0.4090 | **2.7850** | 0.9974 | 5.80 | `FAIL` |
-| `w273_s2903_c04` | `FAIL` | 0.8749 | 1.0079 | 0.2454 | 0.4152 | **2.8124** | 0.9949 | 5.80 | `FAIL` |
-| `w273_s2904_c01` | `FAIL` | 0.8748 | 1.0012 | 0.2451 | 0.4126 | **2.7611** | **1.0043** | 5.80 | `FAIL` |
-| `w274_s2905_c01` | `pass` | **1.3040** | **1.2732** | 0.1258 | 0.3792 | **2.2484** | 0.7478 | 5.71 | `FAIL` |
-| `w275_s2909_c01` | `pass` | **1.2967** | **1.2058** | 0.1252 | 0.3913 | **2.3235** | 0.7666 | 5.71 | `FAIL` |
-| `w276_s2913_c01` | `pass` | **1.3393** | **1.2131** | 0.1289 | 0.3941 | **2.3137** | 0.7676 | 5.60 | `FAIL` |
+| `g3_tip+00_t60_tt3` | `FAIL` | **1.6003** | 0.9591 | 0.1321 | 0.4189 | **2.6602** | 0.9823 | 5.88 | `FAIL` |
+| `w271b_11772` | `FAIL` | 0.8337 | 0.8823 | 0.0757 | 0.4178 | **2.4188** | 0.8557 | 5.11 | `FAIL` |
+| `w271b_11860` | `FAIL` | 0.8140 | 0.8918 | 0.0750 | 0.3841 | **1.9114** | 0.7560 | 4.75 | `FAIL` |
+| `w271c_11522` | `FAIL` | **1.0330** | 0.7784 | 0.0965 | 0.4194 | **1.9923** | 0.7673 | 4.79 | `FAIL` |
+| `w272_s2902_c01` | `FAIL` | 0.8750 | 1.0000 | 0.0782 | 0.4299 | **2.1738** | 0.8651 | 5.19 | `FAIL` |
+| `w273_s2903_c04` | `FAIL` | 0.8750 | 1.0088 | 0.0782 | 0.4299 | **2.1738** | 0.8575 | 5.19 | `FAIL` |
+| `w273_s2904_c01` | `FAIL` | 0.8750 | 1.0012 | 0.0782 | 0.4299 | **2.1134** | 0.8650 | 5.11 | `FAIL` |
+| `w274_s2905_c01` | `pass` | **1.3040** | **1.2730** | 0.1257 | 0.3854 | **2.8210** | 0.7478 | 6.00 | `FAIL` |
+| `w275_s2909_c01` | `pass` | **1.2967** | **1.2056** | 0.1250 | 0.3844 | **2.3951** | 0.7666 | 5.90 | `FAIL` |
+| `w276_s2913_c01` | `pass` | **1.3393** | **1.2129** | 0.1289 | 0.3934 | **2.3115** | 0.7675 | 5.60 | `FAIL` |
 | `w277_s2919_c01` | `pass` | **1.3393** | **1.2183** | 0.1289 | 0.3934 | **2.3056** | 0.7631 | 5.60 | `FAIL` |
 | `w278_s2922_c01` | `pass` | **1.3819** | **1.2229** | 0.1233 | 0.4245 | **2.2292** | 0.7638 | 5.37 | `FAIL` |
 
 > [!NOTE]
 > **Physical Insight from Tables V-2, VI-1 & VI-2:**
-> 1. **`w278_s2922_c01` (`78.580 g` raster / `78.597 g` 3D solid) strictly dominates `w277_s2919_c01` (`79.509 g`) across every mass and structural reserve metric (`W_CAD = +1.7021`, `G1 = 0.8618`):** `w278_s2922_c01` achieves `strict_lat = 273.2 N` (`SF = 1.0508`, **`+5.1%` reserve** above `260 N`), certified `seq_ratio = 1.223` (`+1.9%` reserve), `twist_tip_sf = 1.098`, `twist_strict = 1.098` (`+9.8%` reserve), `SPG = 3.4797 N/g`, and 3D P2 solid-tip `SF = 1.3819` (`dolfinx` v0.9.0 `0.0072%` agreement), while its Wave 278 Pareto peers reach `77.877 g` (`w278_s2922_c02_light`) and `seq_ratio = 1.240` (`w278_s2922_c03_seq124`).
-> 2. **Why `RS-karambit-v2` fails on single-piece $5.8\text{--}6.0\text{ mm}$ flat stock:** The remaining `RS-karambit-v2` shortfalls (`ring_bearing_w = 5.4..6.0 mm < 10 mm`, `hm_twist = 16.2 N·m` = $8.9\times$ the $1.82\text{ N}\cdot\text{m}$ D1 chord twist, `hm_spine = 3427 N`, and `L7` fatigue on thinned sub-$80\text{ g}$ necks) are governed by fundamental section-modulus limits of a monolithic $6\text{ mm}$ sheet without bolt-on ring scales/bosses (`bearing_w >= 10 mm`, roadmap PR-0.33.4) and 3D spine/tip ribs.
+> 1. **`w278_s2922_c01` (`78.580 g` raster / `78.597 g` 3D solid) strictly dominates `w277_s2919_c01` (`79.509 g`) across every mass and structural reserve metric (`W_CAD = +1.7021`, `G1 = 0.8618`):** `w278_s2922_c01` achieves `strict_lat = 273.2 N` (`SF = 1.0508`, **`+5.1%` reserve** above `260 N`), certified `seq_ratio = 1.223` (`+1.9%` reserve), `twist_tip_sf = 1.098`, `twist_strict = 1.098` (`+9.8%` reserve), `SPG = 3.4797 N/g`, and 3D P2 solid-tip `SF = 1.3819` (`dolfinx` v0.9.0 `0.0072%` agreement), with additional committed Pareto seed genomes `w277_s2920_c01_genome.csv`, `w278_s2922_c02_light_genome.csv`, and `w278_s2922_c03_seq124_genome.csv` in `evidence/rs_v2/w27{7,8}_ultrarunner/`.
+> 2. **Why `RS-karambit-v2` fails on single-piece $5.8\text{--}6.0\text{ mm}$ flat stock:** The remaining `RS-karambit-v2` shortfalls (`ring_bearing_w = 4.75..6.00 mm < 10 mm`, `hm_twist = 16.2 N·m` = $8.9\times$ the $1.82\text{ N}\cdot\text{m}$ D1 chord twist, `hm_spine = 3427 N`, and `L7` fatigue on thinned sub-$80\text{ g}$ necks) are governed by fundamental section-modulus limits of a monolithic $6\text{ mm}$ sheet without bolt-on ring scales/bosses (`bearing_w >= 10 mm`, roadmap PR-0.33.4) and 3D spine/tip ribs.
 
 ---
 
@@ -407,7 +402,8 @@ python3 -B ops/ci/cad_battery.py \
 
 # 3. Evaluate any single genome CSV end-to-end (Rust multi-tier FEM + 18-case CAD battery + G1)
 python3 -B ops/ci/cad_battery.py \
-  --evaluate-genome evidence/rs_v2/w278_ultrarunner/w278_s2922_c01_genome.csv \
+  --evaluate-genome w278_s2922_c01=evidence/rs_v2/w278_ultrarunner/w278_s2922_c01_genome.csv \
+  --analytic pass --gci pass --claims pass --dolfinx pass \
   --out-dir /tmp/jarambit_quickstart_battery
 
 # 4. Run the full 178-group (356-control) T00-T19 scientific assurance suite

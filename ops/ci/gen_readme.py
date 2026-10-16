@@ -207,14 +207,15 @@ def release(context=None):
           'Every candidate in the 16-subject CAD battery is evaluated against all 18 standardized evaluators (`build.analytic`, `build.gci_contracts`, `build.claims`, `build.dolfinx`, `geom.unit`, `geom.one_solid`, `geom.mass`, `geom.pin`, `plate.loads`, `plate.seq`, `plate.l7`, `plate.gci`, `side.a1`–`side.a4`, `solid.tip`, `gate.rs_v2`), and the `crescent-evolve` loop enforces an opt-in live CAD battery gate via `JARAMBIT_CAD_BATTERY=1` (`ops/ci/evaluate_cad_candidate.py`). Full methodology and derivations: [docs/ENGINEERING_GATES_AND_EVOLUTION.md](docs/ENGINEERING_GATES_AND_EVOLUTION.md).', '',
           '| subject | role | mass (g) | hunter lat (N) / SPG (N/g) | cert `seq_ratio` | Winkler+bore `seq` (`side.a4`) | buckling $P_{\\text{cr}}$ (N) | P2 solid tip SF (`dolfinx` / `skfem`, $\\Delta$) | 18-case tally (`pass` / `fail` / `blocked`) |',
           '|---|---|---|---|---|---|---|---|---|']
-    tot_p = tot_f = tot_b = 0
+    tot_p = tot_f = tot_b = tot_i = 0
     for sid in BATTERY_SUBJECTS:
         b = js(f'evidence/cad_battery/{sid}.json')
         cmap = {c['id']: c for c in b['cases']}
         np_ = sum(1 for c in b['cases'] if c['status'] == 'pass')
         nf_ = sum(1 for c in b['cases'] if c['status'] == 'fail')
         nb_ = sum(1 for c in b['cases'] if c['status'] == 'blocked')
-        tot_p += np_; tot_f += nf_; tot_b += nb_
+        ni_ = sum(1 for c in b['cases'] if c['status'] == 'incomplete')
+        tot_p += np_; tot_f += nf_; tot_b += nb_; tot_i += ni_
         mg = cmap['geom.mass'].get('g_inputs', {}).get('mass_g')
         mass_str = f'{mg:.2f}' if mg is not None else '—'
         pl = cmap['plate.loads']
@@ -241,13 +242,22 @@ def release(context=None):
             tip_str = f'{d_sf:.3f} / {s_sf:.3f} ({rdiff:.2f} %)'
         else:
             tip_str = '*blocked*'
-        L.append(f'| `{sid}` | `{b["role"]}` | {mass_str} | {lat_str} | {seq_str} | {a4_seq_str} | {a4_pcr_str} | {tip_str} | `{np_} / {nf_} / {nb_}` |')
-    L += ['', f'**Battery total across {len(BATTERY_SUBJECTS)} subjects × 18 evaluators ({len(BATTERY_SUBJECTS) * 18} cells):** `{tot_p} pass`, `{tot_f} fail`, `{tot_b} blocked`. Every genome subject (`12/12`) clears the `side.a4` Winkler grip-foundation + radial/tangential bore-pin sequence check and linear buckling ($P_{{\\text{{cr}}}} \\gg 260\\text{{ N}}$), and agrees within $\\le 0.45\\%$ between independent `dolfinx` and `skfem` 3D P2 solid-tip solves; `w278_s2922_c01` (`78.58 g` raster / `78.60 g` 3D solid, `G1 = 0.8618`, `W_CAD = +1.7021`), `w277_s2919_c01` (`79.51 g` raster / `79.66 g` 3D solid, `G1 = 0.8348`, `W_CAD = +1.6604`), `w276_s2913_c01` (`80.00 g` in 2-decimal column / `79.995 g` exact, `G1 = 0.8323`, `W_CAD = +1.6381`), `w275_s2909_c01` (`81.77 g`, `G1 = 0.8015`, `W_CAD = +1.5589`), and `w274_s2905_c01` (`84.98 g`, `G1 = 0.7701`, `W_CAD = +1.4634`) clear both certified `seq_ratio >= 1.20` and 3D P2 solid-tip `SF >= 1.0` (their `11 / 4 / 3` tally reflects 11 `pass`, 4 `fail` on `RS-karambit-v2` `plate.loads` human-max, `plate.l7` fatigue, `plate.gci` single-element oscillatory sequence, and `gate.rs_v2`, plus 3 `blocked` B-rep evaluators `geom.unit`, `geom.one_solid`, `geom.pin`).', '',
-          '#### Margin-vs-Mass Pareto Progression (`W27` → `W278`, `evidence/rs_v2/w27*/*_cad_eval.json`)', '',
+        tally_str = f'`{np_} / {nf_} / {nb_}`' + (f' (`+{ni_} inc.`)' if ni_ else '')
+        L.append(f'| `{sid}` | `{b["role"]}` | {mass_str} | {lat_str} | {seq_str} | {a4_seq_str} | {a4_pcr_str} | {tip_str} | {tally_str} |')
+    inc_str = f', `{tot_i} incomplete`' if tot_i else ''
+    L += ['', f'**Battery total across {len(BATTERY_SUBJECTS)} subjects × 18 evaluators ({len(BATTERY_SUBJECTS) * 18} cells):** `{tot_p} pass`, `{tot_f} fail`, `{tot_b} blocked`{inc_str}. Every genome subject (`12/12`) clears the `side.a4` Winkler grip-foundation + radial/tangential bore-pin sequence check and linear buckling ($P_{{\\text{{cr}}}} \\gg 260\\text{{ N}}$), and agrees within $\\le 0.45\\%$ between independent `dolfinx` and `skfem` 3D P2 solid-tip solves; `w278_s2922_c01` (`78.58 g` raster / `78.60 g` 3D solid, `G1 = 0.8618`, `W_CAD = +1.7021`), `w277_s2919_c01` (`79.51 g` raster / `79.66 g` 3D solid, `G1 = 0.8348`, `W_CAD = +1.6604`), `w276_s2913_c01` (`80.00 g` in 2-decimal column / `79.995 g` exact, `G1 = 0.8323`, `W_CAD = +1.6381`), `w275_s2909_c01` (`81.77 g`, `G1 = 0.8015`, `W_CAD = +1.5589`), and `w274_s2905_c01` (`84.98 g`, `G1 = 0.7701`, `W_CAD = +1.4634`) clear both certified `seq_ratio >= 1.20` and 3D P2 solid-tip `SF >= 1.0` (`11 / 4 / 3` on `w274`–`w277`, and `8 / 4 / 3` + `3 incomplete` on `w278_s2922_c01.json` where the repo-wide `build.analytic`, `build.gci_contracts`, and `build.claims` flags are omitted unless `--analytic pass --gci pass --claims pass` are passed as in Quick start; the 4 `fail` cells are `RS-karambit-v2` `plate.loads` human-max, `plate.l7` fatigue, `plate.gci` single-element oscillatory sequence, and `gate.rs_v2`, plus 3 `blocked` B-rep evaluators `geom.unit`, `geom.one_solid`, `geom.pin`).', '',
+          '#### Margin-vs-Mass Pareto Progression (`W27` → `W278`, `evidence/wave27/g3_tip+00_t60_tt3_D1.json`, `evidence/rs_v2/w271c_11522.json`, `evidence/rs_v2/w27*/*_cad_eval.json`)', '',
           '| candidate | wave / cohort | mass 2.5D / 3D (g) | strict 0.0625 mm² lat (N / SF / reserve) | strict 4–15 mm tip-sub twist SF (reserve) | cert `seq_ratio` (reserve vs 1.20) | 3D P2 solid-tip SF (reserve) | `W_CAD` | locked `G1` | 16-gate status |',
-          '|---|---|---|---|---|---|---|---|---|---|',
-          '| `g3_tip+00_t60_tt3` | Wave 27 provisional | `84.802` / `84.860` | `340.8 N` / `1.311` (`+31.1%`) | `1.458` (`+45.8%`) | `0.959` (`-20.1%` **FAIL**) | `1.6003` (`+60.0%`) | `-0.2407` | `0.9804` (`1.0036` fine) | **FAIL** (`seq < 1.20`, holder box) |',
-          '| `w271c_11522` | Wave 271c mass push | `79.962` / `—` | `266.4 N` / `1.025` (`+2.5%`) | `0.842` (`-15.8%` **FAIL**) | `0.778` (`-35.2%` **FAIL**) | `1.0330` (`+3.3%`) | `-0.5800` | `0.7597` | **FAIL** (`seq < 1.20`, `twist_strict < 1.0`) |']
+          '|---|---|---|---|---|---|---|---|---|---|']
+    b_g3 = js('evidence/cad_battery/g3.json'); gf_g3 = b_g3['global_fitness']
+    g_val, _ = global_metric.global_G(rec)
+    g3_lat = d1['d1']['strict_lat_rob_0p0625']; g3_lat_sf = g3_lat / c1['hunter_lateral_n']
+    g3_tw = d1['d1']['twist_tipzone_sf_strict']; g3_seq = mt['seq_ratio']; g3_tip = gf_g3['inputs']['solid_tip_sf_nodal_max']
+    L.append(f'| `{DESIGN}` | Wave 27 provisional | `{mt["mass_g"]:.3f}` / `{ver["whole_part_mesh"]["mass_g_at_4.43"]:.3f}` | `{g3_lat:.1f} N` / `{g3_lat_sf:.3f}` (`+{100.0 * (g3_lat_sf - 1.0):.1f}%`) | `{g3_tw:.3f}` (`+{100.0 * (g3_tw - 1.0):.1f}%`) | `{g3_seq:.3f}` (`{100.0 * (g3_seq / 1.20 - 1.0):+.1f}%` **FAIL**) | `{g3_tip:.4f}` (`+{100.0 * (g3_tip - 1.0):.1f}%`) | *pre-`W_CAD`* | `{g_val:.4f}` (`{gf_g3["G"]:.4f}` fine) | **FAIL** (`seq < 1.20`, holder box) |')
+    r_271c = js('evidence/rs_v2/w271c_11522.json'); b_271c = js('evidence/cad_battery/w271c_11522.json'); gf_271c = b_271c['global_fitness']
+    c271_lat = r_271c['strict_lat_rob_0p0625_n']; c271_lat_sf = c271_lat / c1['hunter_lateral_n']
+    c271_tw = r_271c['twist_tipzone_sf_strict']; c271_seq = r_271c['seq_ratio']; c271_tip = gf_271c['inputs']['solid_tip_sf_nodal_max']
+    L.append(f'| `w271c_11522` | Wave 271c mass push | `{r_271c["mass_g"]:.3f}` / `—` | `{c271_lat:.1f} N` / `{c271_lat_sf:.3f}` (`+{100.0 * (c271_lat_sf - 1.0):.1f}%`) | `{c271_tw:.3f}` (`{100.0 * (c271_tw - 1.0):+.1f}%` **FAIL**) | `{c271_seq:.3f}` (`{100.0 * (c271_seq / 1.20 - 1.0):+.1f}%` **FAIL**) | `{c271_tip:.4f}` (`+{100.0 * (c271_tip - 1.0):.1f}%`) | *pre-`W_CAD`* | `{gf_271c["G"]:.4f}` (`{gf_271c["status"]}`) | **FAIL** (`seq < 1.20`, `twist_strict < 1.0`) |')
     for wlabel, wname, wpath in (
         ('w274_s2905_c01', 'Wave 274 `W_CAD_v2`', 'evidence/rs_v2/w274_calibrated/w274_s2905_c01_cad_eval.json'),
         ('w275_s2909_c01', 'Wave 275 `W_CAD_v2`', 'evidence/rs_v2/w275_ultrarunner/w275_s2909_c01_cad_eval.json'),
@@ -261,9 +271,7 @@ def release(context=None):
         seq_res = 100.0 * (wem['seq_ratio_cert'] / 1.20 - 1.0)
         tip_res = 100.0 * (wem['solid_tip_sf_nodal_max'] - 1.0)
         L.append(f'| `{wlabel}` | {wname} | `{wem["mass_g"]:.3f}` / `{wem["mass_3d_g"]:.3f}` | `{wem["strict_lat_rob_0p0625_n"]:.1f} N` / `{wem["sf_hunter_strict"]:.3f}` (`+{lat_res:.1f}%`) | `{wem["twist_tipzone_sf_strict"]:.3f}` (`+{tw_res:.1f}%`) | `{wem["seq_ratio_cert"]:.3f}` (`+{seq_res:.1f}%`) | `{wem["solid_tip_sf_nodal_max"]:.4f}` (`+{tip_res:.1f}%`) | `+{wsc["W_CAD"]:.4f}` | `{wg1["G"]:.4f}` (`COMPLETE`) | **16/16 pass** |')
-    L += ['| `w277_s2920_c01` | Wave 277 ultralight peer | `79.026` / `79.031` | `262.3 N` / `1.009` (`+0.9%`) | `1.088` (`+8.8%`) | `1.202` (`+0.2%`) | *plate-certified* | *peer* | `0.8246` (*plate*) | **all strict plate gates pass** |',
-          '| `w278_s2922_c03_seq124` | Wave 278 high-`seq` peer | `79.042` / `—` | `270.7 N` / `1.041` (`+4.1%`) | `1.100` (`+10.0%`) | `1.240` (`+3.3%`) | *plate-certified* | *peer* | *plate* | **all strict plate gates pass** |',
-          '| `w278_s2922_c02_light` | Wave 278 ultralight peer | `77.877` / `77.850` | `270.0 N` / `1.038` (`+3.8%`) | `1.046` (`+4.6%`) | `1.220` (`+1.7%`) | *plate-certified* | *peer* | *plate* | **all strict plate gates pass** |', '']
+    L.append('')
 
     tcat = js('docs/v1/science/tests/TEST_CASE_CATALOG.json')
     n_groups = tcat['case_group_count']
