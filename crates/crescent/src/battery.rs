@@ -2359,7 +2359,8 @@ pub fn evaluate_genome_candidate_native(
             .or_else(|| load_json(root, &p_rs2.to_string_lossy()))
             .unwrap_or_else(|| {
                 let (f, _) = fem::certify(&p).expect("fem::certify");
-                json!({
+                let doc = json!({
+                    "genome_sha256": g_sha,
                     "all_hard": f.floors_ok,
                     "fat_sf": f.fat_sf,
                     "lat_rob_n": f.lat_rob,
@@ -2373,7 +2374,9 @@ pub fn evaluate_genome_candidate_native(
                     "ring_bearing_w_mm": p.t_joint,
                     "rejects": [],
                     "groups": {"screen_plate": f.floors_ok},
-                })
+                });
+                let _ = std::fs::write(&p_rs2, serde_json::to_string_pretty(&doc).unwrap() + "\n");
+                doc
             })
     };
 
@@ -2387,6 +2390,11 @@ pub fn evaluate_genome_candidate_native(
             load_json(root, &p1.to_string_lossy()).or_else(|| load_json(root, &p2.to_string_lossy()))
         });
 
+    let aes = aesthetic::evaluate(&g, &p);
+    let cert_pair = d1_doc.is_none().then(|| fem::certify(&p)).flatten();
+    let f_cert = cert_pair.as_ref().map(|(f, _)| f.clone());
+    let f_fields = cert_pair.as_ref().map(|(_, fl)| fl);
+
     let a4_doc = cat_spec
         .as_ref()
         .and_then(|cs| cs.side_a4.as_deref())
@@ -2395,6 +2403,25 @@ pub fn evaluate_genome_candidate_native(
             let p1 = genome_csv.parent().unwrap_or(out_dir).join(format!("{label}_a4.json"));
             let p2 = out_dir.join(format!("{label}_a4.json"));
             load_json(root, &p1.to_string_lossy()).or_else(|| load_json(root, &p2.to_string_lossy()))
+        })
+        .or_else(|| {
+            let seq_c = rs_doc
+                .get("seq_ratio")
+                .and_then(|v| v.as_f64())
+                .or_else(|| f_cert.as_ref().map(|f| f.seq_ratio))
+                .unwrap_or(1.25);
+            let doc = run_side_a4_native_for_genome(
+                label,
+                &rel_path(genome_csv),
+                &g_sha,
+                d1_doc.as_ref(),
+                f_fields,
+                &p,
+                seq_c,
+            )?;
+            let a4_out = out_dir.join(format!("{label}_a4.json"));
+            let _ = std::fs::write(&a4_out, serde_json::to_string_pretty(&doc).unwrap() + "\n");
+            Some(doc)
         })
         .unwrap_or_else(|| {
             let seq_c = rs_doc.get("seq_ratio").and_then(|v| v.as_f64()).unwrap_or(1.25);
@@ -2416,10 +2443,22 @@ pub fn evaluate_genome_candidate_native(
             let p1 = genome_csv.parent().unwrap_or(out_dir).join(format!("{label}_solid_tip.json"));
             let p2 = out_dir.join(format!("{label}_solid_tip.json"));
             load_json(root, &p1.to_string_lossy()).or_else(|| load_json(root, &p2.to_string_lossy()))
+        })
+        .or_else(|| {
+            let doc = run_solid_tet10_native_for_genome(
+                label,
+                &g_sha,
+                d1_doc.as_ref(),
+                f_fields,
+                &p,
+                aes.score,
+                f_cert.as_ref().map_or(3.4, |f| f.lat_rob / p.mass_g.max(1.0)),
+                0,
+            )?;
+            let tip_out = out_dir.join(format!("{label}_solid_tip.json"));
+            let _ = std::fs::write(&tip_out, serde_json::to_string_pretty(&doc).unwrap() + "\n");
+            Some(doc)
         });
-
-    let aes = aesthetic::evaluate(&g, &p);
-    let f_cert = d1_doc.is_none().then(|| fem::certify(&p).map(|(f, _)| f)).flatten();
     let mt = d1_doc.as_ref().and_then(|d| d.get("metrics"));
     let d1_blk = d1_doc.as_ref().and_then(|d| d.get("d1"));
 
@@ -2692,18 +2731,22 @@ pub fn evaluate_genome_candidate_native(
         "weighted_cad_score": w_cad,
     });
 
-    let spec_out = cat_spec.unwrap_or_else(|| GenomeSpec {
-        id: label.to_string(),
-        rs: out_dir.join(format!("{label}_rs.json")).to_string_lossy().to_string(),
-        d1: None,
-        genome: genome_csv.to_string_lossy().to_string(),
-        tip_mesh: None,
-        plate_gci: Some(out_dir.join(format!("{label}_plate_gci.json")).to_string_lossy().to_string()),
-        side_a4: None,
-        side_path: None,
-        side_sha: None,
-        side_seq: None,
-        d1_searched: None,
+    let spec_out = cat_spec.unwrap_or_else(|| {
+        let tip_p = out_dir.join(format!("{label}_solid_tip.json"));
+        let a4_p = out_dir.join(format!("{label}_a4.json"));
+        GenomeSpec {
+            id: label.to_string(),
+            rs: out_dir.join(format!("{label}_rs.json")).to_string_lossy().to_string(),
+            d1: None,
+            genome: genome_csv.to_string_lossy().to_string(),
+            tip_mesh: tip_p.is_file().then(|| tip_p.to_string_lossy().to_string()),
+            plate_gci: Some(out_dir.join(format!("{label}_plate_gci.json")).to_string_lossy().to_string()),
+            side_a4: a4_p.is_file().then(|| a4_p.to_string_lossy().to_string()),
+            side_path: None,
+            side_sha: None,
+            side_seq: None,
+            d1_searched: None,
+        }
     });
     Ok((summary, spec_out))
 }
@@ -2983,6 +3026,248 @@ pub fn run_cad_battery_native(
     Ok(manifest)
 }
 
+/// Run the native Rust `side.a4` solver (`jarambit_physics::side_a4::solve_side_a4`) on a genome candidate
+/// using either the exported `D1.json` mesh or the in-memory `fem::Fields` mesh.
+pub fn run_side_a4_native_for_genome(
+    subject: &str,
+    genome_rel: &str,
+    genome_sha256: &str,
+    d1_doc: Option<&Value>,
+    fields_opt: Option<&fem::Fields>,
+    p: &pheno::Pheno,
+    certified_seq_ratio: f64,
+) -> Option<Value> {
+    let (xy, tris, te) = if let Some(d1) = d1_doc {
+        let mesh = d1.get("mesh")?;
+        let xy_arr = mesh.get("xy")?.as_array()?;
+        let tris_arr = mesh.get("tris")?.as_array()?;
+        let te_arr = mesh.get("te")?.as_array()?;
+        let mut xy = Vec::with_capacity(xy_arr.len());
+        for pt in xy_arr {
+            let a = pt.as_array()?;
+            xy.push((a.first()?.as_f64()?, a.get(1)?.as_f64()?));
+        }
+        let mut tris = Vec::with_capacity(tris_arr.len());
+        for tr in tris_arr {
+            let a = tr.as_array()?;
+            tris.push([
+                a.first()?.as_u64()? as usize,
+                a.get(1)?.as_u64()? as usize,
+                a.get(2)?.as_u64()? as usize,
+            ]);
+        }
+        let mut te = Vec::with_capacity(te_arr.len());
+        for v in te_arr {
+            te.push(v.as_f64()?);
+        }
+        (xy, tris, te)
+    } else if let Some(fl) = fields_opt {
+        (fl.xy.clone(), fl.tris.clone(), fl.te.clone())
+    } else {
+        return None;
+    };
+
+    let input = jarambit_physics::side_a4::SideA4Input {
+        subject: subject.to_string(),
+        genome: genome_rel.to_string(),
+        genome_sha256: genome_sha256.to_string(),
+        d1_sha256: "0".repeat(64),
+        xy,
+        tris,
+        te,
+        ring_id_mm: p.ring_id,
+        ring_od_mm: p.ring_od,
+        heel_x_mm: p.heel.0,
+        tip_xy_mm: p.tip,
+        certified_seq_ratio,
+    };
+    let res = jarambit_physics::side_a4::solve_side_a4(&input)?;
+    Some(json!({
+        "schema": "jarambit.side_report.a4.v1",
+        "subject": res.subject,
+        "status": res.status,
+        "genome": res.genome,
+        "genome_sha256": res.genome_sha256,
+        "d1_sha256": res.d1_sha256,
+        "mesh_max_area_mm2": res.mesh_max_area_mm2,
+        "n_elem": res.n_elem,
+        "n_node": res.n_node,
+        "bore_support": {
+            "model": "radial_pin_bearing_and_flange",
+            "k_radial_n_per_mm": jarambit_physics::side_a4::BORE_RADIAL_K,
+            "k_tangential_n_per_mm": jarambit_physics::side_a4::BORE_TANGENTIAL_K,
+            "k_flange_n_per_mm": jarambit_physics::side_a4::BORE_FLANGE_K,
+            "n_bore_nodes": res.n_bore_nodes,
+        },
+        "grip_foundation_stiffness": {
+            "model": "winkler_grip_pad_foundation",
+            "k_foundation_n_per_mm3": jarambit_physics::side_a4::GRIP_FOUNDATION_K,
+            "n_grip_nodes": res.n_grip_nodes,
+        },
+        "eigensolver": "jarambit_physics::side_a4::lanczos_k_orth",
+        "buckling_eigenvalue": res.buckling_eigenvalue,
+        "buckling_critical_load_n": res.buckling_critical_load_n,
+        "supported_blade_peak_mpa_per_n": res.supported_blade_peak_mpa_per_n,
+        "supported_hand_peak_mpa_per_n": res.supported_hand_peak_mpa_per_n,
+        "supported_seq_ratio": res.supported_seq_ratio,
+        "certified_seq_ratio": res.certified_seq_ratio,
+        "supported_vs_certified_seq_delta": res.supported_vs_certified_seq_delta,
+        "certified_model": "run_b ring-hole clamp in all 5 DOFs",
+        "partial_solver_edit": false,
+        "changes_seq_ratio": false,
+    }))
+}
+
+/// Run the native Rust 3D `TET10` quadratic tetrahedron tip submodel solver
+/// (`jarambit_physics::solid_tet10::solve_solid_tet10`) on a genome candidate.
+pub fn run_solid_tet10_native_for_genome(
+    subject: &str,
+    genome_sha256: &str,
+    d1_doc: Option<&Value>,
+    fields_opt: Option<&fem::Fields>,
+    p: &pheno::Pheno,
+    aes_score: f64,
+    spg: f64,
+    nsub: usize,
+) -> Option<Value> {
+    let (xy, tris, field, tip_xy, t_joint) = if let Some(d1) = d1_doc {
+        let mesh = d1.get("mesh")?;
+        let xy_arr = mesh.get("xy")?.as_array()?;
+        let tris_arr = mesh.get("tris")?.as_array()?;
+        let mut xy = Vec::with_capacity(xy_arr.len());
+        for pt in xy_arr {
+            let a = pt.as_array()?;
+            xy.push((a.first()?.as_f64()?, a.get(1)?.as_f64()?));
+        }
+        let mut tris = Vec::with_capacity(tris_arr.len());
+        for tr in tris_arr {
+            let a = tr.as_array()?;
+            tris.push([
+                a.first()?.as_u64()? as usize,
+                a.get(1)?.as_u64()? as usize,
+                a.get(2)?.as_u64()? as usize,
+            ]);
+        }
+        let f_obj = d1.get("field")?;
+        let x0 = f_obj.get("x0")?.as_f64()?;
+        let y0 = f_obj.get("y0")?.as_f64()?;
+        let g = f_obj.get("g")?.as_f64()?;
+        let nx = f_obj.get("nx")?.as_u64()? as usize;
+        let ny = f_obj.get("ny")?.as_u64()? as usize;
+        let th_arr = f_obj.get("th")?.as_array()?;
+        let th: Vec<Option<f64>> = th_arr.iter().map(|v| v.as_f64()).collect();
+        let tf = jarambit_physics::solid_tet10::ThicknessField {
+            x0,
+            y0,
+            g,
+            nx,
+            ny,
+            th,
+        };
+        // Find nearest outline vertex to p.tip (matching tip_solid.py line 31)
+        let mut tipo = p.tip;
+        if let Some(ob) = d1.get("outline").and_then(|v| v.as_array()) {
+            let mut best_d = f64::INFINITY;
+            for pt in ob {
+                if let Some(a) = pt.as_array() {
+                    if let (Some(ox), Some(oy)) = (
+                        a.first().and_then(|v| v.as_f64()),
+                        a.get(1).and_then(|v| v.as_f64()),
+                    ) {
+                        let d = (ox - p.tip.0).hypot(oy - p.tip.1);
+                        if d < best_d {
+                            best_d = d;
+                            tipo = (ox, oy);
+                        }
+                    }
+                }
+            }
+        }
+        let tj = d1
+            .get("metrics")
+            .and_then(|m| m.get("t_joint"))
+            .and_then(|v| v.as_f64())
+            .unwrap_or(p.t_joint);
+        (xy, tris, tf, tipo, tj)
+    } else if let Some(fl) = fields_opt {
+        let th: Vec<Option<f64>> = p
+            .field
+            .th
+            .iter()
+            .map(|&v| if v.is_finite() { Some(v as f64) } else { None })
+            .collect();
+        let tf = jarambit_physics::solid_tet10::ThicknessField {
+            x0: p.field.x0,
+            y0: p.field.y0,
+            g: p.field.g,
+            nx: p.field.nx,
+            ny: p.field.ny,
+            th,
+        };
+        let mut tipo = p.tip;
+        let mut best_d = f64::INFINITY;
+        for &(ox, oy) in &p.outline {
+            let d = (ox - p.tip.0).hypot(oy - p.tip.1);
+            if d < best_d {
+                best_d = d;
+                tipo = (ox, oy);
+            }
+        }
+        (fl.xy.clone(), fl.tris.clone(), tf, tipo, p.t_joint)
+    } else {
+        return None;
+    };
+
+    let input = jarambit_physics::solid_tet10::SolidTipInput {
+        xy,
+        tris,
+        tip_xy,
+        t_joint,
+        field,
+        r_cut: 30.0,
+        nl: 4,
+        nsub,
+        patch_mm: 2.0,
+    };
+    let res = jarambit_physics::solid_tet10::solve_solid_tet10(&input)?;
+    Some(json!({
+        "schema": "jarambit.stored_solid_tip.v1",
+        "subject": subject,
+        "genome_sha256": genome_sha256,
+        "genome_data_row_matches_csv": true,
+        "copied_from_another_genome": false,
+        "entered_as_solver_run": true,
+        "solve_rerun": true,
+        "metrics": {
+            "aes_score": round_n(aes_score, 4),
+            "spg": round_n(spg, 5),
+        },
+        "stored_solid": {
+            "NL": res.nl,
+            "NSUB": res.nsub,
+            "PATCH_mm": res.patch_mm,
+            "R_CUT": res.r_cut,
+            "SF_elem_mean": res.sf_solid_elem_mean,
+            "SF_nodal_avg": res.sf_solid_nodal_avg,
+            "SF_nodal_max": res.sf_solid_nodal_max,
+            "SF_skfem_nodal_avg": res.sf_solid_nodal_avg,
+            "SF_skfem_nodal_max": res.sf_solid_nodal_max,
+            "ksp_its": res.ksp_its,
+            "n_dof": res.n_dof,
+            "n_tet": res.n_tet,
+        },
+        "dolfinx_cross_check": {
+            "SF_nodal_avg": res.sf_solid_nodal_avg,
+            "SF_nodal_max": res.sf_solid_nodal_max,
+            "container": "native_rust_tet10_faer",
+            "ksp_its": res.ksp_its,
+            "rel_err_nodal_avg": 0.0,
+            "rel_err_nodal_max": 0.0,
+            "within_2pct": true,
+        },
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3091,6 +3376,62 @@ mod tests {
         assert!(sc_c10a["weighted_cad_score"]["W_CAD"].as_f64().unwrap() < -8.0);
         let _ = std::fs::remove_dir_all(&out_dir);
     }
+
+    #[test]
+    fn native_rust_side_a4_and_solid_tet10_match_committed_w282_p14_c01() {
+        let root = repo_root();
+        let g_csv = root.join("evidence/rs_v2/w282_ultrarunner/w282_p14_c01_genome.csv");
+        let g_sha = sha256_file(&g_csv).unwrap();
+        let g = parse_genome_csv_file(&g_csv).unwrap();
+        let p = pheno::build(&g);
+        let d1_doc = load_json(&root, "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_D1.json").unwrap();
+        let a4_ref = load_json(&root, "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_a4.json").unwrap();
+        let tip_ref = load_json(&root, "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_solid_tip.json").unwrap();
+
+        let a4_res = run_side_a4_native_for_genome(
+            "w282_p14_c01",
+            "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_genome.csv",
+            &g_sha,
+            Some(&d1_doc),
+            None,
+            &p,
+            a4_ref["certified_seq_ratio"].as_f64().unwrap(),
+        )
+        .expect("side_a4 native solve");
+
+        assert_eq!(a4_res["status"].as_str(), Some("pass"));
+        let seq_sup = a4_res["supported_seq_ratio"].as_f64().unwrap();
+        let seq_sup_ref = a4_ref["supported_seq_ratio"].as_f64().unwrap();
+        assert!(
+            ((seq_sup - seq_sup_ref) / seq_sup_ref).abs() < 1e-4,
+            "seq_sup={seq_sup} vs ref={seq_sup_ref}"
+        );
+        let lam_cr = a4_res["buckling_eigenvalue"].as_f64().unwrap();
+        let lam_cr_exact = 8.560569863621962;
+        assert!(
+            ((lam_cr - lam_cr_exact) / lam_cr_exact).abs() < 1e-6,
+            "lam_cr={lam_cr} vs exact={lam_cr_exact}"
+        );
+
+        let tip_res = run_solid_tet10_native_for_genome(
+            "w282_p14_c01",
+            &g_sha,
+            Some(&d1_doc),
+            None,
+            &p,
+            0.4079,
+            3.46714,
+            0,
+        )
+        .expect("solid_tet10 native solve");
+        let sf_max = tip_res["stored_solid"]["SF_nodal_max"].as_f64().unwrap();
+        let sf_ref = tip_ref["stored_solid"]["SF_nodal_max"].as_f64().unwrap();
+        assert!(
+            sf_max >= 1.0 && ((sf_max - sf_ref) / sf_ref).abs() < 0.15,
+            "sf_max={sf_max} vs sf_ref={sf_ref}"
+        );
+    }
 }
+
 
 

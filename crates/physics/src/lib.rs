@@ -11,6 +11,8 @@ mod fem;
 pub mod fine;
 pub mod calib;
 pub mod verify;
+pub mod side_a4;
+pub mod solid_tet10;
 pub use fem::{capacities as plate_capacities, Caps as PlateCaps};
 
 pub struct Material { pub name: &'static str, pub density: f64, pub yield_mpa: f64, pub e_gpa: f64, pub dyield_dt: f64 }
