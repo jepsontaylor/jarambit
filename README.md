@@ -60,32 +60,33 @@ cargo test --release --workspace
 ## Quick start
 
 ```bash
-# 1. Score ANY knife CAD (.step, .stl, 128-gene .csv genome, or catalog ID) across all 16 hard gates + all 18 CAD battery evaluators + combined fitness (W_CAD_v2 + G1)
+# 1. Score ANY knife CAD (.step, .stl, 128-gene .csv genome, or catalog ID) in pure Rust across all 16 hard gates + all 18 CAD battery evaluators + combined fitness (W_CAD_v2 + G1)
 ./target/release/jarambit score-cad w282_p14_c01 --out-dir /tmp/jarambit_quickstart_scorecard
 ./target/release/jarambit score-cad evidence/rs_v2/w282_ultrarunner/w282_p14_c01.step \
   --force-standalone-cad --out-dir /tmp/jarambit_quickstart_scorecard
 
-# 2. Re-screen the current record genome directly via crescent-d1 + cad_battery.py
+# 2. Run the 21-subject × 18-evaluator CAD battery in pure Rust (or via ops/ci/cad_battery.py)
+./target/release/jarambit cad-battery --out-dir /tmp/jarambit_quickstart_battery
 ./target/release/jarambit crescent-d1 \
   --genomes w282_p14_c01=evidence/rs_v2/w282_ultrarunner/w282_p14_c01_genome.csv \
   --threads 4 --out /tmp/jarambit_quickstart_d1
-python3 -B ops/ci/cad_battery.py \
-  --evaluate-genome w282_p14_c01=evidence/rs_v2/w282_ultrarunner/w282_p14_c01_genome.csv \
-  --analytic pass --gci pass --claims pass --dolfinx pass \
-  --out-dir /tmp/jarambit_quickstart_battery
 
-# 3. Run a crescent MAP-Elites + island GA evolutionary search with all-gates + live CAD battery enabled
+# 3. Export web bundle + launch the interactive Vite + TypeScript + React 3D CAD & Gate Scorecard Studio (web/)
+./target/release/jarambit export-web-data --out-dir web/public/data
+npm --prefix web install && npm --prefix web test && npm --prefix web run build
+
+# 4. Run a crescent MAP-Elites + island GA evolutionary search with all-gates + live CAD battery enabled
 JARAMBIT_ALL_GATES=1 JARAMBIT_CAD_BATTERY=1 ./target/release/jarambit crescent-evolve \
   --gens 2 --pop 12 --islands 2 --threads 8 --seed 2934 \
   --seeds evidence/rs_v2/w282_ultrarunner/w282_p14_c01_genome.csv \
   --out /tmp/jarambit_quickstart_evolve
 
-# 4. Verify the committed 21-subject × 18-evaluator CAD battery and the 178-group (356-control) scientific assurance suite
+# 5. Verify the committed 21-subject × 18-evaluator CAD battery and the 178-group (356-control) scientific assurance suite
 python3 -B -m unittest ops.ci.tests.test_cad_battery -v
 python3 -B ops/ci/science_suite.py inventory
 python3 -B -m unittest discover -s research/science_v1 -p "test_*.py" -v
 
-# 5. Verify deterministic figures and public documentation blocks, then clean up quickstart scratch
+# 6. Verify deterministic figures and public documentation blocks, then clean up quickstart scratch
 python3 -B ops/ci/verify_figures.py
 python3 -B ops/ci/gen_readme.py --check
 python3 -B ops/ci/gen_whitepaper.py --check

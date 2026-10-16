@@ -4,7 +4,7 @@
 //! natively in Rust through the 16 hard engineering gates, 18-case CAD battery, `G1`, and
 //! `W_CAD_v2_ultrarunner_karambit`.
 
-use jarambit_crescent::battery::{run_cad_battery_native, score_cad_native, Probes};
+use jarambit_crescent::battery::{export_web_data_native, run_cad_battery_native, score_cad_native, Probes};
 use std::path::{Path, PathBuf};
 
 fn repo_root() -> PathBuf {
@@ -266,3 +266,44 @@ pub fn run_cad_battery_cli(args: &[String]) -> i32 {
         }
     }
 }
+
+/// Execute `jarambit export-web-data [--out-dir <dir>]` natively in Rust.
+pub fn run_export_web_data_cli(args: &[String]) -> i32 {
+    let root = repo_root();
+    let mut out_dir = root.join("web/public/data");
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--out-dir" => {
+                if let Some(v) = args.get(i + 1) {
+                    out_dir = PathBuf::from(v);
+                    i += 1;
+                }
+            }
+            "-h" | "--help" => {
+                println!("Usage: jarambit export-web-data [--out-dir <dir>]");
+                return 0;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    match export_web_data_native(&root, &out_dir) {
+        Ok(bundle) => {
+            let n_sub = bundle
+                .get("subjects")
+                .and_then(|v| v.as_array())
+                .map_or(0, |a| a.len());
+            println!(
+                "export-web-data: exported {n_sub} subjects + featured scorecards + STL meshes -> {}",
+                out_dir.display()
+            );
+            0
+        }
+        Err(e) => {
+            eprintln!("export-web-data error: {e}");
+            1
+        }
+    }
+}
+

@@ -43,6 +43,9 @@ fn main() {
     if let Some(pos) = a.iter().position(|s| s == "cad-battery") {
         std::process::exit(score_cad::run_cad_battery_cli(&a[(pos + 1)..]));
     }
+    if let Some(pos) = a.iter().position(|s| s == "export-web-data") {
+        std::process::exit(score_cad::run_export_web_data_cli(&a[(pos + 1)..]));
+    }
     if a.iter().any(|s| s == "bench-make") { std::process::exit(if bench::make(&sarg("--seeds", ""), narg("--n", 1000), narg("--seed", 31) as u64, &sarg("--out", "bench/fixed_1k/genomes.csv")) { 0 } else { 1 }); }
     if a.iter().any(|s| s == "rs-v2-eval") { std::process::exit(if bench::rs_v2_eval(&sarg("--genomes", ""), &sarg("--out", "evidence/rs_v2"), &sarg("--solid-dir", "evidence/fem_solid/gci")) { 0 } else { 1 }); }
     if a.iter().any(|s| s == "calib-t1t2") { std::process::exit(if bench::calib_t1t2(&sarg("--genomes", "bench/fixed_1k/genomes.csv"), narg("--n", 40), narg("--stride", 25), narg("--threads", 1).min(jarambit_monte_carlo::max_threads()), farg("--area", 2.0), &sarg("--out", "docs/calibration/t1_t2.csv")) { 0 } else { 1 }); }

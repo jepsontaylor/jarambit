@@ -3268,6 +3268,194 @@ pub fn run_solid_tet10_native_for_genome(
     }))
 }
 
+/// Export static JSON and STL assets for the `web/` Vite + TypeScript + React 3D CAD & Gate Scorecard Studio.
+pub fn export_web_data_native(root: &Path, out_dir: &Path) -> Result<Value, String> {
+    let bat_dir = out_dir.join("battery");
+    let sc_dir = out_dir.join("scorecards");
+    let mesh_dir = out_dir.join("meshes");
+    std::fs::create_dir_all(&bat_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&sc_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&mesh_dir).map_err(|e| e.to_string())?;
+
+    let commit = git_head_commit(root);
+    let probes = Probes::default();
+    let genomes = genome_catalog(root);
+    let all_ids: Vec<String> = NATIVE_PINS
+        .iter()
+        .map(|p| p.id.to_string())
+        .chain(genomes.iter().map(|g| g.id.clone()))
+        .collect();
+
+    let featured_ids = [
+        "w282_p14_c01",
+        "w282_p10_c02",
+        "w281_s2932_c01",
+        "w280_s2931_c01",
+        "w279_s2928_c01",
+        "c10a",
+    ];
+    let mut featured_scorecards = Map::new();
+    for &fid in &featured_ids {
+        let force_standalone = fid == "c10a";
+        let sc = score_cad_native(root, fid, &sc_dir, None, None, false, force_standalone)?;
+        featured_scorecards.insert(fid.to_string(), sc);
+    }
+
+    // Copy or export STL meshes for featured 3D subjects
+    for &mid in &["w282_p14_c01", "w282_p10_c02", "w281_s2932_c01", "c10a"] {
+        let src_stl = sc_dir.join(format!("{mid}.stl"));
+        let dst_stl = mesh_dir.join(format!("{mid}.stl"));
+        if src_stl.is_file() {
+            std::fs::copy(&src_stl, &dst_stl).map_err(|e| e.to_string())?;
+            continue;
+        }
+        if let Some(stl_rel) = featured_scorecards
+            .get(mid)
+            .and_then(|s| s.get("cad"))
+            .and_then(|c| c.get("stl_path"))
+            .and_then(|v| v.as_str())
+        {
+            let repo_stl = root.join(stl_rel);
+            if repo_stl.is_file() {
+                std::fs::copy(&repo_stl, &dst_stl).map_err(|e| e.to_string())?;
+                continue;
+            }
+        }
+        if mid == "c10a" {
+            let c10a_stl = root.join("designs/switchback/C10a/cad/switchback_revC10a_ground.stl");
+            if c10a_stl.is_file() {
+                std::fs::copy(&c10a_stl, &dst_stl).map_err(|e| e.to_string())?;
+                continue;
+            }
+        }
+        if let Some(g_rel) = featured_scorecards
+            .get(mid)
+            .and_then(|s| s.get("genome_csv"))
+            .and_then(|v| v.as_str())
+        {
+            let g_path = root.join(g_rel);
+            if let Ok(g) = parse_genome_csv_file(&g_path) {
+                let p = pheno::build(&g);
+                if let Some(solid) = export::solid(&p, 1.0) {
+                    let bytes = export::stl(&solid, mid);
+                    std::fs::write(&dst_stl, bytes).map_err(|e| e.to_string())?;
+                }
+            }
+        }
+    }
+
+    let mut battery_records = Map::new();
+    let mut subject_summaries = Vec::with_capacity(all_ids.len());
+    for id in &all_ids {
+        let rec = build_subject(root, id, &commit, &probes, None, None)?;
+        std::fs::write(
+            bat_dir.join(format!("{id}.json")),
+            serde_json::to_string_pretty(&rec).unwrap() + "\n",
+        )
+        .map_err(|e| e.to_string())?;
+        let sc_opt = featured_scorecards.get(id);
+        let gf = rec.get("global_fitness").unwrap_or(&Value::Null);
+        let g_inputs = gf.get("inputs").unwrap_or(&Value::Null);
+        let mass_g = sc_opt
+            .and_then(|s| s.get("engineering_metrics"))
+            .and_then(|m| m.get("mass_g"))
+            .and_then(|v| v.as_f64())
+            .or_else(|| g_inputs.get("mass_g").and_then(|v| v.as_f64()));
+        let mass_3d_g = sc_opt
+            .and_then(|s| s.get("engineering_metrics"))
+            .and_then(|m| m.get("mass_3d_g"))
+            .and_then(|v| v.as_f64());
+        let w_cad = sc_opt
+            .and_then(|s| s.get("weighted_cad_score"))
+            .and_then(|w| w.get("W_CAD"))
+            .and_then(|v| v.as_f64());
+        let all_gates_pass = sc_opt
+            .and_then(|s| s.get("weighted_cad_score"))
+            .and_then(|w| w.get("all_engineering_gates_pass"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or_else(|| gf.get("status").and_then(|v| v.as_str()) == Some("COMPLETE"));
+
+        let cases_arr = rec
+            .get("cases")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        let count_status = |st: &str| -> usize {
+            cases_arr
+                .iter()
+                .filter(|c| c.get("status").and_then(|v| v.as_str()) == Some(st))
+                .count()
+        };
+        let fail_cnt = count_status("fail");
+        let blocked_cnt = count_status("blocked");
+        let incomplete_cnt = count_status("incomplete");
+        let role_str = rec
+            .get("role")
+            .and_then(|v| v.as_str())
+            .unwrap_or("genome");
+        let kind_str = if role_str == "genome" {
+            "crescent_genome"
+        } else {
+            "native_step"
+        };
+
+        subject_summaries.push(json!({
+            "id": id,
+            "kind": kind_str,
+            "role": role_str,
+            "pass_count": rec.get("pass_count"),
+            "fail_count": fail_cnt,
+            "blocked_count": blocked_cnt,
+            "incomplete_count": incomplete_cnt,
+            "solver_run_count": rec.get("solver_run_count"),
+            "g1_score": gf.get("G"),
+            "g1_status": gf.get("status"),
+            "mass_g": mass_g,
+            "mass_3d_g": mass_3d_g,
+            "w_cad": w_cad,
+            "all_engineering_gates_pass": all_gates_pass,
+            "has_scorecard": featured_scorecards.contains_key(id),
+            "has_stl": mesh_dir.join(format!("{id}.stl")).is_file(),
+        }));
+        battery_records.insert(id.clone(), rec);
+    }
+
+    let wave_trajectory = json!([
+        {"wave": "w20", "subject": "w20_baseline", "mass_g": 91.500, "mass_3d_g": 91.280, "sf_hunter_strict": 1.180, "seq_ratio": 1.240, "solid_tip_sf": 1.380, "w_cad": 1.1920, "g1": 0.7420},
+        {"wave": "w24", "subject": "w24_crescent", "mass_g": 86.400, "mass_3d_g": 86.190, "sf_hunter_strict": 1.140, "seq_ratio": 1.235, "solid_tip_sf": 1.365, "w_cad": 1.3910, "g1": 0.7850},
+        {"wave": "w27", "subject": "g3", "mass_g": 82.120, "mass_3d_g": 81.910, "sf_hunter_strict": 1.085, "seq_ratio": 0.959, "solid_tip_sf": 1.351, "w_cad": -1.7200, "g1": 0.7912},
+        {"wave": "w271b", "subject": "w271b_11772", "mass_g": 78.663, "mass_3d_g": 78.440, "sf_hunter_strict": 1.032, "seq_ratio": 1.269, "solid_tip_sf": 1.416, "w_cad": 1.6620, "g1": 0.8540},
+        {"wave": "w272", "subject": "w272_s2902_c01", "mass_g": 77.912, "mass_3d_g": 77.690, "sf_hunter_strict": 1.028, "seq_ratio": 1.279, "solid_tip_sf": 1.412, "w_cad": 1.6940, "g1": 0.8620},
+        {"wave": "w273", "subject": "w273_s2904_c01", "mass_g": 77.310, "mass_3d_g": 77.088, "sf_hunter_strict": 1.025, "seq_ratio": 1.270, "solid_tip_sf": 1.411, "w_cad": 1.7180, "g1": 0.8690},
+        {"wave": "w274", "subject": "w274_s2905_c01", "mass_g": 76.985, "mass_3d_g": 76.762, "sf_hunter_strict": 1.026, "seq_ratio": 1.280, "solid_tip_sf": 1.410, "w_cad": 1.7340, "g1": 0.8730},
+        {"wave": "w275", "subject": "w275_s2909_c01", "mass_g": 76.780, "mass_3d_g": 76.556, "sf_hunter_strict": 1.027, "seq_ratio": 1.273, "solid_tip_sf": 1.410, "w_cad": 1.7430, "g1": 0.8748},
+        {"wave": "w276", "subject": "w276_s2913_c01", "mass_g": 76.540, "mass_3d_g": 76.318, "sf_hunter_strict": 1.026, "seq_ratio": 1.271, "solid_tip_sf": 1.410, "w_cad": 1.7530, "g1": 0.8762},
+        {"wave": "w277", "subject": "w277_s2919_c01", "mass_g": 76.410, "mass_3d_g": 76.188, "sf_hunter_strict": 1.027, "seq_ratio": 1.269, "solid_tip_sf": 1.410, "w_cad": 1.7590, "g1": 0.8771},
+        {"wave": "w278", "subject": "w278_s2922_c01", "mass_g": 76.320, "mass_3d_g": 76.098, "sf_hunter_strict": 1.028, "seq_ratio": 1.269, "solid_tip_sf": 1.410, "w_cad": 1.7630, "g1": 0.8778},
+        {"wave": "w279", "subject": "w279_s2928_c01", "mass_g": 76.245, "mass_3d_g": 76.026, "sf_hunter_strict": 1.028, "seq_ratio": 1.269, "solid_tip_sf": 1.410, "w_cad": 1.7680, "g1": 0.8784},
+        {"wave": "w280", "subject": "w280_s2931_c01", "mass_g": 76.040, "mass_3d_g": 75.821, "sf_hunter_strict": 1.028, "seq_ratio": 1.269, "solid_tip_sf": 1.410, "w_cad": 1.7850, "g1": 0.8798},
+        {"wave": "w281", "subject": "w281_s2932_c01", "mass_g": 75.911, "mass_3d_g": 75.695, "sf_hunter_strict": 1.0285, "seq_ratio": 1.215, "solid_tip_sf": 1.4094, "w_cad": 1.795131, "g1": 0.880512},
+        {"wave": "w282 (peer)", "subject": "w282_p10_c02", "mass_g": 75.836, "mass_3d_g": 75.616, "sf_hunter_strict": 1.0285, "seq_ratio": 1.215, "solid_tip_sf": 1.4094, "w_cad": 1.797848, "g1": 0.881101},
+        {"wave": "w282 (record)", "subject": "w282_p14_c01", "mass_g": 75.568, "mass_3d_g": 75.323, "sf_hunter_strict": 1.0100, "seq_ratio": 1.201, "solid_tip_sf": 1.4093, "w_cad": 1.779046, "g1": 0.878210},
+    ]);
+
+    let bundle = json!({
+        "schema": "jarambit.web_studio_bundle.v1",
+        "source_commit": commit,
+        "case_ids": CASE_IDS,
+        "subjects": subject_summaries,
+        "featured_scorecards": featured_scorecards,
+        "battery_records": battery_records,
+        "wave_trajectory": wave_trajectory,
+    });
+    std::fs::write(
+        out_dir.join("index.json"),
+        serde_json::to_string_pretty(&bundle).unwrap() + "\n",
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(bundle)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3430,6 +3618,20 @@ mod tests {
             sf_max >= 1.0 && ((sf_max - sf_ref) / sf_ref).abs() < 0.15,
             "sf_max={sf_max} vs sf_ref={sf_ref}"
         );
+    }
+
+    #[test]
+    fn export_web_data_native_emits_bundle_and_meshes() {
+        let root = repo_root();
+        let out_dir = std::env::temp_dir().join("jarambit_export_web_data_test");
+        let _ = std::fs::remove_dir_all(&out_dir);
+        let bundle = export_web_data_native(&root, &out_dir).expect("export_web_data_native");
+        assert_eq!(bundle["schema"].as_str(), Some("jarambit.web_studio_bundle.v1"));
+        assert_eq!(bundle["subjects"].as_array().unwrap().len(), 21);
+        assert!(out_dir.join("index.json").is_file());
+        assert!(out_dir.join("meshes/w282_p14_c01.stl").is_file());
+        assert!(out_dir.join("scorecards/w282_p14_c01_master_scorecard.json").is_file());
+        let _ = std::fs::remove_dir_all(&out_dir);
     }
 }
 

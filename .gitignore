@@ -4,3 +4,7 @@
 *.step
 /target_*
 __pycache__/
+web/node_modules/
+web/dist/
+web/public/data/
+
