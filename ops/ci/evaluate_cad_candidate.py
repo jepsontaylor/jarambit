@@ -205,6 +205,32 @@ def compute_weighted_cad_score(gates_summary: dict, metrics: dict) -> dict:
     }
 
 
+def independent_agreement(doc: dict) -> dict:
+    stored=doc['stored_solid'];dx=dict(doc['dolfinx_cross_check'])
+    errs=[abs(float(stored[a])-float(dx[b]))/float(dx[b]) for a,b in
+          [('SF_skfem_nodal_max','SF_nodal_max'),('SF_skfem_nodal_avg','SF_nodal_avg')]]
+    dx.update(rel_err_nodal_max=round(errs[0],6),rel_err_nodal_avg=round(errs[1],6),within_2pct=all(e<=0.02 for e in errs))
+    return dx
+
+
+def solid_evidence_matches(doc: dict, genome_sha: str, d1_sha: str, identity: str) -> bool:
+    """Only a content-bound, actually independent observation may be reused."""
+    if any(doc.get(k) != v for k, v in {'genome_sha256':genome_sha, 'd1_sha256':d1_sha, 'certificate_identity':identity}.items()):
+        return False
+    dx=doc.get('dolfinx_cross_check', {});stored=doc.get('stored_solid', {})
+    if dx.get('status') != 'verified' or dx.get('primary_solver') != 'skfem_p2' or dx.get('independent_solver') != 'dolfinx_v0.9.0':
+        return False
+    mesh=dx.get('mesh_sha256', '')
+    if len(mesh)!=64 or any(c not in '0123456789abcdef' for c in mesh) or doc.get('mesh_sha256')!=mesh:return False
+    if stored.get('NL') != 4 or stored.get('NSUB') != 1:return False
+    try:
+        for a,b in [('SF_skfem_nodal_max','SF_nodal_max'),('SF_skfem_nodal_avg','SF_nodal_avg')]:
+            x,y=stored[a],dx[b]
+            if isinstance(x,bool) or isinstance(y,bool) or not all(math.isfinite(v) and v>0 for v in [x,y]):return False
+        return True  # A measured disagreement is valid evidence of a failed gate, never a reason to fabricate a pass.
+    except (KeyError,TypeError,ValueError):return False
+
+
 def evaluate_candidate(
     label: str,
     genome_csv: Path,
@@ -291,6 +317,7 @@ def evaluate_candidate(
         ).to_dict()
         gci_doc = {
             'schema': 'jarambit.plate_gci.v1',
+            'certificate_identity': d1_doc['certificate_identity'],
             'subject': label,
             'genome': str(canon_genome.relative_to(ROOT)) if canon_genome.is_relative_to(ROOT) else str(canon_genome),
             'genome_sha256': _sha256(canon_genome),
@@ -306,7 +333,9 @@ def evaluate_candidate(
     # 4. Run 3D P2 solid-tip submodel + dolfinx v0.9.0 cross-check
     solid_tip_path = out_dir / f'{label}_solid_tip.json'
     skfem_cache = out_dir / f'{label}_skfem_raw.json'
-    if run_solid or not solid_tip_path.is_file():
+    cached = json.loads(solid_tip_path.read_text()) if solid_tip_path.is_file() else {}
+    cached_files = all((out_dir/f'{label}_{suffix}').is_file() and _sha256(out_dir/f'{label}_{suffix}')==cached.get(key) for suffix,key in [('solid_mesh.npz','mesh_sha256'),('skfem_raw.json','skfem_raw_sha256'),('dolfinx_raw.json','dolfinx_raw_sha256')])
+    if run_solid or not cached_files or not solid_evidence_matches(cached, _sha256(canon_genome), _sha256(d1_path), d1_doc['certificate_identity']):
         with tempfile.TemporaryDirectory() as tmp:
             mesh_npz = Path(tmp) / 'mesh.npz'
             raw_solid = Path(tmp) / 'solid_raw.json'
@@ -317,20 +346,14 @@ def evaluate_candidate(
                 'PYTHONPATH': f'{amg_path}:{ROOT}',
                 'DUMP_MESH': str(mesh_npz),
             }
-            if skfem_cache.is_file() and not run_solid:
-                env_solid['DUMP_ONLY'] = '1'
-                subprocess.run(
-                    [py_sheath, str(ROOT / 'fem_solid' / 'tip_solid.py'), str(d1_path), '30', '4', '1', str(raw_solid)],
-                    cwd=ROOT, env=env_solid, check=True,
-                )
-                sk_doc = json.loads(skfem_cache.read_text(encoding='utf-8'))
-            else:
-                subprocess.run(
-                    [py_sheath, str(ROOT / 'fem_solid' / 'tip_solid.py'), str(d1_path), '30', '4', '1', str(raw_solid)],
-                    cwd=ROOT, env=env_solid, check=True,
-                )
-                shutil.copyfile(raw_solid, skfem_cache)
-                sk_doc = json.loads(raw_solid.read_text(encoding='utf-8'))
+            subprocess.run(
+                [py_sheath, str(ROOT / 'fem_solid' / 'tip_solid.py'), str(d1_path), '30', '4', '1', str(raw_solid)],
+                cwd=ROOT, env=env_solid, check=True,
+            )
+            shutil.copyfile(raw_solid, skfem_cache)
+            sk_doc=json.loads(raw_solid.read_text(encoding='utf-8'))
+            shutil.copyfile(mesh_npz,out_dir/f'{label}_solid_mesh.npz')
+            mesh_sha=_sha256(mesh_npz)
             dolfinx_out = subprocess.check_output(
                 [
                     'docker', 'run', '--rm',
@@ -344,6 +367,7 @@ def evaluate_candidate(
                 cwd=ROOT, text=True,
             )
             dx_doc = json.loads(dolfinx_out[dolfinx_out.rfind('{'):])
+            (out_dir/f'{label}_dolfinx_raw.json').write_text(json.dumps(dx_doc,indent=2,sort_keys=True)+'\n')
             sk_solid = sk_doc.get('solid', sk_doc)
             sf_sk_max = float(sk_solid['SF_solid_nodal_max'])
             sf_dx_max = float(dx_doc['SF_nodal_max'])
@@ -353,6 +377,9 @@ def evaluate_candidate(
             rel_err_avg = abs(sf_sk_avg - sf_dx_avg) / max(sf_dx_avg, 1e-9)
             solid_record = {
                 'schema': 'jarambit.stored_solid_tip.v1',
+                'certificate_identity': d1_doc['certificate_identity'],
+                'mesh_sha256':mesh_sha, 'skfem_raw_sha256':_sha256(skfem_cache),
+                'dolfinx_raw_sha256':_sha256(out_dir/f'{label}_dolfinx_raw.json'),
                 'subject': label,
                 'd1_path': str(d1_path.relative_to(ROOT)) if d1_path.is_relative_to(ROOT) else str(d1_path),
                 'd1_sha256': _sha256(d1_path),
@@ -381,6 +408,8 @@ def evaluate_candidate(
                 },
                 'dolfinx_cross_check': {
                     'container': 'ghcr.io/fenics/dolfinx/dolfinx:v0.9.0',
+                    'status': 'verified', 'primary_solver':'skfem_p2', 'independent_solver':'dolfinx_v0.9.0',
+                    'mesh_sha256':mesh_sha,
                     'SF_nodal_max': sf_dx_max,
                     'SF_nodal_avg': sf_dx_avg,
                     'ksp_its': int(dx_doc['ksp_its']),
@@ -401,11 +430,16 @@ def evaluate_candidate(
             solid_record['entered_as_solver_run'] = True
             solid_tip_path.write_text(json.dumps(solid_record, indent=2, sort_keys=True) + '\n', encoding='utf-8')
 
+    solid_record['dolfinx_cross_check']=independent_agreement(solid_record)
+    solid_tip_path.write_text(json.dumps(solid_record,indent=2,sort_keys=True)+'\n')
+
     # Write bindings.json + gci-format JSON in a temp solid dir so `rs-v2-eval` binds `solid_tip_sf`
     with tempfile.TemporaryDirectory() as solid_tmp:
         gci_file = Path(solid_tmp) / f'{label}_gci.json'
         gci_compat = {
             'design': label,
+            'certificate_identity': d1_doc['certificate_identity'],
+            'solid_record': solid_record,
             'SF_nodal_max': {
                 'fine': solid_record['stored_solid']['SF_nodal_max'],
             },
@@ -422,9 +456,11 @@ def evaluate_candidate(
         }
         gci_file.write_text(json.dumps(gci_compat), encoding='utf-8')
         bindings_compat = {
-            label: {
+            d1_doc['certificate_identity']: {
                 'genome': str(canon_genome),
+                'certificate_identity': d1_doc['certificate_identity'],
                 'gci': str(gci_file),
+                'gci_sha256':_sha256(gci_file),
             }
         }
         (Path(solid_tmp) / 'bindings.json').write_text(json.dumps(bindings_compat), encoding='utf-8')
@@ -553,6 +589,9 @@ def evaluate_candidate(
 
     summary = {
         'schema': 'jarambit.cad_candidate_evaluation.v1',
+        'certificate_identity': d1_doc['certificate_identity'],
+        'rs_v2_gates': rs_doc['gates'],
+        'export_measurements': rs_doc['export_measurements'],
         'subject': label,
         'genome_csv': str(canon_genome.relative_to(ROOT)) if canon_genome.is_relative_to(ROOT) else str(canon_genome),
         'genome_sha256': _sha256(canon_genome),
@@ -596,7 +635,8 @@ def evaluate_candidate(
             'ring_bearing_w_mm': float(rs_doc['ring_bearing_w_mm']),
             'plate_gci_fine': gci_doc['seq_ratio_gci']['gci_fine'],
             'rs_v2_screen_plate_pass': bool(rs_doc.get('groups', {}).get('screen_plate')),
-            'promote_eligible': bool(d1_blk.get('promote_eligible')),
+            'promote_eligible': bool(d1_blk.get('promote_eligible')) and bool(rs_doc.get('all_hard')) and all(gates_map.values()),
+            'rs_v2_all_hard': bool(rs_doc.get('all_hard')),
         },
         'global_fitness_G1': {
             'metric': 'G1',

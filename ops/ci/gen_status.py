@@ -12,7 +12,7 @@ sys.path.insert(0, ROOT)
 from ops.ci import rs_verdicts  # noqa: E402
 import global_metric  # noqa: E402
 
-from gen_readme import BATTERY_SUBJECTS  # noqa: E402
+from gen_readme import BATTERY_SUBJECTS, integrity_status  # noqa: E402
 
 PROVISIONAL = ('docs/wave27_diversity/plates/wave27_D1_index.json', 'g3_tip+00_t60_tt3_D1')
 
@@ -72,8 +72,8 @@ def generate(context=None):
          f'- **Engineering provisional:** `{label}` ({idx})',
          f'  - {verdict}',
          f'  - G1 {g_s} · mass {rec.get("mass_g")} g · seq {rec.get("seq_ratio")}',
-         f'- **CAD battery & calibrated `W_CAD_v2` search (`evidence/cad_battery/*.json`):** {len(BATTERY_SUBJECTS)} subjects × 18 evaluators ({n_rsv2_pass}/{len(BATTERY_SUBJECTS)} pass all `RS-karambit-v2` hard gates)',
-         f'  - Lightest genome passing certified `seq >= 1.20` + 3D P2 solid-tip `SF >= 1.0`: `{best_b["subject"]}` · G1 {best_g:.4f} ({gf["status"]}) · mass {best_mg:.3f} g · seq {best_seq:.3f} · solid-tip SF {best_tip:.4f}',
+         f'- **Historical CAD battery & calibrated `W_CAD_v2` search (`evidence/cad_battery/*.json`):** {len(BATTERY_SUBJECTS)} subjects × 18 evaluators ({n_rsv2_pass}/{len(BATTERY_SUBJECTS)} pass all `RS-karambit-v2` hard gates)',
+         f'  - Lightest historical screen passing certified `seq >= 1.20` + 3D P2 solid-tip `SF >= 1.0`: `{best_b["subject"]}` · G1 {best_g:.4f} ({gf["status"]}) · mass {best_mg:.3f} g · seq {best_seq:.3f} · solid-tip SF {best_tip:.4f}',
          '', '## Roadmap milestones (`docs/v1/jarambit_v1_roadmap.json`)', '',
          '| version | title | state | PRs |', '|---|---|---|---|']
     nxt = None
@@ -87,6 +87,7 @@ def generate(context=None):
             state = 'planned'
         L.append(f"| {v} | {ms['title']} | {state} | {len(ms.get('work_items', []))} |")
     L += ['', 'History: `docs/history/` (archived root STATUS.md / GAPS.md snapshots). Release notes: `docs/RELEASES.md`.', '']
+    L[4:4] = [integrity_status(), '']
     output = '\n'.join(L)
     return rs_verdicts.replace_claim_block(output, context) if context is not None else output
 

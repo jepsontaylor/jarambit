@@ -1,6 +1,6 @@
 {
  "figure": "docs/figures/whitepaper/fig_readme_mass_vs_wave.png",
- "figure_sha256": "e503842afe00f04f484fbefcaee7f38e7ecfa71ead03ca01b7bdb0688d8de387",
+ "figure_sha256": "ac5eb2388d5071590ac76c820c1791d9a3b4fb5d50afc7447b43ed08793b257d",
  "inputs": {
   "docs/wave27_diversity/plates/wave27_D1_index.json": "5a7258526e80410bad0ae0580b5f31c28982a780fc3c7b4a18a66dc39b96dcf2",
   "docs/wave27_diversity/plates_e/wave27e_D1_index.json": "c15de7dd4039251f048e295d1bc57e8fe56ab50249b09fa03ddd0f3ae37d96c2",
@@ -14,7 +14,7 @@
   "evidence/cad_battery/w280_s2931_c01.json": "bd9341933ec76fbe571d1a546a0625f9e3840ed9502e11b8dd65358b7e4b8c96",
   "evidence/cad_battery/w281_s2932_c01.json": "7532e7d3fc9b68599a73f595eb82be2237928b7c63a4ca9c23bdd8f3e9216c12",
   "evidence/cad_battery/w282_p14_c01.json": "528fc112a19589657239984791beb22065210ac48bfef2b03d79d40bedb767bb",
-  "evidence/cad_battery/w283_p14_c01.json": "2b3fa9c3b40f311b1754869d4c98af85b9f1eec95b22f68edf2a13aa9b62bbfa",
+  "evidence/cad_battery/w283_p14_c01.json": "ef7741201588390a05c77d115cf74090e7c5b1a3a7a51c6437a32dfc98f86d4e",
   "evidence/fem_solid/verify_0.30.2.json": "4778735a2e5fcd44e071e3d1013e9190ce0c6b2af637896890f6dfbade2d9008",
   "evidence/rs_v2/w274_calibrated/w274_s2905_c01_cad_eval.json": "888e32246eeb329bc6c15e0b3cd0676bacef18067ad72ee5682b3aea7a854883",
   "evidence/rs_v2/w275_ultrarunner/w275_s2909_c01_cad_eval.json": "258e7a05f138e1eab9d5094c4063233eee131f7fce22dd5506d7b0a69de0f2cf",
@@ -25,7 +25,7 @@
   "evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_cad_eval.json": "71b1491227e9cb8002234c711bc181ccfca8605781b0e0ad24f5a03bb724d34a",
   "evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_cad_eval.json": "58ead96cff5dc4db982ddc6b49a044bc9b223ee0a2d7b7bbcc949f7126ecc049",
   "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json": "afdfa9676e988928159274a8b046b4bb02521f274abcf618938cef9dcb29db17",
-  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "b8edcc0251ac08a5dce859a4a07278739582799b175ac92416c9a41c3bb2a8fe"
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "df555734d327afe077ca354764f8fea05e7e574bcaa1964beffb2653e911dffc"
  },
  "norms": {},
  "schema": 1,

@@ -1,0 +1,82 @@
+{
+ "design": "/tmp/jarambit-v1-cert-integrity-20261017/evidence/cert_integrity/recertified/w283_p14_c01/w283_p14_c01_D1.json",
+ "T_Nmm": 1820.0,
+ "sallow_joint_MPa": 729.8,
+ "JK2": 0.8813,
+ "plate": {
+  "sigma_per_Nmm": 0.3566,
+  "at": [
+   186.57,
+   -49.62
+  ],
+  "dist_tip": 4.054255076117215,
+  "t_local": 2.1728,
+  "b_section": 11.25,
+  "kc_3d": 1.138,
+  "sigma_plate_MPa": 649.012,
+  "sigma_plate_x_kc_MPa": 738.6102294303438,
+  "SF_plate_raw": 1.1244092563135144,
+  "SF_plate_d1": 0.9880110932411175
+ },
+ "solid": {
+  "PATCH_mm": 2.0,
+  "n_tet": 91008,
+  "n_dof": 416583,
+  "R_CUT": 30.0,
+  "NL": 4,
+  "NSUB": 1,
+  "nodal_avg_peak": {
+   "MPa": 718.5,
+   "at": [
+    186.1,
+    -49.83,
+    -0.84
+   ],
+   "dist": 4.04
+  },
+  "nodal_max_peak": {
+   "MPa": 762.0,
+   "at": [
+    186.1,
+    -49.83,
+    -0.84
+   ],
+   "dist": 4.04
+  },
+  "elem_mean_peak": {
+   "MPa": 634.9,
+   "at": [
+    186.17,
+    -49.8,
+    0.77
+   ]
+  },
+  "SF_solid_nodal_avg": 1.016,
+  "SF_solid_nodal_max": 0.958,
+  "SF_solid_elem_mean": 1.149,
+  "twist_rot_check": null,
+  "wall_s": 1225.7
+ },
+ "profile_MPa": {
+  "plate_raw": {
+   "4-5": 649.012,
+   "5-6": 399.67199999999997,
+   "6-8": 277.914,
+   "8-10": 195.65,
+   "10-12": 204.568,
+   "12-15": 215.488,
+   "15-20": 199.472,
+   "20-25": 164.71
+  },
+  "solid_nodal_avg": {
+   "4-5": 718.5,
+   "5-6": 371.3,
+   "6-8": 255.2,
+   "8-10": 191.0,
+   "10-12": 219.1,
+   "12-15": 227.1,
+   "15-20": 182.2,
+   "20-25": 139.5
+  }
+ }
+}

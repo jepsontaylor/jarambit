@@ -36,7 +36,10 @@ jobs:
           components: clippy
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - name: cargo test --release (all crates, incl. D1 owner-lock gate tests)
-        run: cargo test --release --workspace
+        run: |
+          export TMPDIR="$PWD/target/ci-d1-tmp/${GITHUB_RUN_ID}/${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$TMPDIR"
+          cargo test --release --workspace -- --test-threads=2
       - name: Clippy - no Option::unwrap_or_default in the CLI (missing FEM must be null + status, PR-0.28.3)
         run: cargo clippy --release -p jarambit -- -A clippy::all -D clippy::disallowed_methods
       - name: D1 owner-lock gate tests (explicit, fast)

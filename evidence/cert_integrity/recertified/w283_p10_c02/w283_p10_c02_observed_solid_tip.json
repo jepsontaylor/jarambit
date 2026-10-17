@@ -1,0 +1,46 @@
+{
+  "certificate_identity": "e1a202592363b8252051856817e71632387908bb9fb39126514a3ecae8d5f31e",
+  "copied_from_another_genome": false,
+  "d1_path": "evidence/cert_integrity/recertified/w283_p10_c02/w283_p10_c02_D1.json",
+  "d1_sha256": "f41e6ca2d635ad008a5a3b0c680e50d01faae81743ee3b30660c3727100473a2",
+  "dolfinx_cross_check": {
+    "SF_nodal_avg": 1.0158,
+    "SF_nodal_max": 0.9578,
+    "container": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+    "independent_solver": "dolfinx_v0.9.0",
+    "ksp_its": 130,
+    "mesh_sha256": "3e04e5bc74bd0d905be49dc5b53a86c0755f9ab8cafef15de4b1273e1d8c44a2",
+    "primary_solver": "skfem_p2",
+    "rel_err_nodal_avg": 0.000197,
+    "rel_err_nodal_max": 0.000209,
+    "status": "verified",
+    "within_2pct": true
+  },
+  "dolfinx_raw_sha256": "11b9eaa1f775ab06147317fc7698599bd3c4a6f3defc8647b7dca057d0805137",
+  "entered_as_solver_run": true,
+  "genome_data_row_matches_csv": true,
+  "genome_sha256": "61594e106aedc7ecd9438e8867d8e743b1a7620f578b39951bf9851077b4fdac",
+  "mesh_sha256": "3e04e5bc74bd0d905be49dc5b53a86c0755f9ab8cafef15de4b1273e1d8c44a2",
+  "metrics": {
+    "aes_score": 0.4079,
+    "spg": 2.57037
+  },
+  "schema": "jarambit.stored_solid_tip.v1",
+  "skfem_raw_sha256": "4d298063727a2926a884f908288fd4c8fdff316073676737a6ffcfdcddfd6016",
+  "solve_rerun": true,
+  "stored_solid": {
+    "NL": 4,
+    "NSUB": 1,
+    "PATCH_mm": 2.0,
+    "R_CUT": 30.0,
+    "SF_elem_mean": 1.15,
+    "SF_nodal_avg": 1.0158,
+    "SF_nodal_max": 0.9578,
+    "SF_skfem_nodal_avg": 1.016,
+    "SF_skfem_nodal_max": 0.958,
+    "ksp_its": 130,
+    "n_dof": 416583,
+    "n_tet": 91008
+  },
+  "subject": "w283_p10_c02"
+}

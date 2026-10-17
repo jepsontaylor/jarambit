@@ -6,14 +6,14 @@
     "model": "radial_pin_bearing_and_flange",
     "n_bore_nodes": 130
   },
-  "buckling_critical_load_n": 2269.3597467646405,
-  "buckling_eigenvalue": 8.728306718325541,
+  "buckling_critical_load_n": 2623.46885008842,
+  "buckling_eigenvalue": 10.090264808032384,
   "certified_model": "run_b ring-hole clamp in all 5 DOFs",
-  "certified_seq_ratio": 1.2189538613710593,
+  "certified_seq_ratio": 0.7179476490627898,
   "changes_seq_ratio": false,
-  "d1_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-  "eigensolver": "jarambit_physics::side_a4::lanczos_k_orth",
-  "genome": "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_genome.csv",
+  "d1_sha256": "f41e6ca2d635ad008a5a3b0c680e50d01faae81743ee3b30660c3727100473a2",
+  "eigensolver": "scipy.sparse.linalg.eigsh",
+  "genome": "evidence/cert_integrity/recertified/w283_p10_c02/w283_p10_c02_genome.csv",
   "genome_sha256": "61594e106aedc7ecd9438e8867d8e743b1a7620f578b39951bf9851077b4fdac",
   "grip_foundation_stiffness": {
     "k_foundation_n_per_mm3": 200.0,
@@ -27,8 +27,8 @@
   "schema": "jarambit.side_report.a4.v1",
   "status": "pass",
   "subject": "w283_p10_c02",
-  "supported_blade_peak_mpa_per_n": 2.045167126529485,
-  "supported_hand_peak_mpa_per_n": 0.5168143163673996,
-  "supported_seq_ratio": 3.9572571071649456,
-  "supported_vs_certified_seq_delta": 2.7383032457938863
+  "supported_blade_peak_mpa_per_n": 2.045162646252688,
+  "supported_hand_peak_mpa_per_n": 0.5400176443494354,
+  "supported_seq_ratio": 3.7872144876238547,
+  "supported_vs_certified_seq_delta": 3.069266838561065
 }

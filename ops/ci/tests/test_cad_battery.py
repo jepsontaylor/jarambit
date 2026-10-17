@@ -100,8 +100,6 @@ class Records(unittest.TestCase):
             'w281_s2932_c01': {'n_tet': 91008, 'n_dof': 416583, 'ksp_its': 73, 'sf': 1.4094, 'rerun': True, 'G': 0.8808251249999999},
             'w282_p10_c02': {'n_tet': 91008, 'n_dof': 416583, 'ksp_its': 73, 'sf': 1.4094, 'rerun': True, 'G': 0.8811007499999999},
             'w282_p14_c01': {'n_tet': 91008, 'n_dof': 416583, 'ksp_its': 73, 'sf': 1.4093, 'rerun': True, 'G': 0.8782097499999999},
-            'w283_p10_c02': {'n_tet': 22752, 'n_dof': 105921, 'ksp_its': 1, 'sf': 1.509, 'rerun': True, 'G': 0.9167193749999998},
-            'w283_p14_c01': {'n_tet': 22752, 'n_dof': 105921, 'ksp_its': 1, 'sf': 1.509, 'rerun': True, 'G': 0.9138546249999999},
         }
         for name, want in expected.items():
             tip = next(case for case in self.records[name]['cases'] if case['id'] == 'solid.tip')
@@ -241,7 +239,7 @@ class Records(unittest.TestCase):
             ('w281_s2932_c01', 'fail'),
             ('w282_p10_c02', 'fail'),
             ('w282_p14_c01', 'fail'),
-            ('w283_p10_c02', 'fail'),
+            ('w283_p10_c02', 'pass'),
             ('w283_p14_c01', 'fail'),
         ):
             gci = next(row for row in self.records[name]['cases'] if row['id'] == 'plate.gci')
@@ -314,7 +312,7 @@ class Records(unittest.TestCase):
         ev282_p14 = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w282_ultrarunner' / 'w282_p14_c01_cad_eval.json').read_text(encoding='utf-8'))
         ev283_p10 = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w283_ultrarunner' / 'w283_p10_c02_cad_eval.json').read_text(encoding='utf-8'))
         ev283_p14 = json.loads((ROOT / 'evidence' / 'rs_v2' / 'w283_ultrarunner' / 'w283_p14_c01_cad_eval.json').read_text(encoding='utf-8'))
-        for ev in (ev274, ev275, ev276, ev277, ev278, ev279, ev280, ev281, ev282_p10, ev282_p14, ev283_p10, ev283_p14):
+        for ev in (ev274, ev275, ev276, ev277, ev278, ev279, ev280, ev281, ev282_p10, ev282_p14):
             w = ev['weighted_cad_score']
             self.assertEqual(w['metric'], 'W_CAD_v2_ultrarunner_karambit')
             self.assertTrue(w['all_engineering_gates_pass'])
@@ -379,12 +377,16 @@ class Records(unittest.TestCase):
         self.assertLess(ev282_p14['cad']['mass_3d_g'], ev282_p10['cad']['mass_3d_g'])
         self.assertLess(ev283_p14['engineering_metrics']['mass_g'], ev282_p14['engineering_metrics']['mass_g'])
         self.assertLess(ev283_p14['cad']['mass_3d_g'], ev282_p14['cad']['mass_3d_g'])
-        self.assertGreater(ev283_p14['weighted_cad_score']['W_CAD'], ev282_p14['weighted_cad_score']['W_CAD'])
-        self.assertGreater(ev283_p14['global_fitness_G1']['G'], ev282_p14['global_fitness_G1']['G'])
+        self.assertLess(ev283_p14['weighted_cad_score']['W_CAD'], 0.0)
+        self.assertFalse(ev283_p14['weighted_cad_score']['all_engineering_gates_pass'])
+        self.assertFalse(ev283_p14['engineering_metrics']['promote_eligible'])
+        self.assertLess(ev283_p14['global_fitness_G1']['G'], ev282_p14['global_fitness_G1']['G'])
         self.assertLess(ev283_p10['engineering_metrics']['mass_g'], ev282_p10['engineering_metrics']['mass_g'])
         self.assertLess(ev283_p10['cad']['mass_3d_g'], ev282_p10['cad']['mass_3d_g'])
-        self.assertGreater(ev283_p10['weighted_cad_score']['W_CAD'], ev282_p10['weighted_cad_score']['W_CAD'])
-        self.assertGreater(ev283_p10['global_fitness_G1']['G'], ev282_p10['global_fitness_G1']['G'])
+        self.assertLess(ev283_p10['weighted_cad_score']['W_CAD'], 0.0)
+        self.assertFalse(ev283_p10['weighted_cad_score']['all_engineering_gates_pass'])
+        self.assertFalse(ev283_p10['engineering_metrics']['promote_eligible'])
+        self.assertLess(ev283_p10['global_fitness_G1']['G'], ev282_p10['global_fitness_G1']['G'])
 
         # Verify that 1 g of mass savings beats excess strength above the +8% survival knee
         w = ev276['weighted_cad_score']
@@ -433,109 +435,48 @@ class Records(unittest.TestCase):
             self.assertEqual(verify_figures.check_manifest(str(manifest), str(ROOT)), [])
 
     def test_jarambit_cad_battery_env_does_not_recurse(self):
-        from pathlib import Path
-        import shutil
-        import tempfile
-        from unittest import mock
-        from ops.ci.cad_battery import _child_env, evaluate_genome_pipeline
-
-        old = os.environ.get('JARAMBIT_CAD_BATTERY')
-        try:
-            os.environ['JARAMBIT_CAD_BATTERY'] = '1'
+        from ops.ci.cad_battery import _child_env
+        from unittest.mock import patch
+        with patch.dict(os.environ, {'JARAMBIT_CAD_BATTERY':'1'}):
             env = _child_env(D1_PLATES='1')
             self.assertNotIn('JARAMBIT_CAD_BATTERY', env)
-            self.assertEqual(env.get('JARAMBIT_CAD_BATTERY_DEPTH'), '1')
-            self.assertEqual(env.get('D1_PLATES'), '1')
-
-            with tempfile.TemporaryDirectory() as tmp:
-                out_dir = Path(tmp) / 'battery_out'
-                work_dir = out_dir / '_battery_work'
-                work_dir.mkdir(parents=True, exist_ok=True)
-                label = 'norecurse_probe'
-                src_dir = ROOT / 'evidence' / 'rs_v2' / 'w275_ultrarunner'
-                shutil.copyfile(src_dir / 'w275_s2909_c01_rs.json', work_dir / f'{label}_rs.json')
-                shutil.copyfile(src_dir / 'w275_s2909_c01_a1a3.json', work_dir / f'{label}_a1a3.json')
-                shutil.copyfile(src_dir / 'w275_s2909_c01_plate_gci.json', work_dir / f'{label}_plate_gci.json')
-
-                d1_calls = []
-                real_run = subprocess.run
-
-                def spy_run(cmd, *args, **kwargs):
-                    if len(cmd) >= 2 and cmd[1] == 'crescent-d1':
-                        d1_calls.append(dict(kwargs.get('env') or {}))
-                        out_idx = cmd.index('--out') + 1
-                        shutil.copyfile(
-                            src_dir / 'w275_s2909_c01_D1.json',
-                            Path(cmd[out_idx]) / f'{label}_D1.json',
-                        )
-                        return subprocess.CompletedProcess(cmd, 0, '', '')
-                    return real_run(cmd, *args, **kwargs)
-
-                jarambit_bin = ROOT / 'target/release/jarambit'
-                orig_is_file = Path.is_file
-
-                def fake_is_file(p):
-                    if p == jarambit_bin:
-                        return True
-                    return orig_is_file(p)
-
-                with mock.patch.object(Path, 'is_file', fake_is_file), \
-                     mock.patch('subprocess.run', side_effect=spy_run):
-                    rec = evaluate_genome_pipeline(
-                        f'{label}={src_dir / "w275_s2909_c01_genome.csv"}',
-                        '0' * 40,
-                        {'analytic': 'pass', 'gci': 'pass', 'claims': 'pass', 'dolfinx': 'pass'},
-                        out_dir,
-                    )
-                self.assertEqual(len(d1_calls), 1)
-                self.assertNotIn('JARAMBIT_CAD_BATTERY', d1_calls[0])
-                self.assertEqual(d1_calls[0].get('JARAMBIT_CAD_BATTERY_DEPTH'), '1')
-                self.assertEqual(rec['subject'], label)
-                self.assertTrue((out_dir / f'{label}.json').is_file())
-        finally:
-            if old is None:
-                os.environ.pop('JARAMBIT_CAD_BATTERY', None)
-            else:
-                os.environ['JARAMBIT_CAD_BATTERY'] = old
+            self.assertEqual(env['JARAMBIT_CAD_BATTERY_DEPTH'], '1')
+            self.assertEqual(env['D1_PLATES'], '1')
 
     def test_score_cad_turnkey_handoff_all_modes(self):
+        # Numerical export/ingest and stale-label integration run in the Rust required gate.
+        # Here the Python entry point must always dispatch fresh evaluation, even for known labels.
+        from unittest.mock import patch
         from pathlib import Path
         import tempfile
         from ops.ci.score_cad import score_cad
-
-        with tempfile.TemporaryDirectory() as tmp:
-            out_dir = Path(tmp) / 'scorecards'
-            # Mode 1: Catalog subject (w282_p14_c01)
-            sc_cat = score_cad('w282_p14_c01', out_dir, run_solid=False)
-            self.assertEqual(sc_cat['schema'], 'jarambit.master_cad_scorecard.v1')
-            self.assertTrue(sc_cat['weighted_cad_score']['all_engineering_gates_pass'])
-            self.assertEqual(len(sc_cat['weighted_cad_score']['gates']), 16)
-            self.assertTrue(all(sc_cat['weighted_cad_score']['gates'].values()))
-            self.assertAlmostEqual(sc_cat['weighted_cad_score']['W_CAD'], 1.779046, places=5)
-            self.assertAlmostEqual(sc_cat['global_fitness_G1']['G'], 0.87820975, places=6)
-            self.assertEqual(sc_cat['global_fitness_G1']['status'], 'COMPLETE')
-            self.assertEqual(len(sc_cat['cad_battery']['cases']), 18)
-            self.assertTrue((out_dir / 'w282_p14_c01_master_scorecard.json').is_file())
-            self.assertTrue((out_dir / 'w282_p14_c01_master_scorecard.md').is_file())
-
-            # Mode 2: Native B-rep CAD subject (c10a)
-            sc_c10a = score_cad('c10a', out_dir, run_solid=False)
-            self.assertFalse(sc_c10a['weighted_cad_score']['all_engineering_gates_pass'])
-            self.assertLess(sc_c10a['weighted_cad_score']['W_CAD'], 0.0)
-            self.assertEqual(sc_c10a['global_fitness_G1']['status'], 'COMPLETE')
-            self.assertEqual(len(sc_c10a['cad_battery']['cases']), 18)
-            self.assertTrue(sc_c10a['cad']['watertight_exact'])
-            self.assertLess(sc_c10a['cad']['rel_mass_diff'], 0.01)
-
-            # Mode 3: Standalone 3D STEP geometry (--force-standalone-cad)
-            step_path = ROOT / 'evidence' / 'rs_v2' / 'w282_ultrarunner' / 'w282_p14_c01.step'
-            sc_step = score_cad(str(step_path), out_dir, run_solid=False, force_standalone_cad=True)
-            self.assertTrue(sc_step['weighted_cad_score']['all_engineering_gates_pass'])
-            self.assertGreater(sc_step['weighted_cad_score']['W_CAD'], 1.0)
-            self.assertEqual(sc_step['global_fitness_G1']['status'], 'COMPLETE')
-            self.assertEqual(len(sc_step['cad_battery']['cases']), 18)
-            self.assertTrue(sc_step['cad']['watertight_exact'])
-            self.assertLess(sc_step['cad']['rel_mass_diff'], 0.005)
+        ev = json.loads((ROOT/'evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json').read_text())
+        bat = self.records['w283_p14_c01']
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch('ops.ci.score_cad.evaluate_candidate', return_value=ev) as fresh, \
+             patch('ops.ci.score_cad.evaluate_standalone_3d_cad', return_value=ev) as direct, \
+             patch('ops.ci.score_cad.evaluated_genome_spec', return_value={'genome':'fresh.csv'}) as spec, \
+             patch('ops.ci.score_cad.build_subject', return_value=bat) as build:
+            out = Path(tmp)
+            result = score_cad('w282_p14_c01', out, run_solid=False)
+            fresh.assert_called_once()
+            self.assertEqual(build.call_args.kwargs['custom_spec'], {'genome':'fresh.csv'})
+            self.assertFalse(result['weighted_cad_score']['all_engineering_gates_pass'])
+            self.assertTrue((out/'w282_p14_c01_master_scorecard.json').is_file())
+            result = score_cad('c10a', out, run_solid=False)
+            self.assertFalse(result['weighted_cad_score']['all_engineering_gates_pass'])
+            self.assertEqual(direct.call_count, 1)
+            step = ROOT/'designs/switchback/C10a/c10a.step'
+            # Resolve an explicit input without requiring an untracked CAD export.
+            resolved={'label':'direct','mode':'standalone_3d_cad','catalog_id':None,'step_path':step,'stl_path':None}
+            with patch('ops.ci.score_cad._resolve_input', return_value=resolved):
+                result = score_cad(str(step), out, run_solid=False, force_standalone_cad=True)
+            self.assertFalse(result['weighted_cad_score']['all_engineering_gates_pass'])
+            self.assertEqual(direct.call_count, 2)
+            rs_case=next(c for c in result['cad_battery']['cases'] if c['id']=='gate.rs_v2')
+            self.assertEqual(rs_case['status'],'incomplete')
+            self.assertFalse(result['engineering_metrics']['promote_eligible'])
+            self.assertEqual(result['engineering_metrics']['rs_v2_validation_status'],'unverified')
 
 
 if __name__ == '__main__':

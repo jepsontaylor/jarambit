@@ -1,0 +1,19 @@
+{
+  "base_commit": "1e93e6f31bb95028fccd594c0f4bc2089a8488de",
+  "genomes": {
+    "w283_p10_c02": {
+      "path": "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_genome.csv",
+      "sha256": "61594e106aedc7ecd9438e8867d8e743b1a7620f578b39951bf9851077b4fdac"
+    },
+    "w283_p14_c01": {
+      "path": "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv",
+      "sha256": "aa54fe9148fe303b2054bc5449f063f507d6feffa07556d144013aa9ded5b009"
+    }
+  },
+  "public_constants_checked": {
+    "crates/crescent/src/fem.rs": 31,
+    "crates/crescent/src/genome.rs": 94,
+    "crates/physics/src/lib.rs": 6
+  },
+  "requirement_files_and_genome_bounds_unchanged": true
+}

@@ -828,143 +828,38 @@ def build_subject(subject_id, commit, probes, *, geometry=None, measure=False, c
     return record
 
 
+def evaluated_genome_spec(label: str, directory: Path) -> dict:
+    """Only the artifacts just produced for this evaluation may supply the battery."""
+    directory = directory.resolve()
+    side = directory / f'{label}_a1a3.json'
+    return {
+        'rs': str(directory / f'{label}_rs.json'),
+        'd1': str(directory / f'{label}_D1.json'),
+        'genome': str(directory / f'{label}_genome.csv'),
+        'tip_mesh': str(directory / f'{label}_solid_tip.json'),
+        'plate_gci': str(directory / f'{label}_plate_gci.json'),
+        'side_a4': str(directory / f'{label}_a4.json'),
+        'side_path': str(side), 'side_sha': _sha256(side),
+        'side_seq': json.loads(side.read_text())['seq_ratio_this_mesh'],
+    }
+
+
 def evaluate_genome_pipeline(entry: str, commit: str, probes: dict, out_dir: Path) -> dict:
-    """Run the full CAD -> G1 fitness evaluator battery on `<label>=<genome.csv>`."""
-    import subprocess
-    import tempfile
-    from fem_solid.gci import Level, MeshRef, Observable, compute_gci
-    from ops.ci.side_a4 import evaluate_subject as eval_side_a4
-
+    """Evaluate the supplied genome, regardless of catalog/adjacent labels or files."""
+    from ops.ci.evaluate_cad_candidate import evaluate_candidate
     if '=' in entry:
-        label, gpath_str = entry.split('=', 1)
+        label, text = entry.split('=', 1)
     else:
-        gpath_str = entry
-        label = Path(gpath_str).stem.replace('_genome', '')
-    gpath = Path(gpath_str)
-    if not gpath.is_absolute():
-        gpath = ROOT / gpath
-    grel = str(gpath.relative_to(ROOT)) if gpath.is_relative_to(ROOT) else str(gpath)
-
-    jarambit_bin = ROOT / 'target/release/jarambit'
-    probe_bin = ROOT / 'target/release/examples/plate_gci_probe'
-    side_bin = ROOT / 'target/release/examples/g3_side_report'
-
-    _native, genomes = subject_catalog()
-    in_catalog = label in genomes
-    if in_catalog:
-        spec_cat = genomes[label]
-        rs_path = ROOT / spec_cat['rs']
-        a1a3_path = ROOT / (spec_cat.get('side_path') or f'evidence/cad_battery/side/{label}_a1a3.json')
-        gci_path = ROOT / (spec_cat.get('plate_gci') or f'evidence/cad_battery/plate_gci/{label}.json')
-        a4_path = ROOT / (spec_cat.get('side_a4') or f'evidence/cad_battery/side/{label}_a4.json')
-    else:
-        work_dir = out_dir / '_battery_work'
-        work_dir.mkdir(parents=True, exist_ok=True)
-        rs_path = work_dir / f'{label}_rs.json'
-        a1a3_path = work_dir / f'{label}_a1a3.json'
-        gci_path = work_dir / f'{label}_plate_gci.json'
-        a4_path = work_dir / f'{label}_a4.json'
-
-    if not rs_path.is_file() and jarambit_bin.is_file():
-        with tempfile.TemporaryDirectory() as tmp:
-            subprocess.run(
-                [str(jarambit_bin), 'rs-v2-eval', '--genomes', f'{label}={grel}',
-                 '--out', tmp, '--solid-dir', str(ROOT / 'evidence/fem_solid/gci')],
-                cwd=ROOT, env=_child_env(), check=True,
-            )
-            rs_path.parent.mkdir(parents=True, exist_ok=True)
-            rs_path.write_text((Path(tmp) / f'{label}.json').read_text(encoding='utf-8'), encoding='utf-8')
-
-    if not a1a3_path.is_file() and side_bin.is_file():
-        a1a3_path.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run([str(side_bin), str(gpath), str(a1a3_path)], cwd=ROOT, env=_child_env(), check=True)
-
-    if not gci_path.is_file() and probe_bin.is_file():
-        with tempfile.TemporaryDirectory() as tmp:
-            raw_p = Path(tmp) / 'raw_gci.json'
-            subprocess.run([str(probe_bin), str(gpath), str(raw_p)], cwd=ROOT, env=_child_env(), check=True)
-            raw_gci = json.loads(raw_p.read_text(encoding='utf-8'))
-            levels_raw = raw_gci['levels_fine_to_coarse']
-            obs_seq = Observable(id='plate_seq_ratio', metric='seq_ratio',
-                                 region='blade_vs_ring_neck', projection='plate_cst_dkt', units='ratio')
-            obs_sf = Observable(id='plate_sf_hunter', metric='sf_hunter',
-                                region='blade_outside_4mm', projection='plate_cst_dkt', units='ratio')
-            l_seq = [Level(mesh=MeshRef(id=f"{label}_area_{lv['max_area_mm2']}", revision='rev1', sha256=lv['mesh_sha256']),
-                           h=float(lv['h_mm']), observable=obs_seq) for lv in levels_raw]
-            l_sf = [Level(mesh=MeshRef(id=f"{label}_area_{lv['max_area_mm2']}", revision='rev1', sha256=lv['mesh_sha256']),
-                          h=float(lv['h_mm']), observable=obs_sf) for lv in levels_raw]
-            seq_res = compute_gci(levels_raw[0]['seq_ratio'], levels_raw[1]['seq_ratio'], levels_raw[2]['seq_ratio'],
-                                  r=2.0, levels=l_seq).to_dict()
-            sf_res = compute_gci(levels_raw[0]['sf_hunter'], levels_raw[1]['sf_hunter'], levels_raw[2]['sf_hunter'],
-                                 r=2.0, levels=l_sf).to_dict()
-            gci_doc = {
-                'schema': 'jarambit.plate_gci.v1',
-                'subject': label,
-                'genome': grel,
-                'genome_sha256': _sha256(gpath),
-                'primary_observable': 'seq_ratio',
-                'refinement_ratio_r': 2.0,
-                'levels_fine_to_coarse': levels_raw,
-                'seq_ratio_gci': seq_res,
-                'sf_hunter_gci': sf_res,
-            }
-            gci_path.parent.mkdir(parents=True, exist_ok=True)
-            gci_path.write_text(json.dumps(gci_doc, indent=2, sort_keys=True) + '\n', encoding='utf-8')
-
-    existing_d1 = None
-    for cand_d1 in (gpath.parent / f'{label}_D1.json', gpath.parent / f'{label}.json', (out_dir / '_battery_work' / f'{label}_D1.json')):
-        if cand_d1.is_file():
-            try:
-                doc = json.loads(cand_d1.read_text(encoding='utf-8'))
-                if isinstance(doc.get('mesh'), dict) and isinstance(doc.get('metrics'), dict):
-                    existing_d1 = cand_d1
-                    break
-            except Exception:
-                pass
-
-    if not a4_path.is_file() and jarambit_bin.is_file() and rs_path.is_file() and a1a3_path.is_file():
-        if existing_d1 is not None:
-            a4_rec = eval_side_a4(label, existing_d1, rs_path, a1a3_path)
-            a4_path.parent.mkdir(parents=True, exist_ok=True)
-            a4_path.write_text(json.dumps(a4_rec, indent=2, sort_keys=True) + '\n', encoding='utf-8')
-        else:
-            with tempfile.TemporaryDirectory() as tmp:
-                subprocess.run(
-                    [str(jarambit_bin), 'crescent-d1', '--genomes', f'{label}={gpath}', '--threads', '4', '--out', tmp],
-                    cwd=ROOT, env=_child_env(D1_PLATES='1'), check=True,
-                )
-                d1_tmp = Path(tmp) / f'{label}_D1.json'
-                if not in_catalog and d1_tmp.is_file():
-                    d1_saved = out_dir / '_battery_work' / f'{label}_D1.json'
-                    d1_saved.parent.mkdir(parents=True, exist_ok=True)
-                    d1_saved.write_text(d1_tmp.read_text(encoding='utf-8'), encoding='utf-8')
-                    existing_d1 = d1_saved
-                a4_rec = eval_side_a4(label, d1_tmp, rs_path, a1a3_path)
-                a4_path.parent.mkdir(parents=True, exist_ok=True)
-                a4_path.write_text(json.dumps(a4_rec, indent=2, sort_keys=True) + '\n', encoding='utf-8')
-
-    custom_spec = None
-    if not in_catalog:
-        side_seq = json.loads(a1a3_path.read_text(encoding='utf-8')).get('seq_ratio_this_mesh') if a1a3_path.is_file() else None
-        tip_cand = None
-        for tc in (gpath.parent / f'{label}_solid_tip.json', out_dir / '_battery_work' / f'{label}_solid_tip.json', out_dir / f'{label}_solid_tip.json'):
-            if tc.is_file():
-                tip_cand = tc
-                break
-        custom_spec = {
-            'rs': str(rs_path),
-            'd1': str(existing_d1) if existing_d1 is not None and existing_d1.is_file() else None,
-            'genome': str(gpath),
-            'tip_mesh': str(tip_cand) if tip_cand is not None else None,
-            'plate_gci': str(gci_path) if gci_path.is_file() else None,
-            'side_a4': str(a4_path) if a4_path.is_file() else None,
-            'side_path': str(a1a3_path) if a1a3_path.is_file() else None,
-            'side_sha': _sha256(a1a3_path) if a1a3_path.is_file() else None,
-            'side_seq': side_seq,
-        }
-    record = build_subject(label, commit, probes, custom_spec=custom_spec)
+        text = entry; label = Path(text).stem.replace('_genome', '')
+    genome = Path(text)
+    if not genome.is_absolute():
+        genome = ROOT / genome
+    work = out_dir / '_battery_work' / label
+    summary = evaluate_candidate(label, genome, work)
+    record = build_subject(label, commit, probes, custom_spec=evaluated_genome_spec(label, work))
+    record['certificate_identity'] = summary['certificate_identity']
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / f'{label}.json').write_text(json.dumps(record, indent=1, sort_keys=False) + '\n', encoding='utf-8')
+    (out_dir / f'{label}.json').write_text(json.dumps(record, indent=1) + '\n')
     return record
 
 

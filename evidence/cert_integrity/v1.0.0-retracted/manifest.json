@@ -1,0 +1,26 @@
+{
+  "files": {
+    "evidence/cad_battery/w283_p10_c02.json": "8f636e15e6eb478b2ed8bd00b081e0d75443c8c6b64ae49cf5daa94a75818ef0",
+    "evidence/cad_battery/w283_p14_c01.json": "2b3fa9c3b40f311b1754869d4c98af85b9f1eec95b22f68edf2a13aa9b62bbfa",
+    "evidence/rs_v2/w283_p10_c02.json": "f5f5c7859b980cfb4f7913850f0742a9f0a8b23d3f15b902268c6dd2034b6768",
+    "evidence/rs_v2/w283_p14_c01.json": "41a1eb6e383f936712b72e3ea9f268cded25ea1f8e3d06c517c96c44c40a57bc",
+    "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_D1.json": "c45c9ec0a62049dfbeae6e1a21f838f11e019489dc1dbc35e1e8eecb803c56b2",
+    "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_a1a3.json": "a0628becd27a5f5749a6398d2cbe9b99fe429f118036549e6cc9d5e41cfc8d18",
+    "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_a4.json": "6cdeee4225379950a82fd8ef8810cd1f90cd7eb4470dacf0c831dd989ce39e0f",
+    "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_cad_eval.json": "effdffb7fc9de300139e22e2312e361e7294fc3b064d9cb52f3bd27ed48e9363",
+    "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_genome.csv": "61594e106aedc7ecd9438e8867d8e743b1a7620f578b39951bf9851077b4fdac",
+    "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_plate_gci.json": "c766289fdbf15025dda9145dbbfecc76339ca3262b2425e6896576e4c8736304",
+    "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_rs.json": "f5f5c7859b980cfb4f7913850f0742a9f0a8b23d3f15b902268c6dd2034b6768",
+    "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_solid_tip.json": "19d2c411db93f147b1db99a91aa1c2f9112ec619dc435500e681da59f24e151b",
+    "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json": "2c012cb3a17bac51b13192b02a988cfb3f15ea08a752edf9e88a8cefdc7768cf",
+    "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_a1a3.json": "6716cda9b734f59d364b7e36d652d337c68890eb2ae5f0ed8115913c8d3972b7",
+    "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_a4.json": "63772779cfefdffe85e54d397f7b879e8575313e6818aab47a0a93074f4f0ef2",
+    "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "b8edcc0251ac08a5dce859a4a07278739582799b175ac92416c9a41c3bb2a8fe",
+    "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv": "aa54fe9148fe303b2054bc5449f063f507d6feffa07556d144013aa9ded5b009",
+    "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_plate_gci.json": "e61377407877f54dda14487359bef621b81ffa4aec85acc8bd1d3da4a61c4707",
+    "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_rs.json": "41a1eb6e383f936712b72e3ea9f268cded25ea1f8e3d06c517c96c44c40a57bc",
+    "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_solid_tip.json": "8c81f1ca0affab86579b9225b5b80d0e16c5fb8a1d1e3fe0851b029cf48e6ab6"
+  },
+  "source_commit": "1e93e6f31bb95028fccd594c0f4bc2089a8488de",
+  "status": "RETRACTED: invalid v1.0.0 certification, retained for audit only"
+}

@@ -7,7 +7,7 @@
       "id": "build.analytic",
       "kind": "software_contract",
       "solver": "analytic",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "pass"
     },
     {
@@ -17,7 +17,7 @@
       "id": "build.gci_contracts",
       "kind": "software_contract",
       "solver": "gci",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "pass"
     },
     {
@@ -31,7 +31,7 @@
       "id": "build.claims",
       "kind": "software_contract",
       "solver": null,
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "pass"
     },
     {
@@ -68,7 +68,7 @@
       "id": "build.dolfinx",
       "kind": "software_contract",
       "solver": "solid_dolfinx",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "pass"
     },
     {
@@ -79,7 +79,7 @@
       "kind": "gate",
       "reason": "no step bound",
       "solver": null,
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "blocked"
     },
     {
@@ -90,7 +90,7 @@
       "kind": "gate",
       "reason": "no step bound",
       "solver": null,
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "blocked"
     },
     {
@@ -107,7 +107,7 @@
       "id": "geom.mass",
       "kind": "derived",
       "solver": "plate_cst_dkt",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "pass"
     },
     {
@@ -118,7 +118,7 @@
       "kind": "software_contract",
       "reason": "genome is not a native CAD pin",
       "solver": null,
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "blocked"
     },
     {
@@ -126,32 +126,32 @@
         "loads": {
           "chord_twist_human_max_sf": {
             "compared_with": 16200,
-            "value_n_or_sf": 1.0075626078499438
+            "value_n_or_sf": 0.11099883356234613
           },
           "hiker_lateral_n": {
             "compared_with": 180,
-            "value_n_or_sf": 265.3847673956978
+            "value_n_or_sf": 194.42681634169116
           },
           "hunter_lateral_n": {
             "compared_with": 260,
-            "value_n_or_sf": 265.3847673956978
+            "value_n_or_sf": 194.42681634169116
           },
           "pry": null,
           "ring_back_sf": {
             "compared_with": 3000,
-            "value_n_or_sf": 2.145791197557866
+            "value_n_or_sf": 2.8595559328398195
           },
           "ring_pull_n": {
             "compared_with": 1500,
-            "value_n_or_sf": 14388.145220864477
+            "value_n_or_sf": 15491.856474946993
           },
           "spine_sf": {
             "compared_with": 3427,
-            "value_n_or_sf": 1.290524117330112
+            "value_n_or_sf": 0.43166014183598034
           },
           "tip_inplane_sf_record_only": {
             "compared_with": 1000,
-            "value_n_or_sf": 0.5559947950729673
+            "value_n_or_sf": 0.5558736510517096
           }
         },
         "note": "derived from the certify record"
@@ -159,41 +159,41 @@
       "evidence_path": "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_rs.json",
       "fresh_this_lane": false,
       "g_inputs": {
-        "spg": 3.50845
+        "spg": 2.57037
       },
       "geometry_sha256": "61594e106aedc7ecd9438e8867d8e743b1a7620f578b39951bf9851077b4fdac",
       "id": "plate.loads",
       "kind": "derived",
-      "reason": "pry safety factor is not in the certify record",
       "solver": "plate_cst_dkt",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
-      "status": "incomplete"
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
+      "status": "fail"
     },
     {
       "detail": {
-        "seq_ratio": 1.218953861371059,
+        "seq_ratio": 0.7179476490627898,
         "seq_target": 1.2,
-        "side_report_seq_ratio": 1.218953861371059
+        "side_report_seq_ratio": 0.7179476490627898
       },
       "evidence_path": "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_rs.json",
       "fresh_this_lane": false,
       "g_inputs": {
-        "seq_ratio": 1.218953861371059
+        "seq_ratio": 0.7179476490627898
       },
       "geometry_sha256": "61594e106aedc7ecd9438e8867d8e743b1a7620f578b39951bf9851077b4fdac",
       "id": "plate.seq",
       "kind": "gate",
+      "reason": "below 1.2",
       "solver": "plate_cst_dkt",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
-      "status": "pass"
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
+      "status": "fail"
     },
     {
       "detail": {
         "cycles": "1e7",
-        "fat_sf": 1.2815797001898848,
+        "fat_sf": 0.5430972966394524,
         "label": "screening",
         "load": "0..180 N",
-        "not": "spec §7.3 L7"
+        "not": "spec \u00a77.3 L7"
       },
       "evidence_path": "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_rs.json",
       "fresh_this_lane": false,
@@ -201,37 +201,36 @@
       "id": "plate.l7",
       "kind": "derived",
       "solver": "plate_cst_dkt",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
-      "status": "pass"
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
+      "status": "fail"
     },
     {
       "detail": {
-        "admitted": false,
-        "discretization_under_3pct": false,
-        "fit_status": "oscillatory",
-        "gci_fine": null,
-        "p": null,
+        "admitted": true,
+        "discretization_under_3pct": true,
+        "fit_status": "admissible_estimate",
+        "gci_fine": 0.006442822289578268,
+        "p": 2.6233982835419463,
         "primary_observable": "seq_ratio",
         "refinement_ratio_r": 2.0,
-        "sf_hunter_fit_status": "oscillatory",
-        "sf_hunter_gci_fine": null,
-        "sf_hunter_p": null
+        "sf_hunter_fit_status": "admissible_estimate",
+        "sf_hunter_gci_fine": 0.017190779522576458,
+        "sf_hunter_p": 1.8854889735835478
       },
       "evidence_path": "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_plate_gci.json",
       "fresh_this_lane": false,
       "geometry_sha256": "61594e106aedc7ecd9438e8867d8e743b1a7620f578b39951bf9851077b4fdac",
       "id": "plate.gci",
       "kind": "derived",
-      "reason": "oscillatory_sequence",
       "solver": "plate_cst_dkt",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
-      "status": "fail"
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
+      "status": "pass"
     },
     {
       "detail": {
         "changes_seq_ratio": false,
         "mesh_mm2": 0.25,
-        "sha256": "a0628becd27a5f5749a6398d2cbe9b99fe429f118036549e6cc9d5e41cfc8d18"
+        "sha256": "adaa04ec6949df7b9037cc621d9ce01383dbbb586a24cc777a4d7b9840aa94af"
       },
       "evidence_path": "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_a1a3.json",
       "fresh_this_lane": false,
@@ -239,14 +238,14 @@
       "id": "side.a1",
       "kind": "derived",
       "solver": "plate_cst_dkt",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "pass"
     },
     {
       "detail": {
         "changes_seq_ratio": false,
         "mesh_mm2": 0.25,
-        "sha256": "a0628becd27a5f5749a6398d2cbe9b99fe429f118036549e6cc9d5e41cfc8d18"
+        "sha256": "adaa04ec6949df7b9037cc621d9ce01383dbbb586a24cc777a4d7b9840aa94af"
       },
       "evidence_path": "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_a1a3.json",
       "fresh_this_lane": false,
@@ -254,14 +253,14 @@
       "id": "side.a2",
       "kind": "derived",
       "solver": "plate_cst_dkt",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "pass"
     },
     {
       "detail": {
         "changes_seq_ratio": false,
         "mesh_mm2": 0.25,
-        "sha256": "a0628becd27a5f5749a6398d2cbe9b99fe429f118036549e6cc9d5e41cfc8d18"
+        "sha256": "adaa04ec6949df7b9037cc621d9ce01383dbbb586a24cc777a4d7b9840aa94af"
       },
       "evidence_path": "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_a1a3.json",
       "fresh_this_lane": false,
@@ -269,21 +268,21 @@
       "id": "side.a3",
       "kind": "derived",
       "solver": "plate_cst_dkt",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "pass"
     },
     {
       "detail": {
         "bore_support": "radial_pin_bearing_and_flange",
-        "buckling_critical_load_n": 2269.3597467646405,
-        "buckling_eigenvalue": 8.728306718325541,
-        "certified_seq_ratio": 1.218953861371059,
+        "buckling_critical_load_n": 2623.46885008842,
+        "buckling_eigenvalue": 10.090264808032384,
+        "certified_seq_ratio": 0.7179476490627898,
         "changes_seq_ratio": false,
         "default_clamp": "ring-hole nodes fixed in all 5 dofs inside run_b",
         "grip_foundation_stiffness": "winkler_grip_pad_foundation",
         "partial_solver_edit": false,
-        "sha256": "6cdeee4225379950a82fd8ef8810cd1f90cd7eb4470dacf0c831dd989ce39e0f",
-        "supported_seq_ratio": 3.9572571071649456
+        "sha256": "2331b0f0007e5bf45ee1c1123ed4edd547c0dfc7486c49615c9ec6c28f267136",
+        "supported_seq_ratio": 3.7872144876238547
       },
       "evidence_path": "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_a4.json",
       "fresh_this_lane": false,
@@ -291,49 +290,49 @@
       "id": "side.a4",
       "kind": "derived",
       "solver": "plate_cst_dkt",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "pass"
     },
     {
       "detail": {
         "NL": 4,
-        "NSUB": 0,
-        "SF_nodal_max": 1.509,
+        "NSUB": 1,
+        "SF_nodal_max": 0.9578,
         "copied_from_another_genome": false,
-        "d1_sha256": "c45c9ec0a62049dfbeae6e1a21f838f11e019489dc1dbc35e1e8eecb803c56b2",
+        "d1_sha256": "f41e6ca2d635ad008a5a3b0c680e50d01faae81743ee3b30660c3727100473a2",
         "entered_as_solver_run": true,
         "genome_data_row_matches_csv": true,
-        "ksp_its": 1,
+        "ksp_its": 130,
         "missing": [],
-        "n_dof": 105921,
-        "n_tet": 22752,
-        "solve_rerun": true
+        "n_dof": 416583,
+        "n_tet": 91008,
+        "solve_rerun": false
       },
       "evidence_path": "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_solid_tip.json",
       "fresh_this_lane": false,
       "g_inputs": {
-        "solid_tip_sf_nodal_max": 1.509
+        "solid_tip_sf_nodal_max": 0.9578
       },
       "geometry_sha256": "61594e106aedc7ecd9438e8867d8e743b1a7620f578b39951bf9851077b4fdac",
       "id": "solid.tip",
       "kind": "solver_run",
       "solver": "solid_skfem_p2",
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
       "status": "pass"
     },
     {
       "detail": {
-        "all_hard": true,
+        "all_hard": false,
         "gates": {
           "aesthetic_and_geometric": "pass",
-          "fatigue": "pass",
-          "floors_828_joint": "pass",
-          "gate_s_sharp_law": "pass",
-          "gate_s_tip_point_brep": "pass",
-          "human_max": "pass",
-          "seq_hard": "pass",
-          "solid_tip_sf": "pass",
-          "strict_hunter_lateral": "pass",
+          "fatigue": "fail",
+          "floors_828_joint": "fail",
+          "gate_s_sharp_law": "fail",
+          "gate_s_tip_point_brep": "fail",
+          "human_max": "fail",
+          "seq_hard": "fail",
+          "solid_tip_sf": "fail",
+          "strict_hunter_lateral": "fail",
           "twist_floor_body_and_tipsub_strict": "pass"
         }
       },
@@ -345,32 +344,34 @@
       "geometry_sha256": "61594e106aedc7ecd9438e8867d8e743b1a7620f578b39951bf9851077b4fdac",
       "id": "gate.rs_v2",
       "kind": "gate",
+      "reason": "does not pass every hard gate",
       "solver": null,
-      "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
-      "status": "pass"
+      "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
+      "status": "fail"
     }
   ],
+  "certificate_identity": "29cc265209093fc44d3bedf788f1210438d27be31ec16e644738453c53f1e25b",
   "global_fitness": {
-    "G": 0.9167193749999998,
+    "G": 0.6216318603776162,
     "inputs": {
       "aes_score": 0.4079,
       "mass_g": 75.6415527306541,
-      "seq_ratio": 1.218953861371059,
-      "solid_tip_sf_nodal_max": 1.509,
-      "spg": 3.50845
+      "seq_ratio": 0.7179476490627898,
+      "solid_tip_sf_nodal_max": 0.9578,
+      "spg": 2.57037
     },
     "metric": "G1",
     "missing": [],
     "provisional": false,
     "status": "COMPLETE",
-    "title": "G 0.917 | 75.6 g | jarambit v1.0.0"
+    "title": "G 0.622 | 75.6 g | jarambit v1.0.0"
   },
-  "pass_count": 13,
+  "pass_count": 11,
   "role": "genome",
   "schema": "jarambit.cad_battery.subject.v1",
   "search_fitness": "unchanged",
   "solver_run_count": 1,
   "solver_run_objects": 1,
-  "source_commit": "6d18ef8cbe7b995890451a8ac7b93b75c928d150",
+  "source_commit": "4e54019dd016ddde71b416460b96e0a9b08a95de",
   "subject": "w283_p10_c02"
 }

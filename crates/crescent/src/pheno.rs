@@ -36,18 +36,8 @@ impl Field {
             if let Some(b) = best { return b.1; } }
         EDGE_T
     }
-    pub fn at_plate(&self, q: P2, rs_v2: bool) -> f64 {
-        if !rs_v2 { return self.at(q); }
-        let i = ((q.0 - self.x0) / self.g).floor() as i64; let j = ((q.1 - self.y0) / self.g).floor() as i64;
-        for r in 0..4i64 { let mut best: Option<(f64, f64)> = None;
-            for a in i - r..=i + r { for b in j - r..=j + r {
-                if a < 0 || b < 0 || a >= self.nx as i64 || b >= self.ny as i64 { continue; }
-                let v = self.base[b as usize * self.nx + a as usize]; if v.is_nan() { continue; }
-                let c = (self.x0 + (a as f64 + 0.5) * self.g, self.y0 + (b as f64 + 0.5) * self.g); let d = dist(c, q);
-                if best.map_or(true, |x| d < x.0) { best = Some((d, v as f64)); } } }
-            if let Some(b) = best { return b.1; } }
-        EDGE_T
-    }
+    /// Plate and export consumers share the actual sharpened field. `base` is machining metadata.
+    pub fn at_plate(&self, q: P2, _rs_v2: bool) -> f64 { self.at(q) }
 }
 
 #[derive(Clone, Debug)]
