@@ -73,6 +73,10 @@ the resulting subsection into IV-D and keep the companion consistent. No docs PR
 may cite the runtime preview as committed evidence. Never copy or edit another
 lane's evidence to bypass that admission rule.
 
+The generator requires JSON boolean verdicts and non-negative integer counts.
+It pins the main commit for admission, rejects source changes during generation,
+and binds manifest source hashes to the exact bytes recorded in the point ledger.
+
 The numerical collection and insertion functions use the standard library, so
 provenance controls run without plotting packages. Generating the actual PNG
 requires NumPy and a complete Matplotlib installation; Blender typography also

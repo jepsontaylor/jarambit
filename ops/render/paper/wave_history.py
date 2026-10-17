@@ -18,12 +18,12 @@ sys.path.insert(0, str(ROOT / 'ops/wave_figures'))
 import figlib
 
 
-def read_board(path, source_root, preview=False):
+def read_board(path, source_root, preview=False, source_commit='origin/main'):
     path = path.resolve()
     relative = path.relative_to(source_root.resolve()).as_posix()
     raw = path.read_bytes()
     if not preview:
-        committed = subprocess.run(['git', 'show', 'origin/main:' + relative],
+        committed = subprocess.run(['git', 'show', source_commit + ':' + relative],
             cwd=source_root, capture_output=True, check=False)
         if committed.returncode or committed.stdout != raw:
             raise ValueError('Wave evidence is not committed unchanged on origin/main: ' + relative)
@@ -31,6 +31,13 @@ def read_board(path, source_root, preview=False):
     if board['schema'] != 'jarambit.auto_evolve.leaderboard.v2':
         raise ValueError('Unsupported leaderboard schema')
     designs = board['designs']
+    for key in ('assessed_count', 'qualified_count'):
+        if type(board[key]) is not int or board[key] < 0:
+            raise ValueError('Expected non-negative JSON integer: ' + key)
+    for row in designs:
+        for key in ('all_16_gates', 'rs_v2_all_hard', 'qualified'):
+            if type(row[key]) is not bool:
+                raise ValueError('Expected JSON boolean verdict: ' + key)
     if not designs or board['assessed_count'] != len(designs):
         raise ValueError('Leaderboard does not enumerate its completed assessments')
     if board['unverified']:
@@ -58,9 +65,16 @@ def collect(paths, source_root, preview=False):
     source_root = source_root.resolve()
     if not preview and source_root != ROOT:
         raise ValueError('Publish from this worktree so manifest inputs stay repository-relative')
+    source_commit = None
+    if not preview:
+        ref = subprocess.run(['git', 'rev-parse', '--verify', 'origin/main^{commit}'],
+            cwd=source_root, capture_output=True, text=True, check=False)
+        if ref.returncode:
+            raise ValueError('Cannot resolve committed wave evidence on origin/main')
+        source_commit = ref.stdout.strip()
     points, waves = [], []
     for path in paths:
-        board, sha = read_board(path, source_root, preview)
+        board, sha = read_board(path, source_root, preview, source_commit=source_commit)
         source = str(path.resolve()) if preview else path.resolve().relative_to(ROOT).as_posix()
         wave = path.parent.name
         if any(w['wave'] == wave for w in waves):
@@ -84,9 +98,38 @@ def collect(paths, source_root, preview=False):
         waves.append(dict(wave=wave, source=source, sha256=sha,
             assessed=board['assessed_count'], qualified=board['qualified_count'],
             champion=board['champion'], unverified=board['unverified'], **summaries))
-    return dict(schema=1, preview=preview,
+    return dict(schema=1, preview=preview, source_commit=source_commit,
         scope='Selected completed Stage-2 assessments; no new solve or certification.',
         waves=waves, points=points)
+
+
+def source_inputs(data, source_root):
+    """Reject substitutions and retain the hashes of the bytes actually reduced."""
+    inputs = {}
+    for wave in data['waves']:
+        path = source_root / wave['source']
+        if figlib.sha256_file(path) != wave['sha256']:
+            raise ValueError('Source changed after leaderboard admission: ' + str(path))
+        inputs[figlib.rel(path)] = wave['sha256']
+    return inputs
+
+
+def write_history_manifest(figure, ledger, snippet, data, source_root, paths):
+    # Unlike re-hashing all inputs at publication, these source entries bind the
+    # same bytes as the point ledger, even if a file changes after this check.
+    inputs = source_inputs(data, source_root)
+    script = Path(__file__).resolve()
+    inputs.update({figlib.rel(p):figlib.sha256_file(p) for p in (ledger, script)})
+    manifest = dict(schema=1, figure=figlib.rel(figure),
+        figure_sha256=figlib.sha256_file(figure), script=figlib.rel(script),
+        inputs=inputs, norms={}, extra={
+            'preview':data['preview'], 'source_commit':data['source_commit'],
+            'scope':'Selected Stage-2 observations, not population estimates or new certification',
+            'point_ledger':str(ledger), 'snippet_sha256':figlib.sha256_file(snippet),
+            'command':' '.join([sys.executable, str(script), '--source-root', str(source_root),
+                '--output-dir', str(figure.parent)] + (['--preview'] if data['preview'] else []) + [str(p) for p in paths])})
+    Path(str(figure)+'.manifest.json').write_text(json.dumps(manifest, indent=1, sort_keys=True)+'\n')
+    return manifest
 
 
 def build_insertion(waves, preview=False):
@@ -112,6 +155,7 @@ def generate(paths, source_root, output, preview=False):
     if preview and any(output.is_relative_to(p/'docs') for p in (ROOT, source_root)):
         raise ValueError('Runtime previews must stay outside the paper')
     data = collect(paths, source_root, preview)
+    source_inputs(data, source_root)
     waves, points = data['waves'], data['points']
 
     import matplotlib
@@ -151,11 +195,7 @@ def generate(paths, source_root, output, preview=False):
     ledger = output / 'wave_history_points.json'
     ledger.write_text(json.dumps(data, indent=1, sort_keys=True)+'\n')
     snippet = output / 'iv_d_wave_history.md'; snippet.write_text(build_insertion(waves, preview))
-    figlib.write_manifest(str(figure), paths+[ledger, Path(__file__).resolve()], str(Path(__file__).resolve()), extra={
-        'preview':preview, 'scope':'Selected Stage-2 observations, not population estimates or new certification',
-        'point_ledger':str(ledger), 'snippet_sha256':figlib.sha256_file(snippet),
-        'command':' '.join([sys.executable, str(Path(__file__).resolve()), '--source-root', str(source_root),
-            '--output-dir', str(output)] + (['--preview'] if preview else []) + [str(p) for p in paths])})
+    write_history_manifest(figure, ledger, snippet, data, source_root, paths)
     print(f'{len(waves)} waves; {sum(w["assessed"] for w in waves)} assessments; {len(points)} traced observations; {snippet}')
 
 
