@@ -305,3 +305,16 @@ fn sub_csv_precision_genome_changes_have_distinct_content_keys() {
         "identity must bind exact IEEE-754 bits"
     );
 }
+
+
+#[test]
+fn bevel_face_entering_the_edge_band_is_measured_even_with_distant_vertices() {
+    // Synthetic measurement control only, not an added design or certificate.
+    let mut p=pheno::build(&record());
+    p.edge_in=vec![(0.45,-1.0),(0.55,-1.0)];p.edge_sp=vec![(9.45,1.0),(9.55,1.0)];
+    let mut s=strip(&[(0.,0.12),(0.45,0.12),(0.55,0.12),(1.,0.12),(9.45,0.12),(9.55,0.12),(10.,0.12)]);
+    assert!(cert::sharpness(&s,&p).unwrap().pass);
+    let start=s.verts.len();s.verts.extend([(0.,-0.95,0.06),(1.,-0.95,0.06),(0.5,0.95,2.06)]);s.tris.push([start,start+1,start+2]);
+    // The steep face is only 0.05 mm from the edge; all three vertices are more than 0.4 mm away.
+    let measured=cert::sharpness(&s,&p).unwrap();assert!(!measured.pass);assert!(measured.max_half_angle_deg>25.);
+}

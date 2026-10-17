@@ -72,11 +72,13 @@ cargo test --release --workspace
 
 ## Quick start
 
-Native `score-cad` runs a fresh screen and reports the independent solid check as **unverified**. The full independent re-certification uses `python3 ops/ci/evaluate_cad_candidate.py` with scikit-fem and the pinned DOLFINx container; a native screen cannot certify an all-hard pass.
+The [genome certification guide](docs/EVOLUTION_CERTIFICATION.md) describes solver setup, automatic top-k assessment, retained raw evidence, and qualification status. The catalog results below are historical model snapshots; live scoring requires compatible content-bound evidence.
+
+Native `score-cad` runs a fresh screen and reports the independent solid check as **unverified**. The full independent re-certification uses `python3 ops/ci/evaluate_cad_candidate.py` with scikit-fem and the pinned DOLFINx container; a native screen cannot certify an all-hard pass. Auto-evolve dispatches the full independent evaluator for its selected candidates.
 
 ```bash
-# 0. One-command autonomous all-gates evolution + 3D TET10 FEM + side.a4 + 18-case CAD battery + Web Studio export
-./evolve.sh --wave w283 --gens 6 --pop 24 --islands 2 --threads 8 --seed 2950
+# 0. Rank evolved genomes and automatically run independent top-k assessments
+./evolve.sh --rounds 1 --candidates-per-round 6 --top-k-certify 1 --threads 2 --seed 20261017
 
 # 1. Score ANY knife CAD (.step, .stl, 128-gene .csv genome, or catalog ID) in pure Rust across all 16 hard gates + all 18 CAD battery evaluators + combined fitness (W_CAD_v2 + G1)
 ./target/release/jarambit score-cad w283_p14_c01 --out-dir /tmp/jarambit_quickstart_scorecard

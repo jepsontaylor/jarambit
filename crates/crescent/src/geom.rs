@@ -233,6 +233,33 @@ impl Segments {
         }
         Self{points:points.to_vec(),bins}
     }
+    /// Exact minimum-distance test against the filled triangle, including a nearby segment
+    /// whose endpoints are far from every triangle vertex. Bins only prune impossible pairs.
+    pub fn within_triangle(&self,a:P2,b:P2,c:P2,limit:f64)->bool {
+        let cr=|u:P2,v:P2,w:P2|(v.0-u.0)*(w.1-u.1)-(v.1-u.1)*(w.0-u.0);
+        let inside=|q:P2| {let v=[cr(a,b,q),cr(b,c,q),cr(c,a,q)];v.iter().all(|x|*x>=0.0)||v.iter().all(|x|*x<=0.0)};
+        let intersects=|u:P2,v:P2,p:P2,q:P2| {
+            let x=cr(u,v,p);let y=cr(u,v,q);let z=cr(p,q,u);let w=cr(p,q,v);
+            if x*y<0.0 && z*w<0.0 {return true;}
+            (x==0.0 && seg_dist(p,u,v)==0.0)||(y==0.0 && seg_dist(q,u,v)==0.0)
+                ||(z==0.0 && seg_dist(u,p,q)==0.0)||(w==0.0 && seg_dist(v,p,q)==0.0)
+        };
+        let lo=(a.0.min(b.0).min(c.0)-limit,a.1.min(b.1).min(c.1)-limit);
+        let hi=(a.0.max(b.0).max(c.0)+limit,a.1.max(b.1).max(c.1)+limit);
+        for x in (lo.0/2.0).floor() as i64..=(hi.0/2.0).floor() as i64 {
+            for y in (lo.1/2.0).floor() as i64..=(hi.1/2.0).floor() as i64 {
+                if let Some(ids)=self.bins.get(&(x,y)){for &i in ids {
+                    let(u,v)=(self.points[i],self.points[i+1]);
+                    if inside(u)||inside(v){return true;}
+                    for (p,q) in [(a,b),(b,c),(c,a)] {
+                        if intersects(u,v,p,q)||seg_dist(u,p,q)<=limit||seg_dist(v,p,q)<=limit
+                            ||seg_dist(p,u,v)<=limit||seg_dist(q,u,v)<=limit{return true;}
+                    }
+                }}
+            }
+        }
+        false
+    }
     pub fn nearest(&self,q:P2,limit:f64)->f64 {
         let cell=((q.0/2.0).floor() as i64,(q.1/2.0).floor() as i64);
         let mut best=f64::INFINITY;
