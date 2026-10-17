@@ -25,7 +25,9 @@ jobs:
         shell: bash ops/ci/run_bounded.sh d1 {0}
     name: cargo test --release + D1 gate smoke
     runs-on: [self-hosted, linux, x64, jarambit]  # dedicated jarambit-xbabe2 / jarambit-xbabe3 runners (PR-0.30.0c); the shared neverhuman-lan pool queued for capacity
-    timeout-minutes: 45
+    # The loaded xbabe3 host exceeded 45 minutes twice; retain a finite ceiling.
+    # runner.name is available on steps, not on the job-level timeout expression.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -36,10 +38,13 @@ jobs:
           components: clippy
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - name: cargo test --release (all crates, incl. D1 owner-lock gate tests)
+        # Leave time for later checks and cleanup under the job ceiling.
+        timeout-minutes: ${{ runner.name == 'jarambit-xbabe3' && 75 || 45 }}
         run: |
           export TMPDIR="$PWD/target/ci-d1-tmp/${GITHUB_RUN_ID}/${GITHUB_RUN_ATTEMPT}"
           mkdir -p "$TMPDIR"
-          cargo test --release --locked --workspace -- --test-threads=2
+          TIMEFORMAT='CI_CARGO_TIMING wall_seconds=%3R user_seconds=%3U system_seconds=%3S'
+          time cargo test --release --locked --workspace -- --test-threads=2
       - name: Clippy - no Option::unwrap_or_default in the CLI (missing FEM must be null + status, PR-0.28.3)
         run: cargo clippy --release -p jarambit -- -A clippy::all -D clippy::disallowed_methods
       - name: D1 owner-lock gate tests (explicit, fast)
