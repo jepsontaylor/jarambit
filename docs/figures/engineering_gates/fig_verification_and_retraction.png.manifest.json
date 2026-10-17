@@ -1,0 +1,21 @@
+{
+ "extra": {
+  "command": "python3 ops/render/paper/verification.py",
+  "scope": "Archived validation observations, not fresh execution; corrected failures on fixed physical kernel"
+ },
+ "figure": "docs/figures/engineering_gates/fig_verification_and_retraction.png",
+ "figure_sha256": "c66e55bfac738da7a2b0ea43833baf87194221b6a9516d2a703ec7b09acc6150",
+ "inputs": {
+  "docs/figures/engineering_gates/verification_points.json": "eb921d9b1714040b8a8291be19e06ae2fca41e6167510f322d087962bb004ad6",
+  "evidence/fem_solid/gci/g3_tip+00_t60_tt3_gci.json": "cf4657f3bdcf4d0c349b203ad89be38675e25dd63c3cbe01ea985627b5743076",
+  "evidence/fem_solid/verify_0.30.2.json": "4778735a2e5fcd44e071e3d1013e9190ce0c6b2af637896890f6dfbade2d9008",
+  "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_rs.json": "c1cc4ec6b2d3446cc83d83151e0af31cf54a26b9aca1aedc18bcd39f4139852a",
+  "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_solid_tip.json": "c5e0a988954d74982e26641833f5f4fee47bf223d6ad845a29f6894d1d53ba52",
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_rs.json": "7dd36899599a6b4e44deda8ea6095b39a04553ad6a20e96eb1d1c14276cc267d",
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_solid_tip.json": "120983d767cbca0cd5f750fa5ccb4f9d01e28bbd8df20e0bc80278444ed12318",
+  "ops/render/paper/verification.py": "7f1baf5b67d81d8b3e3d907ab6e1784da4869e86d6038dc82fbde3d9762ec214"
+ },
+ "norms": {},
+ "schema": 1,
+ "script": "ops/render/paper/verification.py"
+}
