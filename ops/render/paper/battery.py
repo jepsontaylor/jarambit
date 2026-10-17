@@ -20,6 +20,8 @@ ROOT=Path(__file__).resolve().parents[3]
 sys.path.insert(0,str(ROOT/'ops/wave_figures'))
 import figlib
 
+REFERENCE_CADS = frozenset({'c10a', 'c93', 'c92', 'c10c'})
+
 
 def main():
     out=ROOT/'docs/figures/engineering_gates';out.mkdir(parents=True,exist_ok=True)
@@ -29,11 +31,17 @@ def main():
     statuses=['pass','fail','blocked','incomplete'];symbols=['P','F','B','I']
     colors=['#a5c9b0','#e8a89a','#cbd1d6','#efd39a']
     paths=[ROOT/'evidence/cad_battery'/f'{s}.json' for s in subjects]
-    data=[];points=[];totals=Counter()
+    data=[];points=[];subject_scopes=[];totals=Counter()
     for subject,path in zip(subjects,paths):
         subprocess.run(['git','ls-files','--error-unmatch',str(path.relative_to(ROOT))],cwd=ROOT,check=True,stdout=subprocess.DEVNULL)
         doc=json.loads(path.read_text());cases={c['id']:(i,c) for i,c in enumerate(doc['cases'])}
         assert set(cases)==set(case_ids) and len(doc['cases'])==18
+        reference=subject in REFERENCE_CADS
+        expected_roles=('native_cad','archived_not_on_main') if reference else ('genome',)
+        assert doc['role'] in expected_roles
+        subject_scopes.append(dict(subject=subject,role=doc['role'],source=str(path.relative_to(ROOT)),
+            pointer='/role',scope='hand-built SWITCHBACK reference CAD; not a genome/Jarambit pipeline result' if reference else 'genome',
+            plot_label=subject+' [hand-built ref.]' if reference else subject))
         row=[]
         for cid in case_ids:
             i,c=cases[cid];st=c['status'];assert st in statuses
@@ -41,17 +49,28 @@ def main():
             points.append(dict(subject=subject,case=cid,status=st,kind=c['kind'],source=str(path.relative_to(ROOT)),pointer=f'/cases/{i}/status'))
         data.append(row)
     plt.rcParams.update({'font.family':'DejaVu Sans','font.size':8})
-    fig,ax=plt.subplots(figsize=(10.6,7.8),facecolor='#faf9f5')
+    fig,ax=plt.subplots(figsize=(10.8,8.4),facecolor='#faf9f5')
     ax.imshow(data,cmap=ListedColormap(colors),vmin=-.5,vmax=3.5,aspect='auto')
-    ax.set_xticks(range(18),case_ids,rotation=55,ha='right',fontsize=7)
-    ax.set_yticks(range(23),subjects,fontsize=8)
+    ax.set_xticks(range(18),[c+' *' if c=='solid.tip' else c for c in case_ids],rotation=55,ha='right',fontsize=7)
+    ax.set_yticks(range(23),[s['plot_label'] for s in subject_scopes],fontsize=8)
+    for i,tick in enumerate(ax.get_yticklabels()):
+        if subjects[i] in REFERENCE_CADS:tick.set_color('#8b4b2b');tick.set_fontweight('bold')
+        if i+1<len(subjects) and (subjects[i] in REFERENCE_CADS)!=(subjects[i+1] in REFERENCE_CADS):
+            ax.axhline(i+.5,color='#8b4b2b',linewidth=2)
     for i,row in enumerate(data):
         for j,n in enumerate(row):ax.text(j,i,symbols[n],ha='center',va='center',fontsize=7,color='#243641')
-    ax.set_title('23 subjects × 18 evaluators = 414 recorded cells\nP pass · F fail · B blocked · I incomplete; case scope controls the meaning of pass',fontsize=12,pad=15)
-    fig.text(.01,.01,'Historical records plus corrected w283 failures • no currently certified all-gates winner',fontsize=8,color='#9b4c36')
-    fig.tight_layout(rect=(0,.03,1,1));figure=out/'fig_battery_23.png';fig.savefig(figure,dpi=150);plt.close(fig)
-    ledger=out/'battery_points.json';ledger.write_text(json.dumps({'schema':1,'totals':dict(totals),'cells':points},indent=1,sort_keys=True)+'\n')
-    figlib.write_manifest(str(figure),paths+[manifest,ledger,Path(__file__).resolve()],str(Path(__file__).resolve()),extra={'command':'python3 ops/render/paper/battery.py','case_status_totals':dict(totals),'denominator':414})
+    fig.suptitle('23 subjects × 18 evaluators = 414 recorded cells\nP pass · F fail · B blocked · I incomplete; each case has its own scope',fontsize=12,y=.98)
+    solid_scope='solid.tip *: P = record complete, not SF ≥ 1; no independent validation is implied.'
+    reference_scope='Hand-built SWITCHBACK reference CADs: c10a, c93, c92, c10c; not genome/Jarambit pipeline results.'
+    independence_note="c10a solid.tip's copy-identical comparison is not an independent cross-check."
+    fig.text(.5,.912,solid_scope,ha='center',fontsize=9,fontweight='bold',color='#8b4b2b')
+    fig.text(.01,.052,reference_scope,fontsize=8,color='#8b4b2b')
+    fig.text(.01,.032,independence_note,fontsize=8,color='#8b4b2b')
+    fig.text(.01,.012,'Recorded statuses retained • no currently certified all-gates winner',fontsize=8,color='#9b4c36')
+    fig.tight_layout(rect=(0,.075,1,.9));figure=out/'fig_battery_23.png';fig.savefig(figure,dpi=150);plt.close(fig)
+    annotations=dict(solid_tip_status=solid_scope,reference_cads=reference_scope,c10a_independence=independence_note)
+    ledger=out/'battery_points.json';ledger.write_text(json.dumps({'schema':1,'totals':dict(totals),'subjects':subject_scopes,'annotations':annotations,'cells':points},indent=1,sort_keys=True)+'\n')
+    figlib.write_manifest(str(figure),paths+[manifest,ledger,Path(__file__).resolve()],str(Path(__file__).resolve()),extra={'command':'python3 ops/render/paper/battery.py','case_status_totals':dict(totals),'denominator':414,'annotations':annotations,'hand_built_reference_cads':sorted(REFERENCE_CADS)})
     catalog=ROOT/'docs/v1/science/tests/TEST_CASE_CATALOG.json';cases=json.loads(catalog.read_text())['cases']
     counts=Counter(c['work_unit'] for c in cases);states=Counter(c['status'] for c in cases)
     summary=out/'assurance_inventory.json';summary.write_text(json.dumps({'schema':1,'source':str(catalog.relative_to(ROOT)),

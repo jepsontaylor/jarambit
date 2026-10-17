@@ -72,7 +72,7 @@ def hero(context=None):
         '',
         f'![All 16 engineering gates and margin vs threshold for {rec_subj}](figures/whitepaper/fig_w279_gate_margins.png)',
         '',
-        f'*Fig. 0b — All {n_tot} engineering gates (`{n_pass}/{n_tot}` pass) for `{rec_subj}` (`evidence/rs_v2/{rec_wave}_ultrarunner/{rec_subj}_cad_eval.json`, '
+        f'*Fig. 0b — Historical (pre-#82 model): All {n_tot} engineering gates (`{n_pass}/{n_tot}` pass) for `{rec_subj}` (`evidence/rs_v2/{rec_wave}_ultrarunner/{rec_subj}_cad_eval.json`, '
         f'`evidence/cad_battery/{rec_subj}.json`, manifest `docs/figures/whitepaper/fig_w279_gate_margins.png.manifest.json`): '
         f'(a) normalized structural safety ratios ($\\text{{value}}/\\text{{threshold}} \\ge 1.0$) and reserve percentages (`strict_lat = {em["strict_lat_rob_0p0625_n"]:.1f} N` / `SF = {em["sf_hunter_strict"]:.4f}` `+{100.0 * (em["sf_hunter_strict"] - 1.0):.2f} %`, '
         f'`twist_strict SF = {em["twist_tipzone_sf_strict"]:.3f}` `+{100.0 * (em["twist_tipzone_sf_strict"] - 1.0):.2f} %`, `twist_tip SF = {em["twist_tip_sf"]:.3f}` `+{100.0 * (em["twist_tip_sf"] - 1.0):.2f} %`, '

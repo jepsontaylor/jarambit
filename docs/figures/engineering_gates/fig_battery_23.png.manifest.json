@@ -1,17 +1,28 @@
 {
  "extra": {
+  "annotations": {
+   "c10a_independence": "c10a solid.tip's copy-identical comparison is not an independent cross-check.",
+   "reference_cads": "Hand-built SWITCHBACK reference CADs: c10a, c93, c92, c10c; not genome/Jarambit pipeline results.",
+   "solid_tip_status": "solid.tip *: P = record complete, not SF \u2265 1; no independent validation is implied."
+  },
   "case_status_totals": {
    "blocked": 112,
    "fail": 81,
    "pass": 221
   },
   "command": "python3 ops/render/paper/battery.py",
-  "denominator": 414
+  "denominator": 414,
+  "hand_built_reference_cads": [
+   "c10a",
+   "c10c",
+   "c92",
+   "c93"
+  ]
  },
  "figure": "docs/figures/engineering_gates/fig_battery_23.png",
- "figure_sha256": "44caf712b5b8baa13582334c96730e801e7d3a39a08d603f9505e76f9e3bdb01",
+ "figure_sha256": "01aedc919f60c67bb4263a80780674c8d487e6e8cbb03eb80d574d8006b6a7d1",
  "inputs": {
-  "docs/figures/engineering_gates/battery_points.json": "810e8bbd9e8b4f180dbcbd20e97884018d71a50e4576202b929255c71edc2c4d",
+  "docs/figures/engineering_gates/battery_points.json": "32357ca2b2645c00b63b4e35d2bf6bf978e670de643fa1458d215e684da6095d",
   "evidence/cad_battery/c10a.json": "22c145c839a298f90e247e219c8bd9ce28724055b60a46b8e98bf20fa1bad783",
   "evidence/cad_battery/c10c.json": "b527272bb0e7584c385f424010299926917f5b5ca9163f08e80a6a0e9cddacf7",
   "evidence/cad_battery/c92.json": "008d62462415609fb4c6583417720d72b3d96f51a2dba0ad3afa7601e9ff8801",
@@ -36,7 +47,7 @@
   "evidence/cad_battery/w282_p14_c01.json": "528fc112a19589657239984791beb22065210ac48bfef2b03d79d40bedb767bb",
   "evidence/cad_battery/w283_p10_c02.json": "0ef3c957ce24758f54344376cc6b0c0558829513f00479bed4f464318fb6925b",
   "evidence/cad_battery/w283_p14_c01.json": "ef7741201588390a05c77d115cf74090e7c5b1a3a7a51c6437a32dfc98f86d4e",
-  "ops/render/paper/battery.py": "38af439ec5679b3cef00a7920d0479065f16be52cdbdae62c2fe96050beb8c8b"
+  "ops/render/paper/battery.py": "14e745bec532261b8a58d15741d806273bd655d17969aeb12d8501ad840a4db6"
  },
  "norms": {},
  "schema": 1,

@@ -1,4 +1,9 @@
 {
+ "annotations": {
+  "c10a_independence": "c10a solid.tip's copy-identical comparison is not an independent cross-check.",
+  "reference_cads": "Hand-built SWITCHBACK reference CADs: c10a, c93, c92, c10c; not genome/Jarambit pipeline results.",
+  "solid_tip_status": "solid.tip *: P = record complete, not SF \u2265 1; no independent validation is implied."
+ },
  "cells": [
   {
    "case": "build.analytic",
@@ -3314,6 +3319,192 @@
   }
  ],
  "schema": 1,
+ "subjects": [
+  {
+   "plot_label": "c10a [hand-built ref.]",
+   "pointer": "/role",
+   "role": "native_cad",
+   "scope": "hand-built SWITCHBACK reference CAD; not a genome/Jarambit pipeline result",
+   "source": "evidence/cad_battery/c10a.json",
+   "subject": "c10a"
+  },
+  {
+   "plot_label": "c93 [hand-built ref.]",
+   "pointer": "/role",
+   "role": "native_cad",
+   "scope": "hand-built SWITCHBACK reference CAD; not a genome/Jarambit pipeline result",
+   "source": "evidence/cad_battery/c93.json",
+   "subject": "c93"
+  },
+  {
+   "plot_label": "c92 [hand-built ref.]",
+   "pointer": "/role",
+   "role": "native_cad",
+   "scope": "hand-built SWITCHBACK reference CAD; not a genome/Jarambit pipeline result",
+   "source": "evidence/cad_battery/c92.json",
+   "subject": "c92"
+  },
+  {
+   "plot_label": "c10c [hand-built ref.]",
+   "pointer": "/role",
+   "role": "archived_not_on_main",
+   "scope": "hand-built SWITCHBACK reference CAD; not a genome/Jarambit pipeline result",
+   "source": "evidence/cad_battery/c10c.json",
+   "subject": "c10c"
+  },
+  {
+   "plot_label": "g3",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/g3.json",
+   "subject": "g3"
+  },
+  {
+   "plot_label": "w271b_11772",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "subject": "w271b_11772"
+  },
+  {
+   "plot_label": "w271b_11860",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "subject": "w271b_11860"
+  },
+  {
+   "plot_label": "w271c_11522",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "subject": "w271c_11522"
+  },
+  {
+   "plot_label": "w272_s2902_c01",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "plot_label": "w273_s2904_c01",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "plot_label": "w273_s2903_c04",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "plot_label": "w274_s2905_c01",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "plot_label": "w275_s2909_c01",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "plot_label": "w276_s2913_c01",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "plot_label": "w277_s2919_c01",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "plot_label": "w278_s2922_c01",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "plot_label": "w279_s2928_c01",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "plot_label": "w280_s2931_c01",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "plot_label": "w281_s2932_c01",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "plot_label": "w282_p14_c01",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "plot_label": "w282_p10_c02",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "plot_label": "w283_p14_c01",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "plot_label": "w283_p10_c02",
+   "pointer": "/role",
+   "role": "genome",
+   "scope": "genome",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "subject": "w283_p10_c02"
+  }
+ ],
  "totals": {
   "blocked": 112,
   "fail": 81,
