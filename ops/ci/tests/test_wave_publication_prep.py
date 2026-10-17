@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from ops.render.blender.rerender import prepare
 from ops.render.paper import wave_history
-from ops.render.paper.wave_history import generate, read_board
+from ops.render.paper.wave_history import build_insertion, collect, generate, read_board
 
 ROOT = Path(__file__).resolve().parents[3]
 BOARD = ROOT/'evidence/evolve_certifiable/automatic/leaderboard.json'
@@ -77,12 +77,10 @@ class WavePublicationPrep(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'unverified'):
             read_board(path, self.folder, preview=True)
 
-    def test_every_summary_matches_original_board_pointers(self):
+    def test_every_summary_matches_original_board_pointers_without_plotting_packages(self):
         path = self.committed_board_fixture()
-        with patch.object(wave_history, 'ROOT', self.folder):
-            out = self.folder/'figures'
-            generate([path], self.folder, out, preview=False)
-            ledger = json.loads((out/'wave_history_points.json').read_text())
+        with patch.object(wave_history, 'ROOT', self.folder), patch.dict('sys.modules', {'matplotlib':None, 'cycler':None}):
+            ledger = collect([path], self.folder, preview=False)
             self.assertFalse(ledger['preview'])
             for point in ledger['points']:
                 original = json.loads((self.folder/point['source']).read_text())
@@ -91,7 +89,7 @@ class WavePublicationPrep(unittest.TestCase):
                     expected = {'min':min, 'median':statistics.median, 'max':max}[point['reduction']](values)
                 else:expected = at(original, point['pointer'])
                 self.assertEqual(point['value'], expected)
-            snippet = (out/'iv_d_wave_history.md').read_text()
+            snippet = build_insertion(ledger['waves'])
             self.assertIn('champion=null', snippet)
             self.assertIn('not full-population statistics', snippet)
             with self.assertRaisesRegex(ValueError, 'outside the paper'):

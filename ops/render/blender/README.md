@@ -72,3 +72,8 @@ the script rejects any input absent from or different from `origin/main`. Insert
 the resulting subsection into IV-D and keep the companion consistent. No docs PR
 may cite the runtime preview as committed evidence. Never copy or edit another
 lane's evidence to bypass that admission rule.
+
+The numerical collection and insertion functions use the standard library, so
+provenance controls run without plotting packages. Generating the actual PNG
+requires NumPy and a complete Matplotlib installation; Blender typography also
+uses Pillow, as described in the repository prerequisites.

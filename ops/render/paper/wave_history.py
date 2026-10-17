@@ -53,12 +53,11 @@ def read_board(path, source_root, preview=False):
     return board, hashlib.sha256(raw).hexdigest()
 
 
-def generate(paths, source_root, output, preview=False):
-    source_root, output = source_root.resolve(), output.resolve()
+def collect(paths, source_root, preview=False):
+    """Admit and reduce observations without importing any plotting package."""
+    source_root = source_root.resolve()
     if not preview and source_root != ROOT:
         raise ValueError('Publish from this worktree so manifest inputs stay repository-relative')
-    if preview and any(output.is_relative_to(p/'docs') for p in (ROOT, source_root)):
-        raise ValueError('Runtime previews must stay outside the paper')
     points, waves = [], []
     for path in paths:
         board, sha = read_board(path, source_root, preview)
@@ -85,6 +84,35 @@ def generate(paths, source_root, output, preview=False):
         waves.append(dict(wave=wave, source=source, sha256=sha,
             assessed=board['assessed_count'], qualified=board['qualified_count'],
             champion=board['champion'], unverified=board['unverified'], **summaries))
+    return dict(schema=1, preview=preview,
+        scope='Selected completed Stage-2 assessments; no new solve or certification.',
+        waves=waves, points=points)
+
+
+def build_insertion(waves, preview=False):
+    lines = ['#### Completed automatic-wave observations', '',
+        '**LOCAL DRAFT — runtime inputs are not yet committed on main. Do not insert into the paper.**' if preview else
+        'The following observations come from committed automatic-wave leaderboards.', '',
+        '| Wave | Assessed | Qualified | Raster mass min / median (g) | W_CAD best / median |',
+        '|---|---:|---:|---:|---:|']
+    for w in waves:
+        lines.append(f"| {w['wave']} | {w['assessed']} | {w['qualified']} | {w['mass_g_min']:.3f} / {w['mass_g_median']:.3f} | {w['w_cad_max']:.6f} / {w['w_cad_median']:.6f} |")
+    lines += ['', '![Selected Stage-2 wave history](figures/engineering_gates/fig_wave_history.png)', '',
+        '*Script-generated from the named leaderboards: dots show selected-assessment medians, lines their ranges, and diamonds the lowest mass or highest W_CAD. These are not full-population statistics. Different wave source/model identities are not a controlled comparison of the search rule.*', '',
+        'Completed independent solves do not imply physical qualification. ' +
+        ('All listed leaderboards retain `qualified_count=0` and `champion=null`. No certified winner is established.' if not any(w['qualified'] for w in waves) else
+         'Qualification flags retain their recorded scope; promotion requires the separate committed export/certificate checks.'), '',
+        'Later waves enter only after an actual leaderboard exists and the cited evidence is committed on main. No missing wave or unfinished assessment is imputed. The catalog remains 23 subjects ×18 evaluators (414 cells); wave assessments are a separate denominator.', '',
+        'Sources: ' + '; '.join(f"`{w['source']}` (SHA256 `{w['sha256']}`)" for w in waves) + '.', '']
+    return '\n'.join(lines)
+
+
+def generate(paths, source_root, output, preview=False):
+    source_root, output = source_root.resolve(), output.resolve()
+    if preview and any(output.is_relative_to(p/'docs') for p in (ROOT, source_root)):
+        raise ValueError('Runtime previews must stay outside the paper')
+    data = collect(paths, source_root, preview)
+    waves, points = data['waves'], data['points']
 
     import matplotlib
     matplotlib.use('Agg')
@@ -121,24 +149,8 @@ def generate(paths, source_root, output, preview=False):
     output.mkdir(parents=True, exist_ok=True)
     figure = output / 'fig_wave_history.png'; fig.savefig(figure, dpi=145); plt.close(fig)
     ledger = output / 'wave_history_points.json'
-    ledger.write_text(json.dumps(dict(schema=1, preview=preview,
-        scope='Selected completed Stage-2 assessments; no new solve or certification.',
-        waves=waves, points=points), indent=1, sort_keys=True)+'\n')
-    lines = ['#### Completed automatic-wave observations', '',
-        '**LOCAL DRAFT — runtime inputs are not yet committed on main. Do not insert into the paper.**' if preview else
-        'The following observations come from committed automatic-wave leaderboards.', '',
-        '| Wave | Assessed | Qualified | Raster mass min / median (g) | W_CAD best / median |',
-        '|---|---:|---:|---:|---:|']
-    for w in waves:
-        lines.append(f"| {w['wave']} | {w['assessed']} | {w['qualified']} | {w['mass_g_min']:.3f} / {w['mass_g_median']:.3f} | {w['w_cad_max']:.6f} / {w['w_cad_median']:.6f} |")
-    lines += ['', '![Selected Stage-2 wave history](figures/engineering_gates/fig_wave_history.png)', '',
-        '*Script-generated from the named leaderboards: dots show selected-assessment medians, lines their ranges, and diamonds the lowest mass or highest W_CAD. These are not full-population statistics. Different wave source/model identities are not a controlled comparison of the search rule.*', '',
-        'Completed independent solves do not imply physical qualification. ' +
-        ('All listed leaderboards retain `qualified_count=0` and `champion=null`. No certified winner is established.' if not any(w['qualified'] for w in waves) else
-         'Qualification flags retain their recorded scope; promotion requires the separate committed export/certificate checks.'), '',
-        'Later waves enter only after an actual leaderboard exists and the cited evidence is committed on main. No missing wave or unfinished assessment is imputed. The catalog remains 23 subjects ×18 evaluators (414 cells); wave assessments are a separate denominator.', '',
-        'Sources: ' + '; '.join(f"`{w['source']}` (SHA256 `{w['sha256']}`)" for w in waves) + '.', '']
-    snippet = output / 'iv_d_wave_history.md'; snippet.write_text('\n'.join(lines))
+    ledger.write_text(json.dumps(data, indent=1, sort_keys=True)+'\n')
+    snippet = output / 'iv_d_wave_history.md'; snippet.write_text(build_insertion(waves, preview))
     figlib.write_manifest(str(figure), paths+[ledger, Path(__file__).resolve()], str(Path(__file__).resolve()), extra={
         'preview':preview, 'scope':'Selected Stage-2 observations, not population estimates or new certification',
         'point_ledger':str(ledger), 'snippet_sha256':figlib.sha256_file(snippet),
