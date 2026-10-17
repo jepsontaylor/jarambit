@@ -1,0 +1,27 @@
+{
+ "extra": {
+  "command": "python3 ops/render/paper/certifiable.py",
+  "point_ledger": "docs/figures/engineering_gates/certifiable_points.json",
+  "runtime": {
+   "matplotlib": "3.10.8",
+   "numpy": "1.26.4"
+  },
+  "status": "No qualified winner; champion=null"
+ },
+ "figure": "docs/figures/engineering_gates/fig_certifiable_pipeline.png",
+ "figure_sha256": "1a07643d7bf43ad7d0ab7eaff68d109dbc2db5baf5094d9e246c9b325932ea3b",
+ "inputs": {
+  "docs/figures/engineering_gates/certifiable_points.json": "ca1e39d950cd23c3f34577e3ca6cca49e955fb6d88c59f66fab26e170ce2c87d",
+  "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_dolfinx_raw.json": "f6a1ec2a523460743473a5b4cb0af2bba6c7aed8f99587a813460a42d174d568",
+  "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json": "2f696866a6a5ca02b1c6e554028ddef57bbb1b693d0779a2598bebae8ec135ca",
+  "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_skfem_raw.json": "9d0748c79af37c15e50b9b90c1eefedb916ecfd145420393c57cb8a8e4bd98bf",
+  "evidence/evolve_certifiable/automatic/leaderboard.json": "151e18581274a60b4d15581936e09fc02b1a4473e6e9734609a0a0670b47173a",
+  "evidence/evolve_certifiable/automatic/round_00_births.json": "53eef1ef54b83c1649187d2299b63f8a413dec6cab34971d231273db7494856c",
+  "evidence/evolve_certifiable/automatic/round_00_screen.json": "65fe2c33dd39f8f63eb79be22a27cc4d70fbac7ae9052c35d9948d5be128ecdd",
+  "evidence/evolve_certifiable/manifest.json": "ba90462e4e70141a81f2cc7ad241af1a1958f6ff93dc05dde5acd70c50efa4bc",
+  "ops/render/paper/certifiable.py": "67d6eb78818bf1d0fc2559093c5dc51f29e2c71235f6c68383843b158c7f22da"
+ },
+ "norms": {},
+ "schema": 1,
+ "script": "ops/render/paper/certifiable.py"
+}

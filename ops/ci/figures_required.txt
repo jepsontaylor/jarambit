@@ -37,3 +37,5 @@ docs/figures/whitepaper/blender/dolfinx_cross_check_2pct.webp
 docs/figures/whitepaper/blender/hero_oblique.webp
 docs/figures/whitepaper/blender/hero_reverse.webp
 docs/figures/whitepaper/blender/hero_section.webp
+
+docs/figures/engineering_gates/fig_certifiable_pipeline.png

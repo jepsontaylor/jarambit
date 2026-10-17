@@ -1,0 +1,331 @@
+{
+ "missing": "Only one round and one independent assessment; no post-merge winner, population fitness series or full-population 16-gate rates.",
+ "points": [
+  {
+   "pointers": [
+    "/genomes/0/certificate_identity",
+    "/genomes/1/certificate_identity",
+    "/genomes/2/certificate_identity",
+    "/genomes/3/certificate_identity",
+    "/genomes/4/certificate_identity",
+    "/genomes/5/certificate_identity",
+    "/genomes/6/certificate_identity"
+   ],
+   "reduction": "distinct content identities",
+   "source": "evidence/evolve_certifiable/automatic/round_00_births.json",
+   "value": 6
+  },
+  {
+   "panel": "b annotation",
+   "pointer": "/champion",
+   "source": "evidence/evolve_certifiable/automatic/leaderboard.json",
+   "value": null
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c02",
+   "panel": "a",
+   "pointer": "/0/mass_g",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 83.06302311911915
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c02",
+   "panel": "a",
+   "pointer": "/0/screen_deficit",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 3.1049135827310073
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c07",
+   "panel": "a",
+   "pointer": "/1/mass_g",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 83.05837024944638
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c07",
+   "panel": "a",
+   "pointer": "/1/screen_deficit",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 3.1049150425250276
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c05",
+   "panel": "a",
+   "pointer": "/2/mass_g",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 83.06500940664549
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c05",
+   "panel": "a",
+   "pointer": "/2/screen_deficit",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 3.104915047984441
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c01",
+   "panel": "a",
+   "pointer": "/3/mass_g",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 83.06500940664549
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c01",
+   "panel": "a",
+   "pointer": "/3/screen_deficit",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 3.1049150479844485
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c03",
+   "panel": "a",
+   "pointer": "/4/mass_g",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 83.0580271682926
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c03",
+   "panel": "a",
+   "pointer": "/4/screen_deficit",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 3.1084338900903856
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c06",
+   "panel": "a",
+   "pointer": "/5/mass_g",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 83.05475846402302
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c06",
+   "panel": "a",
+   "pointer": "/5/screen_deficit",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 3.2762423627145045
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c04",
+   "panel": "a",
+   "pointer": "/6/mass_g",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 81.95513960879472
+  },
+  {
+   "label": "cert_pipeline_r01_p14_c04",
+   "panel": "a",
+   "pointer": "/6/screen_deficit",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 3.747932181079473
+  },
+  {
+   "panel": "a",
+   "pointers": [
+    "/0/mass_g",
+    "/1/mass_g",
+    "/2/mass_g",
+    "/3/mass_g",
+    "/4/mass_g",
+    "/5/mass_g",
+    "/6/mass_g"
+   ],
+   "reduction": "median of seven retained screen instances",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 83.05837024944638
+  },
+  {
+   "panel": "b",
+   "pointer": "/genomes",
+   "reduction": "array length",
+   "source": "evidence/evolve_certifiable/automatic/round_00_births.json",
+   "value": 7
+  },
+  {
+   "panel": "b",
+   "pointer": "",
+   "reduction": "array length",
+   "source": "evidence/evolve_certifiable/automatic/round_00_screen.json",
+   "value": 7
+  },
+  {
+   "panel": "b",
+   "pointer": "/assessed_count",
+   "reduction": "identity",
+   "source": "evidence/evolve_certifiable/automatic/leaderboard.json",
+   "value": 1
+  },
+  {
+   "panel": "b",
+   "pointer": "/unverified",
+   "reduction": "array length",
+   "source": "evidence/evolve_certifiable/automatic/leaderboard.json",
+   "value": 0
+  },
+  {
+   "panel": "b",
+   "pointer": "/qualified_count",
+   "reduction": "identity",
+   "source": "evidence/evolve_certifiable/automatic/leaderboard.json",
+   "value": 0
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/cad_watertight_and_single_solid",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": true
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/geometric_and_holder_gates",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": true
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/karambit_ring_and_curved_claw",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": true
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/c6_aesthetic_floor",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": true
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/cert_hiker_180n",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": false
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/cert_hunter_260n",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": false
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/strict_hunter_260n",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": false
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/cert_ring_pull_1500n",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": true
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/twist_body_1p82nm",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": true
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/twist_tip_only_1p82nm",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": false
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/twist_tip_submodel_strict_1p82nm",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": false
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/solid_tip_3d_p2_1p82nm",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": false
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/side_a4_buckling_and_support",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": true
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/failure_sequence_1p2",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": true
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/plate_gci_valid_3level",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": true
+  },
+  {
+   "panel": "c",
+   "pointer": "/weighted_cad_score/gates/dolfinx_cross_check_2pct",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": true
+  },
+  {
+   "divisor": 260,
+   "panel": "d",
+   "plotted_ratio": 0.6469230769230769,
+   "pointer": "/engineering_metrics/strict_lat_rob_0p0625_n",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": 168.2
+  },
+  {
+   "divisor": 1,
+   "panel": "d",
+   "plotted_ratio": 0.524,
+   "pointer": "/engineering_metrics/twist_tip_sf",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": 0.524
+  },
+  {
+   "divisor": 1,
+   "panel": "d",
+   "plotted_ratio": 0.529,
+   "pointer": "/engineering_metrics/twist_tipzone_sf_strict",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": 0.529
+  },
+  {
+   "divisor": 1,
+   "panel": "d",
+   "plotted_ratio": 0.6693,
+   "pointer": "/engineering_metrics/solid_tip_sf_nodal_max",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": 0.6693
+  },
+  {
+   "divisor": 1.2,
+   "panel": "d",
+   "plotted_ratio": 1.1958333333333335,
+   "pointer": "/engineering_metrics/seq_ratio_cert",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": 1.435
+  },
+  {
+   "divisor": 1,
+   "panel": "d",
+   "plotted_ratio": 0.47179485062241755,
+   "pointer": "/engineering_metrics/fat_sf_l7",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json",
+   "value": 0.47179485062241755
+  },
+  {
+   "panel": "d annotation",
+   "pointer": "/solid/SF_solid_nodal_max",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_skfem_raw.json",
+   "value": 0.669
+  },
+  {
+   "panel": "d annotation",
+   "pointer": "/SF_nodal_max",
+   "source": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_dolfinx_raw.json",
+   "value": 0.6693
+  }
+ ],
+ "schema": 1,
+ "scope": "Retained #84 proof; no new solve or qualified winner"
+}

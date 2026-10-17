@@ -7,7 +7,8 @@
   "evidence/rs_v2/w283_p14_c01.json": "7dd36899599a6b4e44deda8ea6095b39a04553ad6a20e96eb1d1c14276cc267d",
   "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json": "efbfcb1ddd68f93349f5fe5ae8270599c0adda88efd13618042b39e09afc836b",
   "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "df555734d327afe077ca354764f8fea05e7e574bcaa1964beffb2653e911dffc",
-  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv": "aa54fe9148fe303b2054bc5449f063f507d6feffa07556d144013aa9ded5b009"
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv": "aa54fe9148fe303b2054bc5449f063f507d6feffa07556d144013aa9ded5b009",
+  "ops/render/whitepaper_hero_figs.py": "7da926d45c3695ff8b0ff4c79e860ccb6feb1a651be726c83f5d43d790f0e4c9"
  },
  "norms": {},
  "schema": 1,

@@ -61,10 +61,10 @@ def hero(context=None):
     L = [
         f'### Page-1 Hero Figures — Why This Matters & Historical Screen Record (`{rec_subj}`) Gate Margins',
         '',
-        f'![Why this matters: all-gates winner mass vs wave (w20 through {rec_wave}) and market comparison against 77 commercial karambits](figures/whitepaper/fig_why_this_matters.png)',
+        f'![Historical pre-#82 selected-candidate mass vs wave (w20 through {rec_wave}) and market comparison against 77 commercial karambits](figures/whitepaper/fig_why_this_matters.png)',
         '',
-        f'*Fig. 0a — Why this matters (`ops/render/whitepaper_hero_figs.py`, manifest `docs/figures/whitepaper/fig_why_this_matters.png.manifest.json`, verified by `ops/ci/verify_figures.py`): '
-        f'(a) mass vs. wave across every wave winner from Wave 20 (`{w20["label"]}`, `{w20["mass_g"]:.3f} g`, `seq = {w20["seq_ratio"]:.3f} < 1.20`) and first all-16-gates `W_CAD_v2` winner '
+        f'*Fig. 0a — Historical (pre-#82 model): Why this matters (`ops/render/whitepaper_hero_figs.py`, manifest `docs/figures/whitepaper/fig_why_this_matters.png.manifest.json`, verified by `ops/ci/verify_figures.py`): '
+        f'(a) mass vs. wave across every wave winner from Wave 20 (`{w20["label"]}`, `{w20["mass_g"]:.3f} g`, `seq = {w20["seq_ratio"]:.3f} < 1.20`) and first historical all-16-gates `W_CAD_v2` screen record '
         f'`w274_s2905_c01` (`{w274["mass_g"]:.3f} g`, `seq = {w274["seq_ratio_cert"]:.3f} >= 1.20`) down to the historical 16-gate screen record **`{rec_subj}` at `{em["mass_g"]:.3f} g` '
         f'(`{em["mass_3d_g"]:.3f} g` 3D solid), `G1 = {g1:.6f}`, `W_CAD = +{wsc["W_CAD"]:.4f}`**; '
         f'(b) comparison against the source-audited {n_plotted}-entry commercial karambit census (`docs/market/2026-10-13/census.json`, `docs/market/2026-10-13/summary.json`, median `{med_g:.2f} g`, '

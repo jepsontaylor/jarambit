@@ -15,11 +15,12 @@ import numpy as np
 from mathutils import Vector
 
 ROOT = Path(__file__).resolve().parents[3]
-SUBJECT = 'w282_p14_c01'
-BASE = ROOT / 'evidence/rs_v2/w282_ultrarunner'
-STL = BASE / (SUBJECT + '.stl')
-D1 = BASE / (SUBJECT + '_D1.json')
-OVERLAY = None
+PROOF = json.loads((ROOT / 'evidence/evolve_certifiable/manifest.json').read_text())['automatic']
+SUBJECT = PROOF['label']
+STL = ROOT / PROOF['artifacts']['stl']
+D1 = ROOT / PROOF['artifacts']['d1']
+SCORE = json.loads((ROOT / PROOF['artifacts']['scorecard']).read_text())
+ANNOTATIONS = []
 SCENES = {
     'cad_watertight_and_single_solid': ('01 / Exported topology', 'One closed solid · mass parity ≤ 1%', 'mesh'),
     'geometric_and_holder_gates': ('02 / Manufacturing & holder', '200 × 100 mm plan envelope · 9 mm stack', 'holder'),
@@ -37,7 +38,7 @@ SCENES = {
     'failure_sequence_1p2': ('14 / Failure sequence', 'Hand / blade yield-onset load ratio ≥ 1.20', 'sequence'),
     'plate_gci_valid_3level': ('15 / Mesh convergence', 'Three distinct meshes · identical observable', 'mesh'),
     'dolfinx_cross_check_2pct': ('16 / Independent solver comparison', 'scikit-fem versus DOLFINx · relative error ≤ 2%', 'tip'),
-    'hero_oblique': ('JARAMBIT / Titanium study', 'w282_p14_c01 · historical screen record', 'hero'),
+    'hero_oblique': ('JARAMBIT / Titanium study', 'Committed automatic offspring · assessed failure', 'hero'),
     'hero_reverse': ('JARAMBIT / Reverse face', 'Actual exported STL · illustrative anodized finish', 'reverse'),
     'hero_section': ('JARAMBIT / Ring & section', 'Illustrative sizing gauge · actual mesh cut at z = 0', 'section'),
 }
@@ -53,9 +54,11 @@ def material(name, color, metallic=0., roughness=.4):
 
 
 def emission(name, color):
-    m=material(name,color);bsdf=m.node_tree.nodes.get('Principled BSDF')
-    bsdf.inputs['Emission Color'].default_value=(*color,1)
-    bsdf.inputs['Emission Strength'].default_value=1
+    m=bpy.data.materials.new(name);m.use_nodes=True
+    nt=m.node_tree;nt.nodes.clear()
+    shader=nt.nodes.new('ShaderNodeEmission');shader.inputs['Color'].default_value=(*color,1)
+    shader.inputs['Strength'].default_value=1
+    nt.links.new(shader.outputs['Emission'],nt.nodes.new('ShaderNodeOutputMaterial').inputs['Surface'])
     return m
 
 
@@ -96,12 +99,10 @@ def circle(center,radius,mat,z=.008,start=0,end=2*math.pi):
 
 
 def label(camera,body,x,y,size,mat):
-    factor=.03/.35 if camera.data.type=='PERSP' else 1.
-    font=bpy.data.curves.new('Caption','FONT');font.body=body;font.size=size;font.space_character=1.05
-    ob=bpy.data.objects.new('Caption',font);OVERLAY.collection.objects.link(ob)
-    ob.parent=camera;ob.location=(x*factor,y*factor,-.03);ob.scale=(factor,factor,factor);ob.data.materials.append(mat)
-    # Camera-facing labels are graphic annotations; they do not cast shadows onto the CAD.
-    ob.visible_shadow=False
+    # Publication typography is composited after Cycles; no stochastic glyph sampling
+    # or studio depth of field may obscure the requirement/status annotations.
+    color=mat.node_tree.nodes.get('Emission').inputs['Color'].default_value[:3]
+    ANNOTATIONS.append({'text':body,'x':x,'y':y,'size':size,'rgb':[round(c*255) for c in color]})
 
 
 def light(name,loc,energy,size,color,target):
@@ -132,7 +133,6 @@ def plate_field(d,mat):
 
 
 def main():
-    global OVERLAY
     p=argparse.ArgumentParser();p.add_argument('--scene',choices=SCENES,required=True);p.add_argument('--output',required=True)
     p.add_argument('--samples',type=int,default=48);p.add_argument('--width',type=int,default=1600)
     args=p.parse_args(sys.argv[sys.argv.index('--')+1:])
@@ -151,14 +151,13 @@ def main():
     if mode=='reverse':ti=material('Anodized titanium / illustrative only',(.16,.11,.34),.8,.25)
     orange=material('Load / force annotation',(.95,.20,.055),.2,.3)
     teal=material('Fixture / reference annotation',(.015,.42,.44),.1,.35)
-    ink=emission('Caption ink',(.8,.85,.9) if dark else (.025,.055,.075))
+    ink=emission('Caption ink',(.8,.85,.9) if dark else (.008,.018,.028))
     accent=emission('Caption accent',(.95,.38,.14) if dark else (.55,.12,.04))
     tri=stl_triangles(STL)*.001;vertices,indices=np.unique(tri.reshape(-1,3),axis=0,return_inverse=True)
     ob=mesh_obj('Actual committed '+SUBJECT,vertices.tolist(),indices.reshape(-1,3).tolist(),ti)
     center=(vertices.min(axis=0)+vertices.max(axis=0))/2;target=Vector((center[0],center[1],0))
-    tip=Vector((d['outline'][np.argmax(np.asarray(d['outline'])[:,0])][0]*.001,
-                d['outline'][np.argmax(np.asarray(d['outline'])[:,0])][1]*.001,0))
-    # Select actual planform tip used by the saved outline; no geometry is remodeled.
+    tip=Vector((*np.asarray(d['export_surface']['tip'][:2])*.001,0))
+    # Use the same saved tip point as the solid evaluator; no geometry is remodeled.
     if mode=='reverse':
         # Move the camera underneath; preserve the input vertex positions.
         camera_pos=target+Vector((.035,.13,-.29));floor_z=.018
@@ -173,28 +172,22 @@ def main():
     bpy.ops.mesh.primitive_plane_add(size=200,location=(target.x,target.y,floor_z));bpy.context.object.data.materials.append(floor)
     bpy.ops.object.camera_add(location=camera_pos);cam=bpy.context.object;cam.rotation_euler=(target-cam.location).to_track_quat('-Z','Y').to_euler()
     cam.data.type='ORTHO';cam.data.ortho_scale=.285;s.camera=cam
+    if mode in ('tip','ring','section'):
+        focus=tip-.022*Vector((tip.x,tip.y,0)).normalized() if mode=='tip' else Vector((.016,0,0))
+        cam.location=focus+Vector((.018,-.085,.20))
+        cam.rotation_euler=(focus-cam.location).to_track_quat('-Z','Y').to_euler()
+        cam.data.ortho_scale=.14 if mode=='tip' else .115
     # Orthographic technical plates stay sharp; hero uses perspective depth of field.
     if dark and mode!='section':
         cam.data.type='PERSP';cam.data.lens=44;cam.data.dof.use_dof=True;cam.data.dof.focus_distance=(target-cam.location).length;cam.data.dof.aperture_fstop=11
-    # Composite typography separately so studio depth of field cannot blur or hide labels.
-    OVERLAY=bpy.data.scenes.new('Graphic annotations');OVERLAY.render.engine='CYCLES'
-    OVERLAY.cycles.samples=1;OVERLAY.render.film_transparent=True
-    OVERLAY.render.resolution_x=args.width;OVERLAY.render.resolution_y=1000
-    OVERLAY.render.resolution_percentage=100;OVERLAY.world=s.world
-    overlay_cam=cam.copy();overlay_cam.data=cam.data.copy();overlay_cam.data.dof.use_dof=False;overlay_cam.data.clip_start=.001
-    OVERLAY.collection.objects.link(overlay_cam);OVERLAY.camera=overlay_cam
-    s.use_nodes=True;nt=s.node_tree;nt.nodes.clear()
-    bg=nt.nodes.new('CompositorNodeRLayers');bg.scene=s
-    fg=nt.nodes.new('CompositorNodeRLayers');fg.scene=OVERLAY
-    over=nt.nodes.new('CompositorNodeAlphaOver');nt.links.new(bg.outputs['Image'],over.inputs[1]);nt.links.new(fg.outputs['Image'],over.inputs[2])
-    nt.links.new(over.outputs['Image'],nt.nodes.new('CompositorNodeComposite').inputs['Image'])
+    s.render.use_compositing=False
     light('Large cool key',target+Vector((-.08,-.08,.26)),1.4,.23,(.82,.91,1),target)
     light('Warm rim strip',target+Vector((.08,.12,.15)),1.8,.16,(1,.79,.58),target)
     light('Soft fill',target+Vector((.12,-.06,.12)),.48,.12,(.7,.83,1),target)
     if mode=='reverse':light('Underside key',target+Vector((-.06,.06,-.24)),1.5,.23,(.82,.91,1),target)
     if mode in ('lateral','pull','sequence'):
         plate_field(d,ti)
-        label(cam,'Historical D1 plate envelope · 0–828 MPa · 260 N / 1.82 N·m / 1500 N',-.119,-.052,.0028,ink)
+        label(cam,'Retained D1 plate envelope · 0–828 MPa · 260 N / 1.82 N·m / 1500 N',-.119,-.052,.0028,ink)
         # Fixed transfer-function legend, linear in MPa.
         colors=[(.04,.08,.35),(0,.45,.7),(.08,.7,.6),(.95,.8,.12),(.8,.08,.05)]
         for i,c in enumerate(colors):label(cam,'━━━━',-.118+i*.011,-.058,.003,emission('Scale '+str(i),c))
@@ -204,12 +197,21 @@ def main():
         circle((0,0),.014,teal)
         arrow(tip+Vector((0,0,.038)),tip+Vector((0,0,.004)),orange)
     if mode=='pull':
-        arrow((-.043,0,.01),(-.015,0,.01),orange)
-        for x in np.linspace(.077,.098,5):line('Seated band',[(x,-.008,.005),(x,.008,.005)],teal)
+        arrow((-.015,0,.01),(-.043,0,.01),orange)
+        genes=dict(zip(d['genome_header'].split(','),d['genome'].split(',')))
+        dx=float(genes['grip_dx'])
+        for x in np.linspace((76+dx)*.001,(100+dx)*.001,5):
+            line('Seated band',[(x,-.008,.005),(x,.008,.005)],teal)
     if mode in ('torque','tip'):
-        circle((tip.x-.01,tip.y),.014,orange,z=.015,start=.4,end=5.6)
-        a=Vector((tip.x-.01+.014*math.cos(5.5),tip.y+.014*math.sin(5.5),.015))
-        b=Vector((tip.x-.01+.014*math.cos(5.85),tip.y+.014*math.sin(5.85),.015));arrow(a,b,orange,r=.0007)
+        chord=Vector((tip.x,tip.y,0)).normalized()
+        up=Vector((0,0,1));cross=chord.cross(up)
+        center=tip-.010*chord+Vector((0,0,.005))
+        point=lambda t:center+.014*(math.cos(t)*up+math.sin(t)*cross)
+        # Torque is about the in-plane ring-to-tip chord, not the global z axis.
+        line('Chord torque', [point(t) for t in np.linspace(.4,5.6,100)],orange)
+        arrow(point(5.5),point(5.85),orange,r=.0007)
+        start=tip-.035*chord+Vector((0,0,.008))
+        line('Ring-to-tip chord',[start,(tip.x,tip.y,.008)],teal,.0002)
         circle((0,0),.014,teal)
     if mode in ('ring','section'):
         # A declared 22 mm sizing gauge, not a human hand or an ergonomic validation.
@@ -233,11 +235,16 @@ def main():
         for a,b in edges:line('Retained mesh edge',[(xy[a,0],xy[a,1],.006),(xy[b,0],xy[b,1],.006)],teal,.000055)
         label(cam,'Retained certification mesh · sparse edge display; no synthetic refinement',-.119,-.046,.0028,ink)
     if mode=='sequence':
-        x=.102;line('Zone boundary',[(x,-.04,.01),(x,.035,.01)],orange,.0005)
+        label(cam,'Hand / blade yield-order proxy · no fracture simulation',-.119,-.043,.003,ink)
     label(cam,'J A R A M B I T     /     ENGINEERING ATLAS',-.119,.067,.0033,ink)
     label(cam,title,-.119,.057,.0052,ink);label(cam,subtitle,-.119,.048,.0033,ink)
-    label(cam,'HISTORICAL w282 · NO CURRENTLY CERTIFIED ALL-GATES WINNER',-.119,-.073,.0031,accent)
+    verdict=SCORE['weighted_cad_score']['gates'].get(args.scene)
+    gate_count=sum(SCORE['weighted_cad_score']['gates'].values())
+    observation=('W_CAD_v2 gate: '+('PASS' if verdict else 'FAIL')) if verdict is not None else f'W_CAD_v2: {gate_count}/16 · RS-karambit-v2: FAIL'
+    label(cam,SUBJECT+'   /   '+observation,-.119,-.067,.0028,ink)
+    label(cam,'ASSESSED EXAMPLE · NOT QUALIFIED · CHAMPION = NULL',-.119,-.076,.0031,accent)
     s.render.filepath=args.output;bpy.ops.render.render(write_still=True)
+    Path(args.output).with_suffix('.labels.json').write_text(json.dumps(ANNOTATIONS,indent=1)+'\n')
 
 
 if __name__=='__main__':main()

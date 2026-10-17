@@ -245,7 +245,7 @@ def make_readme_hero_fig():
     _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False)
     rec = wcad_winners[-1]
     ax.set_title(
-        f"jarambit Multi-Wave Mass Progression (W20 → W282): Record {rec['label']} at {rec['mass_g']:.3f} g ({rec['mass_3d_g']:.3f} g 3D Solid, G1 = {rec['g1']:.6f})",
+        f"Historical pre-#82 model · W20 → W282 screen selection: {rec['label']} at {rec['mass_g']:.3f} g ({rec['mass_3d_g']:.3f} g 3D Solid, G1 = {rec['g1']:.6f})\nNo currently certified all-16 winner",
         fontsize=11.8, fontweight='bold', pad=12,
     )
     leg = ax.legend(loc='upper right', facecolor='#0d1117', edgecolor='#30363d', fontsize=8.2, ncol=2)
@@ -256,7 +256,7 @@ def make_readme_hero_fig():
     fig.savefig(fig_path, dpi=160, facecolor=fig.get_facecolor())
     plt.close(fig)
 
-    figlib.write_manifest(str(fig_path), [str(p) for p in inputs], __file__)
+    figlib.write_manifest(str(fig_path), [str(p) for p in inputs] + [__file__], __file__)
     return fig_path
 
 
@@ -371,14 +371,14 @@ def make_why_this_matters_fig():
         txt.set_color('#c9d1d9')
 
     fig.suptitle(
-        f"Why This Matters: Evolutionary Design Cuts Titanium Karambit Mass to {w279_mass_g:.3f} g ({w279_mass_3d_g:.3f} g 3D) — {pct_below_median:.1f}% Below Market Median While Passing All 16 Gates",
+        f"Historical pre-#82 model: selected titanium geometry at {w279_mass_g:.3f} g ({w279_mass_3d_g:.3f} g 3D) — {pct_below_median:.1f}% Below Market Median\nArchived screen observations; no currently certified all-16 winner",
         color='#f0f6fc', fontsize=12.2, fontweight='bold', y=0.98,
     )
     fig.tight_layout(rect=[0, 0, 1, 0.94])
     fig.savefig(fig_path, dpi=160, facecolor=fig.get_facecolor())
     plt.close(fig)
 
-    figlib.write_manifest(str(fig_path), [str(p) for p in inputs], __file__)
+    figlib.write_manifest(str(fig_path), [str(p) for p in inputs] + [__file__], __file__)
     return fig_path
 
 
@@ -474,7 +474,7 @@ def make_w279_gate_margins_fig():
     g1_val = float(bat['global_fitness']['G'])
     wcad_val = float(ev['weighted_cad_score']['W_CAD'])
     ax.set_title(
-        f"Historical screen {ev['subject']} ({em['mass_g']:.3f} g 2.5D / {em['mass_3d_g']:.3f} g 3D Solid): All 16 Gates PASS (G1 = {g1_val:.6f}, W_CAD = +{wcad_val:.4f})",
+        f"Historical pre-#82 model: {ev['subject']} ({em['mass_g']:.3f} g 2.5D / {em['mass_3d_g']:.3f} g 3D Solid): All 16 Gates PASS (G1 = {g1_val:.6f}, W_CAD = +{wcad_val:.4f})\nArchived predicates; no currently certified all-16 winner",
         fontsize=11.2, fontweight='bold', pad=12,
     )
     ax.grid(True, axis='x', color='#21262d', linestyle='--', linewidth=0.7, alpha=0.8)
@@ -486,7 +486,7 @@ def make_w279_gate_margins_fig():
     fig.savefig(fig_path, dpi=160, facecolor=fig.get_facecolor())
     plt.close(fig)
 
-    figlib.write_manifest(str(fig_path), [str(p) for p in inputs], __file__)
+    figlib.write_manifest(str(fig_path), [str(p) for p in inputs] + [__file__], __file__)
     return fig_path
 
 
@@ -655,7 +655,7 @@ def make_web_studio_fig():
     fig.savefig(fig_path, dpi=160, facecolor=fig.get_facecolor())
     plt.close(fig)
 
-    figlib.write_manifest(str(fig_path), [str(p) for p in inputs], __file__)
+    figlib.write_manifest(str(fig_path), [str(p) for p in inputs] + [__file__], __file__)
     return fig_path
 
 
