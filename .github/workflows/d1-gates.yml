@@ -54,6 +54,8 @@ jobs:
           python3 ops/ci/check_json_strict.py out/ci_d1
       - name: Reproduce retained genome exports and inspect independent STEP bore geometry
         run: |
+          export TMPDIR="$PWD/target/ci-cad-tmp/${GITHUB_RUN_ID}/${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$TMPDIR"
           cargo build --release --locked -p jarambit-crescent --example export_step
           python3 ops/ci/check_export_regeneration.py
           python3 -m venv target/ci-cad-env
