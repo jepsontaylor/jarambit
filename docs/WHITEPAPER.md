@@ -310,7 +310,7 @@ The strict-mesh **4–15 mm tip annulus** must have SF ≥1 at 1.82 N·m. [run_u
 
 #### Strength — `solid_tip_3d_p2_1p82nm`
 
-The 30 mm quadratic-tetrahedron local tip problem must have recorded fine nodal-maximum SF ≥1 at 1.82 N·m. [tip_solid.py](../fem_solid/tip_solid.py), [solve_dolfinx.py](../fem_solid/solve_dolfinx.py) and the same-mesh cross-check solve 3D linear elasticity. Analytic fixtures, field semantics, mesh/raw hashes and candidate observations provide the trace. W283's actual fine SF 0.9577/0.9578 fails; native-only screening stays unverified for independent certification.
+The 30 mm quadratic-tetrahedron local tip problem must have recorded fine nodal-maximum SF ≥1 at 1.82 N·m. [tip_solid.py](../fem_solid/tip_solid.py), [solve_dolfinx.py](../fem_solid/solve_dolfinx.py) and the same-mesh cross-check solve 3D linear elasticity with a clamped cut face and balanced minimum-norm vertex z-forces on a 2 mm tip patch. The stress observable uses **4≤tip distance<15 mm** and **cut-boundary distance>3 mm**, with the joint thin/hot allowable. Analytic fixtures, field semantics, mesh/raw hashes and candidate observations provide the trace. W283's actual fine SF 0.9577/0.9578 fails; native-only screening stays unverified for independent certification.
 
 #### Stability — `side_a4_buckling_and_support`
 
