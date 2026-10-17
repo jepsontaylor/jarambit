@@ -20,6 +20,7 @@ pub mod g1;
 pub mod gci;
 pub mod cad_ingest;
 pub mod battery;
+pub mod certification;
 pub use genome::Genome;
 pub use pheno::{build, Pheno};
 

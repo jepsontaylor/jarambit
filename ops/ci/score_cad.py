@@ -49,6 +49,7 @@ from ops.ci.cad_battery import (  # noqa: E402
     pass_count,
     solver_run_count,
     subject_catalog,
+    evaluated_genome_spec,
 )
 from ops.ci.evaluate_cad_candidate import (  # noqa: E402
     compute_weighted_cad_score,
@@ -397,7 +398,6 @@ def evaluate_standalone_3d_cad(
     # Check if native CAD outline/metadata exists (e.g. C10a)
     is_c10a = (
         cad_info['step_sha256'] == '441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7'
-        or label.lower() == 'c10a'
     )
 
     # 4. Run or load 3D P2 solid-tip submodel (`fem_solid/step_solid.py` + `dolfinx`)
@@ -968,43 +968,11 @@ def score_cad(
 
     if resolved['mode'] == 'genome_backed' and not force_standalone_cad:
         g_csv = resolved['genome_csv']
-        existing_eval = resolved['existing_cad_eval']
-        # Fast path when --no-run-solid is passed and pre-computed evaluation exists for the exact genome SHA-256
-        if not run_solid and existing_eval is not None and existing_eval.is_file():
-            cached = json.loads(existing_eval.read_text(encoding='utf-8'))
-            if cached.get('genome_sha256') == _sha256(g_csv):
-                cad_eval = cached
-                if existing_eval.parent != out_dir:
-                    (out_dir / f'{subj}_cad_eval.json').write_text(
-                        json.dumps(cad_eval, indent=2, sort_keys=True) + '\n',
-                        encoding='utf-8',
-                    )
-            else:
-                cad_eval = evaluate_candidate(subj, g_csv, out_dir, run_solid=run_solid)
-        else:
-            cad_eval = evaluate_candidate(subj, g_csv, out_dir, run_solid=run_solid)
+        # The full evaluator validates content identity, D1 hash, exact mesh and independent raw observations.
+        # A label or matching genome CSV alone never authorizes a cached certificate.
+        cad_eval = evaluate_candidate(subj, g_csv, out_dir, run_solid=run_solid)
         cad_eval['evaluation_mode'] = 'genome_and_3d_cad_full_battery'
-
-        # Build the 18-case CAD battery record with solid.tip bound
-        native_cat, genome_cat = subject_catalog()
-        if resolved['catalog_id'] in genome_cat:
-            battery_rec = build_subject(resolved['catalog_id'], commit, probes)
-        else:
-            src_dir = existing_eval.parent if (not run_solid and existing_eval is not None and existing_eval.is_file()) else out_dir
-            a1a3_p = src_dir / f'{subj}_a1a3.json'
-            side_seq = json.loads(a1a3_p.read_text(encoding='utf-8')).get('seq_ratio_this_mesh') if a1a3_p.is_file() else None
-            custom_spec = {
-                'rs': str(src_dir / f'{subj}_rs.json'),
-                'd1': str(src_dir / f'{subj}_D1.json') if (src_dir / f'{subj}_D1.json').is_file() else None,
-                'genome': str(g_csv),
-                'tip_mesh': str(src_dir / f'{subj}_solid_tip.json') if (src_dir / f'{subj}_solid_tip.json').is_file() else None,
-                'plate_gci': str(src_dir / f'{subj}_plate_gci.json') if (src_dir / f'{subj}_plate_gci.json').is_file() else None,
-                'side_a4': str(src_dir / f'{subj}_a4.json') if (src_dir / f'{subj}_a4.json').is_file() else None,
-                'side_path': str(a1a3_p) if a1a3_p.is_file() else None,
-                'side_sha': _sha256(a1a3_p) if a1a3_p.is_file() else None,
-                'side_seq': side_seq,
-            }
-            battery_rec = build_subject(subj, commit, probes, custom_spec=custom_spec)
+        battery_rec = build_subject(subj, commit, probes, custom_spec=evaluated_genome_spec(subj, out_dir))
     else:
         cad_eval = evaluate_standalone_3d_cad(
             subj,

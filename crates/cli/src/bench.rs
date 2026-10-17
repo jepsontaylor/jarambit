@@ -75,19 +75,24 @@ fn gate(v: Option<bool>) -> &'static str { match v { Some(true) => "pass", Some(
 /// True only when every gate was observed and met (a missing observation can never pass).
 fn all_met(g: &[Option<bool>]) -> bool { !g.is_empty() && g.iter().all(|v| *v == Some(true)) }
 
-/// Validated solid tip-submodel SF for the genome being evaluated. `<solid_dir>/bindings.json` maps a label to
-/// `{ "gci": <label>_gci.json, "genome": <CSV of the genome the solid study was run on> }`. Evidence counts only if
-/// the bound genome is identical (all genes + material) to `g` and the GCI file names the same design; finest-mesh
-/// `SF_nodal_max.fine` (SF at the max-stress node, 828 MPa). Anything absent or mismatched -> None (unverified).
-fn solid_tip_sf(solid_dir: &str, label: &str, g: &Genome) -> Option<(f64, String)> {
+/// Content-keyed solid evidence: the genome/model identity, bound CSV and GCI payload hash
+/// must agree, and the recorded distinct solvers must meet the original 2% bound.
+fn solid_tip_sf(solid_dir: &str, _label: &str, g: &Genome) -> Option<(f64, String)> {
+    let key=jarambit_crescent::certification::identity(g);
     let b: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(format!("{solid_dir}/bindings.json")).ok()?).ok()?;
-    let e = &b[label];
+    let e = &b[&key];
+    if !jarambit_crescent::certification::bound(e,&key){return None;}
     let bound = crate::crescent::load_seeds(e["genome"].as_str()?, 1).into_iter().next()?;
     if bound != *g { return None; }
     let path = e["gci"].as_str()?.to_string();
-    let j: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).ok()?).ok()?;
-    if j["design"].as_str() != Some(label) { return None; }
-    Some((j["SF_nodal_max"]["fine"].as_f64()?, path))
+    let bytes=std::fs::read(&path).ok()?;
+    if e["gci_sha256"].as_str()!=Some(jarambit_crescent::battery::sha256_bytes(&bytes).as_str()){return None;}
+    let j: serde_json::Value=serde_json::from_slice(&bytes).ok()?;
+    if !jarambit_crescent::certification::bound(&j,&key) { return None; }
+    if jarambit_crescent::certification::independent_pass(&j["solid_record"])!=Some(true){return None;}
+    let sf=j["SF_nodal_max"]["fine"].as_f64()?;
+    if Some(sf)!=j["solid_record"]["stored_solid"]["SF_nodal_max"].as_f64(){return None;}
+    Some((sf,path))
 }
 
 /// RS-karambit-v2 evaluation of named genomes (`label=path,...`). Every hard gate of the set, including the ones
@@ -109,26 +114,11 @@ pub fn rs_v2_eval(genomes: &str, out_dir: &str, solid_dir: &str) -> bool {
         if strict.is_none() { eprintln!("rs-v2-eval: {label}: strict 0.0625 mm^2 solve failed (gates reported unverified)"); }
         let strict_lat = strict.as_ref().map(|s| s.lat20 * fem::joint_k(m, g.t_joint(), 2));
         let strict_tz = strict.as_ref().map(|s| s.twist_tipzone_sf);
-        let solid = solid_tip_sf(solid_dir, label, &g).or_else(|| {
-            if !g.rs_v2() { return None; }
-            let p_parent = std::path::Path::new(path).parent().map(|d| d.join(format!("{label}_solid_tip.json")).to_string_lossy().to_string()).unwrap_or_else(String::new);
-            for cand in [format!("{out_dir}/{label}_solid_tip.json"), p_parent] {
-                if cand.is_empty() { continue; }
-                if let Ok(txt) = std::fs::read_to_string(&cand) {
-                    if let Ok(j) = serde_json::from_str::<serde_json::Value>(&txt) {
-                        if j["subject"].as_str() == Some(label) {
-                            if let Some(sf) = j["stored_solid"]["SF_nodal_max"].as_f64() {
-                                return Some((sf, cand));
-                            }
-                        }
-                    }
-                }
-            }
-            None
-        });
+        let solid = solid_tip_sf(solid_dir, label, &g);
         let (bw, band) = fem::ring_bearing(&p);
         let hunter = jarambit_physics::floors::HUNTER_LATERAL_N;
-        let s2 = if g.rs_v2() { Some(fem::gate_s::brep_point_check(&p)) } else { None };
+        let measured=jarambit_crescent::certification::measure(&p);
+        let s2=measured.point.as_ref().map(|x|(x.pass,x.t_0p25_mm,x.t_1p00_mm,x.t_2p00_mm,x.taper_lower_bound_mm,x.monotonic));
         let gates = [
             ("aesthetic_and_geometric", Some(r.aes.pass && r.rejects.is_empty())),
             ("floors_828_joint", Some(f.floors_ok)),
@@ -139,14 +129,14 @@ pub fn rs_v2_eval(genomes: &str, out_dir: &str, solid_dir: &str) -> bool {
             ("human_max", Some(fem::rs_v2_human_max_pass(&f, &p))),
             ("fatigue", Some(fem::rs_v2_fatigue_pass(&f))),
             // Gate S (owner 2026-10-13): S1+S3 from the grind law; S2 (sharp point) verified on the 3D B-rep when rs_v2 is active.
-            ("gate_s_sharp_law", Some(fem::gate_s::law_pass(g.v[jarambit_crescent::genome::EDGE_TH], g.v[jarambit_crescent::genome::EA_IN], g.v[jarambit_crescent::genome::EA_SP]))),
+            ("gate_s_sharp_law", measured.sharpness.as_ref().map(|s|s.pass)),
             ("gate_s_tip_point_brep", s2.map(|x| x.0)),
         ];
         let all_hard = all_met(&gates.iter().map(|(_, v)| *v).collect::<Vec<_>>());
         let unverified: Vec<&str> = gates.iter().filter(|(_, v)| v.is_none()).map(|(k, _)| *k).collect();
         let screen = [0usize, 1, 2, 3].iter().map(|&i| gates[i].1).fold(Some(true), |a, b| match (a, b) { (Some(false), _) | (_, Some(false)) => Some(false), (None, _) | (_, None) => None, _ => Some(true) });
         let groups: serde_json::Map<String, serde_json::Value> = gates.iter().map(|(k, v)| (k.to_string(), serde_json::json!(gate(*v)))).collect();
-        let mut j = serde_json::json!({"label": label, "genome": path, "requirement_set": "RS-karambit-v2", "tier": "T2 certification (fem::certify) + strict 0.0625 mm^2 + solid tip evidence",
+        let mut j = serde_json::json!({"certificate_identity":jarambit_crescent::certification::identity(&g), "export_measurements":measured, "label": label, "genome": path, "requirement_set": "RS-karambit-v2", "tier": "T2 certification (fem::certify) + strict 0.0625 mm^2 + solid tip evidence",
             "mass_g": p.mass_g, "t_mm": p.t, "aes_pass": r.aes.pass, "rejects": r.rejects, "floors_ok": f.floors_ok,
             "lat_rob_n": f.lat_rob, "ring_rob_n": f.ring_rob, "twist_body_sf": f.twist_body_sf, "twist_tipzone_sf": f.twist_tipzone_sf,
             "strict_lat_rob_0p0625_n": strict_lat, "twist_tipzone_sf_strict": strict_tz,
@@ -198,13 +188,17 @@ mod rs_v2_tests {
         let d = std::env::temp_dir().join(format!("rsv2_solid_{}", std::process::id()));
         std::fs::create_dir_all(&d).unwrap(); let ds = d.to_str().unwrap();
         assert!(solid_tip_sf(ds, "g3", &g3).is_none(), "no bindings -> unverified");
-        let gci = d.join("g3_gci.json"); std::fs::write(&gci, r#"{"design":"g3","SF_nodal_max":{"fine":1.6}}"#).unwrap();
-        let bind = serde_json::json!({"g3": {"gci": gci, "genome": repo("evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv")},
-                                      "x": {"gci": gci, "genome": repo("evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv")}});
+        let key=jarambit_crescent::certification::identity(&g3);
+        let gci = d.join("g3_gci.json");
+        let proof=serde_json::json!({"certificate_identity":key,"design":"g3","SF_nodal_max":{"fine":1.6},"solid_record":{"mesh_sha256":"a".repeat(64),"stored_solid":{"NL":4,"NSUB":1,"SF_nodal_max":1.6,"SF_nodal_avg":1.7,"SF_skfem_nodal_max":1.6,"SF_skfem_nodal_avg":1.7},"dolfinx_cross_check":{"status":"verified","primary_solver":"skfem_p2","independent_solver":"dolfinx_v0.9.0","mesh_sha256":"a".repeat(64),"SF_nodal_max":1.6,"SF_nodal_avg":1.7}}});
+        std::fs::write(&gci,proof.to_string()).unwrap();let sha=jarambit_crescent::battery::sha256_file(&gci).unwrap();
+        let bind = serde_json::json!({key.clone(): {"certificate_identity":key,"gci_sha256":sha,"gci": gci, "genome": repo("evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv")}});
         std::fs::write(d.join("bindings.json"), bind.to_string()).unwrap();
         assert_eq!(solid_tip_sf(ds, "g3", &g3).map(|x| x.0), Some(1.6));
         assert!(solid_tip_sf(ds, "g3", &w).is_none(), "same label, different genome must be unverified");
-        assert!(solid_tip_sf(ds, "x", &g3).is_none(), "GCI file naming another design must be unverified");
+        assert_eq!(solid_tip_sf(ds,"x",&g3).map(|x|x.0),Some(1.6),"same content may be relabeled");
+        std::fs::write(&gci,"{\"SF_nodal_max\":{\"fine\":99.0}}").unwrap();
+        assert!(solid_tip_sf(ds,"g3",&g3).is_none(),"edited payload cannot retain an old content binding");
         std::fs::remove_dir_all(&d).ok();
     }
 

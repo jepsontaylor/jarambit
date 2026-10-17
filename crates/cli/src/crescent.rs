@@ -32,10 +32,13 @@ fn plate_json_x(r: &qd::Rec, label: &str, cert: Option<(fem::Fem, fem::Fields)>,
     for j in (0..fd.ny).step_by(step) { for i in (0..fd.nx).step_by(step) { th.push(fd.th[j * fd.nx + i] as f64); } }
     let tris: Vec<String> = fl.tris.iter().map(|t| format!("[{},{},{}]", t[0], t[1], t[2])).collect();
     let mut rr = r.clone(); rr.spg = fm.lat_rob / rr.mass_g; rr.fem = Some(fm.clone()); rr.fit = qd::fitness(&rr);
-    Some(format!("{{\"label\":{},\"metrics\":{},\"fine_area\":\"certified min(0.25, 0.125)\",\"outline\":{},\"holes\":[{}],\"hole_names\":{},\"pad\":{},\"c4\":{},\"field\":{{\"x0\":{},\"y0\":{},\"g\":{},\"nx\":{},\"ny\":{},\"th\":{}}},\"mesh\":{{\"xy\":{},\"tris\":[{}],\"te\":{},\"env_vm\":{},\"sf\":{},\"lat\":{},\"pry\":{},\"ring\":{},\"twist\":{}}},\"genome_header\":{},\"genome\":{},\"d1\":{}}}",
+    let payload=format!("{{\"label\":{},\"metrics\":{},\"fine_area\":\"certified min(0.25, 0.125)\",\"outline\":{},\"holes\":[{}],\"hole_names\":{},\"pad\":{},\"c4\":{},\"field\":{{\"x0\":{},\"y0\":{},\"g\":{},\"nx\":{},\"ny\":{},\"th\":{}}},\"mesh\":{{\"xy\":{},\"tris\":[{}],\"te\":{},\"env_vm\":{},\"sf\":{},\"lat\":{},\"pry\":{},\"ring\":{},\"twist\":{}}},\"genome_header\":{},\"genome\":{},\"d1\":{}}}",
         serde_json::to_string(label).unwrap(), rec_metrics(&rr), jarr(&p.outline), p.holes.iter().map(|h| jarr(h)).collect::<Vec<_>>().join(","), serde_json::to_string(&p.hole_names).unwrap(), jarr(&p.pad), jarr(&jarambit_crescent::c5_ref::EXTERIOR),
         fd.x0, fd.y0, fd.g * step as f64, (fd.nx + step - 1) / step, (fd.ny + step - 1) / step, jnum(&th),
-        jarr(&fl.xy), tris.join(","), jnum(&fl.te), jnum(&fl.env_vm), jnum(&fl.sf), jnum(&fl.lat), jnum(&fl.pry), jnum(&fl.ring), jnum(&fl.twist), serde_json::to_string(&Genome::csv_header()).unwrap(), serde_json::to_string(&r.g.csv_row()).unwrap(), d1))
+        jarr(&fl.xy), tris.join(","), jnum(&fl.te), jnum(&fl.env_vm), jnum(&fl.sf), jnum(&fl.lat), jnum(&fl.pry), jnum(&fl.ring), jnum(&fl.twist), serde_json::to_string(&Genome::csv_header()).unwrap(), serde_json::to_string(&r.g.csv_row()).unwrap(), d1);
+    let mut doc:serde_json::Value=serde_json::from_str(&payload).ok()?;
+    doc["certificate_identity"]=serde_json::json!(jarambit_crescent::certification::identity(&r.g));
+    Some(serde_json::to_string(&doc).ok()?)
 }
 
 pub fn smoke(out: &str, pop: usize, gens: usize, threads: usize, seed: u64, t_seed: f64, fem_area: f64, plate_area: f64) -> bool {
@@ -552,7 +555,7 @@ mod design_entry_tests {
         assert!(!should_run_cad_battery_from(Some("1"), Some("1")));
         let probes = default_battery_probes();
         assert_eq!(probes.analytic.as_str(), "pass");
-        assert_eq!(probes.dolfinx.as_deref(), Some("pass"));
+        assert_eq!(probes.dolfinx.as_deref(), None);
     }
 }
 

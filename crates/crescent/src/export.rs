@@ -6,15 +6,20 @@ use jarambit_physics::fine;
 use std::collections::HashMap;
 type V3 = (f64, f64, f64);
 
+#[derive(Clone, Debug)]
 pub struct Solid { pub verts: Vec<V3>, pub tris: Vec<[usize; 3]> }
+
+/// The same physical thickness law feeds CAD and every plate solve; never use `Field.base`.
+pub fn thickness_at(p: &Pheno, q: P2) -> f64 {
+    p.field.at(q).max(if p.rs_v2 { 0.05 } else { 0.3 })
+}
 
 pub fn solid(p: &Pheno, max_area: f64) -> Option<Solid> {
     let outer = dp_closed(&p.outline, 0.03);
     let holes: Vec<Vec<P2>> = p.holes.iter().map(|h| dp_closed(h, 0.02)).collect();
     let m = fine::mesh_domain(&outer, &holes, max_area)?;
     let n = m.xy.len();
-    let th_floor = if p.rs_v2 { 0.05 } else { 0.3 };
-    let th: Vec<f64> = m.xy.iter().map(|&q| p.field.at(q).max(th_floor)).collect();
+    let th: Vec<f64> = m.xy.iter().map(|&q| thickness_at(p, q)).collect();
     let mut verts: Vec<V3> = m.xy.iter().zip(&th).map(|(q, t)| (q.0, q.1, t / 2.0)).collect();
     verts.extend(m.xy.iter().zip(&th).map(|(q, t)| (q.0, q.1, -t / 2.0)));
     let mut tris: Vec<[usize; 3]> = Vec::with_capacity(m.tris.len() * 2 + 2000);
