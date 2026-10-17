@@ -49,6 +49,8 @@ RS-karambit-v1: screen PASS · promotion FAIL (seq 0.959 < 1.2) · soft: mass 84
 
 **Current committed certification status:** no certified all-16 winner exists. The [automatic #84 proof](evidence/evolve_certifiable/automatic/leaderboard.json) records one completed assessment, zero qualified designs and `champion=null`. The [23-subject ×18-evaluator catalog](evidence/cad_battery/manifest.json) remains **414 cells**, with **0/23 RS-v2 all-hard passes**; the separate automatic assessment does not add a catalog subject. The [paper atlas](docs/ENGINEERING_GATES_AND_EVOLUTION.md#vi-blender-atlas-and-reproducible-publication) renders the committed assessed failure with real gate verdicts and an explicitly empty certified-winner re-render slot. Historical results above retain their original model scope. The #82 withdrawal table records unchanged w283 exports re-certified at `4cd0f994e803`; #84 subsequently changed export construction and did not reissue that catalog.
 
+**History source availability:** the audited main snapshot `0c8d169` contains no `out/w301/leaderboard.json` through `out/w308/leaderboard.json`. Those waves remain outside the published history until their source bytes are committed. Local file hashes alone do not make unavailable inputs reproducible; see the [paper's source-availability note](docs/WHITEPAPER.md#history-source-availability).
+
 ## What it is
 
 **`jarambit`** is a Rust + Python continuum-mechanics and quality-diversity (QD) evolutionary design engine for **Ti-6Al-4V (`Gr5`) utility/hiking karambits**. Each 128-gene crescent candidate is synthesized into a variable-thickness 2.5D/3D solid (`crates/crescent`) and evaluated across a multi-tier finite-element and CAD verification pipeline:

@@ -484,6 +484,10 @@ The w300 row describes only the committed capture, **not the later completed wav
 
 W298's best coarse shortfall falls from 3.104828 to 3.068820 over three rounds without producing a qualified candidate. Its initial 68 birth instances contain 56 distinct CSV rows. All four leading first-round parents are p14, and later births lose p10; w401c3 exhibits the opposite family loss. The retained [geometry-only replay](../evidence/evolution_plateau/2026-10-17/rejection_probe.json), with [input/source/output hashes](../evidence/evolution_plateau/2026-10-17/probe_manifest.json), finds all 25 w300 control-family births rejected by the assumed holder envelope, despite aesthetic acceptance. Family preservation addresses one measured selection failure. It supplies neither a physical-feasibility proof nor measured improvement under the new selection rule; no matched post-fix run is retained here.
 
+### V-J. History source availability
+
+The audited [main snapshot `0c8d169`](https://github.com/neverhuman/jarambit/tree/0c8d1692a2f113726f8a74aa796f2dea959b7094) contains no `out/w301/leaderboard.json` through `out/w308/leaderboard.json`. These waves are excluded from the published history. Local file hashes identify observed bytes but do not preserve unavailable inputs or establish reproducibility. Later publication requires committed source bytes and regenerated input ledgers; no missing-wave statistics are inferred.
+
 ## VI. Blender atlas and reproducible publication
 
 ### VI-A. Geometry and image semantics
