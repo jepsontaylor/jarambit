@@ -9,6 +9,8 @@ from OCP.STEPControl import STEPControl_Reader, STEPControl_Writer, STEPControl_
 from OCP.TopAbs import TopAbs_FACE
 from OCP.TopExp import TopExp_Explorer
 from OCP.TopoDS import TopoDS, TopoDS_Compound
+from OCP.StepShape import StepShape_ClosedShell, StepShape_AdvancedFace, StepShape_HArray1OfFace
+from OCP.StepGeom import StepGeom_ToroidalSurface
 from OCP.BRep import BRep_Builder
 from OCP.BRepAdaptor import BRepAdaptor_Surface
 from OCP.GeomAbs import GeomAbs_Torus
@@ -21,7 +23,21 @@ class RealBoreReadback(unittest.TestCase):
         root=Path(__file__).resolve().parents[3]
         fixture=root/'evidence/evolve_certifiable/controls/legal_genome'
         out=root/'target/bore-readback-controls'/str(time.time_ns());out.mkdir(parents=True)
-        reader=STEPControl_Reader();reader.ReadFile(str(fixture/'control.step'));reader.TransferRoots()
+        reader=STEPControl_Reader();reader.ReadFile(str(fixture/'control.step'))
+        # Make a bore-only regression fragment from actual member faces in the source STEP.
+        # Selecting these entities avoids minutes of unrelated whole-shell healing here.
+        # Production inspect_step still imports and validates the entire unmodified solid.
+        model=reader.WS().Model()
+        shells=[model.Value(i) for i in range(1,model.NbEntities()+1)
+                if isinstance(model.Value(i),StepShape_ClosedShell)]
+        self.assertEqual(len(shells),1)
+        members=[shells[0].CfsFacesValue(i) for i in range(1,shells[0].NbCfsFaces()+1)]
+        faces=[face for face in members if isinstance(face,StepShape_AdvancedFace)
+               and isinstance(face.FaceGeometry(),StepGeom_ToroidalSurface)]
+        self.assertGreater(len(faces),0)
+        subset=StepShape_HArray1OfFace(1,len(faces))
+        for i,face in enumerate(faces,1):subset.SetValue(i,face)
+        shells[0].SetCfsFaces(subset);reader.TransferRoots()
         compound=TopoDS_Compound();builder=BRep_Builder();builder.MakeCompound(compound)
         explorer=TopExp_Explorer(reader.OneShape(),TopAbs_FACE)
         while explorer.More():
