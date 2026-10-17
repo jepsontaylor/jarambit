@@ -398,13 +398,44 @@ fn certify_candidate_stage2(
     })
 }
 
-/// Keep authoritative qualified genomes before adding provisional search diversity.
-fn replacement_elites(qualified: impl Iterator<Item = (String, Genome)>, survivors: &[ScreenSurvivor], previous: &[(String, Genome)]) -> Vec<(String, Genome)> {
+/// Keep qualified genomes, then preserve each rankable seed family before filling search slots.
+fn replacement_elites(
+    qualified: impl Iterator<Item = (String, Genome)>,
+    survivors: &[ScreenSurvivor],
+    previous: &[(String, Genome)],
+) -> Vec<(String, Genome)> {
     let mut next = Vec::new();
-    for pair in qualified.chain(survivors.iter().take(4).map(|s| (s.family.clone(), s.g.clone()))) {
-        if !next.iter().any(|(_, g)| *g == pair.1) { next.push(pair); }
+    for pair in qualified {
+        if !next.iter().any(|(_, g)| *g == pair.1) {
+            next.push(pair);
+        }
     }
-    if next.is_empty() { previous.to_vec() } else { next }
+    let mut provisional: Vec<(String, Genome)> = Vec::new();
+    // Match Stage-2's family-first policy. Four global leaders can all be near-identical
+    // members of one family, permanently starving the others in subsequent rounds.
+    for s in survivors {
+        if !provisional.iter().any(|(family, _)| *family == s.family)
+            && !next.iter().chain(&provisional).any(|(_, g)| *g == s.g)
+        {
+            provisional.push((s.family.clone(), s.g.clone()));
+        }
+    }
+    // Count distinct genomes, rather than taking four rows and deduplicating afterwards.
+    // With more than four available families, keep their representatives too.
+    for s in survivors {
+        if provisional.len() >= 4 {
+            break;
+        }
+        if !next.iter().chain(&provisional).any(|(_, g)| *g == s.g) {
+            provisional.push((s.family.clone(), s.g.clone()));
+        }
+    }
+    next.extend(provisional);
+    if next.is_empty() {
+        previous.to_vec()
+    } else {
+        next
+    }
 }
 
 /// CLI entrypoint for `jarambit auto-evolve`.
@@ -772,6 +803,69 @@ mod tests {
         assert_eq!(replacement_elites(std::iter::empty(),&[],&seeds),seeds);
         let dedup=replacement_elites(seeds.clone().into_iter().chain(seeds.clone()),&[],&[]);
         assert_eq!(dedup,seeds);
+    }
+    fn replay_screen(host: &str, wave: &str) -> Vec<ScreenSurvivor> {
+        let root = repo_root().join("evidence/evolution_plateau/2026-10-17").join(host).join("out").join(wave);
+        let births: Value = serde_json::from_slice(&std::fs::read(root.join("round_00_births.json")).unwrap()).unwrap();
+        let screen: Value = serde_json::from_slice(&std::fs::read(root.join("round_00_screen.json")).unwrap()).unwrap();
+        screen.as_array().unwrap().iter().map(|row| {
+            let label = row["label"].as_str().unwrap();
+            let idx: usize = label.rsplit_once("_c").unwrap().1.parse().unwrap();
+            let csv = births["genomes"][idx - 1]["row"].as_str().unwrap();
+            let g = Genome::from_csv(&csv.split(',').collect::<Vec<_>>()).unwrap();
+            ScreenSurvivor { label: label.into(), family: row["family"].as_str().unwrap().into(), g,
+                mass_g: row["mass_g"].as_f64().unwrap(), seq_ratio: row["seq_ratio"].as_f64().unwrap(),
+                fat_sf: row["fat_sf"].as_f64().unwrap(), ring_bearing_w_mm: row["ring_bearing_w_mm"].as_f64().unwrap(),
+                screen_deficit: row["screen_deficit"].as_f64().unwrap() }
+        }).collect()
+    }
+    #[test]
+    fn completed_wave_screens_retain_both_seed_families_for_the_next_round() {
+        for (host, wave) in [("xbabe2", "w298"), ("xbabe3", "w401c3")] {
+            let screen = replay_screen(host, wave);
+            // The old first-four replacement collapses to one lineage in both real waves.
+            assert!(screen[..4].iter().all(|s| s.family == screen[0].family));
+            let next = replacement_elites(std::iter::empty(), &screen, &[]);
+            assert_eq!(next.len(), 4);
+            for family in ["p10", "p14"] {
+                let best = screen.iter().find(|s| s.family == family).unwrap();
+                assert!(next.iter().any(|(f, g)| f == family && *g == best.g), "{wave}: lost {family}");
+            }
+            let offspring = spawn_offspring_batch(&next, 12, 1, &mut Rng(2980));
+            for family in ["p10", "p14"] {
+                assert!(offspring.iter().any(|(f, _)| f == family));
+            }
+        }
+    }
+    #[test]
+    fn elite_replacement_counts_unique_genomes_and_preserves_all_available_families() {
+        let mut screen = replay_screen("xbabe2", "w298");
+        let mut other = screen[0].clone();
+        other.family = "third".into();
+        other.g.v[EA_IN] = 14.5;
+        screen.push(other.clone());
+        let mut fourth = other.clone();
+        fourth.family = "fourth".into();
+        fourth.g.v[EA_IN] = 14.75;
+        screen.push(fourth.clone());
+        // More available families than four require enough slots to keep one per family.
+        let mut fifth = other.clone();
+        fifth.family = "fifth".into();
+        fifth.g.v[EA_IN] = 15.0;
+        screen.push(fifth.clone());
+        let first = screen[0].clone();
+        screen.splice(0..0, vec![first; 4]);
+        let champion = ("qualified".into(), screen[0].g.clone());
+        let next = replacement_elites(std::iter::once(champion.clone()), &screen, &[]);
+        assert_eq!(next[0], champion);
+        assert!(next.iter().any(|(_, g)| *g == other.g));
+        assert!(next.iter().any(|(_, g)| *g == fourth.g));
+        assert!(next.iter().any(|(_, g)| *g == fifth.g));
+        assert!(next.iter().any(|(f, _)| f == "p14"));
+        assert!(next.iter().any(|(f, _)| f == "p10"));
+        for (i, (_, g)) in next.iter().enumerate() {
+            assert!(!next[..i].iter().any(|(_, prev)| prev == g));
+        }
     }
     #[test]
     fn invalid_seed_input_has_no_external_cad_fallback() {
