@@ -1,9 +1,155 @@
 {
  "extra": {
   "blender": "Blender 4.5.3 LTS",
+  "captions": [
+   {
+    "rgb": [
+     2,
+     5,
+     7
+    ],
+    "size": 0.0028,
+    "text": "Retained D1 plate envelope \u00b7 0\u2013828 MPa \u00b7 260 N / 1.82 N\u00b7m / 1500 N",
+    "x": -0.119,
+    "y": -0.052
+   },
+   {
+    "rgb": [
+     10,
+     20,
+     89
+    ],
+    "size": 0.003,
+    "text": "\u2501\u2501\u2501\u2501",
+    "x": -0.118,
+    "y": -0.058
+   },
+   {
+    "rgb": [
+     0,
+     115,
+     178
+    ],
+    "size": 0.003,
+    "text": "\u2501\u2501\u2501\u2501",
+    "x": -0.107,
+    "y": -0.058
+   },
+   {
+    "rgb": [
+     20,
+     178,
+     153
+    ],
+    "size": 0.003,
+    "text": "\u2501\u2501\u2501\u2501",
+    "x": -0.096,
+    "y": -0.058
+   },
+   {
+    "rgb": [
+     242,
+     204,
+     31
+    ],
+    "size": 0.003,
+    "text": "\u2501\u2501\u2501\u2501",
+    "x": -0.08499999999999999,
+    "y": -0.058
+   },
+   {
+    "rgb": [
+     204,
+     20,
+     13
+    ],
+    "size": 0.003,
+    "text": "\u2501\u2501\u2501\u2501",
+    "x": -0.074,
+    "y": -0.058
+   },
+   {
+    "rgb": [
+     2,
+     5,
+     7
+    ],
+    "size": 0.0025,
+    "text": "0                          828 MPa",
+    "x": -0.118,
+    "y": -0.064
+   },
+   {
+    "rgb": [
+     2,
+     5,
+     7
+    ],
+    "size": 0.003,
+    "text": "Hand / blade yield-order proxy \u00b7 no fracture simulation",
+    "x": -0.119,
+    "y": -0.043
+   },
+   {
+    "rgb": [
+     2,
+     5,
+     7
+    ],
+    "size": 0.0033,
+    "text": "J A R A M B I T     /     ENGINEERING ATLAS",
+    "x": -0.119,
+    "y": 0.067
+   },
+   {
+    "rgb": [
+     2,
+     5,
+     7
+    ],
+    "size": 0.0052,
+    "text": "14 / Failure sequence",
+    "x": -0.119,
+    "y": 0.057
+   },
+   {
+    "rgb": [
+     2,
+     5,
+     7
+    ],
+    "size": 0.0033,
+    "text": "Hand / blade yield-onset load ratio \u2265 1.20",
+    "x": -0.119,
+    "y": 0.048
+   },
+   {
+    "rgb": [
+     2,
+     5,
+     7
+    ],
+    "size": 0.0028,
+    "text": "cert_pipeline_r01_p14_c02   /   W_CAD_v2 gate: PASS",
+    "x": -0.119,
+    "y": -0.067
+   },
+   {
+    "rgb": [
+     140,
+     31,
+     10
+    ],
+    "size": 0.0031,
+    "text": "ASSESSED EXAMPLE \u00b7 NOT QUALIFIED \u00b7 CHAMPION = NULL",
+    "x": -0.119,
+    "y": -0.076
+   }
+  ],
+  "certificate_identity": "db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e",
   "command": "python3 ops/render/blender/render_paper.py --scene failure_sequence_1p2 --samples 48",
   "denoise": true,
-  "encoding": "WebP quality 92, method 6; original PNG retained under target/paper/blender",
+  "encoding": "WebP quality 92, method 6; unlabelled Cycles PNG and caption JSON retained under target/paper/blender",
   "engine": "Cycles CPU",
   "field": "Retained D1 design-load plate envelope, not a new solve or a solid stress field",
   "field_scale": {
@@ -40,20 +186,33 @@
    "units": "MPa"
   },
   "finish": "Illustrative titanium/anodized shader; no structural or coating qualification",
-  "geometry": "Exact committed w282 STL; no remodeled geometry; section scene clips at z=0",
+  "font": "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+  "font_sha256": "5c1247acef7f2b8522a31742c76d6adcb5569bacc0be7ceaa4dc39dd252ce895",
+  "gate_verdict": true,
+  "geometry": "Exact committed automatic-assessment STL; no remodeled geometry; section scene clips at z=0",
+  "geometry_frame_sha256": "2bec0db089e3a823f4e22ace1ecb88a38a6be4faaf0f4d9ecfed5d3954d67f46",
+  "pillow": "10.2.0",
+  "qualified_count": 0,
+  "rs_v2_all_hard": false,
   "samples": 48,
   "scene": "failure_sequence_1p2",
-  "status": "Historical w282 screen record, not certified on fixed main; no currently certified all-gates winner",
-  "threads": 4
+  "status": "Assessed example, not qualified; no certified all-16 winner; champion=null",
+  "subject": "cert_pipeline_r01_p14_c02",
+  "threads": 4,
+  "typography": "Pillow publication overlay after Cycles; fixed image coordinates, independent of depth of field"
  },
  "figure": "docs/figures/whitepaper/blender/failure_sequence_1p2.webp",
- "figure_sha256": "030ec003bda4cfc54ce8274c7830b1ebe5005a009eefcee19bbc6d2e192c0251",
+ "figure_sha256": "562567ee49cf8774fa8d8e9713ee7ae4ebb737b5f701401e98276474ef2fa556",
  "inputs": {
-  "evidence/rs_v2/w282_ultrarunner/w282_p14_c01.stl": "b2ba70cf9b34ea5771a364f24d48121e48761ff0830e8e0a26cccbadb105e0e7",
-  "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_D1.json": "184e454feca52afffd156ce1b607025fb50dc3eca0687b835b36ef8f48c5fc46",
-  "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json": "afdfa9676e988928159274a8b046b4bb02521f274abcf618938cef9dcb29db17",
-  "ops/render/blender/paper_scenes.py": "a2e32098d9663f366fea8a943b518d70f586b37e4bd1e598d14e6ca4ce92a9dd",
-  "ops/render/blender/render_paper.py": "b5a80ea4e5ee842d4ee52f28f8134f325753d46c23a4b7a488cf2cfb64bc58bd"
+  "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02.stl": "8e4987c422b2d9973b15e3fbbed64de809c3507abbb83cb6b1b6898753079022",
+  "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_D1.json": "c2811ed8877904254ddc953dc888aedc3d7791b69c040dd6513fe0b763997bab",
+  "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_master_scorecard.json": "2f696866a6a5ca02b1c6e554028ddef57bbb1b693d0779a2598bebae8ec135ca",
+  "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_rs.json": "2696a6f5d4dbbcec6a6148c83d5ff48313f7a86682766328be56ea4f203945fb",
+  "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_step_check.json": "0368f38bb75ac97fed2f844b3878ec761b709f23063b141a401f0d40561d9ed9",
+  "evidence/evolve_certifiable/automatic/leaderboard.json": "151e18581274a60b4d15581936e09fc02b1a4473e6e9734609a0a0670b47173a",
+  "evidence/evolve_certifiable/manifest.json": "ba90462e4e70141a81f2cc7ad241af1a1958f6ff93dc05dde5acd70c50efa4bc",
+  "ops/render/blender/paper_scenes.py": "683153ca121869179ae2db5d31a56892e84ae352b6a472ba0057ed6235dc9c0a",
+  "ops/render/blender/render_paper.py": "e9f4306a10dca32a1f1539a5ab58e625c49fdcd57bbb025df7d0de9705f1fa94"
  },
  "norms": {},
  "schema": 1,

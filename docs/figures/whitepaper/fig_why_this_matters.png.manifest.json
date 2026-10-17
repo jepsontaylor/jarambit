@@ -1,6 +1,6 @@
 {
  "figure": "docs/figures/whitepaper/fig_why_this_matters.png",
- "figure_sha256": "a01defc46a1f1eec299de2702a589bd98333464663ac87a6b2f74c47c15f1ee3",
+ "figure_sha256": "328abd52436d7111ddce193f3cc6536656036f00ef6ed741a92c18675db30b36",
  "inputs": {
   "docs/market/2026-10-13/benchmark.json": "fee4c4143e0a6ec548c1b5ae0695f9a78c5f0260725650528ea5983c24e48edd",
   "docs/market/2026-10-13/census.json": "871c17a50d205feae5a93100ab212d2ddf06354d3d5fcf17c95c51ff313f7893",
@@ -29,7 +29,8 @@
   "evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_cad_eval.json": "58ead96cff5dc4db982ddc6b49a044bc9b223ee0a2d7b7bbcc949f7126ecc049",
   "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_D1.json": "184e454feca52afffd156ce1b607025fb50dc3eca0687b835b36ef8f48c5fc46",
   "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json": "afdfa9676e988928159274a8b046b4bb02521f274abcf618938cef9dcb29db17",
-  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "df555734d327afe077ca354764f8fea05e7e574bcaa1964beffb2653e911dffc"
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "df555734d327afe077ca354764f8fea05e7e574bcaa1964beffb2653e911dffc",
+  "ops/render/whitepaper_hero_figs.py": "7da926d45c3695ff8b0ff4c79e860ccb6feb1a651be726c83f5d43d790f0e4c9"
  },
  "norms": {},
  "schema": 1,
