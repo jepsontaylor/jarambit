@@ -381,7 +381,7 @@ Each generation retains up to three fitness elites per island. Two-way tournamen
 
 ### V-B. `./evolve.sh`: family proposals, Stage 1 and Stage 2
 
-The wrapper builds the release CLI and export/probe examples, checks their Cargo fingerprints, sets the FEM/SF-map environment and forwards options to [auto_evolve.rs::run_auto_evolve_cli](../crates/cli/src/auto_evolve.rs). On merged main `ae86f188` its defaults are **2 rounds**, **12 candidates per elite per round**, **2 Stage-2 candidates**, seed **2830**, and at most **16 worker threads**. Seed paths default to the two w283 and two w282 retained genomes; a fallback C.6 seed is available. A default seed is not an endorsed certified parent. [EVOLUTION_CERTIFICATION.md](EVOLUTION_CERTIFICATION.md) specifies solver Python, cadquery-ocp and the pinned independent Docker runtime.
+The wrapper builds the release CLI and export/probe examples, checks their Cargo fingerprints, sets the FEM/SF-map environment and forwards options to [auto_evolve.rs::run_auto_evolve_cli](../crates/cli/src/auto_evolve.rs). On main after merged #87 (with defaults unchanged from `ae86f188`), its defaults are **2 rounds**, **12 candidates per elite per round**, **2 Stage-2 candidates**, seed **2830**, and at most **16 worker threads**. Seed paths default to the two w283 and two w282 retained genomes; a fallback C.6 seed is available. A default seed is not an endorsed certified parent. [EVOLUTION_CERTIFICATION.md](EVOLUTION_CERTIFICATION.md) specifies solver Python, cadquery-ocp and the pinned independent Docker runtime.
 
 `spawn_offspring_batch` initially retains the RS-v2 parents (a legacy non-RS-v2 seed first receives a 0.18 mm apex gene) and proposes six alternating operator families: pocket/rail/neck or machining adjustments; taper/fuller adjustments; edge/bevel adjustments; thickness knots; outline control points; and combined Gaussian variation or blended crossover. Perturbation scale decreases as $0.35/\sqrt{round+1}$. The merged operator also samples existing edge-angle/ring-wall bounds in the first round and occasionally applies a broader mutation with $\sigma=0.08$, samples stock thickness within existing bounds and toggles the existing P1 architecture. Other combined mutations use the smaller round-scaled magnitude. All offspring are clamped to the existing genotype domain; no external or hand-built CAD supplies a search parent. These are family-centered proposals, not the island migration algorithm above. The retained proof predates the later broad-mutation addition (§IV-E).
 
@@ -389,7 +389,7 @@ The wrapper builds the release CLI and export/probe examples, checks their Cargo
 
 **Stage 2: standard independent assessment.** `certify_candidate_stage2` writes the exact genome under `by-content/<identity>/attempt-<id>/` and calls [score_cad.py](../ops/ci/score_cad.py), which invokes the standard [evaluate_candidate](../ops/ci/evaluate_cad_candidate.py) path. This runs strict plate, GCI, A4, measured exported geometry, RS-v2 and actual scikit-fem/DOLFINx fine-mesh solves. Selection gives distinct families first choice, then fills remaining slots with distinct candidates. `JARAMBIT_SOLVER_PYTHON` selects the required interpreter. Missing runtime, failed execution, nonfinite fields or incompatible content identity retains an **unverified** report, never an inferred pass.
 
-Completed assessments, including physical failures, stay in the leaderboard. Following merged [PR #86](https://github.com/neverhuman/jarambit/pull/86), `replacement_elites` first retains all qualified genomes and then adds up to four best-ranked Stage-1 genomes, removing repeated genomes. If neither source supplies a parent, it retains the previous parents. This preserves qualified results while allowing provisional structural shortfalls to improve; it does not guarantee preservation of each seed family. Qualification requires **both** `all_16_gates` and `rs_v2_all_hard`; only that conjunction can populate `champion`. A zero process exit reports completed requested assessments, not a winner. `--top-k-certify [N]` enables the independent top-k path (`--certify-top N` remains an alias). A coarse native `score-cad` result alone remains unverified for independence.
+Completed assessments, including physical failures, stay in the leaderboard. Merged [PR #86](https://github.com/neverhuman/jarambit/pull/86) preserves qualified genomes. Following [PR #87](https://github.com/neverhuman/jarambit/pull/87), `replacement_elites` then takes one best-ranked distinct genome per available seed family before filling provisional slots to four where possible. It deduplicates before counting; more than four available families keep their representatives, so the per-parent proposal budget can increase. If neither source supplies a parent, it retains the previous parents. Family labels derive from seed filenames; preserving them does not guarantee phenotypic diversity or feasibility. Qualification requires **both** `all_16_gates` and `rs_v2_all_hard`; only that conjunction can populate `champion`. A zero process exit reports completed requested assessments, not a winner. `--top-k-certify [N]` enables the independent top-k path (`--certify-top N` remains an alias). A coarse native `score-cad` result alone remains unverified for independence.
 
 A current reproduction entry point is:
 
@@ -465,6 +465,25 @@ All seven population figures regenerate with [populations.py](../ops/render/pape
 
 This is **one pre-merge proof committed with #84**, not a post-merge wave or a new historical record. It retains no multi-generation G1/fitness series or full-population independent-gate evaluations, so none are interpolated from this round. The historical w282 population, earlier archive distributions and selected-candidate Pareto projection above retain their own source/model regime. Comparing masses across different exported geometry laws does not demonstrate causal improvement of the new pipeline.
 
+### V-I. Retained plateau diagnostics and the selection repair
+
+Merged [PR #87](https://github.com/neverhuman/jarambit/pull/87), on main at `7cb952e`, retains [hashed diagnostic snapshots](../evidence/evolution_plateau/2026-10-17/README.md) captured at 08:02 UTC on 17 October 2026. These files document historical failures; they omit exported CAD, meshes and raw solver sidecars and cannot independently re-certify any design. W298 scorecards identify source `ae86f188`; xbabe3 scorecards identify `6438f077`. The samples retain their own source/model identities and are not a matched-code experiment.
+
+| Wave / retained scope | Births / rankable, by proposal round | Completed assessments in capture |
+|---|---|---:|
+| w298, final leaderboard | 68/53; 64/63; 64/63 | 6 |
+| w401c3, final leaderboard | 52/45; 48/47 | 4 |
+| w300, partial first-screen capture | 100/64 | 0 |
+| w402c3, partial first-round capture | 52/44 | 1 |
+
+The w300 row describes only the committed capture, **not the later completed wave**. Subsequent runtime results remain outside these plots until committed. Neither retained final leaderboard has a qualified design; all eleven captured assessments fail the same six W_CAD predicates: hiker, hunter, strict hunter, tip-only twist, strict tip-annulus twist and solid tip. Recorded solid SF spans 0.6361–0.6716, human-twist SF 0.05748–0.05906, spine SF 0.22312–0.23345 and fatigue SF 0.45737–0.48302. These are selected failures, not a population certification rate or a new mass record. The battery catalog remains 23×18=414 cells, with 0/23 RS-v2 all-hard passes.
+
+![Historical plateau: coarse ranking, assessed failures, seed-family collapse and physical deficits](figures/engineering_gates/fig_plateau_history.png)
+
+*Figure 8. (a) Best coarse shortfall D over retained rounds; partial captures supply single points only. (b) Actual selected-assessment solid SF versus raster mass, below the unchanged SF=1 floor. (c) Birth instances by filename-derived family, with distinct CSV rows / total births above each bar; an asterisk marks partial captures. (d) Individual SF observations for six binding metrics across the eleven captured assessments; vertical offsets are layout. [plateau.py](../ops/render/paper/plateau.py) checks committed bytes and original host hashes, then regenerates the figure and [plateau_points.json](figures/engineering_gates/plateau_points.json), which records every observation, JSON pointer and reduction. No fresh solve or current certificate is inferred.*
+
+W298's best coarse shortfall falls from 3.104828 to 3.068820 over three rounds without producing a qualified candidate. Its initial 68 birth instances contain 56 distinct CSV rows. All four leading first-round parents are p14, and later births lose p10; w401c3 exhibits the opposite family loss. The retained [geometry-only replay](../evidence/evolution_plateau/2026-10-17/rejection_probe.json), with [input/source/output hashes](../evidence/evolution_plateau/2026-10-17/probe_manifest.json), finds all 25 w300 control-family births rejected by the assumed holder envelope, despite aesthetic acceptance. Family preservation addresses one measured selection failure. It supplies neither a physical-feasibility proof nor measured improvement under the new selection rule; no matched post-fix run is retained here.
+
 ## VI. Blender atlas and reproducible publication
 
 ### VI-A. Geometry and image semantics
@@ -494,6 +513,7 @@ python3 ops/render/paper/populations.py
 python3 ops/render/paper/battery.py
 python3 ops/render/paper/verification.py
 python3 ops/render/paper/certifiable.py
+python3 ops/render/paper/plateau.py
 BLENDER=$HOME/opt/blender-4.5.3-linux-x64/blender \
   python3 ops/render/blender/render_paper.py
 python3 ops/render/paper/build_pdf.py
