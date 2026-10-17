@@ -50,11 +50,14 @@ def _sha256(path: Path) -> str:
 
 
 def verify_step_and_stl(step_path: Path, stl_path: Path, export_stdout: str, ref_mass_g: float) -> dict:
+    from ops.ci.cad_battery import _step_data_section, _step_declares_mm_unit, _strip_step_comments_and_strings
     step_text = step_path.read_text(encoding='utf-8', errors='replace')
-    has_mm_decl = 'LENGTH_UNIT' in step_text and 'SI_UNIT(.MILLI.,.METRE.)' in step_text
-    has_iso = step_text.startswith('ISO-10303-21;')
-    n_solids = step_text.count('MANIFOLD_SOLID_BREP(')
-    n_closed_shells = step_text.count('CLOSED_SHELL(')
+    stripped_step = _strip_step_comments_and_strings(step_text)
+    data_body = _step_data_section(stripped_step)
+    has_iso = stripped_step.lstrip().startswith('ISO-10303-21;')
+    has_mm_decl = _step_declares_mm_unit(step_path, stripped_step)
+    n_solids = data_body.count('MANIFOLD_SOLID_BREP(')
+    n_closed_shells = data_body.count('CLOSED_SHELL(')
     m = re.search(
         r'boundary\s+(\d+)\s+nonmanifold\s+(\d+)\s+dmax\s+(\d+)\s+volume\s+([0-9.]+)\s+mm3',
         export_stdout,
@@ -65,7 +68,7 @@ def verify_step_and_stl(step_path: Path, stl_path: Path, export_stdout: str, ref
     non_manifold = int(m.group(2))
     dmax = int(m.group(3))
     volume_mm3 = float(m.group(4))
-    facets = step_text.count('ADVANCED_FACE(')
+    facets = data_body.count('ADVANCED_FACE(')
     watertight = boundary == 0 and non_manifold == 0 and dmax == 1
     mass_3d_g = round(volume_mm3 * 0.00443, 4)
     mass_raster_g = round(ref_mass_g, 4)
@@ -342,15 +345,21 @@ def evaluate_candidate(
         cwd=ROOT, check=True, capture_output=True, text=True,
     )
     surface_sha = _sha256(surface_path)
+    regen_step_sha = _sha256(Path(f'{regen_prefix}.step'))
+    regen_stl_sha = _sha256(Path(f'{regen_prefix}.stl'))
+    regen_surf_sha = _sha256(Path(f'{regen_prefix}_surface.json'))
     regen_ok = (
-        _sha256(Path(f'{regen_prefix}.step')) == cad_info['step_sha256']
-        and _sha256(Path(f'{regen_prefix}.stl')) == cad_info['stl_sha256']
-        and _sha256(Path(f'{regen_prefix}_surface.json')) == surface_sha
+        regen_step_sha == cad_info['step_sha256']
+        and regen_stl_sha == cad_info['stl_sha256']
+        and regen_surf_sha == surface_sha
     )
     for sfx in ('.step', '.stl', '_surface.json'):
         Path(f'{regen_prefix}{sfx}').unlink(missing_ok=True)
     cad_info['surface_path'] = str(surface_path.relative_to(ROOT)) if surface_path.is_relative_to(ROOT) else str(surface_path)
     cad_info['surface_sha256'] = surface_sha
+    cad_info['regenerated_step_sha256'] = regen_step_sha
+    cad_info['regenerated_stl_sha256'] = regen_stl_sha
+    cad_info['regenerated_surface_sha256'] = regen_surf_sha
     cad_info['regeneration_deterministic'] = bool(regen_ok)
     cad_info['brep_check']=brep
     cad_info['cad_valid']=cad_info['cad_valid'] and brep['valid'] and brep['solids']==1 and bool(regen_ok)

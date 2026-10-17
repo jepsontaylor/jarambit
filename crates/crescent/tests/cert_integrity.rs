@@ -428,7 +428,9 @@ fn bound_genome_battery_evaluates_exported_step_and_fails_closed_on_tampering() 
     assert_eq!(find_case(&bat_tampered, "geom.pin")["status"], "blocked");
 
     let mut ev_bad = ev.clone();
-    ev_bad["cad"]["step_sha256"] = json!(battery::sha256_file(&step_p).unwrap());
+    let bad_step_sha = battery::sha256_file(&step_p).unwrap();
+    ev_bad["cad"]["step_sha256"] = json!(&bad_step_sha);
+    ev_bad["cad"]["regenerated_step_sha256"] = json!(&bad_step_sha);
     std::fs::write(&eval_p, serde_json::to_string_pretty(&ev_bad).unwrap()).unwrap();
     let bat_bad_unit = battery::build_subject(
         &root(),
@@ -440,6 +442,130 @@ fn bound_genome_battery_evaluates_exported_step_and_fails_closed_on_tampering() 
     )
     .unwrap();
     assert_eq!(find_case(&bat_bad_unit, "geom.unit")["status"], "fail");
+
+    // Comment containing SI_UNIT(.MILLI.,.METRE.) on a metre STEP must still fail geom.unit
+    let comment_metre = orig_step
+        .replacen("HEADER;", "HEADER;\n/* SI_UNIT(.MILLI.,.METRE.) */", 1)
+        .replace("SI_UNIT(.MILLI.,.METRE.)", "SI_UNIT($,.METRE.)")
+        .replacen("SI_UNIT($,.METRE.)", "SI_UNIT(.MILLI.,.METRE.)", 1);
+    std::fs::write(&step_p, &comment_metre).unwrap();
+    let cm_sha = battery::sha256_file(&step_p).unwrap();
+    let mut ev_cm = ev.clone();
+    ev_cm["cad"]["step_sha256"] = json!(&cm_sha);
+    ev_cm["cad"]["regenerated_step_sha256"] = json!(&cm_sha);
+    std::fs::write(&eval_p, serde_json::to_string_pretty(&ev_cm).unwrap()).unwrap();
+    let bat_cm = battery::build_subject(
+        &root(),
+        "w283_p14_c01",
+        &"a".repeat(40),
+        &battery::Probes::default(),
+        None,
+        Some(&spec),
+    )
+    .unwrap();
+    assert_eq!(find_case(&bat_cm, "geom.unit")["status"], "fail");
+
+    // Multi-solid STEP (2 MANIFOLD_SOLID_BREP entities) must fail geom.one_solid
+    let two_solid = orig_step.replacen(
+        "ENDSEC;\nEND-ISO-10303-21;",
+        "#999999=MANIFOLD_SOLID_BREP('extra',#20);\nENDSEC;\nEND-ISO-10303-21;",
+        1,
+    );
+    std::fs::write(&step_p, &two_solid).unwrap();
+    let ts_sha = battery::sha256_file(&step_p).unwrap();
+    let mut ev_ts = ev.clone();
+    ev_ts["cad"]["step_sha256"] = json!(&ts_sha);
+    ev_ts["cad"]["regenerated_step_sha256"] = json!(&ts_sha);
+    std::fs::write(&eval_p, serde_json::to_string_pretty(&ev_ts).unwrap()).unwrap();
+    let bat_ts = battery::build_subject(
+        &root(),
+        "w283_p14_c01",
+        &"a".repeat(40),
+        &battery::Probes::default(),
+        None,
+        Some(&spec),
+    )
+    .unwrap();
+    assert_eq!(find_case(&bat_ts, "geom.one_solid")["status"], "fail");
+    std::fs::write(&step_p, &orig_step).unwrap();
+    std::fs::write(&eval_p, serde_json::to_string_pretty(&ev).unwrap()).unwrap();
+
+    // Deleting _step_check.json must fail closed (blocked) on geom.one_solid
+    let step_check_p = PathBuf::from(spec.step_check.as_ref().unwrap());
+    let orig_step_check = std::fs::read_to_string(&step_check_p).unwrap();
+    std::fs::remove_file(&step_check_p).unwrap();
+    let bat_no_sc = battery::build_subject(
+        &root(),
+        "w283_p14_c01",
+        &"a".repeat(40),
+        &battery::Probes::default(),
+        None,
+        Some(&spec),
+    )
+    .unwrap();
+    assert_eq!(find_case(&bat_no_sc, "geom.one_solid")["status"], "blocked");
+    std::fs::write(&step_check_p, &orig_step_check).unwrap();
+
+    // Editing STL to drop a facet (even when re-hashed in cad_eval) must fail geom.one_solid and geom.mass
+    let stl_p = PathBuf::from(spec.stl.as_ref().unwrap());
+    let orig_stl = std::fs::read_to_string(&stl_p).unwrap();
+    let cut_idx = orig_stl.rfind("facet normal").unwrap();
+    let open_stl = format!("{}endsolid w283_p14_c01\n", &orig_stl[..cut_idx]);
+    std::fs::write(&stl_p, &open_stl).unwrap();
+    let open_stl_sha = battery::sha256_file(&stl_p).unwrap();
+    let mut ev_stl = ev.clone();
+    ev_stl["cad"]["stl_sha256"] = json!(&open_stl_sha);
+    ev_stl["cad"]["regenerated_stl_sha256"] = json!(&open_stl_sha);
+    std::fs::write(&eval_p, serde_json::to_string_pretty(&ev_stl).unwrap()).unwrap();
+    let bat_open_stl = battery::build_subject(
+        &root(),
+        "w283_p14_c01",
+        &"a".repeat(40),
+        &battery::Probes::default(),
+        None,
+        Some(&spec),
+    )
+    .unwrap();
+    assert_eq!(find_case(&bat_open_stl, "geom.one_solid")["status"], "fail");
+    assert_eq!(find_case(&bat_open_stl, "geom.mass")["status"], "fail");
+    std::fs::write(&stl_p, &orig_stl).unwrap();
+
+    // Regenerated STEP sha mismatch in cad_eval must fail geom.pin
+    let mut ev_regen = ev.clone();
+    ev_regen["cad"]["regenerated_step_sha256"] = json!("e".repeat(64));
+    std::fs::write(&eval_p, serde_json::to_string_pretty(&ev_regen).unwrap()).unwrap();
+    let bat_regen = battery::build_subject(
+        &root(),
+        "w283_p14_c01",
+        &"a".repeat(40),
+        &battery::Probes::default(),
+        None,
+        Some(&spec),
+    )
+    .unwrap();
+    assert_eq!(find_case(&bat_regen, "geom.pin")["status"], "fail");
+
+    // Removing surface_sha256 from cad_eval after substituting _surface.json must still block geom.pin
+    let surf_p = PathBuf::from(spec.surface.as_ref().unwrap());
+    let orig_surf = std::fs::read_to_string(&surf_p).unwrap();
+    let mut surf_val: serde_json::Value = serde_json::from_str(&orig_surf).unwrap();
+    surf_val["tampered"] = json!(true);
+    std::fs::write(&surf_p, serde_json::to_string(&surf_val).unwrap() + "\n").unwrap();
+    let mut ev_no_surf_sha = ev.clone();
+    ev_no_surf_sha["cad"].as_object_mut().unwrap().remove("surface_sha256");
+    std::fs::write(&eval_p, serde_json::to_string_pretty(&ev_no_surf_sha).unwrap()).unwrap();
+    let bat_no_surf_sha = battery::build_subject(
+        &root(),
+        "w283_p14_c01",
+        &"a".repeat(40),
+        &battery::Probes::default(),
+        None,
+        Some(&spec),
+    )
+    .unwrap();
+    assert_eq!(find_case(&bat_no_surf_sha, "geom.pin")["status"], "blocked");
+    std::fs::write(&surf_p, &orig_surf).unwrap();
+    std::fs::write(&eval_p, serde_json::to_string_pretty(&ev).unwrap()).unwrap();
 }
 
 #[test]

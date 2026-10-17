@@ -404,6 +404,148 @@ def _is_hex64(value):
     return isinstance(value, str) and len(value) == 64 and all(c in '0123456789abcdef' for c in value)
 
 
+def _strip_step_comments_and_strings(text: str) -> str:
+    out = []
+    n = len(text)
+    i = 0
+    while i < n:
+        if i + 1 < n and text[i] == '/' and text[i + 1] == '*':
+            i += 2
+            while i + 1 < n and not (text[i] == '*' and text[i + 1] == '/'):
+                i += 1
+            i = i + 2 if i + 1 < n else n
+        elif text[i] == "'":
+            out.append("''")
+            i += 1
+            while i < n:
+                if text[i] == "'":
+                    if i + 1 < n and text[i + 1] == "'":
+                        i += 2
+                        continue
+                    i += 1
+                    break
+                i += 1
+        else:
+            out.append(text[i])
+            i += 1
+    return ''.join(out)
+
+
+def _step_data_section(stripped: str) -> str:
+    if 'DATA;' not in stripped:
+        return ''
+    after = stripped.split('DATA;', 1)[1]
+    return after.split('ENDSEC;', 1)[0] if 'ENDSEC;' in after else after
+
+
+def _step_declares_mm_unit(step_full: Path, stripped_text: str) -> bool:
+    if not stripped_text.lstrip().startswith('ISO-10303-21;'):
+        return False
+    data_body = _step_data_section(stripped_text)
+    length_unit_count = 0
+    for stmt in data_body.split(';'):
+        compact = ''.join(ch for ch in stmt if not ch.isspace())
+        if not compact.startswith('#') or '=' not in compact:
+            continue
+        if 'LENGTH_UNIT(' in compact:
+            length_unit_count += 1
+            valid_mm = (
+                'NAMED_UNIT(' in compact
+                and 'SI_UNIT(.MILLI.,.METRE.)' in compact
+                and compact.count('SI_UNIT(') == 1
+                and 'CONVERSION_BASED_UNIT(' not in compact
+            )
+            if not valid_mm:
+                return False
+    if length_unit_count < 1:
+        return False
+    try:
+        from OCP.STEPControl import STEPControl_Reader
+        from OCP.TColStd import TColStd_SequenceOfAsciiString
+        from OCP.IFSelect import IFSelect_RetDone
+    except Exception:
+        pass
+    else:
+        reader = STEPControl_Reader()
+        if reader.ReadFile(str(step_full)) == IFSelect_RetDone:
+            length, angle, solid_angle = (TColStd_SequenceOfAsciiString() for _ in range(3))
+            reader.FileUnits(length, angle, solid_angle)
+            actual_units = [length.Value(i).ToCString() for i in range(1, length.Length() + 1)]
+            if actual_units and any(u != 'millimetre' for u in actual_units):
+                return False
+    return True
+
+
+def _stl_census_and_mass(stl_path: Path):
+    import struct
+    raw = stl_path.read_bytes()
+    head = raw[:512].decode('utf-8', errors='replace')
+    is_ascii = raw.startswith(b'solid ') and 'facet normal' in head
+    flat = []
+    if not is_ascii and len(raw) >= 84:
+        n_tri = struct.unpack_from('<I', raw, 80)[0]
+        if 84 + n_tri * 50 == len(raw):
+            for i in range(n_tri):
+                base = 84 + i * 50 + 12
+                for k in range(3):
+                    x, y, z = struct.unpack_from('<fff', raw, base + k * 12)
+                    flat.append((0.0 if x == 0.0 else float(x),
+                                 0.0 if y == 0.0 else float(y),
+                                 0.0 if z == 0.0 else float(z)))
+    if not flat:
+        text = raw.decode('utf-8', errors='replace')
+        for line in text.splitlines():
+            s = line.lstrip()
+            if s.startswith('vertex'):
+                parts = s.split()
+                if len(parts) >= 4:
+                    try:
+                        x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
+                        flat.append((0.0 if x == 0.0 else x,
+                                     0.0 if y == 0.0 else y,
+                                     0.0 if z == 0.0 else z))
+                    except ValueError:
+                        pass
+    if not flat or len(flat) % 3 != 0:
+        return None
+    vmap = {}
+    verts = []
+    for pt in flat:
+        if pt not in vmap:
+            vmap[pt] = len(verts)
+            verts.append(pt)
+    tris = []
+    for i in range(0, len(flat), 3):
+        tris.append((vmap[flat[i]], vmap[flat[i + 1]], vmap[flat[i + 2]]))
+    und = {}
+    dire = {}
+    vol_sum = 0.0
+    for i0, i1, i2 in tris:
+        for u, v in ((i0, i1), (i1, i2), (i2, i0)):
+            dire[(u, v)] = dire.get((u, v), 0) + 1
+            key = (u, v) if u < v else (v, u)
+            und[key] = und.get(key, 0) + 1
+        a, b, c = verts[i0], verts[i1], verts[i2]
+        vol_sum += (a[0] * (b[1] * c[2] - b[2] * c[1])
+                    - a[1] * (b[0] * c[2] - b[2] * c[0])
+                    + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6.0
+    boundary = sum(1 for v in und.values() if v == 1)
+    non_manifold = sum(1 for v in und.values() if v > 2)
+    dmax = max(dire.values(), default=0)
+    vol_mm3 = abs(vol_sum)
+    watertight = boundary == 0 and non_manifold == 0 and dmax == 1 and vol_mm3 > 0.0
+    return {
+        'facets': len(tris),
+        'vertices': len(verts),
+        'boundary_edges': boundary,
+        'non_manifold_edges': non_manifold,
+        'max_directed_edge_repeat': dmax,
+        'watertight_exact': watertight,
+        'volume_mm3': round(vol_mm3, 4),
+        'mass_3d_g': round(vol_mm3 * 0.00443, 4),
+    }
+
+
 def _bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass):
     step_rel = spec.get('step')
     stl_rel = spec.get('stl')
@@ -411,6 +553,7 @@ def _bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass):
     step_check_rel = spec.get('step_check')
     surface_rel = spec.get('surface')
     step_full = _resolve_path(step_rel)
+    stl_full = _resolve_path(stl_rel)
     step_sha = _safe_sha256(step_rel)
     stl_sha = _safe_sha256(stl_rel)
     surf_sha = _safe_sha256(surface_rel)
@@ -421,11 +564,11 @@ def _bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass):
     cert_id = cad_eval.get('certificate_identity') if isinstance(cad_eval, dict) else None
     rs_cert_id = rs.get('certificate_identity')
 
-    if step_full is None or step_sha is None or stl_sha is None or not isinstance(cad_eval, dict) or not isinstance(cad_blk, dict):
+    if step_full is None or stl_full is None or step_sha is None or stl_sha is None or not isinstance(cad_eval, dict) or not isinstance(cad_blk, dict):
         binding_err = 'incomplete or missing bound STEP/STL/cad_eval artifacts'
     elif cad_eval.get('genome_sha256') != sha:
         binding_err = 'cad_eval genome_sha256 mismatch'
-    elif not _is_hex64(cert_id) or (rs_cert_id is not None and rs_cert_id != cert_id):
+    elif not _is_hex64(cert_id) or not _is_hex64(rs_cert_id) or rs_cert_id != cert_id:
         binding_err = 'cad_eval certificate_identity mismatch'
     elif cad_blk.get('step_sha256') != step_sha or cad_blk.get('stl_sha256') != stl_sha:
         binding_err = 'STEP/STL sha256 does not match cad_eval'
@@ -433,7 +576,8 @@ def _bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass):
         surf_sha is None
         or not isinstance(surface_doc, dict)
         or surface_doc.get('certificate_identity') != cert_id
-        or (cad_blk.get('surface_sha256') is not None and cad_blk.get('surface_sha256') != surf_sha)
+        or not _is_hex64(cad_blk.get('surface_sha256'))
+        or cad_blk.get('surface_sha256') != surf_sha
     ):
         binding_err = 'export surface sha256 or certificate_identity mismatch'
     else:
@@ -454,8 +598,10 @@ def _bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass):
         }
 
     step_text = step_full.read_text(encoding='utf-8', errors='replace')
-    has_iso = step_text.lstrip().startswith('ISO-10303-21;')
-    has_mm_decl = 'LENGTH_UNIT' in step_text and 'SI_UNIT(.MILLI.,.METRE.)' in step_text
+    stripped_step = _strip_step_comments_and_strings(step_text)
+    data_body = _step_data_section(stripped_step)
+    has_iso = stripped_step.lstrip().startswith('ISO-10303-21;')
+    has_mm_decl = _step_declares_mm_unit(step_full, stripped_step)
     unit_ok = bool(
         has_iso
         and has_mm_decl
@@ -463,21 +609,29 @@ def _bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass):
         and cad_blk.get('units_source') == 'step_declaration'
     )
 
-    step_solids = step_text.count('MANIFOLD_SOLID_BREP(')
-    step_shells = step_text.count('CLOSED_SHELL(')
-    brep_doc = step_check if isinstance(step_check, dict) else cad_blk.get('brep_check')
-    if step_check_rel is not None and not isinstance(step_check, dict):
-        brep_ok = False
-    elif isinstance(brep_doc, dict):
+    stl_census = _stl_census_and_mass(stl_full)
+    stl_watertight_ok = bool(
+        isinstance(stl_census, dict)
+        and stl_census.get('watertight_exact') is True
+        and stl_census.get('boundary_edges') == 0
+        and stl_census.get('non_manifold_edges') == 0
+    )
+
+    step_solids = data_body.count('MANIFOLD_SOLID_BREP(')
+    step_shells = data_body.count('CLOSED_SHELL(')
+    brep_doc = step_check if step_check_rel is not None else cad_blk.get('brep_check')
+    brep_missing = not isinstance(brep_doc, dict)
+    if not brep_missing:
         brep_ok = bool(
             brep_doc.get('valid') is True
             and brep_doc.get('solids') == 1
             and (not (isinstance(surface_doc, dict) and surface_doc.get('rs_v2')) or brep_doc.get('bore_geometry_matches_mesh') is True)
         )
     else:
-        brep_ok = True
+        brep_ok = False
     one_solid_ok = bool(
-        has_iso
+        not brep_missing
+        and has_iso
         and step_solids == 1
         and step_shells == 1
         and cad_blk.get('manifold_solids') == 1
@@ -485,6 +639,7 @@ def _bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass):
         and cad_blk.get('watertight_exact') is True
         and cad_blk.get('boundary_edges') == 0
         and cad_blk.get('non_manifold_edges') == 0
+        and stl_watertight_ok
         and brep_ok
     )
 
@@ -494,17 +649,47 @@ def _bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass):
     valid_3d = isinstance(mass_3d, (int, float)) and not isinstance(mass_3d, bool) and math.isfinite(mass_3d) and mass_3d > 0
     valid_rel = isinstance(rel_diff, (int, float)) and not isinstance(rel_diff, bool) and math.isfinite(rel_diff)
     recomp_rel = abs(mass_3d - mass) / max(mass, 1e-9) if (valid_3d and g_mass) else None
+    stl_mass_3d = stl_census.get('mass_3d_g') if isinstance(stl_census, dict) else None
+    stl_mass_matches_eval = bool(
+        isinstance(stl_mass_3d, (int, float))
+        and valid_3d
+        and abs(stl_mass_3d - mass_3d) <= 0.05
+    )
+    stl_recomp_rel = abs(stl_mass_3d - mass) / max(mass, 1e-9) if (isinstance(stl_mass_3d, (int, float)) and stl_mass_3d > 0 and g_mass) else None
     mass_ok = bool(
         g_mass
         and valid_3d
         and valid_rel
         and watertight
+        and stl_watertight_ok
+        and stl_mass_matches_eval
         and rel_diff <= 0.01
         and recomp_rel is not None
         and recomp_rel <= 0.01
+        and stl_recomp_rel is not None
+        and stl_recomp_rel <= 0.01
     )
 
-    regen_det = cad_blk.get('regeneration_deterministic') is True
+    regen_step_sha = cad_blk.get('regenerated_step_sha256')
+    regen_stl_sha = cad_blk.get('regenerated_stl_sha256')
+    regen_surf_sha = cad_blk.get('regenerated_surface_sha256')
+    require_regen_shas = bool(
+        step_check_rel is not None
+        or regen_step_sha is not None
+        or regen_stl_sha is not None
+        or regen_surf_sha is not None
+    )
+    if require_regen_shas:
+        regen_shas_ok = bool(
+            _is_hex64(regen_step_sha)
+            and _is_hex64(regen_stl_sha)
+            and regen_step_sha == step_sha
+            and regen_stl_sha == stl_sha
+            and (regen_surf_sha is None or (_is_hex64(regen_surf_sha) and regen_surf_sha == surf_sha))
+        )
+    else:
+        regen_shas_ok = True
+    regen_det = bool(cad_blk.get('regeneration_deterministic') is True and regen_shas_ok)
     surf_ok = bool(surf_sha and isinstance(surface_doc, dict) and surface_doc.get('certificate_identity') == cert_id)
     pin_ok = bool(regen_det and surf_ok)
 
@@ -521,15 +706,20 @@ def _bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass):
             },
         ),
         'geom.one_solid': _case(
-            'geom.one_solid', 'gate', 'pass' if one_solid_ok else 'fail',
+            'geom.one_solid', 'gate',
+            'blocked' if brep_missing else ('pass' if one_solid_ok else 'fail'),
             solver=None, geometry_sha256=sha, source_commit=commit, evidence_path=step_rel,
-            reason=None if one_solid_ok else 'exported STEP/STL is not a single watertight solid',
+            reason=(
+                'missing OpenCascade B-rep step_check evidence'
+                if brep_missing
+                else (None if one_solid_ok else 'exported STEP/STL is not a single watertight solid')
+            ),
             detail={
                 'manifold_solids': step_solids,
                 'closed_shells': step_shells,
-                'watertight_exact': cad_blk.get('watertight_exact'),
-                'boundary_edges': cad_blk.get('boundary_edges'),
-                'non_manifold_edges': cad_blk.get('non_manifold_edges'),
+                'watertight_exact': stl_census.get('watertight_exact') if isinstance(stl_census, dict) else None,
+                'boundary_edges': stl_census.get('boundary_edges') if isinstance(stl_census, dict) else None,
+                'non_manifold_edges': stl_census.get('non_manifold_edges') if isinstance(stl_census, dict) else None,
                 'step_sha256': step_sha,
                 'stl_sha256': stl_sha,
             },
@@ -540,8 +730,8 @@ def _bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass):
             reason=None if mass_ok else ('3D solid vs 2.5D plate mass mismatch or non-watertight mesh' if g_mass else 'missing plate mass'),
             detail={
                 'plate_mass_g': mass,
-                'mass_3d_g': mass_3d,
-                'rel_mass_diff': rel_diff,
+                'mass_3d_g': stl_mass_3d if stl_mass_3d is not None else mass_3d,
+                'rel_mass_diff': stl_recomp_rel if stl_recomp_rel is not None else rel_diff,
                 'step_sha256': step_sha,
                 'stl_sha256': stl_sha,
                 'note': 'bound 3D STEP/STL solid mass verified against 2.5D plate mass (<=1%)',
@@ -558,6 +748,8 @@ def _bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass):
                 'step_sha256': step_sha,
                 'stl_sha256': stl_sha,
                 'surface_sha256': surf_sha,
+                'regenerated_step_sha256': regen_step_sha,
+                'regenerated_stl_sha256': regen_stl_sha,
                 'regeneration_deterministic': regen_det,
             },
         ),
@@ -993,10 +1185,8 @@ def evaluated_genome_spec(label: str, directory: Path) -> dict:
         'stl': str(directory / f'{label}.stl'),
         'surface': str(directory / f'{label}_surface.json'),
         'cad_eval': str(directory / f'{label}_cad_eval.json'),
+        'step_check': str(directory / f'{label}_step_check.json'),
     }
-    step_check = directory / f'{label}_step_check.json'
-    if step_check.is_file():
-        spec['step_check'] = str(step_check)
     return spec
 
 
