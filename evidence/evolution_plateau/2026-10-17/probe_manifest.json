@@ -1,0 +1,11 @@
+{
+  "scope": "Read-only geometry/aesthetic probe of already-generated control-family genomes; no FEM, new design, or certificate",
+  "kernel_base_commit": "9d6416005458acafb045ab78adfb069203862eb4",
+  "rustc": "rustc 1.85.1 (4eb161250 2025-03-15)",
+  "captured_utc": "2026-10-17T08:08:36.525798+00:00",
+  "sha256": {
+    "xbabe2/out/w300/round_00_births.json": "a30476f416a0feb3e61f9d66d7143dc856d4b7deb0df76cc14c13dfaf62990c4",
+    "rejection_probe.rs": "7fe89d381899616a3817ac87b55546a836f09dfc766e09c75bd3acda7b14b624",
+    "rejection_probe.json": "a4b954edbe978c4d512e3a2b39c66c09be3f300c49d2035b6045a91588287e16"
+  }
+}
