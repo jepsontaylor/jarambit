@@ -1,6 +1,6 @@
 # D1 runner capacity and timeout proposal
 
-Local proposal from main `a8a7de426c4eb171457787c1d8876d58f2355f0f`;
+CI proposal first prepared from `a8a7de4`, then rebased onto main `0c8d169`;
 not deployed or benchmarked on the loaded host. This concerns CI scheduling
 and elapsed time only.
 
@@ -85,18 +85,59 @@ two-thread harness and the added wall/CPU timings. Revisit timeout headroom
 from that evidence. No test is skipped and no engineering threshold, genome
 bound or design code changes in this proposal.
 
+## Shared toolchain lookup failure
+
+[Run 39055949400, attempt 2](https://github.com/neverhuman/jarambit/actions/runs/39055949400/attempts/2)
+completed the workspace Cargo step on `jarambit-xbabe2-2` in 27m54s, then
+failed Clippy at `19:23:35.2081164Z` with `cargo: command not found` and exit
+127. Read-only inspection confirmed that all three `jarambit-xbabe2*`
+runner `.env` files select the same Cargo and Rustup homes under
+`/home/ubuntu/actions-runners/jarambit-xbabe2/`.
+
+Do not attribute this incident to the new main D1 job based on timing alone:
+[run 39062127148](https://github.com/neverhuman/jarambit/actions/runs/39062127148)
+started its job at 19:23:41Z and its toolchain action at 19:23:59Z, on
+`jarambit-xbabe3`. Both are after the failure and on another host. The logs
+establish failed command lookup and shared mutable homes, not which process
+caused the missing executable. Missing PATH entries and changing proxies
+are both reasons to stop depending on shared shim lookup.
+
+The workflow now replaces toolchain installation/default selection with
+`ops/ci/select_rust_toolchain.py`. It reads the exact release from committed
+`rust-toolchain.toml`, checks the existing real Cargo/compiler/doc/Clippy
+binaries, verifies Cargo and compiler versions, and exports their directory
+through GitHub's per-job `GITHUB_PATH`, with explicit `RUSTC` and `RUSTDOC` in
+`GITHUB_ENV`. It never calls Rustup, installs tools, or writes a runner `.env`.
+The preinstalled directory is under `/home/ubuntu/.rustup`, the same home
+already used by version-check's generic Rust bridge. Cargo registry-cache
+configuration remains unchanged.
+
+Both admitted hosts were checked read-only for the pinned binaries. A host
+without the exact release or Clippy fails setup with a provisioning/retry
+error; it cannot silently select a different compiler. Future toolchain-pin
+updates require provisioning outside active CI. No runner service or `.env`
+edit is part of this fix.
+
 ## Local validation
 
 `actionlint` and ShellCheck pass. Neutral Cargo stubs exercised the proposed
 workspace shell body with exit codes 0 and 37: both statuses propagated,
 arguments and the run/attempt-specific temporary directory were preserved,
 and wall/user/system timings appeared in both cases. A structural comparison
-against `a8a7de4` confirmed that every other workflow control and command is
-unchanged. These checks did not compile or run the engineering workspace.
+against the base confirmed that later test/lint/smoke/export commands and
+resource limits are unchanged. These checks did not compile or run the
+engineering workspace.
+
+Seven neutral selector regression tests cover missing shared shims,
+unavailable components, substituted shim executables, mismatched releases,
+floating channels, concurrent job exports without installation writes, and
+setup failure before any environment export. A live pinned-tool smoke also
+ran Cargo, rustc and `cargo clippy --version` with no Rustup shims on PATH
+and an unused `RUSTUP_HOME`; all succeeded. It did not build the project.
 
 Raw job logs, API metadata, the sanitized host snapshot, a timing summary and
 the neutral check receipts are retained locally in
 `.agent/worktrees/ci-runner-budget/target/ci-runner-budget/`. They are CI
-diagnostics, not design-certification evidence. The live rerun
-`39055949400`, attempt 2, was still in its workspace step on
-`jarambit-xbabe2-2` when this proposal was prepared; it is not reported green.
+diagnostics, not design-certification evidence. The failed rerun's passing
+workspace step does not make the job green; main run `39062127148` is being
+watched separately. The longer xbabe3 budget still needs a completed run.
