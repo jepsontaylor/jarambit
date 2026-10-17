@@ -1,0 +1,89 @@
+{
+ "solver": {
+  "algorithm": "skfem_p2_amg_cg",
+  "iterations": 152,
+  "relative_residual": 8.803574037789025e-11,
+  "converged": true,
+  "solve_seconds": 510.96873021125793
+ },
+ "design": "/tmp/jarambit-evolve-certifiable-jmedmo_4/evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_D1.json",
+ "T_Nmm": 1820.0,
+ "sallow_joint_MPa": 729.8,
+ "JK2": 0.8813,
+ "plate": {
+  "sigma_per_Nmm": 0.6611,
+  "at": [
+   187.65,
+   -49.23
+  ],
+  "dist_tip": 4.238344662709053,
+  "t_local": 2.3364,
+  "b_section": 10.95,
+  "kc_3d": 1.154,
+  "sigma_plate_MPa": 1203.202,
+  "sigma_plate_x_kc_MPa": 1388.7117635448226,
+  "SF_plate_raw": 0.6065108770252597,
+  "SF_plate_d1": 0.5254906881437912
+ },
+ "solid": {
+  "PATCH_mm": 2.0,
+  "n_tet": 91008,
+  "n_dof": 416583,
+  "R_CUT": 30.0,
+  "NL": 4,
+  "NSUB": 1,
+  "nodal_avg_peak": {
+   "MPa": 1004.7,
+   "at": [
+    187.75,
+    -49.35,
+    -1.13
+   ],
+   "dist": 4.12
+  },
+  "nodal_max_peak": {
+   "MPa": 1090.3,
+   "at": [
+    187.75,
+    -49.35,
+    -1.13
+   ],
+   "dist": 4.12
+  },
+  "elem_mean_peak": {
+   "MPa": 991.2,
+   "at": [
+    187.87,
+    -49.47,
+    -0.95
+   ]
+  },
+  "SF_solid_nodal_avg": 0.726,
+  "SF_solid_nodal_max": 0.669,
+  "SF_solid_elem_mean": 0.736,
+  "twist_rot_check": null,
+  "wall_s": 720.5
+ },
+ "profile_MPa": {
+  "plate_raw": {
+   "4-5": 1203.202,
+   "5-6": 724.542,
+   "6-8": 488.12399999999997,
+   "8-10": 296.478,
+   "10-12": 276.276,
+   "12-15": 302.666,
+   "15-20": 249.522,
+   "20-25": 213.304
+  },
+  "solid_nodal_avg": {
+   "4-5": 1004.7,
+   "5-6": 652.7,
+   "6-8": 397.5,
+   "8-10": 260.4,
+   "10-12": 329.7,
+   "12-15": 331.7,
+   "15-20": 314.8,
+   "20-25": 248.4
+  }
+ }
+}

@@ -1,0 +1,154 @@
+[evolve.sh] Building release binary (target/release/jarambit)...
+warning: function `historical_obj` is never used
+   --> crates/evolve/src/lib.rs:288:4
+    |
+288 | fn historical_obj(i: &Indiv, k: usize) -> Result<f64, String> {
+    |    ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `nondominated_sort_historical` is never used
+   --> crates/evolve/src/lib.rs:435:4
+    |
+435 | fn nondominated_sort_historical(pop: &[Indiv]) -> Vec<Vec<usize>> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `truncate_historical_v1` is never used
+   --> crates/evolve/src/lib.rs:461:4
+    |
+461 | fn truncate_historical_v1(pop: Vec<Indiv>, n: usize) -> Result<Vec<Indiv>, String> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `indiv_v2_historical` is never used
+   --> crates/evolve/src/lib.rs:738:4
+    |
+738 | fn indiv_v2_historical(i: &Indiv) -> Result<String, String> {
+    |    ^^^^^^^^^^^^^^^^^^^
+
+    Blocking waiting for file lock on build directory
+    Finished `release` profile [optimized] target(s) in 1m 40s
+=== JARAMBIT AUTO-EVOLVE: ranked search, independent top-k assessment, qualification requires every hard gate ===
+Config: rounds=1, candidates/elite/round=6, certify_top=1, threads=2, seed=20261017, out=evidence/evolve_certifiable/automatic
+
+[Round 1/1] Stage-1 ranking: 7/7 candidates have valid geometry and a FEM screen; qualification pending
+  -> Stage-2 full 3D TET10 + side.a4 + 0.0625 plate + GCI certification for cert_pipeline_r01_p14_c02 (family=p14, screen_mass=83.063g, seq=1.239, fat_sf=0.494, ring_w=10.40mm)...
+D1 cert_pipeline_r01_p14_c02: lat_at (150.72154806906397, -14.578477237557697) lat20 191.6 twist_at (187.8137116374704, -49.39467656529015)
+# D1 re-screen — screening yield 828 MPa (TIMET min, provisional), JOINT thin+hot, chord-torsion floor 1.82 N*m
+
+Certification min(0.25, 0.125 mm^2) unbiased; strict 0.0625 mm^2 unbiased; joint factor = ((t_j-0.1)/t_j)^2 x yield(100C)/yield(20C) (ring: ^1), t_j = thinnest knot (P1) else stock. PASS @828 joint = hiker 180 / hunter 260 / ring 1500 N at certification AND hunter at strict. P1 PASS also needs seq ratio >= 1.2. Twist floor (OWNER LOCK 2026-10-11 14:52 MT): **body AND tip submodel** both >= 1.82 N*m (hard, certification); **tip-only** (1.82 N*m at the 2 mm tip patch, peak outside 4 mm, St-Venant 3D at the peak) ALWAYS reported, not the gate; **body** = same torque, peak > 15 mm from the tip with its own 3D factor; **tip submodel** = peak restricted to the 4-15 mm tip annulus at the strict 0.0625 mesh with its own 3D factor. Seq ratio = hand-zone / blade-zone yield-onset load (min over lateral, chord-torsion, pry). PROMOTE-ELIGIBLE (OWNER LOCK) = C.6 aesthetic + all hard gates (blade >= 3.375 in on all three) + 828 joint floors + strict hunter + seq >= 1.2 + twist body AND tip-sub; mass is SOFT (Jepson 2026-10-12: G penalty / target < 80 g then < 70 g, 74-77 band reported, not a gate); hunter aim 286 reported. NOTHING is promoted without human aesthetic sign-off.
+
+| design | mass g | t (t_joint) mm | A pass | gates | joint lat N (cert) | SF hiker | SF hunter | joint ring N | SF ring | strict 0.0625 joint lat N (SF hunter) | PASS @828 joint | aim 286 | pre-D1 lat_rob 880/min N | **tip-only twist SF (default hard)** | body twist SF (+3D) | tip-submodel SF (4-15 mm, strict) | peak dist from tip mm | seq ratio (case) | P1 PASS (floors+strict+seq) | twist floor (body AND tip-sub) | mass 74-77 | blade min in | **PROMOTE-ELIGIBLE** (pending aesthetic sign-off) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| cert_pipeline_r01_p14_c02 | 83.06 | 5.9 (5.90) | yes | ok | 168.9 | 0.938 | 0.650 | 26139 | 17.43 | 168.2 (0.647) | **FAIL** | no | 185.8 | **0.52 FAIL** | 2.33 PASS | 0.53 FAIL | 4.1 | 1.44 (lateral) PASS | **FAIL** | FAIL | no | 3.436 | no |
+
+PLATE {"sigma_per_Nmm": 0.6611, "at": [187.65, -49.23], "dist_tip": 4.238344662709053, "t_local": 2.3364, "b_section": 10.95, "kc_3d": 1.154, "sigma_plate_MPa": 1203.202, "sigma_plate_x_kc_MPa": 1388.7117635448226, "SF_plate_raw": 0.6065108770252597, "SF_plate_d1": 0.5254906881437912}
+components in R_CUT disk: 1 (kept the tip component, 1896 plate tris)
+mesh: 91008 P2 tets, 416583 dof, assembled 203s
+load: 240 vertices, torque 1820.0 N*mm, netF 1.14e-13, M_n 8.53e-14
+clamp: 300 vertices on cut (R_CUT 30.0 mm), 3537 dofs
+AMG-CG its 152
+solved 511s rel.res 8.8e-11
+{
+ "solver": {
+  "algorithm": "skfem_p2_amg_cg",
+  "iterations": 152,
+  "relative_residual": 8.803574037789025e-11,
+  "converged": true,
+  "solve_seconds": 510.96873021125793
+ },
+ "design": "/tmp/jarambit-evolve-certifiable-jmedmo_4/evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_D1.json",
+ "T_Nmm": 1820.0,
+ "sallow_joint_MPa": 729.8,
+ "JK2": 0.8813,
+ "plate": {
+  "sigma_per_Nmm": 0.6611,
+  "at": [
+   187.65,
+   -49.23
+  ],
+  "dist_tip": 4.238344662709053,
+  "t_local": 2.3364,
+  "b_section": 10.95,
+  "kc_3d": 1.154,
+  "sigma_plate_MPa": 1203.202,
+  "sigma_plate_x_kc_MPa": 1388.7117635448226,
+  "SF_plate_raw": 0.6065108770252597,
+  "SF_plate_d1": 0.5254906881437912
+ },
+ "solid": {
+  "PATCH_mm": 2.0,
+  "n_tet": 91008,
+  "n_dof": 416583,
+  "R_CUT": 30.0,
+  "NL": 4,
+  "NSUB": 1,
+  "nodal_avg_peak": {
+   "MPa": 1004.7,
+   "at": [
+    187.75,
+    -49.35,
+    -1.13
+   ],
+   "dist": 4.12
+  },
+  "nodal_max_peak": {
+   "MPa": 1090.3,
+   "at": [
+    187.75,
+    -49.35,
+    -1.13
+   ],
+   "dist": 4.12
+  },
+  "elem_mean_peak": {
+   "MPa": 991.2,
+   "at": [
+    187.87,
+    -49.47,
+    -0.95
+   ]
+  },
+  "SF_solid_nodal_avg": 0.726,
+  "SF_solid_nodal_max": 0.669,
+  "SF_solid_elem_mean": 0.736,
+  "twist_rot_check": null,
+  "wall_s": 720.5
+ },
+ "profile_MPa": {
+  "plate_raw": {
+   "4-5": 1203.202,
+   "5-6": 724.542,
+   "6-8": 488.12399999999997,
+   "8-10": 296.478,
+   "10-12": 276.276,
+   "12-15": 302.666,
+   "15-20": 249.522,
+   "20-25": 213.304
+  },
+  "solid_nodal_avg": {
+   "4-5": 1004.7,
+   "5-6": 652.7,
+   "6-8": 397.5,
+   "8-10": 260.4,
+   "10-12": 329.7,
+   "12-15": 331.7,
+   "15-20": 314.8,
+   "20-25": 248.4
+  }
+ }
+}
+
+cert_pipeline_r01_p14_c02: all_hard=false unverified=[]
+wrote /tmp/jarambit-evolve-certifiable-jmedmo_4/evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_a1a3.json
+seq_ratio_0.25=1.438138 case=lateral committed=0.959083
+[cert_pipeline_r01_p14_c02] mode=genome_and_3d_cad_full_battery mass=83.063g (3D 83.039g) gates_16=FAIL W_CAD=-5.570408 G1=0.463443 (COMPLETE) battery=11/18 pass
+     [ASSESSED] cert_pipeline_r01_p14_c02 | 16_gates=FAIL | RS-v2_all_hard=FAIL | battery=11/18 | mass=83.063g (3D 83.039g) | W_CAD=-5.570408 | G1=0.463443 | solid_tip_SF=0.6693 | strict_hunter_SF=0.6469
+# Evolution certification attempts
+
+Search rank is provisional. Qualification requires all 16 engineering gates and the complete measured RS-v2 verdict, including both independent fine-mesh solvers.
+
+| Design | Qualified | Mass g | W_CAD | G1 | Solid tip SF | RS-v2 all_hard | Battery |
+|---|---|---:|---:|---:|---:|---|---|
+| `cert_pipeline_r01_p14_c02` | false | 83.063 | -5.570408 | 0.463443 | 0.6693 | false | 11/18 |
+
+Completed assessments: 1; qualified: 0; unverified: 0
