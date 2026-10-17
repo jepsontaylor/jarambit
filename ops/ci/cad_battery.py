@@ -8,6 +8,7 @@ and is not restored.
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import sys
 
@@ -370,17 +371,197 @@ def _genome_cases(spec, commit, rs, d1, sha):
                                g_inputs=g_aes, reason=None if rs_all_hard is True else 'does not pass every hard gate')
     mass = rs.get('mass_g')
     g_mass = {'mass_g': mass} if isinstance(mass, (int, float)) and not isinstance(mass, bool) else None
-    rows['geom.unit'] = _case('geom.unit', 'gate', 'blocked', solver=None, geometry_sha256=sha,
-                              source_commit=commit, evidence_path=spec['genome'], reason='no step bound')
-    rows['geom.one_solid'] = _case('geom.one_solid', 'gate', 'blocked', solver=None, geometry_sha256=sha,
-                                   source_commit=commit, evidence_path=spec['genome'], reason='no step bound')
-    rows['geom.mass'] = _case('geom.mass', 'derived', 'pass' if g_mass else 'incomplete', solver='plate_cst_dkt',
-                              geometry_sha256=sha, source_commit=commit, evidence_path=path,
-                              detail={'plate_mass_g': mass, 'note': 'fem::certify mass, not a STEP'},
-                              g_inputs=g_mass)
-    rows['geom.pin'] = _case('geom.pin', 'software_contract', 'blocked', solver=None, geometry_sha256=sha,
-                             source_commit=commit, evidence_path=spec['genome'], reason='genome is not a native CAD pin')
+    if any(spec.get(k) for k in ('step', 'stl', 'cad_eval', 'step_check', 'surface')):
+        rows.update(_bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass))
+    else:
+        rows['geom.unit'] = _case('geom.unit', 'gate', 'blocked', solver=None, geometry_sha256=sha,
+                                  source_commit=commit, evidence_path=spec['genome'], reason='no step bound')
+        rows['geom.one_solid'] = _case('geom.one_solid', 'gate', 'blocked', solver=None, geometry_sha256=sha,
+                                       source_commit=commit, evidence_path=spec['genome'], reason='no step bound')
+        rows['geom.mass'] = _case('geom.mass', 'derived', 'pass' if g_mass else 'incomplete', solver='plate_cst_dkt',
+                                  geometry_sha256=sha, source_commit=commit, evidence_path=path,
+                                  detail={'plate_mass_g': mass, 'note': 'fem::certify mass, not a STEP'},
+                                  g_inputs=g_mass)
+        rows['geom.pin'] = _case('geom.pin', 'software_contract', 'blocked', solver=None, geometry_sha256=sha,
+                                 source_commit=commit, evidence_path=spec['genome'], reason='genome is not a native CAD pin')
     return rows
+
+
+def _resolve_path(rel):
+    if not rel:
+        return None
+    p = Path(rel)
+    full = p if p.is_absolute() else ROOT / p
+    return full if full.is_file() else None
+
+
+def _safe_sha256(rel):
+    full = _resolve_path(rel)
+    return _sha256(full) if full is not None else None
+
+
+def _is_hex64(value):
+    return isinstance(value, str) and len(value) == 64 and all(c in '0123456789abcdef' for c in value)
+
+
+def _bound_genome_geom_cases(spec, commit, rs, sha, path, mass, g_mass):
+    step_rel = spec.get('step')
+    stl_rel = spec.get('stl')
+    cad_eval_rel = spec.get('cad_eval')
+    step_check_rel = spec.get('step_check')
+    surface_rel = spec.get('surface')
+    step_full = _resolve_path(step_rel)
+    step_sha = _safe_sha256(step_rel)
+    stl_sha = _safe_sha256(stl_rel)
+    surf_sha = _safe_sha256(surface_rel)
+    cad_eval = _load(cad_eval_rel) if cad_eval_rel else None
+    step_check = _load(step_check_rel) if step_check_rel else None
+    surface_doc = _load(surface_rel) if surface_rel else None
+    cad_blk = cad_eval.get('cad') if isinstance(cad_eval, dict) else None
+    cert_id = cad_eval.get('certificate_identity') if isinstance(cad_eval, dict) else None
+    rs_cert_id = rs.get('certificate_identity')
+
+    if step_full is None or step_sha is None or stl_sha is None or not isinstance(cad_eval, dict) or not isinstance(cad_blk, dict):
+        binding_err = 'incomplete or missing bound STEP/STL/cad_eval artifacts'
+    elif cad_eval.get('genome_sha256') != sha:
+        binding_err = 'cad_eval genome_sha256 mismatch'
+    elif not _is_hex64(cert_id) or (rs_cert_id is not None and rs_cert_id != cert_id):
+        binding_err = 'cad_eval certificate_identity mismatch'
+    elif cad_blk.get('step_sha256') != step_sha or cad_blk.get('stl_sha256') != stl_sha:
+        binding_err = 'STEP/STL sha256 does not match cad_eval'
+    elif surface_rel is not None and (
+        surf_sha is None
+        or not isinstance(surface_doc, dict)
+        or surface_doc.get('certificate_identity') != cert_id
+        or (cad_blk.get('surface_sha256') is not None and cad_blk.get('surface_sha256') != surf_sha)
+    ):
+        binding_err = 'export surface sha256 or certificate_identity mismatch'
+    else:
+        binding_err = None
+
+    ev_step = step_rel or spec['genome']
+    if binding_err is not None:
+        return {
+            'geom.unit': _case('geom.unit', 'gate', 'blocked', solver=None, geometry_sha256=sha,
+                               source_commit=commit, evidence_path=ev_step, reason=binding_err),
+            'geom.one_solid': _case('geom.one_solid', 'gate', 'blocked', solver=None, geometry_sha256=sha,
+                                    source_commit=commit, evidence_path=ev_step, reason=binding_err),
+            'geom.mass': _case('geom.mass', 'derived', 'incomplete', solver='plate_cst_dkt',
+                               geometry_sha256=sha, source_commit=commit, evidence_path=step_rel or path,
+                               reason=binding_err),
+            'geom.pin': _case('geom.pin', 'software_contract', 'blocked', solver=None, geometry_sha256=sha,
+                              source_commit=commit, evidence_path=ev_step, reason=binding_err),
+        }
+
+    step_text = step_full.read_text(encoding='utf-8', errors='replace')
+    has_iso = step_text.lstrip().startswith('ISO-10303-21;')
+    has_mm_decl = 'LENGTH_UNIT' in step_text and 'SI_UNIT(.MILLI.,.METRE.)' in step_text
+    unit_ok = bool(
+        has_iso
+        and has_mm_decl
+        and cad_blk.get('units') == 'mm'
+        and cad_blk.get('units_source') == 'step_declaration'
+    )
+
+    step_solids = step_text.count('MANIFOLD_SOLID_BREP(')
+    step_shells = step_text.count('CLOSED_SHELL(')
+    brep_doc = step_check if isinstance(step_check, dict) else cad_blk.get('brep_check')
+    if step_check_rel is not None and not isinstance(step_check, dict):
+        brep_ok = False
+    elif isinstance(brep_doc, dict):
+        brep_ok = bool(
+            brep_doc.get('valid') is True
+            and brep_doc.get('solids') == 1
+            and (not (isinstance(surface_doc, dict) and surface_doc.get('rs_v2')) or brep_doc.get('bore_geometry_matches_mesh') is True)
+        )
+    else:
+        brep_ok = True
+    one_solid_ok = bool(
+        has_iso
+        and step_solids == 1
+        and step_shells == 1
+        and cad_blk.get('manifold_solids') == 1
+        and cad_blk.get('closed_shells') == 1
+        and cad_blk.get('watertight_exact') is True
+        and cad_blk.get('boundary_edges') == 0
+        and cad_blk.get('non_manifold_edges') == 0
+        and brep_ok
+    )
+
+    mass_3d = cad_blk.get('mass_3d_g')
+    rel_diff = cad_blk.get('rel_mass_diff')
+    watertight = cad_blk.get('watertight_exact') is True
+    valid_3d = isinstance(mass_3d, (int, float)) and not isinstance(mass_3d, bool) and math.isfinite(mass_3d) and mass_3d > 0
+    valid_rel = isinstance(rel_diff, (int, float)) and not isinstance(rel_diff, bool) and math.isfinite(rel_diff)
+    recomp_rel = abs(mass_3d - mass) / max(mass, 1e-9) if (valid_3d and g_mass) else None
+    mass_ok = bool(
+        g_mass
+        and valid_3d
+        and valid_rel
+        and watertight
+        and rel_diff <= 0.01
+        and recomp_rel is not None
+        and recomp_rel <= 0.01
+    )
+
+    regen_det = cad_blk.get('regeneration_deterministic') is True
+    surf_ok = bool(surf_sha and isinstance(surface_doc, dict) and surface_doc.get('certificate_identity') == cert_id)
+    pin_ok = bool(regen_det and surf_ok)
+
+    return {
+        'geom.unit': _case(
+            'geom.unit', 'gate', 'pass' if unit_ok else 'fail',
+            solver=None, geometry_sha256=sha, source_commit=commit, evidence_path=step_rel,
+            reason=None if unit_ok else 'STEP file lacks explicit SI_UNIT(.MILLI.,.METRE.) LENGTH_UNIT declaration',
+            detail={
+                'units': cad_blk.get('units'),
+                'units_source': cad_blk.get('units_source'),
+                'step_sha256': step_sha,
+                'has_mm_step_declaration': has_mm_decl,
+            },
+        ),
+        'geom.one_solid': _case(
+            'geom.one_solid', 'gate', 'pass' if one_solid_ok else 'fail',
+            solver=None, geometry_sha256=sha, source_commit=commit, evidence_path=step_rel,
+            reason=None if one_solid_ok else 'exported STEP/STL is not a single watertight solid',
+            detail={
+                'manifold_solids': step_solids,
+                'closed_shells': step_shells,
+                'watertight_exact': cad_blk.get('watertight_exact'),
+                'boundary_edges': cad_blk.get('boundary_edges'),
+                'non_manifold_edges': cad_blk.get('non_manifold_edges'),
+                'step_sha256': step_sha,
+                'stl_sha256': stl_sha,
+            },
+        ),
+        'geom.mass': _case(
+            'geom.mass', 'derived', 'pass' if mass_ok else ('fail' if g_mass else 'incomplete'),
+            solver='plate_cst_dkt', geometry_sha256=sha, source_commit=commit, evidence_path=step_rel,
+            reason=None if mass_ok else ('3D solid vs 2.5D plate mass mismatch or non-watertight mesh' if g_mass else 'missing plate mass'),
+            detail={
+                'plate_mass_g': mass,
+                'mass_3d_g': mass_3d,
+                'rel_mass_diff': rel_diff,
+                'step_sha256': step_sha,
+                'stl_sha256': stl_sha,
+                'note': 'bound 3D STEP/STL solid mass verified against 2.5D plate mass (<=1%)',
+            },
+            g_inputs=g_mass if mass_ok else None,
+        ),
+        'geom.pin': _case(
+            'geom.pin', 'software_contract', 'pass' if pin_ok else 'fail',
+            solver=None, geometry_sha256=sha, source_commit=commit, evidence_path=step_rel,
+            reason=None if pin_ok else 'genome CAD export is not deterministically pinned to certificate_identity',
+            detail={
+                'genome_sha256': sha,
+                'certificate_identity': cert_id,
+                'step_sha256': step_sha,
+                'stl_sha256': stl_sha,
+                'surface_sha256': surf_sha,
+                'regeneration_deterministic': regen_det,
+            },
+        ),
+    }
 
 
 def _side_cases(spec, commit, sha):
@@ -799,7 +980,7 @@ def evaluated_genome_spec(label: str, directory: Path) -> dict:
     """Only the artifacts just produced for this evaluation may supply the battery."""
     directory = directory.resolve()
     side = directory / f'{label}_a1a3.json'
-    return {
+    spec = {
         'rs': str(directory / f'{label}_rs.json'),
         'd1': str(directory / f'{label}_D1.json'),
         'genome': str(directory / f'{label}_genome.csv'),
@@ -808,7 +989,15 @@ def evaluated_genome_spec(label: str, directory: Path) -> dict:
         'side_a4': str(directory / f'{label}_a4.json'),
         'side_path': str(side), 'side_sha': _sha256(side),
         'side_seq': json.loads(side.read_text())['seq_ratio_this_mesh'],
+        'step': str(directory / f'{label}.step'),
+        'stl': str(directory / f'{label}.stl'),
+        'surface': str(directory / f'{label}_surface.json'),
+        'cad_eval': str(directory / f'{label}_cad_eval.json'),
     }
+    step_check = directory / f'{label}_step_check.json'
+    if step_check.is_file():
+        spec['step_check'] = str(step_check)
+    return spec
 
 
 def evaluate_genome_pipeline(entry: str, commit: str, probes: dict, out_dir: Path) -> dict:

@@ -366,3 +366,106 @@ fn bore_local_perturbation_does_not_credit_twist_or_spine_capacity() {
     }
     assert!(widths[1]>widths[0]);
 }
+
+#[test]
+fn bound_genome_battery_evaluates_exported_step_and_fails_closed_on_tampering() {
+    let g = record();
+    let out = root().join(format!(
+        "target/cert_integrity_tests/bound_geom_{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&out);
+    std::fs::create_dir_all(&out).unwrap();
+    let csv = out.join("w283_p14_c01_genome.csv");
+    std::fs::write(&csv, format!("{}\n{}\n", Genome::csv_header(), g.csv_row())).unwrap();
+    let (ev, spec) =
+        battery::evaluate_genome_candidate_native(&root(), "w283_p14_c01", &csv, &out).unwrap();
+    assert_eq!(ev["cad"]["regeneration_deterministic"], true);
+    assert!(spec.step.is_some() && spec.stl.is_some() && spec.surface.is_some() && spec.cad_eval.is_some());
+
+    let bat = battery::build_subject(
+        &root(),
+        "w283_p14_c01",
+        &"a".repeat(40),
+        &battery::Probes::default(),
+        None,
+        Some(&spec),
+    )
+    .unwrap();
+    let find_case = |rec: &serde_json::Value, cid: &str| -> serde_json::Value {
+        rec["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["id"] == cid)
+            .unwrap()
+            .clone()
+    };
+    for cid in ["geom.unit", "geom.one_solid", "geom.mass", "geom.pin"] {
+        let c = find_case(&bat, cid);
+        assert_eq!(c["status"], "pass", "{cid}: {c}");
+        assert_eq!(c["evidence_path"].as_str(), spec.step.as_deref());
+    }
+
+    // Corrupt STEP unit declaration -> geom.unit fails when sha matches, or blocks when sha mismatches
+    let step_p = PathBuf::from(spec.step.as_ref().unwrap());
+    let eval_p = PathBuf::from(spec.cad_eval.as_ref().unwrap());
+    let orig_step = std::fs::read_to_string(&step_p).unwrap();
+    let bad_unit = orig_step.replace("SI_UNIT(.MILLI.,.METRE.)", "SI_UNIT(.CENTI.,.METRE.)");
+    std::fs::write(&step_p, &bad_unit).unwrap();
+    let bat_tampered = battery::build_subject(
+        &root(),
+        "w283_p14_c01",
+        &"a".repeat(40),
+        &battery::Probes::default(),
+        None,
+        Some(&spec),
+    )
+    .unwrap();
+    assert_eq!(find_case(&bat_tampered, "geom.unit")["status"], "blocked");
+    assert_eq!(find_case(&bat_tampered, "geom.one_solid")["status"], "blocked");
+    assert_eq!(find_case(&bat_tampered, "geom.mass")["status"], "incomplete");
+    assert_eq!(find_case(&bat_tampered, "geom.pin")["status"], "blocked");
+
+    let mut ev_bad = ev.clone();
+    ev_bad["cad"]["step_sha256"] = json!(battery::sha256_file(&step_p).unwrap());
+    std::fs::write(&eval_p, serde_json::to_string_pretty(&ev_bad).unwrap()).unwrap();
+    let bat_bad_unit = battery::build_subject(
+        &root(),
+        "w283_p14_c01",
+        &"a".repeat(40),
+        &battery::Probes::default(),
+        None,
+        Some(&spec),
+    )
+    .unwrap();
+    assert_eq!(find_case(&bat_bad_unit, "geom.unit")["status"], "fail");
+}
+
+#[test]
+fn plate_gci_hashes_the_solved_report_fields_mesh_directly() {
+    use jarambit_crescent::gci::run_plate_gci_3level;
+    let g = record();
+    let p = pheno::build(&g);
+    let doc = run_plate_gci_3level("w283_p14_c01", "test.csv", &"0".repeat(64), &g).unwrap();
+    let levels = doc["levels_fine_to_coarse"].as_array().unwrap();
+    assert_eq!(levels.len(), 3);
+    for (idx, area) in [0.25, 1.0, 4.0].into_iter().enumerate() {
+        let (_, fl) = fem::report_fields(&p, area).unwrap();
+        let mut buf = Vec::new();
+        for &(x, y) in &fl.xy {
+            buf.extend_from_slice(&x.to_le_bytes());
+            buf.extend_from_slice(&y.to_le_bytes());
+        }
+        for t in &fl.tris {
+            for &v in t {
+                buf.extend_from_slice(&(v as u64).to_le_bytes());
+            }
+        }
+        for &tv in &fl.te {
+            buf.extend_from_slice(&tv.to_le_bytes());
+        }
+        let want = battery::sha256_bytes(&buf);
+        assert_eq!(levels[idx]["mesh_sha256"].as_str(), Some(want.as_str()));
+    }
+}

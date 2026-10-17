@@ -153,9 +153,9 @@ fn parse_step_id(s: &str) -> Option<usize> {
 /// Inspect STEP header and entity counts.
 pub fn inspect_step_header(text: &str) -> StepHeaderMeta {
     let has_iso = text.trim_start().starts_with("ISO-10303-21;");
-    let has_mm_decl = text.contains("SI_UNIT(.MILLI.,.METRE.)") || text.contains("MILLI");
-    let manifold_solids = text.matches("MANIFOLD_SOLID_BREP(").count().max(1);
-    let closed_shells = text.matches("CLOSED_SHELL(").count().max(1);
+    let has_mm_decl = text.contains("LENGTH_UNIT") && text.contains("SI_UNIT(.MILLI.,.METRE.)");
+    let manifold_solids = text.matches("MANIFOLD_SOLID_BREP(").count();
+    let closed_shells = text.matches("CLOSED_SHELL(").count();
     let advanced_faces = text.matches("ADVANCED_FACE(").count();
     StepHeaderMeta {
         has_iso,

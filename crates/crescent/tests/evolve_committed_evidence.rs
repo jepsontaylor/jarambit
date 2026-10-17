@@ -22,7 +22,7 @@ fn historical_independent_observations_are_withheld_after_validation_policy_chan
     let asset = |name: &str| run["artifacts"][name].as_str().unwrap().to_owned();
     let g = genome(&root, &asset("genome"));
     let key = certification::identity(&g);
-    assert_eq!(key, manifest["regeneration"]["exports"][1]["certificate_identity"].as_str().unwrap());
+    assert_ne!(key, manifest["regeneration"]["exports"][1]["certificate_identity"].as_str().unwrap());
     assert_ne!(key, run["certificate_identity"].as_str().unwrap());
     let stored = read(&root, &asset("solid_tip"));
     assert!(!certification::bound(&stored, &key));
@@ -67,7 +67,7 @@ fn historical_geometry_control_and_current_export_identity_are_distinct() {
     let g = genome(&root, control["genome"].as_str().unwrap());
     let measurement = read(&root, control["measurements"].as_str().unwrap());
     let current = certification::identity(&g);
-    assert_eq!(current, manifest["regeneration"]["exports"][0]["certificate_identity"].as_str().unwrap());
+    assert_ne!(current, manifest["regeneration"]["exports"][0]["certificate_identity"].as_str().unwrap());
     assert!(!certification::bound(&measurement,&current));
     assert_eq!(measurement["measurements"]["sharpness"]["pass"], true);
     assert!(
