@@ -1,11 +1,12 @@
 {
  "figure": "docs/figures/whitepaper/fig_web_studio.png",
- "figure_sha256": "d7e332418bd25a9255ec2f4e93bb7a2ee0298f2bd135bd0ee8038f3b2ae86312",
+ "figure_sha256": "c6d58ce7a750a8aa6356acddccb4951432a38e60409fe073a15d72c9d71870ab",
  "inputs": {
-  "evidence/cad_battery/w283_p14_c01.json": "2b3fa9c3b40f311b1754869d4c98af85b9f1eec95b22f68edf2a13aa9b62bbfa",
-  "evidence/rs_v2/w283_p14_c01.json": "41a1eb6e383f936712b72e3ea9f268cded25ea1f8e3d06c517c96c44c40a57bc",
-  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json": "2c012cb3a17bac51b13192b02a988cfb3f15ea08a752edf9e88a8cefdc7768cf",
-  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "b8edcc0251ac08a5dce859a4a07278739582799b175ac92416c9a41c3bb2a8fe",
+  "evidence/cad_battery/w283_p14_c01.json": "a15b43a3f3e101dc5644b7ef00d85633489e612f7a84338b9ef5e70944982655",
+  "evidence/cert_integrity/recertified/w283_p14_c01/w283_p14_c01.stl": "ab25eb8b8d9c399e7e5f7f335b3afd05f5555f8524fe39ee2fa8ed38d93edee6",
+  "evidence/rs_v2/w283_p14_c01.json": "b2506c63d1b030fe4500909adf849ee875bf398ed7453cc0e223dfe20941c4cf",
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json": "efbfcb1ddd68f93349f5fe5ae8270599c0adda88efd13618042b39e09afc836b",
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "d174b2e2fbe7f1b8e19b07053f499ce31d18a145561911631ca20506df9b90db",
   "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv": "aa54fe9148fe303b2054bc5449f063f507d6feffa07556d144013aa9ded5b009"
  },
  "norms": {},

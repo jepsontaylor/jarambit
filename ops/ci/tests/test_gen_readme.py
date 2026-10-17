@@ -20,19 +20,20 @@ class GenReadme(unittest.TestCase):
     def test_record_badges_generated_from_committed_json(self):
         from ops.ci import gen_readme
         rec_subj, rec_eval, rec_bat = gen_readme.current_record()
-        self.assertEqual(rec_subj, 'w283_p14_c01')
+        self.assertEqual(rec_subj, 'w282_p14_c01')
+        self.assertFalse(gen_readme.js('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json')['weighted_cad_score']['all_engineering_gates_pass'])
         em = rec_eval['engineering_metrics']
         wsc = rec_eval['weighted_cad_score']
         g1 = rec_bat['global_fitness']['G']
-        self.assertAlmostEqual(em['mass_g'], 75.3821, places=3)
-        self.assertAlmostEqual(em['mass_3d_g'], 75.1992, places=3)
-        self.assertAlmostEqual(g1, 0.913854625, places=6)
+        self.assertAlmostEqual(em['mass_g'], 75.568, places=3)
+        self.assertAlmostEqual(em['mass_3d_g'], 75.323, places=3)
+        self.assertAlmostEqual(g1, gen_readme.js('evidence/cad_battery/w282_p14_c01.json')['global_fitness']['G'])
 
         t = open(os.path.join(ROOT, 'README.md'), encoding='utf-8').read()
         head_match = re.search(r'<!-- GEN:HEAD:BEGIN -->\n(.*?)\n<!-- GEN:HEAD:END -->', t, re.S)
         self.assertIsNotNone(head_match)
         head_block = head_match.group(1)
-        self.assertIn(f'record-{rec_subj.replace("_", "__")}', head_block)
+        self.assertIn(f'historical%20record-{rec_subj.replace("_", "__")}', head_block)
         self.assertIn(f'mass-{em["mass_g"]:.3f}%20g%20%28{em["mass_3d_g"]:.3f}%20g%203D%29', head_block)
         self.assertIn(f'G1-{g1:.6f}', head_block)
         self.assertIn(f'W__CAD-%2B{wsc["W_CAD"]:.4f}', head_block)

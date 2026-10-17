@@ -110,6 +110,8 @@ def load_wave_winners():
         bat, p_bat = _load_json(bat_rel)
         inputs.extend([p_ev, p_bat])
         em = ev['engineering_metrics']
+        if not ev['weighted_cad_score']['all_engineering_gates_pass']:
+            continue
         wcad_winners.append({
             'wave': wtag,
             'label': ev['subject'],
@@ -138,7 +140,7 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
 
     # Shaded regime background
     ax.axvspan(-0.5, n_v1 - 0.5, color='#1f2937', alpha=0.35, label='Waves 20–27e: RS-karambit-v1 screen (seq < 1.20 soft)')
-    ax.axvspan(n_v1 - 0.5, len(all_pts) - 0.3, color='#0f291e', alpha=0.42, label='Waves 274–283: All 16 Gates PASS (seq ≥ 1.20 hard + 3D solid tip)')
+    ax.axvspan(n_v1 - 0.5, len(all_pts) - 0.3, color='#0f291e', alpha=0.42, label='Historical waves 274–282: 16-gate screens pass (seq ≥ 1.20 hard + 3D solid tip)')
 
     # 80 g target line
     ax.axhline(80.0, color='#ffa657', linestyle='--', linewidth=1.4, label='Soft Mass Target (80.00 g)')
@@ -266,7 +268,7 @@ def make_why_this_matters_fig():
     census_rows, p_census = _load_json('docs/market/2026-10-13/census.json')
     market_sum, p_msum = _load_json('docs/market/2026-10-13/summary.json')
     bench_doc, p_bench = _load_json('docs/market/2026-10-13/benchmark.json')
-    d1_w279, p_d1_w279 = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json')
+    d1_w279, p_d1_w279 = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_D1.json')
     inputs.extend([p_census, p_msum, p_bench, p_d1_w279])
 
     rec = wcad_winners[-1]
@@ -384,12 +386,12 @@ def make_w279_gate_margins_fig():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     fig_path = OUT_DIR / 'fig_w279_gate_margins.png'
 
-    ev, p_ev = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json')
-    d1, p_d1 = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json')
-    gci, p_gci = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_plate_gci.json')
-    a4, p_a4 = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_a4.json')
-    st, p_st = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_solid_tip.json')
-    bat, p_bat = _load_json('evidence/cad_battery/w283_p14_c01.json')
+    ev, p_ev = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json')
+    d1, p_d1 = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_D1.json')
+    gci, p_gci = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_plate_gci.json')
+    a4, p_a4 = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_a4.json')
+    st, p_st = _load_json('evidence/rs_v2/w282_ultrarunner/w282_p14_c01_solid_tip.json')
+    bat, p_bat = _load_json('evidence/cad_battery/w282_p14_c01.json')
     inputs = [p_ev, p_d1, p_gci, p_a4, p_st, p_bat]
 
     em = ev['engineering_metrics']
@@ -472,7 +474,7 @@ def make_w279_gate_margins_fig():
     g1_val = float(bat['global_fitness']['G'])
     wcad_val = float(ev['weighted_cad_score']['W_CAD'])
     ax.set_title(
-        f"Record {ev['subject']} ({em['mass_g']:.3f} g 2.5D / {em['mass_3d_g']:.3f} g 3D Solid): All 16 Gates PASS (G1 = {g1_val:.6f}, W_CAD = +{wcad_val:.4f})",
+        f"Historical screen {ev['subject']} ({em['mass_g']:.3f} g 2.5D / {em['mass_3d_g']:.3f} g 3D Solid): All 16 Gates PASS (G1 = {g1_val:.6f}, W_CAD = +{wcad_val:.4f})",
         fontsize=11.2, fontweight='bold', pad=12,
     )
     ax.grid(True, axis='x', color='#21262d', linestyle='--', linewidth=0.7, alpha=0.8)
@@ -519,14 +521,15 @@ def make_web_studio_fig():
     bat, p_bat = _load_json('evidence/cad_battery/w283_p14_c01.json')
     d1, p_d1 = _load_json('evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json')
     p_gen = ROOT / 'evidence' / 'rs_v2' / 'w283_ultrarunner' / 'w283_p14_c01_genome.csv'
-    inputs = [p_ev, p_rs, p_bat, p_d1, p_gen]
+    inputs = [p_ev, p_rs, p_bat, p_d1, p_gen, ROOT / ev["cad"]["stl_path"]]
 
     gen_lines = p_gen.read_text(encoding='utf-8').strip().splitlines()
     gen_hdr = gen_lines[0].split(',')
     gen_val = gen_lines[1].split(',')
     edge_t_mm = float(gen_val[gen_hdr.index('edge_t')])
 
-    tris, te_elem = _build_3d_tris_from_d1(d1)
+    from ops.render.engineering_gates_paper_figs import load_stl_any
+    tris = load_stl_any(ROOT / ev['cad']['stl_path'])
     n_tris = int(ev['cad']['facets'])
     em = ev['engineering_metrics']
     wsc = ev['weighted_cad_score']
@@ -588,7 +591,7 @@ def make_web_studio_fig():
         f"Web Studio 3D Viewport · {ev['subject']}.stl\n"
         f"• {n_tris:,} STL triangles · 0 open / 0 non-manifold edges\n"
         f"• 3D Solid: {em['mass_3d_g']:.3f} g vs 2.5D Raster: {em['mass_g']:.3f} g (Δ={100*ev['cad']['rel_mass_diff']:.3f}%)\n"
-        f"• Sharp-law edge_t = {edge_t_mm:.3f} mm · tip_r = 0.075 mm",
+        f"• Measured exported apex = {rs['export_measurements']['sharpness']['max_apex_mm']:.3f} mm (limit 0.20 mm)",
         transform=ax3d.transAxes, va='top', ha='left', color='#f0f6fc', fontsize=8.3, fontweight='bold',
         bbox=dict(boxstyle='round,pad=0.45', facecolor='#0d1117', edgecolor='#58a6ff', linewidth=1.3),
         zorder=6,
@@ -607,17 +610,17 @@ def make_web_studio_fig():
     ax_ui.set_xlim(0, 100)
     ax_ui.set_ylim(0, 100)
     ax_ui.set_title(
-        f"(b) Web Studio Gate Scorecard — 16/16 W_CAD_v2 + 10/10 RS-karambit-v2 Hard Gates PASS",
+        f"(b) Committed corrected certificate — RS-v2 all_hard = {rs['all_hard']}",
         color='#f0f6fc', fontsize=11.0, fontweight='bold', pad=10,
     )
 
     cards = [
-        ('Record Subject', f"{ev['subject']} (Wave 283)", '#ffd33d'),
+        ('Rejected Subject', f"{ev['subject']} (Wave 283)", '#ffd33d'),
         ('2.5D / 3D Solid Mass', f"{em['mass_g']:.3f} g / {em['mass_3d_g']:.3f} g (Δ={100*ev['cad']['rel_mass_diff']:.3f}%)", '#3fb950'),
         ('Locked Global Fitness G1', f"{g1_val:.6f} (COMPLETE)", '#d2a8ff'),
-        ('Weighted CAD Score W_CAD', f"+{wsc['W_CAD']:.4f} (16/16 Gates PASS)", '#58a6ff'),
-        ('RS-karambit-v2 Hard Gates', f"10/10 PASS (all_hard = {rs['all_hard']})", '#39d353'),
-        ('18-Evaluator CAD Battery', f"{bat['pass_count']} pass · 1 fail · 3 blocked · 1 incomplete", '#79c0ff'),
+        ('Weighted CAD Score W_CAD', f"{wsc['W_CAD']:+.4f} ({sum(wsc['gates'].values())}/16 pass)", '#58a6ff'),
+        ('RS-karambit-v2 Hard Gates', f"{sum(v=='pass' for v in rs['gates'].values())}/10 pass (all_hard = {rs['all_hard']})", '#ff7b72'),
+        ('18-Evaluator CAD Battery', f"{bat['pass_count']} pass / {len(bat['cases'])} cases", '#79c0ff'),
     ]
     for idx_c, (k_lbl, v_lbl, col_c) in enumerate(cards):
         col_i = idx_c % 2
@@ -629,23 +632,23 @@ def make_web_studio_fig():
         ax_ui.text(x0 + 2.2, y0 + 8.3, k_lbl.upper(), color='#8b949e', fontsize=7.5, fontweight='bold', zorder=4)
         ax_ui.text(x0 + 2.2, y0 + 3.0, v_lbl, color=col_c, fontsize=8.8, fontweight='bold', zorder=4)
 
+    st = ev['export_measurements']; solid = json.loads((ROOT / rs['solid_tip_source']).read_text())['stored_solid']
     rsv2_rows = [
-        ('Strict 0.0625 mm² Hunter Lateral', f"{rs['strict_lat_rob_0p0625_n']:.1f} N ≥ 260.0 N (SF={em['sf_hunter_strict']:.4f})"),
-        ('Strict 4–15 mm Tip-Submodel Twist', f"SF = {rs['twist_tipzone_sf_strict']:.4f} ≥ 1.00 at 1.82 N·m"),
-        ('3D TET10 Solid-Tip P2 Submodel', f"SF = {rs['solid_tip_sf']:.3f} ≥ 1.00 (105,921 DOF, 22,752 TET10)"),
-        ('Certified Failure Sequence Ratio', f"seq_ratio = {rs['seq_ratio']:.4f} ≥ 1.20 (Hand Ring Yields First)"),
-        ('Human-Max Twist / Tip / Spine / Ring', f"SF = {rs['hm_twist_sf']:.4f} / {rs['hm_tip_inplane_sf']:.3f} / {rs['hm_spine_sf']:.3f} / {rs['hm_ringback_sf']:.3f}"),
-        ('10⁴-Cycle Fatigue & Ring Bearing', f"fat_sf = {rs['fat_sf']:.4f} ≥ 1.00  |  ring_bearing_w = {rs['ring_bearing_w_mm']:.2f} mm ≥ 10.0 mm"),
-        ('Sharp-Law Tip & Edge B-Rep Contract', f"edge_t = {edge_t_mm:.3f} mm ∈ [0.05, 0.20]  |  tip_r = 0.075 mm"),
+        ('strict_hunter_lateral', f"Strict lateral: {rs['strict_lat_rob_0p0625_n']:.1f} N / 260 N"),
+        ('solid_tip_sf', f"Solid tip: SF {rs['solid_tip_sf']:.4f} / 1.0 ({solid['n_dof']:,} DOF)"),
+        ('seq_hard', f"Sequence: {rs['seq_ratio']:.4f} / 1.20"),
+        ('human_max', f"Human max twist / spine: {rs['hm_twist_sf']:.4f} / {rs['hm_spine_sf']:.4f}"),
+        ('fatigue', f"Fatigue: {rs['fat_sf']:.4f} / 1.0"),
+        ('gate_s_sharp_law', f"Actual apex: {st['sharpness']['max_apex_mm']:.3f} mm / 0.20 mm"),
+        ('gate_s_tip_point_brep', f"Point monotonic 0–10 mm: {st['point']['monotonic']}"),
     ]
-    y_base = 46.0
-    for idx_r, (rk, rv) in enumerate(rsv2_rows):
-        yy = y_base - idx_r * 6.2
-        ax_ui.text(3.5, yy, f"✔ {rk}:", color='#3fb950', fontsize=8.0, fontweight='bold')
-        ax_ui.text(46.5, yy, rv, color='#e6edf3', fontsize=7.9, fontweight='bold')
+    for idx_r, (key, text) in enumerate(rsv2_rows):
+        state = rs['gates'][key]
+        col = '#3fb950' if state == 'pass' else '#ff7b72'
+        ax_ui.text(3.5, 46.0-idx_r*6.2, f"{state.upper()}: {text}", color=col, fontsize=8.5, fontweight='bold')
 
     fig.suptitle(
-        "Interactive 3D CAD & Gate Scorecard Web Studio (web/ · Vite + TypeScript + React + Three.js · jarambit export-web-data)",
+        "Committed Wave 283 re-certification: exported CAD and measured gate failures",
         color='#f0f6fc', fontsize=12.2, fontweight='bold', y=0.98,
     )
     fig.tight_layout(rect=[0, 0, 1, 0.94])

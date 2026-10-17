@@ -981,6 +981,10 @@ def score_cad(
             out_dir,
             run_solid=run_solid,
         )
+        # A standalone solid solve does not observe the RS-v2 edge/point, bore or human-max gate set.
+        cad_eval['engineering_metrics']['promote_eligible'] = False
+        cad_eval['engineering_metrics']['rs_v2_all_hard'] = False
+        cad_eval['engineering_metrics']['rs_v2_validation_status'] = 'unverified'
         native_cat, _ = subject_catalog()
         if resolved['catalog_id'] in native_cat:
             geom_dict = {
@@ -1029,7 +1033,7 @@ def score_cad(
                 {'id': 'side.a3', 'kind': 'derived', 'status': 'pass', 'solver': 'plate_cst_dkt', 'geometry_sha256': sha, 'evidence_path': ev_path},
                 {'id': 'side.a4', 'kind': 'derived', 'status': 'pass' if wc['gates']['side_a4_buckling_and_support'] else 'fail', 'solver': 'plate_cst_dkt', 'geometry_sha256': sha, 'evidence_path': ev_path},
                 {'id': 'solid.tip', 'kind': 'solver_run', 'status': 'pass', 'solver': 'solid_skfem_p2', 'geometry_sha256': sha, 'evidence_path': ev_path, 'g_inputs': {'solid_tip_sf_nodal_max': em['solid_tip_sf_nodal_max']}},
-                {'id': 'gate.rs_v2', 'kind': 'gate', 'status': 'pass' if wc['all_engineering_gates_pass'] else 'fail', 'solver': None, 'geometry_sha256': sha, 'evidence_path': ev_path, 'g_inputs': {'aes_score': em['aes_score']}},
+                {'id': 'gate.rs_v2', 'kind': 'gate', 'status': 'incomplete', 'reason': 'standalone RS-v2 export and human-max measurements unverified', 'solver': None, 'geometry_sha256': sha, 'evidence_path': ev_path, 'g_inputs': {'aes_score': em['aes_score']}},
             ]
             battery_rec = {
                 'schema': 'jarambit.cad_battery.v1',

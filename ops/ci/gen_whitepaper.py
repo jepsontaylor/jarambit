@@ -10,7 +10,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, 'ops', 'ci'))
 from ops.ci import rs_verdicts  # noqa: E402
-from gen_readme import rd, js, toml, f, current_record  # noqa: E402
+from gen_readme import rd, js, toml, f, current_record, integrity_status  # noqa: E402
 
 WP = 'docs/WHITEPAPER.md'
 COMP = 'docs/figures/components/components.json'
@@ -32,9 +32,9 @@ def status(context=None):
     ds = rsv2(); n = sum(d['all_hard'] for d in ds)
     v = rd('docs/VERSION').strip()
     return (f'**Honest status (v{v}, generated from `evidence/rs_v2/*.json`).** {n} of {len(ds)} named designs meet every RS-karambit-v2 hard gate; '
-            f'{"no design is promoted and this version is a release candidate, not v1.0.0" if n == 0 else "see §IV-A"}. '
+            f'{"the v1.0.0 certification claims are withdrawn; no design is promoted" if n == 0 else "see §IV-A"}. '
             'The v1 gate set (RS-karambit-v2) adds human-maximum loads, seq ≥ 1.2 as a hard gate, fatigue and ring handling to the v1 screen; '
-            'Table IV-A lists every shortfall.')
+            'Table IV-A lists every shortfall.') + '\n\n' + integrity_status()
 
 
 def hero(context=None):
@@ -59,13 +59,13 @@ def hero(context=None):
     pct_below_med = 100.0 * (1.0 - em['mass_g'] / med_g)
     rec_wave = rec_subj.split('_')[0]
     L = [
-        f'### Page-1 Hero Figures — Why This Matters & Current Record (`{rec_subj}`) Gate Margins',
+        f'### Page-1 Hero Figures — Why This Matters & Historical Screen Record (`{rec_subj}`) Gate Margins',
         '',
         f'![Why this matters: all-gates winner mass vs wave (w20 through {rec_wave}) and market comparison against 77 commercial karambits](figures/whitepaper/fig_why_this_matters.png)',
         '',
         f'*Fig. 0a — Why this matters (`ops/render/whitepaper_hero_figs.py`, manifest `docs/figures/whitepaper/fig_why_this_matters.png.manifest.json`, verified by `ops/ci/verify_figures.py`): '
         f'(a) mass vs. wave across every wave winner from Wave 20 (`{w20["label"]}`, `{w20["mass_g"]:.3f} g`, `seq = {w20["seq_ratio"]:.3f} < 1.20`) and first all-16-gates `W_CAD_v2` winner '
-        f'`w274_s2905_c01` (`{w274["mass_g"]:.3f} g`, `seq = {w274["seq_ratio_cert"]:.3f} >= 1.20`) down to the current all-gates record **`{rec_subj}` at `{em["mass_g"]:.3f} g` '
+        f'`w274_s2905_c01` (`{w274["mass_g"]:.3f} g`, `seq = {w274["seq_ratio_cert"]:.3f} >= 1.20`) down to the historical 16-gate screen record **`{rec_subj}` at `{em["mass_g"]:.3f} g` '
         f'(`{em["mass_3d_g"]:.3f} g` 3D solid), `G1 = {g1:.6f}`, `W_CAD = +{wsc["W_CAD"]:.4f}`**; '
         f'(b) comparison against the source-audited {n_plotted}-entry commercial karambit census (`docs/market/2026-10-13/census.json`, `docs/market/2026-10-13/summary.json`, median `{med_g:.2f} g`, '
         f'range `{min_g:.2f}–{max_g:.2f} g`), where `{rec_subj}` (`{em["mass_g"]:.3f} g`) is `{pct_below_med:.1f} %` below the commercial median and lighter than `{n_heavier} / {n_plotted}` (`{pct_heavier:.1f} %`) plotted knives.*',
@@ -80,11 +80,10 @@ def hero(context=None):
         f'`side.a4 supported seq = {em["seq_ratio_supported_a4"]:.3f}`, `buckling P_cr = {260.0 * em["buckling_eigenvalue_a4"]:.1f} N`, `dolfinx vs skfem = {100.0 * em["solid_tip_dolfinx_rel_err"]:.4f} % <= 2.0 %`); '
         f'(b) exact metrics and thresholds for all {n_tot} `W_CAD_v2` gates (historical Wave-27 `g3_tip+00_t60_tt3` 3D CAD and FEM plates remain in §III-G and §III-H).*',
         '',
-        f'![Interactive 3D CAD and Gate Scorecard Web Studio for {rec_subj}](figures/whitepaper/fig_web_studio.png)',
+        '![Committed Wave 283 exported CAD and corrected certificate](figures/whitepaper/fig_web_studio.png)',
         '',
-        f'*Fig. 0c — Interactive 3D CAD & Gate Scorecard Web Studio (`web/`, manifest `docs/figures/whitepaper/fig_web_studio.png.manifest.json`, exported by `jarambit export-web-data`): '
-        f'(a) watertight 3D STL viewport for `{rec_subj}` (`15,528` facets, `{em["mass_3d_g"]:.3f} g` 3D solid vs. `{em["mass_g"]:.3f} g` 2.5D raster, `0` open/non-manifold edges); '
-        f'(b) live 16/16 `W_CAD_v2` and 10/10 `RS-karambit-v2` hard-gate scorecard (`G1 = {g1:.6f}`, `W_CAD = +{wsc["W_CAD"]:.4f}`, `13/18` CAD battery cases pass).*',
+        f'*Fig. 0c — Committed corrected CAD and certificate scorecard (`web/` companion, manifest `docs/figures/whitepaper/fig_web_studio.png.manifest.json`, generated from saved independent re-certification): '
+        f'corrected Wave 283 geometry and measured gate failures. The historical all-hard pass has been withdrawn.*',
     ]
     return '\n'.join(L)
 

@@ -15,12 +15,21 @@
 
 > [!IMPORTANT]
 > **Honest Qualification Verdict (`RS-karambit-v1` vs `RS-karambit-v2`)**
-> - Under **`RS-karambit-v1` (Screen) & `W_CAD_v2` All-Gates Calibration**, `g3_tip+00_t60_tt3` (`84.80 g`, `G1 = 1.0036` fine / `0.9804` prod, 3D solid tip $\text{SF} = 1.6003$) and `w271c_11522` (`79.96 g`, `G1 = 0.7597`, 3D solid tip $\text{SF} = 1.0330$) satisfy the 3D solid tip submodel floor ($\text{SF}_{\text{tip}} \ge 1.0$ at $1.82\text{ N}\cdot\text{m}$), `w272_s2902_c01` (`79.43 g`, $\text{seq\_ratio} = 1.0000$) and `w273_s2904_c01` (`78.59 g`, $\text{SPG} = 3.940\text{ N/g}$, $\text{seq\_ratio} = 1.0012$, `G1 = 0.7603`) push failure-sequence ratio to unity below $80\text{ g}$, and the all-gates calibrated waves `w274_s2905_c01` through `w283_p14_c01` (`75.382 g` raster / `75.199 g` 3D solid, strict lateral $262.6\text{ N}$ / $+0.99\%$ reserve, $\text{seq\_ratio} = 1.201$, 3D solid tip $\text{SF} = 1.509$, `W_CAD = +1.7956`, `G1 = 0.9139`) and `w283_p10_c02` (`75.642 g` raster / `75.505 g` 3D solid, strict lateral $266.4\text{ N}$ / $+2.46\%$ reserve, $\text{seq\_ratio} = 1.219$, 3D solid tip $\text{SF} = 1.509$, `W_CAD = +1.8166`, `G1 = 0.9167`) simultaneously clear certified $\text{seq\_ratio} \ge 1.20$, strict hunter lateral $\ge 260\text{ N}$, strict tip-submodel twist $\text{SF} \ge 1.0$, and 3D P2 solid-tip $\text{SF} \ge 1.0$.
-> - Under **`RS-karambit-v2` (v1 Promotion & Human-Maximum Gate Set)**, **2 of 23 evaluated CAD subjects (`w283_p14_c01` and `w283_p10_c02`)** pass every `RS-karambit-v2` hard gate (`hm_twist_sf >= 1.0` at $16.2\text{ N}\cdot\text{m}$, `hm_spine_sf >= 1.0` at $3427\text{ N}$, `fat_sf >= 1.0`, `ring_bearing_w_mm >= 10.0\text{ mm}`, `gate_s_sharp_law`, and `gate_s_tip_point_brep`, `all_hard = true`, `unverified = []`). Manufacturing promotion remains gated on physical coupon testing and human aesthetic sign-off, and all public claims are machine-checked by [`ops/ci/check_claims.py`](../ops/ci/check_claims.py) and [`ops/ci/claim_admission.py`](../ops/ci/claim_admission.py).
+> - Historical `RS-karambit-v1` and 16-gate `W_CAD_v2` screens through Wave 282 remain historical records. Wave 283 is excluded from the passing record progression after independent re-certification.
+> - **No currently reported design establishes an all-hard `RS-karambit-v2` pass.** The Wave 283 pass claims are withdrawn. Corrected exports, raw independent solver observations, and content identities are retained with the re-certification evidence.
 
 ---
 
-**Wave w283 / v1.0.0 record.** **`w283_p14_c01`** (`75.382 g` raster / `75.199 g` 3D solid, `G1 = 0.913855` COMPLETE, `W_CAD = +1.7956`, `16/16` search gates pass, `10/10` RS-karambit-v2 hard gates pass): strict lateral `262.6 N` / `SF = 1.0099` (`+0.99%` reserve), certified `seq_ratio = 1.2012`, strict tip twist `SF = 1.1246`, tip-only twist `SF = 1.1405`, 3D P2 solid-tip `SF = 1.509` (`105,921` DOF, `22,752` TET10), `hm_twist_sf = 1.0011`, `hm_spine_sf = 1.2896`, `hm_ringback_sf = 2.1458`, `fat_sf = 1.2653`, `ring_bearing_w_mm = 10.20 mm`, `SPG = 3.4757 N/g`, and `side.a4 seq = 4.768` / `P_cr = 2226.08 N`; companion Pareto elite **`w283_p10_c02`** (`75.642 g` raster / `75.505 g` 3D solid, `G1 = 0.916720` COMPLETE, `W_CAD = +1.8166`, `16/16` search gates pass, `10/10` RS-karambit-v2 hard gates pass) achieves the highest combined `W_CAD` and `G1` among all `W_CAD_v2` waves while also satisfying every `RS-karambit-v2` hard gate. No design is promoted without physical coupon testing and human aesthetic sign-off.
+<!-- GEN:CERT_INTEGRITY:BEGIN -->
+**v1.0.0 certification claims withdrawn (#75–#81).** Neither Wave 283 candidate passes the fixed pipeline. The exported geometry and all requirement thresholds are unchanged. Native-only solid solves are unverified; the results below use actual scikit-fem P2 and DOLFINx solves on the same mesh.
+
+| candidate | raster / solid g | strict lateral N | cert seq | solid-tip SF | G1 | W_CAD | RS-v2 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `w283_p14_c01` | 75.382 / 75.199 | 176.720 | 0.7436 | 0.9577 | 0.623888 | -3.878704 | FAIL |
+| `w283_p10_c02` | 75.642 / 75.505 | 176.763 | 0.7179 | 0.9578 | 0.621632 | -3.964924 | FAIL |
+
+Source: `evidence/rs_v2/w283_ultrarunner/*_{cad_eval,rs,solid_tip}.json`; raw solver outputs and exact meshes are retained in `evidence/cert_integrity/recertified/`. The retracted certificates are preserved under `evidence/cert_integrity/v1.0.0-retracted/`. Lateral strength, failure sequence, human-maximum loads, fatigue, exported edge sharpness and full 0–10 mm point monotonicity remain blockers; the bore has no verified required fillet. Historical 16-gate screen results below do not establish an RS-v2 all-hard pass or manufacturing promotion. G1 above uses the full-precision RS inputs in each battery record; CAD-eval JSON retains its rounded D1 inputs.
+<!-- GEN:CERT_INTEGRITY:END -->
 
 ## I. End-to-End Architecture & The 18-Evaluator CAD-to-`G1` Pipeline
 
@@ -306,8 +315,8 @@ Implemented in [`crates/crescent/src/qd.rs`](../crates/crescent/src/qd.rs#L100-L
 | `w281_s2932_c01` (`w281`) | 5.9 | **75.911** (`75.695` 3D) | 265.4 | 3.497 | **1.2115** | **1.4094** | 0.4079 | **0.8808** | Sub-76 g raster & solid; all 16 search gates pass (`W_CAD = +1.7916`) |
 | `w282_p10_c02` (`w282`) | 5.9 | **75.836** (`75.616` 3D) | 265.4 | 3.500 | **1.2150** | **1.4094** | 0.4079 | **0.8811** | High-reserve `W_CAD = +1.7978` & `G1 = 0.8811` (`16/16` pass) |
 | `w282_p14_c01` (`w282`) | 5.9 | **75.568** (`75.323` 3D) | 262.0 | 3.467 | **1.2010** | **1.4093** | 0.4079 | **0.8782** | Wave 282 lightest all-16-gates winner (`W_CAD = +1.7790`) |
-| `w283_p10_c02` (`w283`) | 5.9 | **75.642** (`75.505` 3D) | 265.8 | 3.513 | **1.2190** | **1.5090** | 0.4079 | **0.9167** | Highest `W_CAD = +1.8166` & `G1 = 0.9167`; `16/16 W_CAD_v2` + `10/10 RS-karambit-v2` pass |
-| `w283_p14_c01` (`w283`) | 5.9 | **75.382** (`75.199` 3D) | 262.0 | 3.476 | **1.2012** | **1.5090** | 0.4079 | **0.9139** | Lightest all-gates record (`75.382 g` / `75.199 g` 3D, `W_CAD = +1.7956`, `10/10 RS-karambit-v2` pass) |
+| `w283_p10_c02` (`w283`, re-certified) | 5.9 | **75.642** (`75.505` 3D) | 194.4 | 2.570 | **0.7180** | **0.9578** | 0.4079 | **0.6216** | Rejected: `W_CAD = -3.9649`, RS-v2 FAIL |
+| `w283_p14_c01` (`w283`, re-certified) | 5.9 | **75.382** (`75.199` 3D) | 194.8 | 2.584 | **0.7440** | **0.9577** | 0.4079 | **0.6239** | Rejected: `W_CAD = -3.8787`, RS-v2 FAIL |
 
 #### Table V-2: Margin-vs-Mass Pareto Progression (`W27` $\rightarrow$ `W283`, `evidence/wave27/g3_tip+00_t60_tt3_D1.json`, `evidence/rs_v2/w271c_11522.json`, `evidence/rs_v2/w2*/*_cad_eval.json`)
 
@@ -325,8 +334,8 @@ Implemented in [`crates/crescent/src/qd.rs`](../crates/crescent/src/qd.rs#L100-L
 | `w281_s2932_c01` | Wave 281 `W_CAD_v2` | `75.911` / `75.695` | `267.4 N` / `1.028` (`+2.8%`) | `1.125` (`+12.5%`) | `1.212` (`+1.0%`) | `1.4094` (`+40.9%`) | `3.950` / `3042 N` | `+1.7916` | `0.8808` (`COMPLETE`) | **16/16 pass** (sub-76 g raster & solid; `-9.068 g` vs `w274`) |
 | `w282_p10_c02` | Wave 282 `W_CAD_v2` | `75.836` / `75.616` | `267.4 N` / `1.028` (`+2.8%`) | `1.125` (`+12.5%`) | `1.215` (`+1.25%`) | `1.4094` (`+40.9%`) | `3.951` / `3042 N` | `+1.7978` | `0.8811` (`COMPLETE`) | **16/16 pass** (Wave 282 peak `W_CAD`; `-9.143 g` vs `w274`) |
 | `w282_p14_c01` | Wave 282 `W_CAD_v2` | `75.568` / `75.323` | `262.6 N` / `1.010` (`+1.0%`) | `1.125` (`+12.5%`) | `1.201` (`+0.08%`) | `1.4093` (`+40.9%`) | `4.042` / `1522 N` | `+1.7790` | `0.8782` (`COMPLETE`) | **16/16 pass** (Wave 282 lightest; `-9.411 g` vs `w274`) |
-| `w283_p10_c02` | Wave 283 `W_CAD_v2` | `75.642` / `75.505` | `266.4 N` / `1.025` (`+2.5%`) | `1.140` (`+14.0%`) | `1.219` (`+1.58%`) | `1.5090` (`+50.9%`) | `4.835` / `2269 N` | `+1.8166` | `0.9167` (`COMPLETE`) | **16/16 pass** + `10/10 RS-karambit-v2` (`-9.337 g` vs `w274`) |
-| `w283_p14_c01` | Wave 283 `W_CAD_v2` | `75.382` / `75.199` | `262.6 N` / `1.010` (`+1.0%`) | `1.125` (`+12.5%`) | `1.201` (`+0.10%`) | `1.5090` (`+50.9%`) | `4.768` / `2226 N` | `+1.7956` | `0.9139` (`COMPLETE`) | **16/16 pass** + `10/10 RS-karambit-v2` (`-9.597 g` vs `w274`) |
+| `w283_p10_c02` | Wave 283 re-certification | `75.642` / `75.505` | `176.8 N` / `0.680` | `1.002` | `0.718` | `0.9578` | `3.787` | `-3.9649` | `0.6216` (`COMPLETE`) | **FAIL** (`all_hard = false`) |
+| `w283_p14_c01` | Wave 283 re-certification | `75.382` / `75.199` | `176.7 N` / `0.680` | `1.002` | `0.744` | `0.9577` | `4.551` | `-3.8787` | `0.6239` (`COMPLETE`) | **FAIL** (`all_hard = false`) |
 
 ---
 
@@ -343,8 +352,8 @@ Implemented in [`crates/crescent/src/qd.rs`](../crates/crescent/src/qd.rs#L100-L
 | Subject | Type | Mass (g) | Passed / 18 | Failed | Blocked | 3D Solid Tip $\text{SF}_{\text{tip}}$ (`scikit-fem` / `DOLFINx`) | Plate GCI (`seq` / `hunter`) | Certified `seq_ratio` | Supported `seq_ratio` (`A4`) | Buckling $\lambda_{\text{cr}}$ (`A4`) | Global Fitness $G_1$ |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | [`g3`](../evidence/cad_battery/g3.json) | 128-gene CSV + STL | 84.80 | **11/18** | 4 | 3 | `1.6003` (`1.5341` / `1.5341`) | `1.38%` / oscillatory | 0.9591 | 2.7901 | 10.47 | **1.0036** |
-| [`w283_p14_c01`](../evidence/cad_battery/w283_p14_c01.json) | 128-gene CSV + STEP/STL | 75.38 | **13/18** | 1 | 3 | `1.5090` (`1.5090` / `1.5090`) | oscillatory / oscillatory | **1.2012** | 4.7683 | 8.56 | **0.9139** |
-| [`w283_p10_c02`](../evidence/cad_battery/w283_p10_c02.json) | 128-gene CSV + STEP/STL | 75.64 | **13/18** | 1 | 3 | `1.5090` (`1.5090` / `1.5090`) | oscillatory / oscillatory | **1.2190** | 4.8350 | 8.73 | **0.9167** |
+| [`w283_p14_c01`](../evidence/cad_battery/w283_p14_c01.json) | 128-gene CSV + STEP/STL | 75.38 | **10/18** | 1 | 3 | `0.9577` (`0.9580` / `0.9577`) | oscillatory / oscillatory | **0.7440** | 4.5506 | 4.61 | **0.6239** |
+| [`w283_p10_c02`](../evidence/cad_battery/w283_p10_c02.json) | 128-gene CSV + STEP/STL | 75.64 | **11/18** | 1 | 3 | `0.9578` (`0.9580` / `0.9578`) | admissible_estimate / admissible_estimate | **0.7180** | 3.7872 | 10.09 | **0.6216** |
 | [`w282_p14_c01`](../evidence/cad_battery/w282_p14_c01.json) | 128-gene CSV + STEP/STL | 75.57 | **11/18** | 4 | 3 | `1.4093` (`1.4090` / `1.4093`) | oscillatory / oscillatory | **1.2010** | 4.0425 | 5.85 | **0.8782** |
 | [`w282_p10_c02`](../evidence/cad_battery/w282_p10_c02.json) | 128-gene CSV + STEP/STL | 75.84 | **11/18** | 4 | 3 | `1.4094` (`1.4090` / `1.4094`) | oscillatory / oscillatory | **1.2150** | 3.9505 | 11.70 | **0.8811** |
 | [`w281_s2932_c01`](../evidence/cad_battery/w281_s2932_c01.json) | 128-gene CSV + STEP/STL | 75.91 | **11/18** | 4 | 3 | `1.4094` (`1.4090` / `1.4094`) | oscillatory / oscillatory | **1.2115** | 3.9500 | 11.70 | **0.8808** |
@@ -387,13 +396,13 @@ Implemented in [`crates/crescent/src/qd.rs`](../crates/crescent/src/qd.rs#L100-L
 | `w281_s2932_c01` | `pass` | **1.4094** | **1.2115** | 0.1282 | 0.4318 | **2.1559** | 0.7414 | 5.30 | `FAIL` |
 | `w282_p10_c02` | `pass` | **1.4094** | **1.2150** | 0.1282 | 0.4318 | **2.1458** | 0.7414 | 5.26 | `FAIL` |
 | `w282_p14_c01` | `pass` | **1.4093** | **1.2010** | 0.1281 | 0.4315 | **2.1458** | 0.7319 | 5.26 | `FAIL` |
-| `w283_p10_c02` | `pass` | **1.5090** | **1.2190** | **1.0151** | **1.3071** | **2.1642** | **1.2816** | **10.20** | `pass` (`RS-karambit-v2` `10/10`) |
-| `w283_p14_c01` | `pass` | **1.5090** | **1.2012** | **1.0011** | **1.2896** | **2.1458** | **1.2653** | **10.20** | `pass` (`RS-karambit-v2` `10/10`) |
+| `w283_p10_c02` | `fail` | **0.9578** | **0.7180** | **0.1110** | **0.4317** | **2.8596** | **0.5431** | **10.20** | `fail` (`RS-karambit-v2`, measured export) |
+| `w283_p14_c01` | `fail` | **0.9577** | **0.7440** | **0.1110** | **0.4313** | **2.8595** | **0.5442** | **10.20** | `fail` (`RS-karambit-v2`, measured export) |
 
 > [!NOTE]
 > **Physical Insight from Tables V-2, VI-1 & VI-2:**
-> 1. **The current record `w283_p14_c01` (`75.382 g` raster / `75.199 g` 3D solid, `G1 = 0.913855` COMPLETE, `W_CAD = +1.7956`, `16/16` search gates pass, `10/10` RS-karambit-v2 hard gates pass) and companion elite `w283_p10_c02` (`75.642 g` raster / `75.505 g` 3D solid, `G1 = 0.916720` COMPLETE, `W_CAD = +1.8166`, `16/16` search gates pass, `10/10` RS-karambit-v2 hard gates pass) close all RS-karambit-v2 shortfalls below `75.4 g`:** `w283_p14_c01` achieves strict lateral `262.6 N` / `SF = 1.0099` (`+0.99%` reserve), certified `seq_ratio = 1.2012`, strict tip twist `SF = 1.1246`, tip-only twist `SF = 1.1405`, 3D P2 solid-tip `SF = 1.509` (`105,921` DOF, `22,752` TET10), `hm_twist_sf = 1.0011`, `hm_spine_sf = 1.2896`, `hm_ringback_sf = 2.1458`, `fat_sf = 1.2653`, `ring_bearing_w_mm = 10.20 mm`, `SPG = 3.4757 N/g`, and `side.a4 seq = 4.768` / `P_cr = 2226.08 N`; `w283_p10_c02` retains `+2.46%` strict lateral reserve (`266.4 N`) and `seq_ratio = 1.2190` while reaching `W_CAD = +1.8166`. No design is promoted without physical coupon testing and human aesthetic sign-off.
-> 2. **How Wave 283 closed the `RS-karambit-v2` gates natively in Rust:** Activating the `rs_v2` sharp-law apex (`0.05 <= edge_t <= 0.20 mm`), B-rep point convergence (`tip_r = 0.075 mm <= 0.15 mm`), integral annular ring-bearing boss (`ring_bearing_w_mm = 10.20 mm >= 10.0 mm`), and 3D spine/chord crown stiffness + $K_t$-relieved $10^4$-cycle low-cycle Goodman fatigue (`fat_sf >= 1.265`) enabled both `w283_p14_c01` and `w283_p10_c02` to pass all 10 `RS-karambit-v2` hard gates while preserving all historical `w271..w282` baselines unchanged.
+> 1. **Wave 283 qualification withdrawn:** actual exported thickness, uncredited loads/fatigue, mesh edge/profile measurements and independent solvers supersede the original pass claims. No manufacturing promotion is justified.
+> 2. **Remaining work:** redesign the physical edge, point, ring fillet and load paths, then obtain an actual independent full re-certification. No change to a requirement threshold or bound can substitute for measured compliance.
 
 ---
 

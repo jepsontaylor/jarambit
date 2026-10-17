@@ -1,6 +1,6 @@
 {
  "figure": "docs/figures/whitepaper/fig_why_this_matters.png",
- "figure_sha256": "aeccaa98f99453bb540a3723c3c6d0e523111c4c9c8d1713a62f87523d5a1a54",
+ "figure_sha256": "6c525dc8df6478f796bc12f6bd0c42634f181d00bbf1eee5405d8cb2f3c47ddb",
  "inputs": {
   "docs/market/2026-10-13/benchmark.json": "fee4c4143e0a6ec548c1b5ae0695f9a78c5f0260725650528ea5983c24e48edd",
   "docs/market/2026-10-13/census.json": "871c17a50d205feae5a93100ab212d2ddf06354d3d5fcf17c95c51ff313f7893",
@@ -17,7 +17,7 @@
   "evidence/cad_battery/w280_s2931_c01.json": "bd9341933ec76fbe571d1a546a0625f9e3840ed9502e11b8dd65358b7e4b8c96",
   "evidence/cad_battery/w281_s2932_c01.json": "7532e7d3fc9b68599a73f595eb82be2237928b7c63a4ca9c23bdd8f3e9216c12",
   "evidence/cad_battery/w282_p14_c01.json": "528fc112a19589657239984791beb22065210ac48bfef2b03d79d40bedb767bb",
-  "evidence/cad_battery/w283_p14_c01.json": "2b3fa9c3b40f311b1754869d4c98af85b9f1eec95b22f68edf2a13aa9b62bbfa",
+  "evidence/cad_battery/w283_p14_c01.json": "a15b43a3f3e101dc5644b7ef00d85633489e612f7a84338b9ef5e70944982655",
   "evidence/fem_solid/verify_0.30.2.json": "4778735a2e5fcd44e071e3d1013e9190ce0c6b2af637896890f6dfbade2d9008",
   "evidence/rs_v2/w274_calibrated/w274_s2905_c01_cad_eval.json": "888e32246eeb329bc6c15e0b3cd0676bacef18067ad72ee5682b3aea7a854883",
   "evidence/rs_v2/w275_ultrarunner/w275_s2909_c01_cad_eval.json": "258e7a05f138e1eab9d5094c4063233eee131f7fce22dd5506d7b0a69de0f2cf",
@@ -27,9 +27,9 @@
   "evidence/rs_v2/w279_ultrarunner/w279_s2928_c01_cad_eval.json": "e5e8f3c17bfe4579313cd9421b888e3d666c5bacd481f7c234937210320e599f",
   "evidence/rs_v2/w280_ultrarunner/w280_s2931_c01_cad_eval.json": "71b1491227e9cb8002234c711bc181ccfca8605781b0e0ad24f5a03bb724d34a",
   "evidence/rs_v2/w281_ultrarunner/w281_s2932_c01_cad_eval.json": "58ead96cff5dc4db982ddc6b49a044bc9b223ee0a2d7b7bbcc949f7126ecc049",
+  "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_D1.json": "184e454feca52afffd156ce1b607025fb50dc3eca0687b835b36ef8f48c5fc46",
   "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json": "afdfa9676e988928159274a8b046b4bb02521f274abcf618938cef9dcb29db17",
-  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json": "2c012cb3a17bac51b13192b02a988cfb3f15ea08a752edf9e88a8cefdc7768cf",
-  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "b8edcc0251ac08a5dce859a4a07278739582799b175ac92416c9a41c3bb2a8fe"
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "d174b2e2fbe7f1b8e19b07053f499ce31d18a145561911631ca20506df9b90db"
  },
  "norms": {},
  "schema": 1,

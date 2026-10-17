@@ -3623,7 +3623,7 @@ mod tests {
             None,
         )
         .expect("w282_p14_c01 builds");
-        assert_eq!(w282_p14["pass_count"].as_u64(), Some(10));
+        assert_eq!(w282_p14["pass_count"].as_u64(), Some(11));
         assert_eq!(w282_p14["solver_run_count"].as_u64(), Some(1));
         assert_eq!(w282_p14["global_fitness"]["status"].as_str(), Some("COMPLETE"));
         let g_p14 = w282_p14["global_fitness"]["G"].as_f64().unwrap();
@@ -3638,7 +3638,7 @@ mod tests {
             None,
         )
         .expect("w282_p10_c02 builds");
-        assert_eq!(w282_p10["pass_count"].as_u64(), Some(10));
+        assert_eq!(w282_p10["pass_count"].as_u64(), Some(11));
         assert_eq!(w282_p10["solver_run_count"].as_u64(), Some(1));
         assert_eq!(w282_p10["global_fitness"]["status"].as_str(), Some("COMPLETE"));
         let g_p10 = w282_p10["global_fitness"]["G"].as_f64().unwrap();
@@ -3657,8 +3657,8 @@ mod tests {
         assert_eq!(w283_p14["solver_run_count"].as_u64(), Some(1));
         assert_eq!(w283_p14["global_fitness"]["status"].as_str(), Some("COMPLETE"));
         let g283_p14 = w283_p14["global_fitness"]["G"].as_f64().unwrap();
-        let ev=load_json(&root,"evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json").unwrap();
-        assert!((g283_p14-ev["global_fitness_G1"]["G"].as_f64().unwrap()).abs()<1e-9);
+        let ev=load_json(&root,"evidence/cad_battery/w283_p14_c01.json").unwrap();
+        assert!((g283_p14-ev["global_fitness"]["G"].as_f64().unwrap()).abs()<1e-9);
         assert!(g283_p14<0.913855);
 
         let w283_p10 = build_subject(
@@ -3674,8 +3674,8 @@ mod tests {
         assert_eq!(w283_p10["solver_run_count"].as_u64(), Some(1));
         assert_eq!(w283_p10["global_fitness"]["status"].as_str(), Some("COMPLETE"));
         let g283_p10 = w283_p10["global_fitness"]["G"].as_f64().unwrap();
-        let ev=load_json(&root,"evidence/rs_v2/w283_ultrarunner/w283_p10_c02_cad_eval.json").unwrap();
-        assert!((g283_p10-ev["global_fitness_G1"]["G"].as_f64().unwrap()).abs()<1e-9);
+        let ev=load_json(&root,"evidence/cad_battery/w283_p10_c02.json").unwrap();
+        assert!((g283_p10-ev["global_fitness"]["G"].as_f64().unwrap()).abs()<1e-9);
         assert!(g283_p10<0.916719);
     }
 
