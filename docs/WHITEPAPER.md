@@ -262,7 +262,7 @@ The six top-level named-genome records above are a subset of the **23-subject CA
 
 ### IV-B. Engineering gates: implementation-derived atlas
 
-The engineering companion [ENGINEERING_GATES_AND_EVOLUTION.md](ENGINEERING_GATES_AND_EVOLUTION.md) extends this paper with the exact predicates, units, load models, file:function paths, fidelity and verification evidence for every gate. **16 W_CAD gates, 10 RS-v2 groups and 18×23=414 battery cells are different denominators.** The gates are grouped by the property they test; a missing result never establishes a pass. The common plate model is linear isotropic CST/DKT bending plus T6 in-plane response. Ti-6Al-4V uses provisional yield 828 MPa, $E=113.8$ GPa, $\nu=0.34$, density 4.43 g/cm³, linear temperature knockdown to 100 °C and joint −0.1 mm stock tolerance. Capacities use $k_p=[(t-0.1)/t]^p\sigma_y(100)/\sigma_y(20)$, with $p=2$ in bending/torsion and $p=1$ in membrane ring pull. Certification combines 0.25/0.125 mm² meshes; strict checks use 0.0625 mm², without search bias. PR #82 binds every solve to the post-removal export thickness law.
+The engineering companion [ENGINEERING_GATES_AND_EVOLUTION.md](ENGINEERING_GATES_AND_EVOLUTION.md) extends this paper with the exact predicates, units, load models, file:function paths, fidelity and verification evidence for every gate. **16 W_CAD gates, 10 RS-v2 groups and 18×23=414 battery cells are different denominators.** The gates are grouped by the property they test; a missing result never establishes a pass. The common plate model is linear isotropic CST/DKT bending plus T6 in-plane response. Ti-6Al-4V uses provisional yield 828 MPa, $E=113.8$ GPa, $\nu=0.34$, density 4.43 g/cm³, linear temperature knockdown to 100 °C and joint −0.1 mm stock tolerance. Capacities use $k_p=[(t-0.1)/t]^p\sigma_y(100)/\sigma_y(20)$, with $p=2$ in bending/torsion and $p=1$ in membrane ring pull. Certification combines 0.25/0.125 mm² meshes; strict checks use 0.0625 mm², without search bias. PR #82 binds every solve to the post-removal export thickness law. All gate plates below use the same committed failed assessment, `cert_pipeline_r01_p14_c02`, and display its recorded verdict. Load arrows, gauges and fixtures are illustrations; any color field is the saved multi-load D1 plate envelope, not a load-specific strict or solid field. These plates do not fill the certified-winner slot.
 
 #### IV-B.1. Geometry and manufacturability
 
@@ -270,9 +270,13 @@ The engineering companion [ENGINEERING_GATES_AND_EVOLUTION.md](ENGINEERING_GATES
 
 One STEP solid, closed shell, zero boundary/non-manifold STL edges, directed-edge repeat one and solid/raster mass discrepancy ≤1%. [export.rs::solid,census,volume](../crates/crescent/src/export.rs) and [verify_step_and_stl](../ops/ci/evaluate_cad_candidate.py) measure topology and signed-triangle volume. The post-#84 independent evaluator additionally requires one transferred solid valid under [OpenCascade BRepCheck_Analyzer](../ops/ci/verify_genome_export.py); mesh census alone does not establish that result. Export/ingest controls and hashed CAD observations verify the stated scope; #75 tests solved/exported thickness consistency, and the #84 regression rejects certificates from the previous surface model.
 
+![Assessed example: cad watertight and single solid; not a certified winner](figures/whitepaper/blender/cad_watertight_and_single_solid.webp)
+
 ##### `geometric_and_holder_gates`
 
 [gates.rs::check,holder_fit](../crates/crescent/src/gates.rs) requires an empty reject list: three blade measures ≥85.725 mm, edge arcs ≤101.6 mm, grip 60–80 mm, ring ID 25.4±0.5 mm, minimum ligaments, titanium stock precision, valid features, and assumed holder fit. The oriented envelope is 200×100 mm, stack ≤9 mm; insertion/draw windows are 3–80/1.5–45 N. The holder cantilever proxy gives $F_{in}=6.6w^3\delta$, $F_{draw}=0.55F_{in}$. Its stack calculation uses nominal body stock, not the maximum raised bore-collar height added by #84; a passing flag does not validate actual collar/sheath clearance or blank-stock feasibility. Geometric tests and battery `geom.*` records check implementation, without measured snap-fit validation.
+
+![Assessed example: geometric and holder gates; not a certified winner](figures/whitepaper/blender/geometric_and_holder_gates.webp)
 
 #### IV-B.2. Ergonomics and appearance
 
@@ -280,9 +284,13 @@ One STEP solid, closed shell, zero boundary/non-manifold STL edges, directed-edg
 
 The [scorecard conjunction](../ops/ci/evaluate_cad_candidate.py) requires ring ID 25.4±0.5 mm, wall ≥4.5 mm, groove ≥2 mm, hook drop ≥25 mm, minimum blade measure ≥85.725 mm, ≥3 teeth per edge and aesthetic acceptance. It is a deterministic archetype check. Feature tests and `/karambit_archetype` observations verify the measurements; no human comfort study is supplied.
 
+![Assessed example: karambit ring and curved claw; not a certified winner](figures/whitepaper/blender/karambit_ring_and_curved_claw.webp)
+
 ##### `c6_aesthetic_floor`
 
 [aesthetic.rs::evaluate](../crates/crescent/src/aesthetic.rs) checks Hausdorff ≤6 mm, 32-bin curvature EMD ≤0.06, reference-relative straight-run/continuity/blend limits, seat ≥0.4 mm, guard ≥5 mm, hook ≥25 mm, neck fillet ≥8 mm, grip texture, flat pad, jimping and groove features. **A≥0.50 is not the predicate.** Reference tests and D1 failure diagnostics verify geometry; owner aesthetic approval remains separate.
+
+![Assessed example: c6 aesthetic floor; not a certified winner](figures/whitepaper/blender/c6_aesthetic_floor.webp)
 
 #### IV-B.3. Structural strength
 
@@ -290,33 +298,49 @@ The [scorecard conjunction](../ops/ci/evaluate_cad_candidate.py) requires ring I
 
 [fem.rs::certify](../crates/crescent/src/fem.rs) requires robust ring-clamped lateral capacity ≥180 N. Unit transverse tip loading is distributed over a 2 mm patch, with a 4 mm stress exclusion and joint $k_2$ knockdown. Physics/solver controls, candidate D1 observations and T01/T05 numerical contracts address implementation and mesh semantics; coupons remain absent.
 
+![Assessed example: cert hiker 180n; not a certified winner](figures/whitepaper/blender/cert_hiker_180n.webp)
+
 ##### `cert_hunter_260n`
 
 The same conservative two-mesh lateral capacity must be ≥260 N. This higher floor shares the hiker model and is not an independent experiment. [run_b,certify](../crates/crescent/src/fem.rs), solver parity and actual-thickness regressions supply the computational trace; retained T1/T2 lateral residual sigma is 6.5%, without establishing a per-design physical uncertainty bound.
+
+![Assessed example: cert hunter 260n; not a certified winner](figures/whitepaper/blender/cert_hunter_260n.webp)
 
 ##### `strict_hunter_260n`
 
 [fem::run_unbiased](../crates/crescent/src/fem.rs) requires ≥260 N on the strict 0.0625 mm² mesh with the same load/support/material assumptions. D1 rescreen CSV, bound RS records and T01 mesh/observable contracts expose the check. Corrected w283 p14 capacity is 176.720 N; a passing independent solid comparison cannot repair this failure.
 
+![Assessed example: strict hunter 260n; not a certified winner](figures/whitepaper/blender/strict_hunter_260n.webp)
+
 ##### `cert_ring_pull_1500n`
 
 Robust T6 membrane ring capacity must be ≥1500 N. [run_b](../crates/crescent/src/fem.rs) seats the guard/ricasso band and integrates bore traction, using $k_1$. Edge-traction/field controls and D1 `ring_rob` observations verify the implementation. Static ring pull differs from the provisional 3000 N ring-back case and from finger-bearing pressure.
+
+![Assessed example: cert ring pull 1500n; not a certified winner](figures/whitepaper/blender/cert_ring_pull_1500n.webp)
 
 ##### `twist_body_1p82nm`
 
 Body SF must be ≥1 at 1.82 N·m chord torque, with peaks more than 15 mm from the tip. [run_b](../crates/crescent/src/fem.rs) applies the local Saint-Venant rectangular-section correction $k_c=(1/3)/\alpha(b/t)$ and $k_2$. Torque-direction, section and #76 regression controls verify this region-specific metric; it is a body observable of the tip-loaded solve.
 
+![Assessed example: twist body 1p82nm; not a certified winner](figures/whitepaper/blender/twist_body_1p82nm.webp)
+
 ##### `twist_tip_only_1p82nm`
 
 The tip-loaded corrected plate peak outside the 4 mm load exclusion must have SF ≥1 at 1.82 N·m. [fem.rs](../crates/crescent/src/fem.rs) computes unit-torque stresses and local section correction. Saved D1 peak/section values and torsion controls provide the trace. This plate metric does not resolve the physical point or replace measured sharpness and solid-tip checks.
+
+![Assessed example: twist tip only 1p82nm; not a certified winner](figures/whitepaper/blender/twist_tip_only_1p82nm.webp)
 
 ##### `twist_tip_submodel_strict_1p82nm`
 
 The strict-mesh **4–15 mm tip annulus** must have SF ≥1 at 1.82 N·m. [run_unbiased/run_b](../crates/crescent/src/fem.rs) supplies the annulus peak and its own section correction at 0.0625 mm². Strict D1/RS observations and T01/T05 region/projection contracts verify scope; despite its historical name, this is a plate observable.
 
+![Assessed example: twist tip submodel strict 1p82nm; not a certified winner](figures/whitepaper/blender/twist_tip_submodel_strict_1p82nm.webp)
+
 ##### `solid_tip_3d_p2_1p82nm`
 
 The 30 mm quadratic-tetrahedron local tip problem must have recorded fine nodal-maximum SF ≥1 at 1.82 N·m. The post-#84 mesh preserves full-precision saved exported facets through [export_surface.py::load_surface,refine](../fem_solid/export_surface.py), rather than reconstructing the surface from the display thickness raster. [tip_solid.py](../fem_solid/tip_solid.py), [solve_dolfinx.py](../fem_solid/solve_dolfinx.py) and the same-mesh cross-check solve 3D linear elasticity with a clamped cut face and balanced minimum-norm vertex z-forces on a 2 mm tip patch. The stress observable uses **4≤tip distance<15 mm** and **cut-boundary distance>3 mm**, with the joint thin/hot allowable. Analytic fixtures, field semantics, mesh/raw hashes and candidate observations provide the trace. W283's actual fine SF 0.9577/0.9578 fails; native-only screening stays unverified for independent certification.
+
+![Assessed example: solid tip 3d p2 1p82nm; not a certified winner](figures/whitepaper/blender/solid_tip_3d_p2_1p82nm.webp)
 
 #### IV-B.4. Stiffness and stability
 
@@ -324,11 +348,15 @@ The 30 mm quadratic-tetrahedron local tip problem must have recorded fine nodal-
 
 [side_a4.py::evaluate_subject](../ops/ci/side_a4.py) and [side_a4.rs::solve_side_a4](../crates/physics/src/side_a4.rs) require A4 status pass and $\lambda_{cr}\ge1$. Bore radial/tangential/flange springs are 50,000/5,000/100,000 N/mm per boundary node; grip Winkler stiffness is **200 N/mm³**. $K_s\phi=\lambda G\phi$ gives $P_{cr}=260\lambda$ N. Saved A4 coefficients/observations and native/Python parity fixtures check the numerical model; physical support stiffness remains uncalibrated.
 
+![Assessed example: side a4 buckling and support; not a certified winner](figures/whitepaper/blender/side_a4_buckling_and_support.webp)
+
 #### IV-B.5. Failure sequence
 
 ##### `failure_sequence_1p2`
 
 [fem::run_b/certify](../crates/crescent/src/fem.rs) requires $C_{hand}/C_{blade}\ge1.20$, taking the worst lateral/torsion/pry ratio over certification meshes. For common yield this equals the blade/hand unit-stress ratio, with specified spatial masks. D1 zone fields, sequence case and T01 observable contracts expose the calculation. It predicts elastic yield order, not fracture progression; supported A4 sequence cannot override it.
+
+![Assessed example: failure sequence 1p2; not a certified winner](figures/whitepaper/blender/failure_sequence_1p2.webp)
 
 #### IV-B.6. Numerical verification
 
@@ -336,11 +364,15 @@ The 30 mm quadratic-tetrahedron local tip problem must have recorded fine nodal-
 
 The exact [scorecard predicate](../ops/ci/evaluate_cad_candidate.py) tests **`sequence_valid && observable_valid`** in the sequence GCI record. It does not require a maximum error or admissible convergence fit. [gci.py::compute_gci](../fem_solid/gci.py), T01 controls and saved 4/1/0.25 mm² studies distinguish arithmetic, oscillation and unsupported sequences. Historical true W_CAD flags must not be presented as verified asymptotic convergence.
 
+![Assessed example: plate gci valid 3level; not a certified winner](figures/whitepaper/blender/plate_gci_valid_3level.webp)
+
 ##### `dolfinx_cross_check_2pct`
 
 Independently observed scikit-fem P2 and DOLFINx v0.9.0 results on the identical saved mesh must agree within 2% in the declared observables. [certification::independent_pass](../crates/crescent/src/certification.rs), [cross_check.py](../fem_solid/cross_check.py) and missing/native-independence regressions enforce distinct observations. T05 covers field semantics; T02/T19 cover claim/custody scope. Both solvers may agree that a design fails strength.
 
-The companion §II links **one Blender load/geometry plate per gate**, each with input/output manifests and the actual verdict for the committed #84 assessed example. Its [oblique view](figures/whitepaper/blender/hero_oblique.webp), [reverse face](figures/whitepaper/blender/hero_reverse.webp), and [ring/section](figures/whitepaper/blender/hero_section.webp) preserve the actual exported mesh. Retained multi-load plate fields and illustrative fixtures are explicitly distinguished; no missing solid field is invented. This assessed failure does not occupy the certified-winner slot.
+![Assessed example: dolfinx cross check 2pct; not a certified winner](figures/whitepaper/blender/dolfinx_cross_check_2pct.webp)
+
+Each gate above includes its Blender load/geometry plate, with input/output manifests and the actual verdict for the committed #84 assessed example; the companion §II supplies the detailed verification citations. Its [oblique view](figures/whitepaper/blender/hero_oblique.webp), [reverse face](figures/whitepaper/blender/hero_reverse.webp), and [ring/section](figures/whitepaper/blender/hero_section.webp) preserve the actual exported mesh. Retained multi-load plate fields and illustrative fixtures are explicitly distinguished; no missing solid field is invented. This assessed failure does not occupy the certified-winner slot.
 
 ### IV-C. Science verification and certificate integrity
 
@@ -368,7 +400,7 @@ RS-v2's ten groups add human-maximum static loads (16.2 N·m twist, 3427 N spine
 
 ### IV-D. Evolution mechanics and measured population history
 
-[auto_evolve.rs](../crates/cli/src/auto_evolve.rs), invoked by `./evolve.sh`, generates family-centered proposals. Following merged [PR #84](https://github.com/neverhuman/jarambit/pull/84), Stage 1 retains aesthetic/geometry-valid candidates with a 2 mm² FEM result and ranks normalized structural shortfalls, then mass. Failed physical screens remain eligible for improvement. Stage 2 automatically calls the standard Python evaluator for selected top-k candidates, including actual same-mesh scikit-fem/DOLFINx solves. Completed assessments, unverified attempts and qualified designs are recorded separately; qualification requires both all 16 engineering gates and RS-v2 `all_hard`. The next round keeps up to four ranked screen parents rather than pretending every parent is qualified. Its local proposal rounds differ from the [crescent island GA](../crates/crescent/src/qd.rs), which uses tournaments, three elites/island, mutation/crossover, archive parents, machining kicks, ring migration, 16-dimensional novelty descriptors and MAP-Elites niches. Search W_CAD fitness uses plate/novelty proxies; it does not execute every independent gate for each birth. The companion §V records defaults, exact operators, flags and seeds, and identifies stale `evolve.sh` prose constants without editing the owner's pipeline.
+[auto_evolve.rs](../crates/cli/src/auto_evolve.rs), invoked by `./evolve.sh`, generates family-centered proposals. Following merged [PR #84](https://github.com/neverhuman/jarambit/pull/84), Stage 1 retains aesthetic/geometry-valid candidates with a 2 mm² FEM result and ranks normalized structural shortfalls, then mass. Failed physical screens remain eligible for improvement. Stage 2 automatically calls the standard Python evaluator for selected top-k candidates, including actual same-mesh scikit-fem/DOLFINx solves. Completed assessments, unverified attempts and qualified designs are recorded separately; qualification requires both all 16 engineering gates and RS-v2 `all_hard`. Following merged [PR #86](https://github.com/neverhuman/jarambit/pull/86), replacement first retains every qualified genome, then adds up to four ranked Stage-1 parents, removing repeated genomes. If that set is empty, the previous parents remain. Provisional parents are not described as qualified. Its local proposal rounds differ from the [crescent island GA](../crates/crescent/src/qd.rs), which uses tournaments, three elites/island, mutation/crossover, archive parents, machining kicks, ring migration, 16-dimensional novelty descriptors and MAP-Elites niches. Search W_CAD fitness uses plate/novelty proxies; it does not execute every independent gate for each birth. The companion §V records defaults, exact operators, flags and seeds, and identifies stale `evolve.sh` prose constants without editing the owner's pipeline.
 
 The [retained w282 provenance](../evidence/rs_v2/w282_ultrarunner/provenance.json) specifies seed 2934, 4 islands×32 individuals, 16 generations, 4 mm² search meshes, migration every four generations, environment, parent hashes and numerical source/binary/container identities. Its **1,984 fresh evaluations** consist of 128 initial births and 16×116 new offspring, with retained elites distinguished from new evaluations. The legacy engine has manifest-bound exact-bit checkpoints; the crescent run retains framed parent/operator event logs and its provenance. A crescent checkpoint/resume capability is not inferred from the legacy implementation, and a seed alone does not reproduce changed code.
 
