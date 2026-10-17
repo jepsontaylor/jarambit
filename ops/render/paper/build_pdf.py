@@ -25,7 +25,10 @@ def sha(path):
 
 def capture(path, inputs):
     raw=path.read_bytes()
-    inputs[str(path.relative_to(ROOT))]=hashlib.sha256(raw).hexdigest()
+    relative=str(path.relative_to(ROOT));digest=hashlib.sha256(raw).hexdigest()
+    if relative in inputs and inputs[relative]!=digest:
+        raise ValueError('Input changed between PDF references: '+relative)
+    inputs[relative]=digest
     return raw
 
 

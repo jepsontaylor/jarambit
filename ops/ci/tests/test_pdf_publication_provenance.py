@@ -51,7 +51,8 @@ class PdfProvenance(unittest.TestCase):
 
     def test_unchanged_document_manifest_binds_consumed_bytes(self):
         image = self.root/'docs/neutral.png';image.write_bytes(b'neutral image software control')
-        with self.source.open('a') as f:f.write('\n![Neutral placeholder](neutral.png)\n')
+        with self.source.open('a') as f:
+            f.write('\n![Neutral placeholder](neutral.png)\n\n![Repeated placeholder](neutral.png)\n')
         original = self.source.read_bytes()
         self.run_build()
         manifest = json.loads((self.root/'target/paper'/(NAME+'.pdf.manifest.json')).read_text())
@@ -89,6 +90,26 @@ class PdfProvenance(unittest.TestCase):
     def test_checkout_change_is_rejected(self):
         with self.assertRaisesRegex(ValueError, 'changed'):
             self.run_build(lambda:setattr(self, 'head', 'b'*40))
+        self.assertFalse((self.root/'target/paper'/(NAME+'.pdf.manifest.json')).exists())
+
+    def test_image_change_between_repeated_references_is_rejected(self):
+        image = self.root/'docs/neutral.png';image.write_bytes(b'neutral image software control')
+        with self.source.open('a') as f:
+            f.write('\n![First placeholder](neutral.png)\n\n![Repeated placeholder](neutral.png)\n')
+        capture = build_pdf.capture
+        reads = 0
+
+        def capture_then_change(path, inputs):
+            nonlocal reads
+            raw = capture(path, inputs)
+            if path == image:
+                reads += 1
+                if reads == 1:image.write_bytes(b'changed neutral image')
+            return raw
+
+        with patch.object(build_pdf, 'capture', side_effect=capture_then_change):
+            with self.assertRaisesRegex(ValueError, 'changed'):
+                self.run_build()
         self.assertFalse((self.root/'target/paper'/(NAME+'.pdf.manifest.json')).exists())
 
 
