@@ -1,0 +1,12 @@
+{
+  "schema": "jarambit.bore_readback_control.v1",
+  "scope": "Independent STEP read-back against actual retained genome surface coordinates; component control only, not all_hard qualification.",
+  "producer_commit": "b4d139eff7d0ae6fdb054963b8effceb36d3432d",
+  "command": "inspect_step(control.step, control_surface.json)",
+  "inputs": {
+    "evidence/evolve_certifiable/controls/legal_genome/control.step": "eaf27b8ca61d6f7c465867907845eaab39ea6a61431b09f685e67b52471df560",
+    "evidence/evolve_certifiable/controls/legal_genome/control_surface.json": "3ac3ab7dfc56088928a8a28ce7e46a33c43a007e1a653b0f54ed876bd05d7a8c"
+  },
+  "result": "evidence/evolve_certifiable/followup_checks/control_step_check.json",
+  "result_sha256": "101e225c6decbf6d7f348be1476b5645a2f7e30fd370ae891b939ffadd8500b5"
+}
