@@ -2,11 +2,11 @@
  "figure": "docs/figures/whitepaper/fig_web_studio.png",
  "figure_sha256": "c6d58ce7a750a8aa6356acddccb4951432a38e60409fe073a15d72c9d71870ab",
  "inputs": {
-  "evidence/cad_battery/w283_p14_c01.json": "a15b43a3f3e101dc5644b7ef00d85633489e612f7a84338b9ef5e70944982655",
+  "evidence/cad_battery/w283_p14_c01.json": "ef7741201588390a05c77d115cf74090e7c5b1a3a7a51c6437a32dfc98f86d4e",
   "evidence/cert_integrity/recertified/w283_p14_c01/w283_p14_c01.stl": "ab25eb8b8d9c399e7e5f7f335b3afd05f5555f8524fe39ee2fa8ed38d93edee6",
-  "evidence/rs_v2/w283_p14_c01.json": "b2506c63d1b030fe4500909adf849ee875bf398ed7453cc0e223dfe20941c4cf",
+  "evidence/rs_v2/w283_p14_c01.json": "7dd36899599a6b4e44deda8ea6095b39a04553ad6a20e96eb1d1c14276cc267d",
   "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_D1.json": "efbfcb1ddd68f93349f5fe5ae8270599c0adda88efd13618042b39e09afc836b",
-  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "d174b2e2fbe7f1b8e19b07053f499ce31d18a145561911631ca20506df9b90db",
+  "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_cad_eval.json": "df555734d327afe077ca354764f8fea05e7e574bcaa1964beffb2653e911dffc",
   "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv": "aa54fe9148fe303b2054bc5449f063f507d6feffa07556d144013aa9ded5b009"
  },
  "norms": {},
