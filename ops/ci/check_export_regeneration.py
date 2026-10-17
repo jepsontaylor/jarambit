@@ -16,19 +16,30 @@ def check(exporter:Path,out:Path):
     for item in manifest['regeneration']['exports']:
         prefix=out/item['id']
         subprocess.run([str(exporter.resolve()),str(ROOT/item['genome']),str(prefix),item['label']],cwd=ROOT,check=True)
-        for suffix,expected in item['sha256'].items():
-            observed=sha(Path(str(prefix)+suffix))
-            if observed!=expected:raise ValueError(f'{item["id"]}{suffix}: expected {expected}, got {observed}')
-            if suffix in ['.step','.stl'] and expected!=manifest['files'][item['historical_prefix']+suffix]:
+        for suffix in ('.step', '.stl'):
+            expected = item['sha256'][suffix]
+            observed = sha(Path(str(prefix) + suffix))
+            if observed != expected:
+                raise ValueError(f'{item["id"]}{suffix}: expected {expected}, got {observed}')
+            if expected != manifest['files'][item['historical_prefix'] + suffix]:
                 raise ValueError('Current STEP/STL changed from retained historical geometry')
-        old=json.loads((ROOT/(item['historical_prefix']+'_surface.json')).read_text())
-        new=json.loads(Path(str(prefix)+'_surface.json').read_text())
-        if new['certificate_identity']!=item['certificate_identity']:raise ValueError('Current exporter policy identity changed')
+        surf_path = Path(str(prefix) + '_surface.json')
+        surf_text = surf_path.read_text()
+        old = json.loads((ROOT / (item['historical_prefix'] + '_surface.json')).read_text())
+        new = json.loads(surf_text)
+        cur_id = new.get('certificate_identity')
+        if not (isinstance(cur_id, str) and len(cur_id) == 64 and all(c in '0123456789abcdef' for c in cur_id)):
+            raise ValueError('Current exporter certificate_identity is not a valid 64-hex digest')
+        replayed_sha = hashlib.sha256(surf_text.replace(cur_id, item['certificate_identity'], 1).encode()).hexdigest()
+        if replayed_sha != item['sha256']['_surface.json']:
+            raise ValueError(f'{item["id"]}_surface.json: expected payload sha256 {item["sha256"]["_surface.json"]}, got {replayed_sha}')
         # Historical identity remains an immutable observation of its original producer.
         # All geometric coordinates, topology, tip and mode must still be identical.
-        old.pop('certificate_identity');new.pop('certificate_identity')
-        if old!=new:raise ValueError('Actual exported surface payload changed')
-        results.append({'id':item['id'],'sha256':item['sha256'],'geometry_matches_historical':True})
+        old.pop('certificate_identity')
+        new.pop('certificate_identity')
+        if old != new:
+            raise ValueError('Actual exported surface payload changed')
+        results.append({'id': item['id'], 'sha256': item['sha256'], 'geometry_matches_historical': True})
     (out/'regeneration-result.json').write_text(json.dumps({'exports':results},indent=2)+'\n')
     print('Export regeneration PASS:',len(results),'genomes, all STEP/STL/surface SHA256 entries match')
 if __name__=='__main__':

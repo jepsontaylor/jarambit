@@ -51,7 +51,7 @@ def _sha256(path: Path) -> str:
 
 def verify_step_and_stl(step_path: Path, stl_path: Path, export_stdout: str, ref_mass_g: float) -> dict:
     step_text = step_path.read_text(encoding='utf-8', errors='replace')
-    has_mm_decl = 'SI_UNIT(.MILLI.,.METRE.)' in step_text or 'MILLI' in step_text
+    has_mm_decl = 'LENGTH_UNIT' in step_text and 'SI_UNIT(.MILLI.,.METRE.)' in step_text
     has_iso = step_text.startswith('ISO-10303-21;')
     n_solids = step_text.count('MANIFOLD_SOLID_BREP(')
     n_closed_shells = step_text.count('CLOSED_SHELL(')
@@ -87,7 +87,7 @@ def verify_step_and_stl(step_path: Path, stl_path: Path, export_stdout: str, ref
         'mass_3d_g': mass_3d_g,
         'mass_raster_g': mass_raster_g,
         'rel_mass_diff': round(rel_mass_diff, 6),
-        'cad_valid': bool(has_iso and n_solids == 1 and n_closed_shells >= 1 and watertight and rel_mass_diff <= 0.01),
+        'cad_valid': bool(has_iso and has_mm_decl and n_solids == 1 and n_closed_shells >= 1 and watertight and rel_mass_diff <= 0.01),
     }
 
 
@@ -323,7 +323,7 @@ def evaluate_candidate(
     mt = d1_doc['metrics']
     d1_blk = d1_doc['d1']
 
-    # 2. Export 3D STEP + STL and verify geometry
+    # 2. Export 3D STEP + STL and verify geometry + deterministic regeneration
     step_path = out_dir / f'{label}.step'
     stl_path = out_dir / f'{label}.stl'
     exp_res = subprocess.run(
@@ -336,8 +336,24 @@ def evaluate_candidate(
     surface_path=out_dir/f'{label}_surface.json'
     brep=inspect_step(step_path,surface_path)
     (out_dir/f'{label}_step_check.json').write_text(json.dumps(brep,indent=2,sort_keys=True)+'\n')
+    regen_prefix = out_dir / f'_{label}_regen_check'
+    subprocess.run(
+        [str(export_step_bin), str(canon_genome), str(regen_prefix), label],
+        cwd=ROOT, check=True, capture_output=True, text=True,
+    )
+    surface_sha = _sha256(surface_path)
+    regen_ok = (
+        _sha256(Path(f'{regen_prefix}.step')) == cad_info['step_sha256']
+        and _sha256(Path(f'{regen_prefix}.stl')) == cad_info['stl_sha256']
+        and _sha256(Path(f'{regen_prefix}_surface.json')) == surface_sha
+    )
+    for sfx in ('.step', '.stl', '_surface.json'):
+        Path(f'{regen_prefix}{sfx}').unlink(missing_ok=True)
+    cad_info['surface_path'] = str(surface_path.relative_to(ROOT)) if surface_path.is_relative_to(ROOT) else str(surface_path)
+    cad_info['surface_sha256'] = surface_sha
+    cad_info['regeneration_deterministic'] = bool(regen_ok)
     cad_info['brep_check']=brep
-    cad_info['cad_valid']=cad_info['cad_valid'] and brep['valid'] and brep['solids']==1
+    cad_info['cad_valid']=cad_info['cad_valid'] and brep['valid'] and brep['solids']==1 and bool(regen_ok)
 
 
     # Bind the actual saved export surface to the solver input. The fine mesh is refined from
@@ -350,7 +366,7 @@ def evaluate_candidate(
         cad_info['cad_valid']=False
         cad_info['bore_validation_status']='unverified: STEP bore position/radii/full coverage must agree with actual mesh'
     surface.update(source_step_sha256=_sha256(step_path),source_stl_sha256=_sha256(stl_path),
-                   source_surface_sha256=_sha256(surface_path))
+                   source_surface_sha256=surface_sha)
     d1_doc['export_surface']=surface
     d1_path.write_text(json.dumps(d1_doc,sort_keys=True,separators=(',',':'))+'\n')
 

@@ -1,8 +1,8 @@
 //! Three-mesh plate GCI probe (max_area = [0.25, 1.0, 4.0] mm^2 -> h = [0.5, 1.0, 2.0] mm, r = 2.0).
 //! Usage: cargo run --release -p jarambit-crescent --example plate_gci_probe -- <genome.csv> <out_raw.json>
-use jarambit_crescent::{fem, genome::Genome, geom, pheno};
+use jarambit_crescent::{fem, genome::Genome, pheno};
 use jarambit_evidence::identity::ContentRef;
-use jarambit_physics::{fine, floors, material};
+use jarambit_physics::{floors, material};
 use std::{env, fs, process::ExitCode};
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -64,8 +64,6 @@ fn main() -> ExitCode {
     let p = pheno::build(&g);
     let m = material(p.mat);
     let jk2 = fem::joint_k(&m, p.t_joint, 2);
-    let outer = geom::dp_closed(&p.outline, 0.03);
-    let holes: Vec<Vec<(f64, f64)>> = p.holes.iter().map(|h| geom::dp_closed(h, 0.02)).collect();
 
     let levels_spec = [(0.25f64, 0.5f64), (1.0f64, 1.0f64), (4.0f64, 2.0f64)];
     let mut levels = Vec::new();
@@ -74,11 +72,7 @@ fn main() -> ExitCode {
             eprintln!("report_fields failed at {max_area}");
             return ExitCode::from(1);
         };
-        let Some(mesh) = fine::mesh_domain(&outer, &holes, max_area) else {
-            eprintln!("mesh_domain failed at {max_area}");
-            return ExitCode::from(1);
-        };
-        let m_sha = mesh_hash(&mesh.xy, &mesh.tris, &fl.te);
+        let m_sha = mesh_hash(&fl.xy, &fl.tris, &fl.te);
         let sf_hunter = (f.lat20 * jk2) / floors::HUNTER_LATERAL_N;
         levels.push(serde_json::json!({
             "h_mm": h_mm,

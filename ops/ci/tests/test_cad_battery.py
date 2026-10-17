@@ -478,6 +478,127 @@ class Records(unittest.TestCase):
             self.assertFalse(result['engineering_metrics']['promote_eligible'])
             self.assertEqual(result['engineering_metrics']['rs_v2_validation_status'],'unverified')
 
+    def test_evaluated_genome_spec_binds_step_stl_surface_and_fails_closed(self):
+        import hashlib
+        from pathlib import Path
+        import tempfile
+        from ops.ci.cad_battery import evaluated_genome_spec, build_subject
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            label = 'bound_test'
+            genome_path = work / f'{label}_genome.csv'
+            genome_path.write_text('cp00,cp01\n1.0,2.0\n', encoding='utf-8')
+            g_sha = hashlib.sha256(genome_path.read_bytes()).hexdigest()
+            cert_id = 'a' * 64
+            step_path = work / f'{label}.step'
+            stl_path = work / f'{label}.stl'
+            surf_path = work / f'{label}_surface.json'
+            step_text = (
+                'ISO-10303-21;\n'
+                'HEADER;\nENDSEC;\nDATA;\n'
+                '#1=(LENGTH_UNIT()NAMED_UNIT(*)SI_UNIT(.MILLI.,.METRE.));\n'
+                '#2=CLOSED_SHELL(\'\',(#3));\n'
+                '#4=MANIFOLD_SOLID_BREP(\'bound\',#2);\n'
+                'ENDSEC;\nEND-ISO-10303-21;\n'
+            )
+            step_path.write_text(step_text, encoding='utf-8')
+            stl_path.write_bytes(b'solid bound\nendsolid bound\n')
+            surf_doc = {'schema': 'jarambit.export_surface.v1', 'rs_v2': True, 'certificate_identity': cert_id}
+            surf_path.write_text(json.dumps(surf_doc) + '\n', encoding='utf-8')
+            step_sha = hashlib.sha256(step_path.read_bytes()).hexdigest()
+            stl_sha = hashlib.sha256(stl_path.read_bytes()).hexdigest()
+            surf_sha = hashlib.sha256(surf_path.read_bytes()).hexdigest()
+
+            (work / f'{label}_a1a3.json').write_text(json.dumps({'seq_ratio_this_mesh': 1.35}), encoding='utf-8')
+            (work / f'{label}_rs.json').write_text(json.dumps({
+                'certificate_identity': cert_id,
+                'mass_g': 75.0,
+                'seq_ratio': 1.35,
+                'fat_sf': 1.5,
+                'all_hard': False,
+                'gates': {'solid_tip_sf': 'fail'},
+            }), encoding='utf-8')
+            (work / f'{label}_D1.json').write_text(json.dumps({
+                'certificate_identity': cert_id,
+                'metrics': {'spg': 3.5, 'aes_score': 0.8},
+            }), encoding='utf-8')
+            (work / f'{label}_solid_tip.json').write_text(json.dumps({
+                'schema': 'jarambit.stored_solid_tip.v1',
+                'certificate_identity': cert_id,
+                'stored_solid': {'n_tet': 10, 'n_dof': 100, 'ksp_its': 5, 'SF_nodal_max': 0.8},
+            }), encoding='utf-8')
+            cad_eval = {
+                'certificate_identity': cert_id,
+                'genome_sha256': g_sha,
+                'cad': {
+                    'step_sha256': step_sha,
+                    'stl_sha256': stl_sha,
+                    'surface_sha256': surf_sha,
+                    'regeneration_deterministic': True,
+                    'units': 'mm',
+                    'units_source': 'step_declaration',
+                    'manifold_solids': 1,
+                    'closed_shells': 1,
+                    'watertight_exact': True,
+                    'boundary_edges': 0,
+                    'non_manifold_edges': 0,
+                    'mass_3d_g': 75.05,
+                    'rel_mass_diff': abs(75.05 - 75.0) / 75.0,
+                    'brep_check': {'valid': True, 'solids': 1, 'bore_geometry_matches_mesh': True},
+                },
+            }
+            eval_path = work / f'{label}_cad_eval.json'
+            eval_path.write_text(json.dumps(cad_eval), encoding='utf-8')
+
+            spec = evaluated_genome_spec(label, work)
+            for k in ('step', 'stl', 'surface', 'cad_eval'):
+                self.assertIn(k, spec)
+            probes = {'analytic': 'pass', 'gci': 'pass', 'claims': 'pass', 'dolfinx': 'pass'}
+            rec = build_subject(label, 'b' * 40, probes, custom_spec=spec)
+            by_id = {c['id']: c for c in rec['cases']}
+            for cid in ('geom.unit', 'geom.one_solid', 'geom.mass', 'geom.pin'):
+                self.assertEqual(by_id[cid]['status'], 'pass', cid)
+                self.assertEqual(by_id[cid]['evidence_path'], str(step_path))
+
+            # Adverse 1: remove SI_UNIT(.MILLI.,.METRE.) -> geom.unit must fail
+            bad_unit_step = step_text.replace('SI_UNIT(.MILLI.,.METRE.)', 'SI_UNIT(.CENTI.,.METRE.)')
+            step_path.write_text(bad_unit_step, encoding='utf-8')
+            cad_eval['cad']['step_sha256'] = hashlib.sha256(step_path.read_bytes()).hexdigest()
+            eval_path.write_text(json.dumps(cad_eval), encoding='utf-8')
+            rec_bad_unit = build_subject(label, 'b' * 40, probes, custom_spec=evaluated_genome_spec(label, work))
+            by_id = {c['id']: c for c in rec_bad_unit['cases']}
+            self.assertEqual(by_id['geom.unit']['status'], 'fail')
+
+            # Adverse 2: 2 MANIFOLD_SOLID_BREP entities -> geom.one_solid must fail
+            two_solid_step = step_text + '#5=MANIFOLD_SOLID_BREP(\'second\',#2);\n'
+            step_path.write_text(two_solid_step, encoding='utf-8')
+            cad_eval['cad']['step_sha256'] = hashlib.sha256(step_path.read_bytes()).hexdigest()
+            eval_path.write_text(json.dumps(cad_eval), encoding='utf-8')
+            rec_two_solid = build_subject(label, 'b' * 40, probes, custom_spec=evaluated_genome_spec(label, work))
+            by_id = {c['id']: c for c in rec_two_solid['cases']}
+            self.assertEqual(by_id['geom.one_solid']['status'], 'fail')
+
+            # Adverse 3: >1% 3D vs 2.5D mass discrepancy -> geom.mass must fail and withhold mass_g from G1
+            step_path.write_text(step_text, encoding='utf-8')
+            cad_eval['cad']['step_sha256'] = step_sha
+            cad_eval['cad']['mass_3d_g'] = 77.0
+            cad_eval['cad']['rel_mass_diff'] = abs(77.0 - 75.0) / 75.0
+            eval_path.write_text(json.dumps(cad_eval), encoding='utf-8')
+            rec_bad_mass = build_subject(label, 'b' * 40, probes, custom_spec=evaluated_genome_spec(label, work))
+            by_id = {c['id']: c for c in rec_bad_mass['cases']}
+            self.assertEqual(by_id['geom.mass']['status'], 'fail')
+            self.assertNotIn('mass_g', rec_bad_mass['global_fitness']['inputs'])
+
+            # Adverse 4: step_sha256 mismatch -> all 4 geom.* cases fail closed (blocked/incomplete)
+            cad_eval['cad']['step_sha256'] = 'f' * 64
+            eval_path.write_text(json.dumps(cad_eval), encoding='utf-8')
+            rec_tampered = build_subject(label, 'b' * 40, probes, custom_spec=evaluated_genome_spec(label, work))
+            by_id = {c['id']: c for c in rec_tampered['cases']}
+            self.assertEqual(by_id['geom.unit']['status'], 'blocked')
+            self.assertEqual(by_id['geom.one_solid']['status'], 'blocked')
+            self.assertEqual(by_id['geom.mass']['status'], 'incomplete')
+            self.assertEqual(by_id['geom.pin']['status'], 'blocked')
+
 
 if __name__ == '__main__':
     unittest.main()

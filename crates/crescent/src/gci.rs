@@ -2,9 +2,9 @@
 //! (`fem_solid/gci.py`, `METHOD = "relative_gci.v2"`), plus in-process 3-level
 //! (`0.25, 1.0, 4.0 mm^2`) plate GCI evaluation.
 
-use crate::{aesthetic, fem, genome::Genome, geom, pheno};
+use crate::{aesthetic, fem, genome::Genome, pheno};
 use jarambit_evidence::identity::{is_hash, unique_ids, ContentRef};
-use jarambit_physics::{fine, floors, material};
+use jarambit_physics::{floors, material};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -354,8 +354,6 @@ pub fn run_plate_gci_3level(
     let p = pheno::build(g);
     let m = material(p.mat);
     let jk2 = fem::joint_k(m, p.t_joint, 2);
-    let outer = geom::dp_closed(&p.outline, 0.03);
-    let holes: Vec<Vec<(f64, f64)>> = p.holes.iter().map(|h| geom::dp_closed(h, 0.02)).collect();
 
     let levels_spec = [(0.25f64, 0.5f64), (1.0f64, 1.0f64), (4.0f64, 2.0f64)];
     let mut levels_raw = Vec::with_capacity(3);
@@ -381,8 +379,7 @@ pub fn run_plate_gci_3level(
 
     for (idx, (max_area, h_mm)) in levels_spec.into_iter().enumerate() {
         let (f, fl) = fem::report_fields(&p, max_area)?;
-        let mesh = fine::mesh_domain(&outer, &holes, max_area)?;
-        let m_sha = mesh_hash(&mesh.xy, &mesh.tris, &fl.te);
+        let m_sha = mesh_hash(&fl.xy, &fl.tris, &fl.te);
         let sf_hunter = (f.lat20 * jk2) / floors::HUNTER_LATERAL_N;
         seq_vals[idx] = f.seq_ratio;
         sf_vals[idx] = sf_hunter;
