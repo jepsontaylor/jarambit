@@ -1,5 +1,6 @@
 {
-  "genome": "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv",
+  "certificate_identity": "618aed84db5bb7e76d89c86e9820557e0b74d86191a1180f814097c7d6024627",
+  "genome": "evidence/cert_integrity/recertified/w283_p14_c01/w283_p14_c01_genome.csv",
   "genome_sha256": "aa54fe9148fe303b2054bc5449f063f507d6feffa07556d144013aa9ded5b009",
   "karambit": {
     "aes_pass": true,
@@ -23,33 +24,33 @@
   "levels_fine_to_coarse": [
     {
       "h_mm": 0.5,
-      "lat20_n": 297.27968515504784,
+      "lat20_n": 221.03803612460203,
       "max_area_mm2": 0.25,
-      "mesh_sha256": "4586e7c971367c97d585b251392bae4cb2b0e46e1e06b6f1ab371002ed0793eb",
+      "mesh_sha256": "1cc21b6723729cf01ae312bb4914210856937bd26943a060d2c61452c86513ef",
       "n_elem": 25220,
       "n_node": 13509,
-      "seq_ratio": 1.213042105996251,
-      "sf_hunter": 1.0077172354382715
+      "seq_ratio": 0.743647399006731,
+      "sf_hunter": 0.7492736631970512
     },
     {
       "h_mm": 1.0,
-      "lat20_n": 307.32194641340385,
+      "lat20_n": 205.76838379373586,
       "max_area_mm2": 1.0,
-      "mesh_sha256": "02654334b4d5c2b12ea76beab07ba71965f3fb5ed9c9522e0aa8c42b3c5006f5",
+      "mesh_sha256": "1e1e8443f15deff9386e3db6a4714950eb5a93250a7601ed9e1d1db0d199fef9",
       "n_elem": 6813,
       "n_node": 3879,
-      "seq_ratio": 1.166607842310742,
-      "sf_hunter": 1.0417584439639782
+      "seq_ratio": 0.6695531927088585,
+      "sf_hunter": 0.6975126697576961
     },
     {
       "h_mm": 2.0,
-      "lat20_n": 297.0670913095263,
+      "lat20_n": 258.87707489120345,
       "max_area_mm2": 4.0,
-      "mesh_sha256": "5392e597ed008ec84b6253e1264249a2af034e630467c3a4f78acbee9bec1f29",
+      "mesh_sha256": "720ad436bf18342982930df59f45aba9b6fa804305ec5a3c91f79e5fe0bdd28f",
       "n_elem": 3160,
       "n_node": 1975,
-      "seq_ratio": 1.2833951550320282,
-      "sf_hunter": 1.006996585851441
+      "seq_ratio": 0.871443111694735,
+      "sf_hunter": 0.8775402533531654
     }
   ],
   "primary_observable": "seq_ratio",
@@ -67,7 +68,7 @@
         "mesh": {
           "id": "w283_p14_c01_area_0.25",
           "revision": "rev1",
-          "sha256": "4586e7c971367c97d585b251392bae4cb2b0e46e1e06b6f1ab371002ed0793eb"
+          "sha256": "1cc21b6723729cf01ae312bb4914210856937bd26943a060d2c61452c86513ef"
         },
         "observable": {
           "id": "plate_seq_ratio",
@@ -81,9 +82,9 @@
       {
         "h": 1.0,
         "mesh": {
-          "id": "w283_p14_c01_area_1",
+          "id": "w283_p14_c01_area_1.0",
           "revision": "rev1",
-          "sha256": "02654334b4d5c2b12ea76beab07ba71965f3fb5ed9c9522e0aa8c42b3c5006f5"
+          "sha256": "1e1e8443f15deff9386e3db6a4714950eb5a93250a7601ed9e1d1db0d199fef9"
         },
         "observable": {
           "id": "plate_seq_ratio",
@@ -97,9 +98,9 @@
       {
         "h": 2.0,
         "mesh": {
-          "id": "w283_p14_c01_area_4",
+          "id": "w283_p14_c01_area_4.0",
           "revision": "rev1",
-          "sha256": "5392e597ed008ec84b6253e1264249a2af034e630467c3a4f78acbee9bec1f29"
+          "sha256": "720ad436bf18342982930df59f45aba9b6fa804305ec5a3c91f79e5fe0bdd28f"
         },
         "observable": {
           "id": "plate_seq_ratio",
@@ -131,7 +132,7 @@
         "mesh": {
           "id": "w283_p14_c01_area_0.25",
           "revision": "rev1",
-          "sha256": "4586e7c971367c97d585b251392bae4cb2b0e46e1e06b6f1ab371002ed0793eb"
+          "sha256": "1cc21b6723729cf01ae312bb4914210856937bd26943a060d2c61452c86513ef"
         },
         "observable": {
           "id": "plate_sf_hunter",
@@ -145,9 +146,9 @@
       {
         "h": 1.0,
         "mesh": {
-          "id": "w283_p14_c01_area_1",
+          "id": "w283_p14_c01_area_1.0",
           "revision": "rev1",
-          "sha256": "02654334b4d5c2b12ea76beab07ba71965f3fb5ed9c9522e0aa8c42b3c5006f5"
+          "sha256": "1e1e8443f15deff9386e3db6a4714950eb5a93250a7601ed9e1d1db0d199fef9"
         },
         "observable": {
           "id": "plate_sf_hunter",
@@ -161,9 +162,9 @@
       {
         "h": 2.0,
         "mesh": {
-          "id": "w283_p14_c01_area_4",
+          "id": "w283_p14_c01_area_4.0",
           "revision": "rev1",
-          "sha256": "5392e597ed008ec84b6253e1264249a2af034e630467c3a4f78acbee9bec1f29"
+          "sha256": "720ad436bf18342982930df59f45aba9b6fa804305ec5a3c91f79e5fe0bdd28f"
         },
         "observable": {
           "id": "plate_sf_hunter",

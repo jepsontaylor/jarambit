@@ -1,51 +1,165 @@
 {
   "aes_pass": true,
-  "all_hard": true,
-  "fat_sf": 1.2652654895648883,
-  "floors_ok": true,
+  "all_hard": false,
+  "certificate_identity": "618aed84db5bb7e76d89c86e9820557e0b74d86191a1180f814097c7d6024627",
+  "export_measurements": {
+    "bore_edge_radius_mm": 0.0,
+    "point": {
+      "monotonic": false,
+      "pass": false,
+      "samples": [
+        [
+          0.0,
+          0.21421357989311218
+        ],
+        [
+          0.25,
+          0.2790761110835701
+        ],
+        [
+          1.0,
+          0.4736637046549481
+        ],
+        [
+          1.5455486714687237,
+          0.615206375531163
+        ],
+        [
+          1.561566799346511,
+          0.6215139286381748
+        ],
+        [
+          1.5767044661934306,
+          0.6291400765200514
+        ],
+        [
+          2.0,
+          0.9172027033808883
+        ],
+        [
+          2.6365641243907274,
+          1.3503996525392405
+        ],
+        [
+          3.5770411481281394,
+          2.565842386414235
+        ],
+        [
+          3.8351781809922283,
+          2.7484308948477008
+        ],
+        [
+          4.406373794820805,
+          2.8513555712734435
+        ],
+        [
+          5.0,
+          3.385248468239981
+        ],
+        [
+          5.164754507295922,
+          3.533424644461797
+        ],
+        [
+          5.179454270047188,
+          3.5394415132142507
+        ],
+        [
+          5.1928372838842565,
+          3.543654030020013
+        ],
+        [
+          6.2499777783101145,
+          3.48678929206105
+        ],
+        [
+          6.5716229083114,
+          3.5224026056728426
+        ],
+        [
+          7.352406474599482,
+          3.500578753669987
+        ],
+        [
+          8.01790296598152,
+          3.5048057004375295
+        ],
+        [
+          8.73199418637586,
+          3.3294853994125546
+        ],
+        [
+          10.0,
+          2.9325525949780706
+        ]
+      ],
+      "t_0p25_mm": 0.2790761110835701,
+      "t_1p00_mm": 0.4736637046549481,
+      "t_2p00_mm": 0.9172027033808883,
+      "taper_lower_bound_mm": 10.0,
+      "taper_mm": null
+    },
+    "sharpness": {
+      "complete": false,
+      "max_apex_mm": 1.108774185180664,
+      "max_half_angle_deg": 51.41223195238239,
+      "pass": false,
+      "samples": 167
+    },
+    "source": "export::solid(max_area=1.0); triangle intersections"
+  },
+  "fat_sf": 0.5441708722663069,
+  "floors_ok": false,
+  "gate_s_point_profile": {
+    "monotonic": false,
+    "pass": false,
+    "t_0p25_mm": 0.2790761110835701,
+    "t_1p00_mm": 0.4736637046549481,
+    "t_2p00_mm": 0.9172027033808883,
+    "taper_mm": 10.0
+  },
   "gates": {
     "aesthetic_and_geometric": "pass",
-    "fatigue": "pass",
-    "floors_828_joint": "pass",
-    "gate_s_sharp_law": "pass",
-    "gate_s_tip_point_brep": "pass",
-    "human_max": "pass",
-    "seq_hard": "pass",
-    "solid_tip_sf": "pass",
-    "strict_hunter_lateral": "pass",
+    "fatigue": "fail",
+    "floors_828_joint": "fail",
+    "gate_s_sharp_law": "fail",
+    "gate_s_tip_point_brep": "fail",
+    "human_max": "fail",
+    "seq_hard": "fail",
+    "solid_tip_sf": "fail",
+    "strict_hunter_lateral": "fail",
     "twist_floor_body_and_tipsub_strict": "pass"
   },
-  "genome": "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv",
-  "genome_sha256": "aa54fe9148fe303b2054bc5449f063f507d6feffa07556d144013aa9ded5b009",
+  "genome": "evidence/cert_integrity/recertified/w283_p14_c01/w283_p14_c01_genome.csv",
   "groups": {
-    "fatigue": true,
-    "human_max": true,
-    "screen_plate": true,
-    "seq_hard": true
+    "fatigue": false,
+    "human_max": false,
+    "screen_plate": false,
+    "seq_hard": false
   },
-  "hm_ringback_sf": 2.1457679737004183,
-  "hm_spine_sf": 1.2895973616942817,
+  "hm_ringback_sf": 2.859525228086611,
+  "hm_spine_sf": 0.43134815352586536,
   "hm_tip_inplane_record_only": true,
-  "hm_tip_inplane_sf": 0.5554996827649068,
-  "hm_twist_sf": 1.0011326769507547,
+  "hm_tip_inplane_sf": 0.5553764837608903,
+  "hm_twist_sf": 0.110986187014051,
   "label": "w283_p14_c01",
-  "lat_rob_n": 262.0064812139506,
+  "lat_rob_n": 194.81115243123332,
   "mass_g": 75.38207297021373,
   "rejects": [],
   "requirement_set": "RS-karambit-v2",
   "ring_band_mm": 5.200796830296465,
   "ring_bearing_w_mm": 10.199999809265137,
-  "ring_rob_n": 14387.90677148269,
-  "screen": "pass",
-  "seq_ratio": 1.2011877738066359,
+  "ring_rob_n": 15491.915610772525,
+  "screen": "fail",
+  "seq_ratio": 0.743647399006731,
   "solid_tip_note": "bound by evidence/fem_solid/gci/bindings.json: identical genome + design label required (finest mesh SF_nodal_max); absent or mismatched = unverified",
-  "solid_tip_sf": 1.509,
-  "solid_tip_source": "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_solid_tip.json",
-  "strict_lat_rob_0p0625_n": 262.583,
+  "solid_tip_sf": 0.9577,
+  "solid_tip_source": "evidence/cert_integrity/recertified/w283_p14_c01/w283_p14_c01_solid_tip.json",
+  "strict_lat_rob_0p0625_n": 176.7204400004798,
   "t_mm": 5.9,
   "tier": "T2 certification (fem::certify) + strict 0.0625 mm^2 + solid tip evidence",
-  "twist_body_sf": 2.9815284620318643,
-  "twist_tipzone_sf": 1.1405208378606,
-  "twist_tipzone_sf_strict": 1.1246,
+  "twist_body_sf": 2.981994149269331,
+  "twist_tipzone_sf": 0.9878990272679266,
+  "twist_tipzone_sf_strict": 1.001789118842462,
   "unverified": []
 }

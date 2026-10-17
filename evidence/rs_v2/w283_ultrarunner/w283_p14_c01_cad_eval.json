@@ -6,58 +6,165 @@
     "facets": 15528,
     "manifold_solids": 1,
     "mass_3d_g": 75.1992,
-    "mass_raster_g": 75.3821,
+    "mass_raster_g": 75.382,
     "max_directed_edge_repeat": 1,
     "non_manifold_edges": 0,
-    "rel_mass_diff": 0.002426,
-    "step_path": "evidence/rs_v2/w283_ultrarunner/w283_p14_c01.step",
-    "step_sha256": "ca75334a8dba4b98d0a2561e1f2ae197f66735f62b138e89787c90e7f081fd29",
-    "stl_path": "evidence/rs_v2/w283_ultrarunner/w283_p14_c01.stl",
-    "stl_sha256": "0d3ff71294875fe97a3ce70da59b7311bdbe9c894ee7d227f88fd1d124957db7",
+    "rel_mass_diff": 0.002425,
+    "step_path": "evidence/cert_integrity/recertified/w283_p14_c01/w283_p14_c01.step",
+    "step_sha256": "56709b6750cf33511f865a104dd5b74b7a0a145caba5228c1b3340f16cd6ae6f",
+    "stl_path": "evidence/cert_integrity/recertified/w283_p14_c01/w283_p14_c01.stl",
+    "stl_sha256": "ab25eb8b8d9c399e7e5f7f335b3afd05f5555f8524fe39ee2fa8ed38d93edee6",
     "units": "mm",
     "units_source": "project_convention",
     "watertight_exact": true
   },
+  "certificate_identity": "618aed84db5bb7e76d89c86e9820557e0b74d86191a1180f814097c7d6024627",
   "engineering_metrics": {
     "aes_pass": true,
     "aes_score": 0.4079,
-    "buckling_eigenvalue_a4": 8.561828897695046,
-    "fat_sf_l7": 1.2652654895648883,
-    "lat_rob_cert_n": 262.0064812139506,
+    "buckling_eigenvalue_a4": 4.6078555826601635,
+    "fat_sf_l7": 0.5441708722663069,
+    "lat_rob_cert_n": 194.8,
     "mass_3d_g": 75.1992,
-    "mass_g": 75.38207297021373,
+    "mass_g": 75.382,
     "plate_gci_fine": null,
-    "promote_eligible": true,
+    "promote_eligible": false,
     "ring_bearing_w_mm": 10.199999809265137,
-    "ring_rob_cert_n": 14387.90677148269,
-    "rs_v2_screen_plate_pass": true,
-    "seq_ratio_cert": 1.2011877738066359,
-    "seq_ratio_supported_a4": 4.768302747335477,
-    "sf_hunter_cert": 1.0077,
-    "sf_hunter_strict": 1.0099,
-    "sf_ring_cert": 9.5919,
-    "solid_tip_dolfinx_rel_err": 0.0,
-    "solid_tip_sf_nodal_avg": 1.576,
-    "solid_tip_sf_nodal_max": 1.509,
-    "spg_n_per_g": 3.47571,
-    "strict_lat_rob_0p0625_n": 262.583,
+    "ring_rob_cert_n": 15491.9,
+    "rs_v2_all_hard": false,
+    "rs_v2_screen_plate_pass": false,
+    "seq_ratio_cert": 0.744,
+    "seq_ratio_supported_a4": 4.550625489280957,
+    "sf_hunter_cert": 0.749,
+    "sf_hunter_strict": 0.6796,
+    "sf_ring_cert": 10.328,
+    "solid_tip_dolfinx_rel_err": 0.000313,
+    "solid_tip_sf_nodal_avg": 1.0156,
+    "solid_tip_sf_nodal_max": 0.9577,
+    "spg_n_per_g": 2.58432,
+    "strict_lat_rob_0p0625_n": 176.7,
     "t_stock_mm": 5.9,
-    "twist_body_sf": 2.9815284620318643,
-    "twist_tip_sf": 1.1405208378606,
-    "twist_tipzone_sf_cert": 1.1405208378606,
-    "twist_tipzone_sf_strict": 1.1246
+    "twist_body_sf": 2.982,
+    "twist_tip_sf": 0.988,
+    "twist_tipzone_sf_cert": 0.988,
+    "twist_tipzone_sf_strict": 1.002
   },
-  "evaluation_mode": "genome_and_3d_cad_full_battery",
-  "genome_csv": "evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv",
+  "export_measurements": {
+    "bore_edge_radius_mm": 0.0,
+    "point": {
+      "monotonic": false,
+      "pass": false,
+      "samples": [
+        [
+          0.0,
+          0.21421357989311218
+        ],
+        [
+          0.25,
+          0.2790761110835701
+        ],
+        [
+          1.0,
+          0.4736637046549481
+        ],
+        [
+          1.5455486714687237,
+          0.615206375531163
+        ],
+        [
+          1.561566799346511,
+          0.6215139286381748
+        ],
+        [
+          1.5767044661934306,
+          0.6291400765200514
+        ],
+        [
+          2.0,
+          0.9172027033808883
+        ],
+        [
+          2.6365641243907274,
+          1.3503996525392405
+        ],
+        [
+          3.5770411481281394,
+          2.565842386414235
+        ],
+        [
+          3.8351781809922283,
+          2.7484308948477008
+        ],
+        [
+          4.406373794820805,
+          2.8513555712734435
+        ],
+        [
+          5.0,
+          3.385248468239981
+        ],
+        [
+          5.164754507295922,
+          3.533424644461797
+        ],
+        [
+          5.179454270047188,
+          3.5394415132142507
+        ],
+        [
+          5.1928372838842565,
+          3.543654030020013
+        ],
+        [
+          6.2499777783101145,
+          3.48678929206105
+        ],
+        [
+          6.5716229083114,
+          3.5224026056728426
+        ],
+        [
+          7.352406474599482,
+          3.500578753669987
+        ],
+        [
+          8.01790296598152,
+          3.5048057004375295
+        ],
+        [
+          8.73199418637586,
+          3.3294853994125546
+        ],
+        [
+          10.0,
+          2.9325525949780706
+        ]
+      ],
+      "t_0p25_mm": 0.2790761110835701,
+      "t_1p00_mm": 0.4736637046549481,
+      "t_2p00_mm": 0.9172027033808883,
+      "taper_lower_bound_mm": 10.0,
+      "taper_mm": null
+    },
+    "sharpness": {
+      "complete": false,
+      "max_apex_mm": 1.108774185180664,
+      "max_half_angle_deg": 51.41223195238239,
+      "pass": false,
+      "samples": 167
+    },
+    "source": "export::solid(max_area=1.0); triangle intersections"
+  },
+  "genome_csv": "evidence/cert_integrity/recertified/w283_p14_c01/w283_p14_c01_genome.csv",
   "genome_sha256": "aa54fe9148fe303b2054bc5449f063f507d6feffa07556d144013aa9ded5b009",
   "global_fitness_G1": {
-    "G": 0.9138546249999999,
+    "G": 0.6239029999999999,
     "inputs": {
       "aes_score": 0.4079,
-      "mass_g": 75.38207297021373,
-      "seq_ratio": 1.2011877738066359,
-      "solid_tip_sf_nodal_max": 1.509,
-      "spg": 3.47571
+      "mass_g": 75.382,
+      "seq_ratio": 0.744,
+      "solid_tip_sf_nodal_max": 0.9577,
+      "spg": 2.58432
     },
     "metric": "G1",
     "provisional": false,
@@ -68,14 +175,14 @@
       "metric_version": "G1",
       "missing": [],
       "provisional": false,
-      "seq_gap": 0.0,
-      "spg_n": 0.8689275,
+      "seq_gap": 0.38,
+      "spg_n": 0.64608,
       "status": "COMPLETE",
-      "tip": 1.509,
+      "tip": 0.9577,
       "tip_missing": false,
       "tip_source": "solid_tip_sf_nodal_max"
     },
-    "title": "G 0.914 | 75.4 g | jarambit v1.0.0"
+    "title": "G 0.624 | 75.4 g | jarambit v1.0.0"
   },
   "karambit_archetype": {
     "blade_min_in": 3.436,
@@ -89,59 +196,71 @@
     "teeth_in": 15,
     "teeth_sp": 14
   },
+  "rs_v2_gates": {
+    "aesthetic_and_geometric": "pass",
+    "fatigue": "fail",
+    "floors_828_joint": "fail",
+    "gate_s_sharp_law": "fail",
+    "gate_s_tip_point_brep": "fail",
+    "human_max": "fail",
+    "seq_hard": "fail",
+    "solid_tip_sf": "fail",
+    "strict_hunter_lateral": "fail",
+    "twist_floor_body_and_tipsub_strict": "pass"
+  },
   "schema": "jarambit.cad_candidate_evaluation.v1",
   "subject": "w283_p14_c01",
   "weighted_cad_score": {
-    "W_CAD": 1.795575,
-    "all_engineering_gates_pass": true,
+    "W_CAD": -3.878704,
+    "all_engineering_gates_pass": false,
     "components": {
-      "base_feasible": 1.0,
-      "carry_stability_3pct": 0.026815,
+      "base_feasible": -1.0,
+      "carry_stability_3pct": 0.018,
       "karambit_authenticity_12pct": 0.048103,
-      "mass_term_70pct": 0.644242,
-      "seq_buffer_5pct": 0.001941,
-      "shortfall_penalty": 0.0,
-      "survival_buffer_10pct": 0.074474
+      "mass_term_70pct": 0.644245,
+      "seq_buffer_5pct": 0.0,
+      "shortfall_penalty": 2.970738,
+      "survival_buffer_10pct": 0.001612
     },
     "gates": {
       "c6_aesthetic_floor": true,
       "cad_watertight_and_single_solid": true,
       "cert_hiker_180n": true,
-      "cert_hunter_260n": true,
+      "cert_hunter_260n": false,
       "cert_ring_pull_1500n": true,
       "dolfinx_cross_check_2pct": true,
-      "failure_sequence_1p2": true,
+      "failure_sequence_1p2": false,
       "geometric_and_holder_gates": true,
       "karambit_ring_and_curved_claw": true,
       "plate_gci_valid_3level": true,
       "side_a4_buckling_and_support": true,
-      "solid_tip_3d_p2_1p82nm": true,
-      "strict_hunter_260n": true,
+      "solid_tip_3d_p2_1p82nm": false,
+      "strict_hunter_260n": false,
       "twist_body_1p82nm": true,
-      "twist_tip_only_1p82nm": true,
+      "twist_tip_only_1p82nm": false,
       "twist_tip_submodel_strict_1p82nm": true
     },
     "metric": "W_CAD_v2_ultrarunner_karambit",
     "normalized_subscores": {
-      "s_carry_knee": 0.89382,
+      "s_carry_knee": 0.6,
       "s_karambit": 0.400862,
-      "s_mass": 0.920345,
-      "s_seq_knee": 0.038819,
-      "s_survival_knee": 0.744739
+      "s_mass": 0.920349,
+      "s_seq_knee": 0.0,
+      "s_survival_knee": 0.016123
     },
     "shortfalls": {
       "aesthetic": 0.0,
       "cad": 0.0,
       "geometry_gates": 0.0,
-      "hunter_strict": 0.0,
+      "hunter_strict": 0.32038461538461543,
       "karambit_archetype": 0.0,
       "ring_pull": 0.0,
-      "seq_ratio": 0.0,
-      "solid_tip_3d": 0.0,
+      "seq_ratio": 0.38,
+      "solid_tip_3d": 0.042300000000000004,
       "twist_body": 0.0,
       "twist_tip_strict": 0.0
     },
-    "unpenalized_quality_score": 1.795575,
+    "unpenalized_quality_score": 1.71196,
     "weights": {
       "w_carry_stability": 0.03,
       "w_karambit": 0.12,

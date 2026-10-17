@@ -1,5 +1,6 @@
 {
-  "genome": "evidence/rs_v2/w283_ultrarunner/w283_p10_c02_genome.csv",
+  "certificate_identity": "e1a202592363b8252051856817e71632387908bb9fb39126514a3ecae8d5f31e",
+  "genome": "evidence/cert_integrity/recertified/w283_p10_c02/w283_p10_c02_genome.csv",
   "genome_sha256": "61594e106aedc7ecd9438e8867d8e743b1a7620f578b39951bf9851077b4fdac",
   "karambit": {
     "aes_pass": true,
@@ -23,51 +24,51 @@
   "levels_fine_to_coarse": [
     {
       "h_mm": 0.5,
-      "lat20_n": 307.3553486681126,
+      "lat20_n": 220.60195793614102,
       "max_area_mm2": 0.25,
-      "mesh_sha256": "cdcda01e1abacdf0cdfc1195afe84082a292446e16dc23c93bc608def0808dc5",
+      "mesh_sha256": "551fe6443da55d1959cdc3dc7fbb087fd5b06f61ea33fd77bcaca380080f363b",
       "n_elem": 25266,
       "n_node": 13534,
-      "seq_ratio": 1.2215835201415484,
-      "sf_hunter": 1.0418716707650457
+      "seq_ratio": 0.7179476490627898,
+      "sf_hunter": 0.7477954474680429
     },
     {
       "h_mm": 1.0,
-      "lat20_n": 310.39641621016466,
+      "lat20_n": 228.77753555141794,
       "max_area_mm2": 1.0,
-      "mesh_sha256": "7b660b973b28a9eb52abea071c2aaf1a1184ca03d088f8a3b10d59935e8d594a",
+      "mesh_sha256": "702248b63d38dedcabc29c58b2052e96a983e145be3909963a9f788362ada939",
       "n_elem": 6837,
       "n_node": 3892,
-      "seq_ratio": 1.1994668194523703,
-      "sf_hunter": 1.0521802667750941
+      "seq_ratio": 0.7370495581650095,
+      "sf_hunter": 0.7755089808306773
     },
     {
       "h_mm": 2.0,
-      "lat20_n": 302.99250034497726,
+      "lat20_n": 258.9845068851389,
       "max_area_mm2": 4.0,
-      "mesh_sha256": "06877a3952d18c5af8d7cb1af289b64ec19670de1143441b2577a44080543556",
+      "mesh_sha256": "c63d26f2de53837489b4085d82c00c3045352b6c078cc6cf9a5424adfb978d78",
       "n_elem": 3143,
       "n_node": 1966,
-      "seq_ratio": 1.2309668734524408,
-      "sf_hunter": 1.0270825086716675
+      "seq_ratio": 0.8547554895128923,
+      "sf_hunter": 0.8779044258053456
     }
   ],
   "primary_observable": "seq_ratio",
   "refinement_ratio_r": 2.0,
   "schema": "jarambit.plate_gci.v1",
   "seq_ratio_gci": {
-    "admitted": false,
+    "admitted": true,
     "asymptotic_validation": "not_established",
-    "f_ext": null,
-    "fit_status": "oscillatory",
-    "gci_fine": null,
+    "f_ext": 0.7142471617698842,
+    "fit_status": "admissible_estimate",
+    "gci_fine": 0.006442822289578268,
     "levels": [
       {
         "h": 0.5,
         "mesh": {
           "id": "w283_p10_c02_area_0.25",
           "revision": "rev1",
-          "sha256": "cdcda01e1abacdf0cdfc1195afe84082a292446e16dc23c93bc608def0808dc5"
+          "sha256": "551fe6443da55d1959cdc3dc7fbb087fd5b06f61ea33fd77bcaca380080f363b"
         },
         "observable": {
           "id": "plate_seq_ratio",
@@ -81,9 +82,9 @@
       {
         "h": 1.0,
         "mesh": {
-          "id": "w283_p10_c02_area_1",
+          "id": "w283_p10_c02_area_1.0",
           "revision": "rev1",
-          "sha256": "7b660b973b28a9eb52abea071c2aaf1a1184ca03d088f8a3b10d59935e8d594a"
+          "sha256": "702248b63d38dedcabc29c58b2052e96a983e145be3909963a9f788362ada939"
         },
         "observable": {
           "id": "plate_seq_ratio",
@@ -97,9 +98,9 @@
       {
         "h": 2.0,
         "mesh": {
-          "id": "w283_p10_c02_area_4",
+          "id": "w283_p10_c02_area_4.0",
           "revision": "rev1",
-          "sha256": "06877a3952d18c5af8d7cb1af289b64ec19670de1143441b2577a44080543556"
+          "sha256": "c63d26f2de53837489b4085d82c00c3045352b6c078cc6cf9a5424adfb978d78"
         },
         "observable": {
           "id": "plate_seq_ratio",
@@ -112,26 +113,26 @@
       }
     ],
     "method_id": "relative_gci.v2",
-    "monotone": false,
+    "monotone": true,
     "observable_valid": true,
-    "p": null,
-    "reason": "oscillatory_sequence",
-    "relative_error_available": false,
+    "p": 2.6233982835419463,
+    "reason": "checked_relative_estimate",
+    "relative_error_available": true,
     "sequence_valid": true
   },
   "sf_hunter_gci": {
-    "admitted": false,
+    "admitted": true,
     "asymptotic_validation": "not_established",
-    "f_ext": null,
-    "fit_status": "oscillatory",
-    "gci_fine": null,
+    "f_ext": 0.7375112981357154,
+    "fit_status": "admissible_estimate",
+    "gci_fine": 0.017190779522576458,
     "levels": [
       {
         "h": 0.5,
         "mesh": {
           "id": "w283_p10_c02_area_0.25",
           "revision": "rev1",
-          "sha256": "cdcda01e1abacdf0cdfc1195afe84082a292446e16dc23c93bc608def0808dc5"
+          "sha256": "551fe6443da55d1959cdc3dc7fbb087fd5b06f61ea33fd77bcaca380080f363b"
         },
         "observable": {
           "id": "plate_sf_hunter",
@@ -145,9 +146,9 @@
       {
         "h": 1.0,
         "mesh": {
-          "id": "w283_p10_c02_area_1",
+          "id": "w283_p10_c02_area_1.0",
           "revision": "rev1",
-          "sha256": "7b660b973b28a9eb52abea071c2aaf1a1184ca03d088f8a3b10d59935e8d594a"
+          "sha256": "702248b63d38dedcabc29c58b2052e96a983e145be3909963a9f788362ada939"
         },
         "observable": {
           "id": "plate_sf_hunter",
@@ -161,9 +162,9 @@
       {
         "h": 2.0,
         "mesh": {
-          "id": "w283_p10_c02_area_4",
+          "id": "w283_p10_c02_area_4.0",
           "revision": "rev1",
-          "sha256": "06877a3952d18c5af8d7cb1af289b64ec19670de1143441b2577a44080543556"
+          "sha256": "c63d26f2de53837489b4085d82c00c3045352b6c078cc6cf9a5424adfb978d78"
         },
         "observable": {
           "id": "plate_sf_hunter",
@@ -176,11 +177,11 @@
       }
     ],
     "method_id": "relative_gci.v2",
-    "monotone": false,
+    "monotone": true,
     "observable_valid": true,
-    "p": null,
-    "reason": "oscillatory_sequence",
-    "relative_error_available": false,
+    "p": 1.8854889735835478,
+    "reason": "checked_relative_estimate",
+    "relative_error_available": true,
     "sequence_valid": true
   },
   "subject": "w283_p10_c02"

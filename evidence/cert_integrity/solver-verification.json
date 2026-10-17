@@ -1,0 +1,40 @@
+{
+  "w283_p10_c02": {
+    "independent_comparison": {
+      "SF_nodal_avg": 1.0158,
+      "SF_nodal_max": 0.9578,
+      "container": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+      "independent_solver": "dolfinx_v0.9.0",
+      "ksp_its": 130,
+      "mesh_sha256": "3e04e5bc74bd0d905be49dc5b53a86c0755f9ab8cafef15de4b1273e1d8c44a2",
+      "primary_solver": "skfem_p2",
+      "rel_err_nodal_avg": 0.000197,
+      "rel_err_nodal_max": 0.000209,
+      "status": "verified",
+      "within_2pct": true
+    },
+    "input_d1_sha256": "f41e6ca2d635ad008a5a3b0c680e50d01faae81743ee3b30660c3727100473a2",
+    "primary_iterations": 105,
+    "primary_relative_residual": 6.7e-11,
+    "primary_solve_seconds": 644
+  },
+  "w283_p14_c01": {
+    "independent_comparison": {
+      "SF_nodal_avg": 1.0156,
+      "SF_nodal_max": 0.9577,
+      "container": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+      "independent_solver": "dolfinx_v0.9.0",
+      "ksp_its": 130,
+      "mesh_sha256": "1e233d11cd0404cca2aa59e074bd7712fbb049edde11d77364e61a233afde253",
+      "primary_solver": "skfem_p2",
+      "rel_err_nodal_avg": 0.000394,
+      "rel_err_nodal_max": 0.000313,
+      "status": "verified",
+      "within_2pct": true
+    },
+    "input_d1_sha256": "efbfcb1ddd68f93349f5fe5ae8270599c0adda88efd13618042b39e09afc836b",
+    "primary_iterations": 105,
+    "primary_relative_residual": 6.7e-11,
+    "primary_solve_seconds": 647
+  }
+}
