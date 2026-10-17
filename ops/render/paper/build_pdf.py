@@ -32,15 +32,21 @@ def capture(path, inputs):
     return raw
 
 
+def stage(path, raw, renderer_inputs):
+    renderer_inputs[str(path.relative_to(ROOT))]=hashlib.sha256(raw).hexdigest()
+    path.write_bytes(raw)
+
+
 def build(name):
     out=ROOT/'target/paper';out.mkdir(parents=True,exist_ok=True)
     head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
-    inputs={}
+    inputs={};renderer_inputs={}
     source=ROOT/'docs'/f'{name}.md';text=capture(source,inputs).decode('utf-8')
     epoch=int(subprocess.check_output(['git','show','-s','--format=%ct',head],cwd=ROOT,text=True))
     version_path=ROOT/'docs/VERSION';version=capture(version_path,inputs).decode('utf-8').strip()
     if not re.fullmatch(r'[0-9A-Za-z.-]+',version):raise ValueError('invalid version')
-    version_header=out/'version.tex';version_header.write_text('\\newcommand{\\PaperVersion}{'+version+'}\n')
+    version_header=out/'version.tex'
+    stage(version_header,('\\newcommand{\\PaperVersion}{'+version+'}\n').encode('utf-8'),renderer_inputs)
     title=text.splitlines()[0].removeprefix('# ')
     text=text.split('\n',1)[1].replace('**Jepson Taylor**\n','',1)
     if name=='WHITEPAPER':
@@ -56,8 +62,10 @@ def build(name):
         staged_image.parent.mkdir(exist_ok=True)
         if path.suffix=='.webp':
             from PIL import Image
-            with Image.open(io.BytesIO(raw)) as im:im.convert('RGB').save(staged_image)
-        else:staged_image.write_bytes(raw)
+            encoded=io.BytesIO()
+            with Image.open(io.BytesIO(raw)) as im:im.convert('RGB').save(encoded,format='PNG')
+            raw=encoded.getvalue()
+        stage(staged_image,raw,renderer_inputs)
         return f'![{match.group(1)}]({staged_image})'
     text=re.sub(r'!\[([^\]]*)\]\(([^)]+)\)',image,text)
     def link(match):
@@ -69,14 +77,14 @@ def build(name):
         url=f'https://github.com/neverhuman/jarambit/{kind}/{head}/{quote(str(relative),safe="/")}'
         return f'[{match.group(1)}]({url}{sep}{fragment})'
     text=re.sub(r'(?<!!)\[([^\]]+)\]\(([^)]+)\)',link,text)
-    staged=out/f'{name}.md';staged.write_text(text)
+    staged=out/f'{name}.md';stage(staged,text.encode('utf-8'),renderer_inputs)
     pdf=out/f'{name}.pdf'
     capture(Path(__file__).resolve(),inputs)
     support={}
     for path in (HERE/'publication.lua',HERE/'header.tex'):
         raw=capture(path,inputs)
         snapshot=out/(path.stem+'-'+hashlib.sha256(raw).hexdigest()[:12]+path.suffix)
-        snapshot.write_bytes(raw);support[path.name]=snapshot
+        stage(snapshot,raw,renderer_inputs);support[path.name]=snapshot
     # The source already supplies captions; inline placement keeps them with their image.
     cmd=['pandoc',str(staged),'--from=markdown+tex_math_dollars-implicit_figures','--pdf-engine=lualatex',
          '--resource-path',str(ROOT/'docs'),'-V','documentclass=article','-V','fontsize=10pt',
@@ -92,7 +100,8 @@ def build(name):
     if run.returncode:raise RuntimeError(f'PDF build failed; see {out/name}.build.log')
     record={'schema':1,'source_commit':head,'source':str(source.relative_to(ROOT)),
             'source_sha256':inputs[str(source.relative_to(ROOT))],
-            'inputs':inputs,'output':str(pdf.relative_to(ROOT)),'output_sha256':sha(pdf),
+            'inputs':inputs,'renderer_inputs':renderer_inputs,
+            'output':str(pdf.relative_to(ROOT)),'output_sha256':sha(pdf),
             'pandoc':subprocess.check_output(['pandoc','--version'],text=True).splitlines()[0],
             'latex':subprocess.check_output(['lualatex','--version'],text=True).splitlines()[0],
             'command':cmd,'scope':'Publication render only; no new engineering solves or certification'}
@@ -101,6 +110,9 @@ def build(name):
     for relative,expected in inputs.items():
         if sha(ROOT/relative)!=expected:
             raise ValueError('Input changed during PDF build: '+relative)
+    for relative,expected in renderer_inputs.items():
+        if sha(ROOT/relative)!=expected:
+            raise ValueError('Renderer input changed during PDF build: '+relative)
     (out/f'{name}.pdf.manifest.json').write_text(json.dumps(record,indent=1,sort_keys=True)+'\n')
     print(pdf.relative_to(ROOT),pdf.stat().st_size,flush=True)
 

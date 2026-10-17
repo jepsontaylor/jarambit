@@ -2,6 +2,7 @@
 import hashlib
 import json
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
@@ -29,7 +30,7 @@ class PdfProvenance(unittest.TestCase):
         for name in ('build_pdf.py', 'publication.lua', 'header.tex'):
             (self.here/name).write_text('neutral software fixture\n')
 
-    def run_build(self, mutation=None):
+    def run_build(self, mutation=None, staged_mutation=None):
         def capture(command, **kwargs):
             if command[:3] == ['git', 'rev-parse', 'HEAD']:return self.head+'\n'
             if command[:2] == ['git', 'show']:return '1792195200\n'
@@ -37,6 +38,7 @@ class PdfProvenance(unittest.TestCase):
 
         def render(command, **kwargs):
             # Deliberately no LaTeX/Blender/solver execution or physical data.
+            if staged_mutation:staged_mutation(command)
             Path(command[command.index('-o')+1]).write_bytes(b'neutral PDF packaging control')
             if mutation:mutation()
             return subprocess.CompletedProcess(command, 0)
@@ -64,6 +66,14 @@ class PdfProvenance(unittest.TestCase):
         snapshots = list((self.root/'target/paper/images').glob('neutral-*.png'))
         self.assertEqual(len(snapshots), 1)
         self.assertEqual(snapshots[0].read_bytes(), image.read_bytes())
+        command = manifest['command']
+        actual = [Path(command[1]), snapshots[0],
+                  Path(command[command.index('--lua-filter')+1])]
+        actual += [Path(command[i+1]) for i, arg in enumerate(command) if arg=='--include-in-header']
+        self.assertEqual(set(manifest['renderer_inputs']),
+                         {str(path.relative_to(self.root)) for path in actual})
+        for relative, digest in manifest['renderer_inputs'].items():
+            self.assertEqual(hashlib.sha256((self.root/relative).read_bytes()).hexdigest(), digest)
 
     def test_source_substitution_during_render_is_rejected(self):
         with self.assertRaisesRegex(ValueError, 'changed'):
@@ -111,6 +121,22 @@ class PdfProvenance(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'changed'):
                 self.run_build()
         self.assertFalse((self.root/'target/paper'/(NAME+'.pdf.manifest.json')).exists())
+
+    def test_all_actual_renderer_input_substitutions_are_rejected(self):
+        image = self.root/'docs/neutral.png';image.write_bytes(b'neutral image software control')
+        with self.source.open('a') as f:f.write('\n![Neutral placeholder](neutral.png)\n')
+        for mode in ('markdown', 'image', 'header', 'version', 'lua'):
+            with self.subTest(mode=mode):
+                def substitute(command):
+                    markdown = Path(command[command.index('pandoc')+1])
+                    images = [Path(p) for p in re.findall(r'!\[[^\]]*\]\(([^)]+)\)', markdown.read_text())]
+                    headers = [Path(command[i+1]) for i, arg in enumerate(command) if arg=='--include-in-header']
+                    target = {'markdown':markdown, 'image':images[0], 'header':headers[1],
+                              'version':headers[0], 'lua':Path(command[command.index('--lua-filter')+1])}[mode]
+                    target.write_bytes(b'substituted neutral renderer input')
+                with self.assertRaisesRegex(ValueError, 'Renderer input changed'):
+                    self.run_build(staged_mutation=substitute)
+                self.assertFalse((self.root/'target/paper'/(NAME+'.pdf.manifest.json')).exists())
 
 
 if __name__ == '__main__':unittest.main()
