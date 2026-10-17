@@ -1,0 +1,13 @@
+{
+  "docker_image": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+  "docker_image_id": "sha256:628f40dd62c7f37962ccadc5a745f23d52c56b2ac3ad9b9b6a86c567c07aa27b",
+  "solver_python": "/home/ubuntu/.venvs/jarambit-sheath/bin/python",
+  "versions": {
+    "numpy": "2.5.4",
+    "pyamg": "5.3.0",
+    "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+    "scipy": "1.18.1",
+    "site_packages": "/home/ubuntu/.venvs/jarambit-sheath/lib/python3.12/site-packages",
+    "skfem": "12.0.2"
+  }
+}

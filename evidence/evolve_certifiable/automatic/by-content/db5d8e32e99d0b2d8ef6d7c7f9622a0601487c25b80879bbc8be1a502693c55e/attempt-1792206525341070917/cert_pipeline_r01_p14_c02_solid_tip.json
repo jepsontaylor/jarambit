@@ -1,0 +1,57 @@
+{
+  "certificate_identity": "db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e",
+  "copied_from_another_genome": false,
+  "d1_path": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_D1.json",
+  "d1_sha256": "c2811ed8877904254ddc953dc888aedc3d7791b69c040dd6513fe0b763997bab",
+  "dolfinx_cross_check": {
+    "SF_nodal_avg": 0.7263,
+    "SF_nodal_max": 0.6693,
+    "container": "ghcr.io/fenics/dolfinx/dolfinx:v0.9.0",
+    "container_image_id": "sha256:628f40dd62c7f37962ccadc5a745f23d52c56b2ac3ad9b9b6a86c567c07aa27b",
+    "independent_solver": "dolfinx_v0.9.0",
+    "ksp_its": 158,
+    "mesh_sha256": "d3f7a444175fb6a6f64ee1118a00f2e83d6994c66b1c266cfd94ac14572faab1",
+    "primary_solver": "skfem_p2",
+    "rel_err_nodal_avg": 0.000413,
+    "rel_err_nodal_max": 0.000448,
+    "status": "verified",
+    "within_2pct": true
+  },
+  "dolfinx_raw_sha256": "f6a1ec2a523460743473a5b4cb0af2bba6c7aed8f99587a813460a42d174d568",
+  "entered_as_solver_run": true,
+  "genome_data_row_matches_csv": true,
+  "genome_sha256": "a526b2ef73b25e51a56bcfab1f67640bcbe734955b95a6b432a99dab5cd9f654",
+  "mesh_sha256": "d3f7a444175fb6a6f64ee1118a00f2e83d6994c66b1c266cfd94ac14572faab1",
+  "metrics": {
+    "aes_score": 0.4079,
+    "spg": 2.03341
+  },
+  "schema": "jarambit.stored_solid_tip.v1",
+  "skfem_raw_sha256": "9d0748c79af37c15e50b9b90c1eefedb916ecfd145420393c57cb8a8e4bd98bf",
+  "solve_rerun": true,
+  "source_step_sha256": "1a28399c1c6c4a21796a963c91545d120fd99f542818a0e6024b0cd24ca34fa6",
+  "source_stl_sha256": "8e4987c422b2d9973b15e3fbbed64de809c3507abbb83cb6b1b6898753079022",
+  "source_surface_sha256": "3829d8c06736d05fbc1f342b0910f1fa9608163a077f663ca94d3d76db5df037",
+  "stored_solid": {
+    "NL": 4,
+    "NSUB": 1,
+    "PATCH_mm": 2.0,
+    "R_CUT": 30.0,
+    "SF_elem_mean": 0.736,
+    "SF_nodal_avg": 0.7263,
+    "SF_nodal_max": 0.6693,
+    "SF_skfem_nodal_avg": 0.726,
+    "SF_skfem_nodal_max": 0.669,
+    "ksp_its": 158,
+    "n_dof": 416583,
+    "n_tet": 91008,
+    "primary_solver_stats": {
+      "algorithm": "skfem_p2_amg_cg",
+      "converged": true,
+      "iterations": 152,
+      "relative_residual": 8.803574037789025e-11,
+      "solve_seconds": 510.96873021125793
+    }
+  },
+  "subject": "cert_pipeline_r01_p14_c02"
+}

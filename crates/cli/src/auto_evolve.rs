@@ -222,7 +222,7 @@ fn spawn_offspring_batch(
                 }
                 _ => {
                     // Multi-gene Gaussian + optional crossover with another elite
-                    if elites.len() > 1 && rng.f64() < 0.5 {
+                    if k % 12 != 5 && elites.len() > 1 && rng.f64() < 0.5 {
                         let pick =
                             ((rng.f64() * (elites.len() as f64)) as usize).min(elites.len() - 1);
                         let other = &elites[pick].1;
@@ -233,7 +233,15 @@ fn spawn_offspring_batch(
                             }
                         }
                     } else {
-                        child = child.mutate(rng, 0.008 * scale);
+                        if k % 12 == 5 {
+                            // Preserve exploration after formerly "certified" seeds become failures.
+                            // All changes use the pre-existing genotype domain and clamp rules.
+                            child = child.mutate(rng, 0.08);
+                            child.v[genome::T] = rng.range(b[genome::T].0, b[genome::T].1);
+                            child.v[genome::P1_ON] = if parent.p1() { 0.0 } else { 1.0 };
+                        } else {
+                            child = child.mutate(rng, 0.008 * scale);
+                        }
                     }
                 }
             }
@@ -726,6 +734,31 @@ mod tests {
         let candidate = screen_candidate_stage1(0, 0, &seeds[0].0, &seeds[0].1, "test")
             .expect("rankable failed candidate");
         assert!(candidate.screen_deficit > 0.0);
+    }
+    #[test]
+    fn offspring_can_explore_stock_and_rail_architecture_inside_existing_bounds() {
+        let seeds = load_seed_genomes(
+            &repo_root(),
+            Some("evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv"),
+        );
+        let batch = spawn_offspring_batch(&seeds, 12, 0, &mut Rng(20261017));
+        assert!(batch.iter().any(|(_, g)| g.p1() != seeds[0].1.p1()));
+        assert!(batch
+            .iter()
+            .any(|(_, g)| g.v[genome::T] != seeds[0].1.v[genome::T]));
+        let bounds = genome::bounds();
+        for (_, g) in batch {
+            for (i, &value) in g.v.iter().enumerate() {
+                if i == EDGE_TH {
+                    assert!((0.12..=0.20).contains(&value));
+                } else {
+                    assert!(
+                        (bounds[i].0..=bounds[i].1).contains(&value),
+                        "gene {i}: {value}"
+                    );
+                }
+            }
+        }
     }
     #[test]
     fn invalid_seed_input_has_no_external_cad_fallback() {

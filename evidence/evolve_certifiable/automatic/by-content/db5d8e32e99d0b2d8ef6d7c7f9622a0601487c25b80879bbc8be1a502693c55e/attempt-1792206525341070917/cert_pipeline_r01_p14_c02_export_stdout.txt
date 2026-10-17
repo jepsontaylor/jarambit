@@ -1,0 +1,1 @@
+boundary 0 nonmanifold 0 dmax 1 volume 18744.612811676 mm3
