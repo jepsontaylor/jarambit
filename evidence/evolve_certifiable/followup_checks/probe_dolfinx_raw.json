@@ -1,0 +1,9 @@
+{
+  "SF_nodal_avg": 0.7263,
+  "SF_nodal_max": 0.6693,
+  "ksp_its": 158,
+  "n_dof": 416583,
+  "sallow_MPa": 729.76,
+  "vm_nodal_avg_MPa": 1004.73,
+  "vm_nodal_max_MPa": 1090.26
+}

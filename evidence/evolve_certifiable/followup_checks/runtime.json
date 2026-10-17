@@ -1,0 +1,13 @@
+{
+  "solver_python": "/home/ubuntu/jarambit/.agent/worktrees/pr84-followups/target/pr84-followups/solver-env/bin/python",
+  "versions": {
+    "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+    "numpy": "1.26.4",
+    "scipy": "1.16.3",
+    "skfem": "12.0.2",
+    "pyamg": "5.3.0",
+    "site_packages": "/home/ubuntu/jarambit/.agent/worktrees/pr84-followups/target/pr84-followups/solver-env/lib/python3.12/site-packages"
+  },
+  "docker_image": "ghcr.io/fenics/dolfinx/dolfinx@sha256:628f40dd62c7f37962ccadc5a745f23d52c56b2ac3ad9b9b6a86c567c07aa27b",
+  "docker_image_id": "sha256:628f40dd62c7f37962ccadc5a745f23d52c56b2ac3ad9b9b6a86c567c07aa27b"
+}

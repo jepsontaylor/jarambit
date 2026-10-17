@@ -1,0 +1,17 @@
+{
+  "schema": "jarambit.historical_mesh_replay.v1",
+  "scope": "Actual independent-container replay of the retained historical fine mesh; not a new certificate or new candidate design.",
+  "producer_commit": "ec2b706883d816579d4e831a7af83539b6d06af8",
+  "mesh": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_solid_mesh.npz",
+  "mesh_sha256": "d3f7a444175fb6a6f64ee1118a00f2e83d6994c66b1c266cfd94ac14572faab1",
+  "original_primary_raw": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_skfem_raw.json",
+  "original_primary_raw_sha256": "9d0748c79af37c15e50b9b90c1eefedb916ecfd145420393c57cb8a8e4bd98bf",
+  "command": "run_independent_cross_check(retained_mesh, output_dir, probe, independent_runtime())",
+  "read_only_inputs": true,
+  "files": {
+    "evidence/evolve_certifiable/followup_checks/probe_dolfinx_raw.json": "f6a1ec2a523460743473a5b4cb0af2bba6c7aed8f99587a813460a42d174d568",
+    "evidence/evolve_certifiable/followup_checks/probe_dolfinx_sidecar.json": "12c7ae28b8c29c59ce9fb913675589b72bc21fed7c17797e7a4487db63589cf8",
+    "evidence/evolve_certifiable/followup_checks/probe_dolfinx_stdout.txt": "5cd1b38c090684c606c9636ed58b7607db56e8ba3d1f93f798f26ed7c9aa7cd8",
+    "evidence/evolve_certifiable/followup_checks/runtime.json": "ed39cee063827b921a17479c0390a7aea5c273764886399a36f8b7c8b66ecd96"
+  }
+}

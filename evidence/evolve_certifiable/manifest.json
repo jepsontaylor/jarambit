@@ -234,6 +234,36 @@
     "step_check": "evidence/evolve_certifiable/controls/legal_genome/control_step_check.json"
   },
   "numerical_kernel_commit": "e8cb049df7d03c7d3113556812cc140ca99a29c3",
+  "regeneration": {
+    "exports": [
+      {
+        "certificate_identity": "a4dc25e78407e2d8731be7ee81f95514487a4892eaf706e7443bae22848827e5",
+        "genome": "evidence/evolve_certifiable/controls/legal_genome/control_genome.csv",
+        "historical_prefix": "evidence/evolve_certifiable/controls/legal_genome/control",
+        "id": "legal_genome",
+        "label": "genome_control",
+        "sha256": {
+          ".step": "eaf27b8ca61d6f7c465867907845eaab39ea6a61431b09f685e67b52471df560",
+          ".stl": "14e7960233a4d4c7aa069a148c952d237689f1e16b543bda5e79c51791ff7387",
+          "_surface.json": "85a26e19b759e054e61e89aad69a5c1082dbeed3421e48a00a6e2ee22ffd37df"
+        }
+      },
+      {
+        "certificate_identity": "01f45be0e00a6a92df3e378009868307e068847e26b84c1507e735e7897cea5e",
+        "genome": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02_genome.csv",
+        "historical_prefix": "evidence/evolve_certifiable/automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25b80879bbc8be1a502693c55e/attempt-1792206525341070917/cert_pipeline_r01_p14_c02",
+        "id": "automatic",
+        "label": "cert_pipeline_r01_p14_c02",
+        "sha256": {
+          ".step": "1a28399c1c6c4a21796a963c91545d120fd99f542818a0e6024b0cd24ca34fa6",
+          ".stl": "8e4987c422b2d9973b15e3fbbed64de809c3507abbb83cb6b1b6898753079022",
+          "_surface.json": "cd82068f2b000cb6afbdf11b1e5860c0cecd7001344df8fd993f8655472486fe"
+        }
+      }
+    ],
+    "producer_commit": "ec2b706883d816579d4e831a7af83539b6d06af8",
+    "schema": "jarambit.export_regeneration.v1"
+  },
   "schema": "jarambit.evolve_certifiable_evidence.v1",
   "scope": "Actual automatic offspring assessment plus a separate genome geometry control. No fully qualified design or new record claimed."
 }
