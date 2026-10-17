@@ -57,3 +57,26 @@ The [neutral regression controls](../ops/ci/tests/test_publication_inventory.py)
 exercise dirty working copies, uncommitted assets, stale input and image hashes,
 revision pinning, missing sidecars and repository-path containment. They execute
 no physical models, solvers or renderers.
+
+## Source-file identities before publication
+
+The generic [source ledger](../ops/ci/source_ledger.py) records each named file's
+repository-relative path, byte length and SHA-256. It reads Git blobs from one
+resolved commit, with no fallback to uncommitted files:
+
+```sh
+python3 -B ops/ci/source_ledger.py --ref origin/main \
+  docs/VERSION docs/PUBLICATION_READINESS.md > target/paper/source-ledger.json
+```
+
+For a local inventory, use `--runtime-root /path/to/local/run` instead of `--ref`
+and pass paths relative to that root. The report explicitly labels those bytes
+`local_files_unchecked_against_git` and sets `source_commit` to null. It records
+each file as read; it does not establish an atomic snapshot across changing files.
+A hash does not preserve the source bytes or make unavailable results reproducible.
+Commit the original sources before citing them as committed paper inputs.
+
+Neither mode interprets result fields, computes statistics, or validates scientific
+claims. The [neutral controls](../ops/ci/tests/test_source_ledger.py) exercise exact
+byte identities, dirty copies, missing sources, moving refs, mid-read substitution,
+path containment and CLI failure behavior.
