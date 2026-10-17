@@ -52,3 +52,18 @@ class EvolveCertification(unittest.TestCase):
         self.assertEqual(len(triangles),4)
         bad=copy.deepcopy(surface);bad['verts'][0][2]=-0.06
         with self.assertRaises(ValueError):load_surface(bad)
+
+    def test_requirement_and_bound_snapshot_is_unchanged(self):
+        import ast,re
+        root=Path(__file__).resolve().parents[3]
+        proof=json.loads((root/'evidence/evolve_certifiable/unchanged_limits.json').read_text())
+        for name,sha in proof['unchanged_files'].items():
+            self.assertEqual(hashlib.sha256((root/name).read_bytes()).hexdigest(),sha,name)
+        for name,item in proof['existing_public_constants_unchanged'].items():
+            values=dict(re.findall(r'pub const\s+(\w+)\s*:[^=]+?=\s*([^;]+);',(root/name).read_text()))
+            for key,value in item['values'].items():self.assertEqual(values[key],value,f'{name}:{key}')
+        tree=ast.parse((root/'ops/ci/evaluate_cad_candidate.py').read_text())
+        for name,sha in proof['unchanged_cad_gate_blocks'].items():
+            if name=='compute_weighted_cad_score':node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name==name)
+            else:node=next(n for n in ast.walk(tree) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id==name for t in n.targets))
+            self.assertEqual(hashlib.sha256(ast.dump(node,include_attributes=False).encode()).hexdigest(),sha,name)

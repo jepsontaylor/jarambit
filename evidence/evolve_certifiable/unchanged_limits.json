@@ -1,6 +1,32 @@
 {
   "base_commit": "4cd0f994e80355a898afde6de816f00ca2ebe35a",
   "existing_public_constants_unchanged": {
+    "crates/crescent/src/battery.rs": {
+      "count": 6,
+      "values": {
+        "BATTERY_SCHEMA": "\"jarambit.cad_battery.subject.v1\"",
+        "CASE_IDS": "[\n    \"build.analytic\",\n    \"build.gci_contracts\",\n    \"build.claims\",\n    \"build.dolfinx\",\n    \"geom.unit\",\n    \"geom.one_solid\",\n    \"geom.mass\",\n    \"geom.pin\",\n    \"plate.loads\",\n    \"plate.seq\",\n    \"plate.l7\",\n    \"plate.gci\",\n    \"side.a1\",\n    \"side.a2\",\n    \"side.a3\",\n    \"side.a4\",\n    \"solid.tip\",\n    \"gate.rs_v2\",\n]",
+        "NATIVE_PINS": "[\n    NativePinSpec {\n        id: \"c10a\",\n        name: \"C10a\",\n        role: \"comparison_baseline\",\n        archived: false,\n        step: \"designs/switchback/C10a/cad/switchback_revC10a_ground.step\",\n        stl: \"designs/switchback/C10a/cad/switchback_revC10a_ground.stl\",\n        step_sha256: \"441cfabc284efd632b69b169816bd1242088508d95dd93839dcea419e582dbe7\",\n        stl_sha256: \"0bcadad61bff550d9c527266e183440e8242c3a0222b9a89755cdc682b214411\",\n        readme_mass_g: 64.841,\n    },\n    NativePinSpec {\n        id: \"c93\",\n        name: \"C93\",\n        role: \"release_candidate\",\n        archived: false,\n        step: \"designs/switchback/C9.3/cad/switchback_revC9_3_ground.step\",\n        stl: \"designs/switchback/C9.3/cad/switchback_revC9_3_ground.stl\",\n        step_sha256: \"3a818183bcb5b9a9093da947e00414ed29aa9bfebbb614046b8fb0b16dcbe919\",\n        stl_sha256: \"1aeda17eba396bcec7380ac27f7d20886d64d234f70ad8d3d0cc57aaf63d74ca\",\n        readme_mass_g: 66.773,\n    },\n    NativePinSpec {\n        id: \"c92\",\n        name: \"C92\",\n        role: \"previous_release_candidate\",\n        archived: false,\n        step: \"designs/switchback/C9.2/cad/switchback_revC9_2_ground.step\",\n        stl: \"designs/switchback/C9.2/cad/switchback_revC9_2_ground.stl\",\n        step_sha256: \"2ad2a8ecaf4fca67ea4debe5b5da48d2d6216f4a8960296985a9fa38f5b1c307\",\n        stl_sha256: \"10b8c41f80b898c255cc090a349559722258f87f8af849ce9a605e14d762e847\",\n        readme_mass_g: 66.764,\n    },\n    NativePinSpec {\n        id: \"c10c\",\n        name: \"C10c\",\n        role: \"archived_diagnostic\",\n        archived: true,\n        step: \"designs/switchback/C10c/cad/switchback_revC10c_ground.step\",\n        stl: \"designs/switchback/C10c/cad/switchback_revC10c_ground.stl\",\n        step_sha256: \"4211f35b1c04d795029c85bcd3fa6a81ed3456f774a935d419e326bc06d4eae4\",\n        stl_sha256: \"ac64a65dd653194d563a2026ffa42213846a9bda7cce7c52f80327da4c6e4700\",\n        readme_mass_g: 67.089,\n    },\n]",
+        "SCORECARD_SCHEMA": "\"jarambit.master_cad_scorecard.v1\"",
+        "SIDE_SHA": "\"3e419ac1cbd2576b9b2f92296862d937e763abe27cc2a065c4937ff6ec4a85f9\"",
+        "SOLVER_FIELDS": "[\"n_tet\", \"n_dof\", \"ksp_its\"]"
+      }
+    },
+    "crates/crescent/src/cad_ingest.rs": {
+      "count": 4,
+      "values": {
+        "TI64_DENSITY_G_PER_MM3": "0.00443",
+        "TI64_E_MPA": "113_800.0",
+        "TI64_NU": "0.34",
+        "TI64_SY20_MPA": "828.0"
+      }
+    },
+    "crates/crescent/src/certification.rs": {
+      "count": 1,
+      "values": {
+        "EXPORT_AREA_MM2": "1.0"
+      }
+    },
     "crates/crescent/src/fem.rs": {
       "count": 31,
       "values": {
@@ -56,10 +82,18 @@
       }
     }
   },
+  "implementation_commit": "a77076cc487401a045030422dd4b735c018672eb",
   "no_deleted_files": true,
+  "unchanged_cad_gate_blocks": {
+    "compute_weighted_cad_score": "c24aa9f4996703ff27753f9243f0adec5bad935120eeff65ecb80627a1d20745",
+    "gates_map": "dd933c979c2b779cc45aaed7bc6bbde2554498a90eb0255558a723cb44de4470",
+    "shortfalls": "6a35285bf74d03069df30bcba658e36df0a01322d5edccdf6da135a080809821"
+  },
   "unchanged_files": {
+    "crates/crescent/src/gates.rs": "0e364aab4d5d16d43d4e2c95c2e393707edb35b614f35d4b9eaf11c4303f28d7",
     "crates/crescent/src/genome.rs": "c71c10976edd3305db4c9beb7117139d126878169260b7913048fc9d20545e27",
     "requirements/RS-karambit-v1.toml": "ed3d61ab386e8e6c52c96d15d44e00b2542532f6898374706ef376cef742fff3",
-    "requirements/RS-karambit-v2.toml": "3d73b27cac953eae7f4d334a13351efd20dfe799d4f3c8d2584edef8d803cecc"
+    "requirements/RS-karambit-v2.toml": "3d73b27cac953eae7f4d334a13351efd20dfe799d4f3c8d2584edef8d803cecc",
+    "requirements/RS-sheath-runner-v1.toml": "8abd26ac8ce64f51783c38ca46b797d6914d7a09f839a9e813d2c21f811a354f"
   }
 }

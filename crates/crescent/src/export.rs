@@ -1,5 +1,5 @@
 //! Watertight variable-thickness solid (top z=+t/2, bottom z=-t/2 over a CDT of the planform,
-//! side walls on every boundary edge) -> ASCII STL + faceted MANIFOLD_SOLID_BREP STEP.
+//! side walls on every boundary edge) -> ASCII STL and STEP with analytic toroidal bore rolls.
 use crate::geom::*;
 use crate::pheno::*;
 use jarambit_physics::fine;
