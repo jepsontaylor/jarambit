@@ -3,8 +3,7 @@
 //! `side.a4` buckling + 3-level Roache `GCI` + strict `0.0625 mm^2` plate + 3D watertight STEP/STL).
 
 use jarambit_crescent::{
-    battery::score_cad_native,
-    fem,
+    certification, fem,
     genome::{
         self, Genome, EA_IN, EA_SP, EDGE_TH, FUL_D, K0, K_N, NECK_L, NG, N_CP, POCKET_D, POCKET_R,
         RAIL_W, TAPER_X0, T_TIP,
@@ -37,10 +36,11 @@ struct ScreenSurvivor {
     seq_ratio: f64,
     fat_sf: f64,
     ring_bearing_w_mm: f64,
+    screen_deficit: f64,
 }
 
 #[derive(Clone, Debug)]
-struct CertifiedDesign {
+struct AssessedDesign {
     label: String,
     family: String,
     g: Genome,
@@ -118,16 +118,13 @@ fn load_seed_genomes(root: &Path, seeds_arg: Option<&str>) -> Vec<(String, Genom
                 g.v[EDGE_TH] = 0.18;
             }
             g.clamp();
-            if !out.iter().any(|(_, existing): &(String, Genome)| *existing == g) {
+            if !out
+                .iter()
+                .any(|(_, existing): &(String, Genome)| *existing == g)
+            {
                 out.push((family, g));
             }
         }
-    }
-    if out.is_empty() {
-        let mut g = Genome::c6_seed(5.7);
-        g.v[EDGE_TH] = 0.18;
-        g.clamp();
-        out.push(("c6".to_string(), g));
     }
     out
 }
@@ -194,11 +191,18 @@ fn spawn_offspring_batch(
                 }
                 2 => {
                     // Bevel & micro-bevel apex refinement within Gate S law (edge_t <= 0.20 mm)
-                    child.v[EDGE_TH] = (child.v[EDGE_TH] + rng.normal() * 0.015 * scale).clamp(0.12, 0.20);
+                    child.v[EDGE_TH] =
+                        (child.v[EDGE_TH] + rng.normal() * 0.015 * scale).clamp(0.12, 0.20);
                     child.v[EA_IN] = (child.v[EA_IN] + rng.normal() * 0.15 * scale)
                         .clamp(b[EA_IN].0, b[EA_IN].1);
                     child.v[EA_SP] = (child.v[EA_SP] + rng.normal() * 0.15 * scale)
                         .clamp(b[EA_SP].0, b[EA_SP].1);
+                    if round == 0 {
+                        child.v[EA_IN] = rng.range(b[EA_IN].0, b[EA_IN].1);
+                        child.v[EA_SP] = rng.range(b[EA_SP].0, b[EA_SP].1);
+                        child.v[genome::RING_WALL] =
+                            rng.range(b[genome::RING_WALL].0, b[genome::RING_WALL].1);
+                    }
                 }
                 3 => {
                     // Thickness knot fine-tuning (K0..K0+4)
@@ -212,14 +216,15 @@ fn spawn_offspring_batch(
                     // Outline control point micro-sculpting (within aesthetic Hausdorff corridor)
                     for _ in 0..3 {
                         let cp = ((rng.f64() * (N_CP as f64)) as usize).min(N_CP - 1);
-                        child.v[cp] = (child.v[cp] + rng.normal() * 0.06 * scale)
-                            .clamp(b[cp].0, b[cp].1);
+                        child.v[cp] =
+                            (child.v[cp] + rng.normal() * 0.06 * scale).clamp(b[cp].0, b[cp].1);
                     }
                 }
                 _ => {
                     // Multi-gene Gaussian + optional crossover with another elite
                     if elites.len() > 1 && rng.f64() < 0.5 {
-                        let pick = ((rng.f64() * (elites.len() as f64)) as usize).min(elites.len() - 1);
+                        let pick =
+                            ((rng.f64() * (elites.len() as f64)) as usize).min(elites.len() - 1);
                         let other = &elites[pick].1;
                         let alpha = 0.15 + 0.35 * rng.f64();
                         for idx in 0..NG {
@@ -241,7 +246,7 @@ fn spawn_offspring_batch(
     batch
 }
 
-/// Stage 1: Fast parallel screen enforcing all 2D/3D/FEM/`RS-karambit-v2` hard gates.
+/// Stage 1: provisional parallel FEM ranking. No qualification verdict is issued here.
 fn screen_candidate_stage1(
     round: usize,
     idx: usize,
@@ -253,30 +258,23 @@ fn screen_candidate_stage1(
         return None;
     }
     let r = qd::evaluate(g, idx, round, 2.0);
-    if !r.aes.pass || !r.rejects.is_empty() {
-        return None;
-    }
-    if !fem::gate_s::law_pass(g.v[EDGE_TH], g.v[EA_IN], g.v[EA_SP]) {
-        return None;
-    }
     let p = pheno::build(g);
-    let (s2_ok, _, _, _, _, _) = fem::gate_s::brep_point_check(&p);
-    if !s2_ok {
-        return None;
-    }
-    let (f, _) = fem::certify(&p)?;
-    if !f.floors_ok
-        || f.seq_ratio < fem::SEQ_TARGET
-        || f.twist_body_sf < 1.0
-        || f.twist_tipzone_sf < 1.0
-        || !fem::rs_v2_human_max_pass(&f, &p)
-        || !fem::rs_v2_fatigue_pass(&f)
-    {
-        return None;
-    }
-
+    let f = r.fem.as_ref()?;
+    // Search may rank a measured shortfall. It never turns that shortfall into a qualification.
+    let deficit = |value: f64, floor: f64| ((floor - value) / floor).max(0.0);
     let (bw, _) = fem::ring_bearing(&p);
-
+    let (radius, _) = pheno::bore_dimensions(&p);
+    let screen_deficit = deficit(f.lat_rob, 260.0)
+        + deficit(f.ring_rob, 1500.0)
+        + deficit(f.seq_ratio, fem::SEQ_TARGET)
+        + deficit(f.twist_body_sf, 1.0)
+        + deficit(f.twist_tipzone_sf, 1.0)
+        + deficit(f.hm_twist_sf, 1.0)
+        + deficit(f.hm_spine_sf, 1.0)
+        + deficit(f.hm_ringback_sf, 1.0)
+        + deficit(f.fat_sf, 1.0)
+        + deficit(bw, fem::hm::RING_BEARING_W_MIN_MM)
+        + deficit(radius, fem::hm::RING_EDGE_R_MIN_MM);
     Some(ScreenSurvivor {
         label: format!("{prefix}_r{:02}_{family}_c{:02}", round + 1, idx + 1),
         family: family.to_string(),
@@ -285,75 +283,99 @@ fn screen_candidate_stage1(
         seq_ratio: f.seq_ratio,
         fat_sf: f.fat_sf,
         ring_bearing_w_mm: bw,
+        screen_deficit,
     })
 }
 
-/// Stage 2: Full physics certification (`0.0625 mm^2` strict plate + 3-mesh `GCI` + `side.a4` +
-/// 3D `TET10` solid-tip FEM + `18/18` CAD battery + Master CAD Scorecard).
+/// Stage 2: attempt the standard independent fine-mesh assessment and retain its measured verdict.
 fn certify_candidate_stage2(
     root: &Path,
     out_dir: &Path,
     cand: &ScreenSurvivor,
-) -> Result<CertifiedDesign, String> {
+) -> Result<AssessedDesign, String> {
+    let attempt = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_nanos();
+    let folder = out_dir
+        .join("by-content")
+        .join(certification::identity(&cand.g))
+        .join(format!("attempt-{attempt}"));
+    let out_dir = folder.as_path();
     std::fs::create_dir_all(out_dir).map_err(|e| e.to_string())?;
     let genome_csv = out_dir.join(format!("{}_genome.csv", cand.label));
     let csv_text = format!("{}\n{}\n", Genome::csv_header(), cand.g.csv_row());
     std::fs::write(&genome_csv, csv_text).map_err(|e| e.to_string())?;
 
-    let sc = score_cad_native(
-        root,
-        &genome_csv.to_string_lossy(),
-        out_dir,
-        Some(&cand.label),
-        None,
-        true,
-        false,
-    )?;
-
+    // The native coarse screen deliberately remains unverified. Qualification dispatches
+    // the standard evaluator, which executes skfem P2 and DOLFINx on one saved fine mesh.
+    let python = std::env::var("JARAMBIT_SOLVER_PYTHON").unwrap_or_else(|_| {
+        let installed = "/home/ubuntu/.venvs/jarambit-sheath/bin/python";
+        if Path::new(installed).is_file() {
+            installed.into()
+        } else {
+            "python3".into()
+        }
+    });
+    let status = std::process::Command::new(&python)
+        .arg(root.join("ops/ci/score_cad.py"))
+        .args([
+            "--genome",
+            &genome_csv.to_string_lossy(),
+            "--label",
+            &cand.label,
+            "--out-dir",
+            &out_dir.to_string_lossy(),
+        ])
+        .current_dir(root)
+        .env("OMP_NUM_THREADS", "1")
+        .env("OPENBLAS_NUM_THREADS", "1")
+        .env("MKL_NUM_THREADS", "1")
+        .status()
+        .map_err(|e| format!("independent certification unavailable: {e}"))?;
+    if !status.success() {
+        return Err(format!("independent certification unverified: evaluator exited {status}; raw artifacts retained in {}",out_dir.display()));
+    }
+    let file = out_dir.join(format!("{}_master_scorecard.json", cand.label));
+    let sc: Value = serde_json::from_slice(&std::fs::read(&file).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())?;
+    if !certification::bound(&sc, &certification::identity(&cand.g)) {
+        return Err(
+            "standard evaluator returned a certificate for a different genome/model".into(),
+        );
+    }
     let em = sc.get("engineering_metrics").unwrap_or(&Value::Null);
     let wc = sc.get("weighted_cad_score").unwrap_or(&Value::Null);
     let g1 = sc.get("global_fitness_G1").unwrap_or(&Value::Null);
     let bat = sc.get("cad_battery").unwrap_or(&Value::Null);
 
+    let finite = |value: &Value, name: &str| {
+        value
+            .as_f64()
+            .filter(|x| x.is_finite())
+            .ok_or_else(|| format!("standard assessment unverified: missing/nonfinite {name}"))
+    };
     let all_16_gates = wc
         .get("all_engineering_gates_pass")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    let w_cad = wc.get("W_CAD").and_then(|v| v.as_f64()).unwrap_or(-10.0);
-    let g1_val = g1.get("G").and_then(|v| v.as_f64()).unwrap_or(0.0);
-    let mass_g = em.get("mass_g").and_then(|v| v.as_f64()).unwrap_or(cand.mass_g);
-    let mass_3d_g = em.get("mass_3d_g").and_then(|v| v.as_f64()).unwrap_or(cand.mass_g);
-    let strict_hunter_sf = em.get("sf_hunter_strict").and_then(|v| v.as_f64()).unwrap_or(0.0);
-    let solid_tip_sf = em
-        .get("solid_tip_sf_nodal_max")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(0.0);
-    let seq_ratio = em
-        .get("seq_ratio_cert")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(cand.seq_ratio);
-    let fat_sf = em
-        .get("fat_sf_l7")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(cand.fat_sf);
-    let ring_bearing_w_mm = em
-        .get("ring_bearing_w_mm")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(cand.ring_bearing_w_mm);
-    let buckling_eig = em
-        .get("buckling_eigenvalue_a4")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(0.0);
-    let battery_pass = bat.get("pass_count").and_then(|v| v.as_i64()).unwrap_or(0);
+        .and_then(Value::as_bool)
+        == Some(true);
+    let w_cad = finite(&wc["W_CAD"], "W_CAD")?;
+    let g1_val = finite(&g1["G"], "G1")?;
+    let mass_g = finite(&em["mass_g"], "raster mass")?;
+    let mass_3d_g = finite(&em["mass_3d_g"], "3D mass")?;
+    let strict_hunter_sf = finite(&em["sf_hunter_strict"], "strict hunter SF")?;
+    let solid_tip_sf = finite(&em["solid_tip_sf_nodal_max"], "independent solid tip SF")?;
+    let seq_ratio = finite(&em["seq_ratio_cert"], "sequence ratio")?;
+    let fat_sf = finite(&em["fat_sf_l7"], "fatigue SF")?;
+    let ring_bearing_w_mm = finite(&em["ring_bearing_w_mm"], "bore bearing width")?;
+    let buckling_eig = finite(&em["buckling_eigenvalue_a4"], "buckling eigenvalue")?;
+    let battery_pass = bat
+        .get("pass_count")
+        .and_then(Value::as_i64)
+        .ok_or("battery assessment unavailable")?;
+    let rs_case_pass = em.get("rs_v2_all_hard").and_then(Value::as_bool) == Some(true);
 
-    let rs_case_pass = bat
-        .get("cases")
-        .and_then(|v| v.as_array())
-        .and_then(|arr| arr.iter().find(|c| c.get("id").and_then(|x| x.as_str()) == Some("gate.rs_v2")))
-        .and_then(|c| c.get("status").and_then(|x| x.as_str()))
-        == Some("pass");
-
-    Ok(CertifiedDesign {
+    Ok(AssessedDesign {
         label: cand.label.clone(),
         family: cand.family.clone(),
         g: cand.g.clone(),
@@ -404,7 +426,7 @@ pub fn run_auto_evolve_cli(args: &[String]) -> i32 {
                     i += 1;
                 }
             }
-            "--certify-top" => {
+            "--certify-top" | "--top-k-certify" => {
                 if let Some(v) = args.get(i + 1).and_then(|x| x.parse::<usize>().ok()) {
                     certify_top = v.max(1);
                     i += 1;
@@ -442,7 +464,7 @@ pub fn run_auto_evolve_cli(args: &[String]) -> i32 {
             }
             "-h" | "--help" => {
                 println!(
-                    "Usage: jarambit auto-evolve [--rounds N] [--candidates-per-round K] [--certify-top M] [--threads T] [--seeds <csv1,csv2>] [--out-dir <dir>] [--prefix <name>] [--seed <u64>]"
+                    "Usage: jarambit auto-evolve [--rounds N] [--candidates-per-round K] [--top-k-certify [M]] [--threads T] [--seeds <csv1,csv2>] [--out-dir <dir>] [--prefix <name>] [--seed <u64>]"
                 );
                 return 0;
             }
@@ -457,11 +479,43 @@ pub fn run_auto_evolve_cli(args: &[String]) -> i32 {
     }
 
     let mut elites = load_seed_genomes(&root, seeds_arg.as_deref());
+    if elites.is_empty() {
+        eprintln!("auto-evolve: supply at least one valid committed/evolved genome CSV; no external CAD fallback");
+        return 1;
+    }
+    // A direct CLI invocation prepares the same tools that evolve.sh builds up front.
+    let examples = root.join("target/release/examples");
+    {
+        let _ = &examples; // Cargo checks fingerprints even when executables already exist.
+        let built = std::process::Command::new("cargo")
+            .args([
+                "build",
+                "--release",
+                "--locked",
+                "-p",
+                "jarambit-crescent",
+                "--example",
+                "export_step",
+                "--example",
+                "plate_gci_probe",
+                "--example",
+                "g3_side_report",
+            ])
+            .current_dir(&root)
+            .env("CARGO_INCREMENTAL", "0")
+            .env("CARGO_PROFILE_DEV_DEBUG", "line-tables-only")
+            .status();
+        if !matches!(built,Ok(s) if s.success()) {
+            eprintln!("auto-evolve: certification tool build failed; no certificate issued");
+            return 1;
+        }
+    }
     let mut rng = Rng(seed);
-    let mut certified_all: Vec<CertifiedDesign> = Vec::new();
+    let mut assessed_all: Vec<AssessedDesign> = Vec::new();
+    let mut errors = Vec::new();
 
     println!(
-        "=== JARAMBIT AUTO-EVOLVE (ALL ENGINEERING GATES: 16/16 W_CAD_v2 + 10/10 RS-karambit-v2 + 3D TET10 + side.a4 + 3-Mesh GCI) ==="
+        "=== JARAMBIT AUTO-EVOLVE: ranked search, independent top-k assessment, qualification requires every hard gate ==="
     );
     println!(
         "Config: rounds={rounds}, candidates/elite/round={candidates_per_round}, certify_top={certify_top}, threads={threads}, seed={seed}, out={}",
@@ -470,6 +524,15 @@ pub fn run_auto_evolve_cli(args: &[String]) -> i32 {
 
     for round in 0..rounds {
         let batch = spawn_offspring_batch(&elites, candidates_per_round, round, &mut rng);
+        let births = json!({"round":round,"seed":seed,"source":"spawn_offspring_batch from evolved genome CSV seeds",
+            "genome_header":Genome::csv_header(),"genomes":batch.iter().map(|(family,g)|json!({"family":family,"row":g.csv_row(),"certificate_identity":certification::identity(g)})).collect::<Vec<_>>()});
+        if let Err(e) = std::fs::write(
+            out_dir.join(format!("round_{round:02}_births.json")),
+            serde_json::to_string_pretty(&births).unwrap() + "\n",
+        ) {
+            eprintln!("auto-evolve: cannot retain birth history: {e}");
+            return 1;
+        }
         let th = threads.max(1).min(batch.len().max(1));
         let prefix_ref = prefix.as_str();
 
@@ -497,18 +560,31 @@ pub fn run_auto_evolve_cli(args: &[String]) -> i32 {
 
         // Sort Stage-1 survivors by lightest mass / highest estimated W_CAD_v2
         survivors.sort_by(|a, b| {
-            a.mass_g
-                .partial_cmp(&b.mass_g)
+            a.screen_deficit
+                .partial_cmp(&b.screen_deficit)
+                .filter(|o| !o.is_eq())
+                .or_else(|| a.mass_g.partial_cmp(&b.mass_g))
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         println!(
-            "\n[Round {}/{}] Stage-1 fast all-gates screen: {}/{} candidates passed all 2D/3D/FEM/RS-v2 hard gates",
+            "\n[Round {}/{}] Stage-1 ranking: {}/{} candidates have valid geometry and a FEM screen; qualification pending",
             round + 1,
             rounds,
             survivors.len(),
             batch.len()
         );
+
+        let ranked:Vec<_>=survivors.iter().map(|s|json!({"label":s.label,"family":s.family,"certificate_identity":certification::identity(&s.g),
+            "mass_g":s.mass_g,"seq_ratio":s.seq_ratio,"fat_sf":s.fat_sf,"ring_bearing_w_mm":s.ring_bearing_w_mm,
+            "screen_deficit":s.screen_deficit,"qualification_status":"pending independent top-k assessment"})).collect();
+        if let Err(e) = std::fs::write(
+            out_dir.join(format!("round_{round:02}_screen.json")),
+            serde_json::to_string_pretty(&ranked).unwrap() + "\n",
+        ) {
+            eprintln!("auto-evolve: cannot retain screen observations: {e}");
+            return 1;
+        }
 
         // Select up to `certify_top` distinct candidates (one per family first, then lightest overall)
         let mut to_certify: Vec<ScreenSurvivor> = Vec::new();
@@ -516,7 +592,7 @@ pub fn run_auto_evolve_cli(args: &[String]) -> i32 {
             if to_certify.len() >= certify_top {
                 break;
             }
-            let already_certified = certified_all.iter().any(|c| c.g == surv.g);
+            let already_certified = assessed_all.iter().any(|c| c.g == surv.g);
             let dup_fam = to_certify.iter().any(|c| c.family == surv.family);
             if !already_certified && !dup_fam {
                 to_certify.push(surv.clone());
@@ -526,7 +602,7 @@ pub fn run_auto_evolve_cli(args: &[String]) -> i32 {
             if to_certify.len() >= certify_top {
                 break;
             }
-            let already_certified = certified_all.iter().any(|c| c.g == surv.g);
+            let already_certified = assessed_all.iter().any(|c| c.g == surv.g);
             let dup_in_batch = to_certify.iter().any(|c| c.g == surv.g);
             if !already_certified && !dup_in_batch {
                 to_certify.push(surv.clone());
@@ -546,7 +622,7 @@ pub fn run_auto_evolve_cli(args: &[String]) -> i32 {
             match certify_candidate_stage2(&root, &out_dir, cand) {
                 Ok(cert) => {
                     println!(
-                        "     [CERTIFIED] {} | 16_gates={} | RS-v2_all_hard={} | battery={}/18 | mass={:.3}g (3D {:.3}g) | W_CAD={:+.6} | G1={:.6} | solid_tip_SF={:.4} | strict_hunter_SF={:.4}",
+                        "     [ASSESSED] {} | 16_gates={} | RS-v2_all_hard={} | battery={}/18 | mass={:.3}g (3D {:.3}g) | W_CAD={:+.6} | G1={:.6} | solid_tip_SF={:.4} | strict_hunter_SF={:.4}",
                         cert.label,
                         if cert.all_16_gates { "PASS" } else { "FAIL" },
                         if cert.rs_v2_all_hard { "PASS" } else { "FAIL" },
@@ -560,107 +636,99 @@ pub fn run_auto_evolve_cli(args: &[String]) -> i32 {
                     );
                     if cert.all_16_gates && cert.rs_v2_all_hard {
                         elites.push((cert.family.clone(), cert.g.clone()));
-                        certified_all.push(cert);
                     }
+                    assessed_all.push(cert);
                 }
                 Err(e) => {
-                    eprintln!("     [STAGE-2 ERROR] {}: {e}", cand.label);
+                    eprintln!("     [STAGE-2 UNVERIFIED] {}: {e}", cand.label);
+                    errors.push(json!({"label":cand.label,"status":"unverified","reason":e,"certificate_identity":certification::identity(&cand.g)}));
                 }
             }
         }
 
-        // Keep top elites sorted by lightest mass
-        elites.sort_by(|a, b| {
-            let ma = pheno::build(&a.1).mass_g;
-            let mb = pheno::build(&b.1).mass_g;
-            ma.partial_cmp(&mb).unwrap_or(std::cmp::Ordering::Equal)
-        });
-        if elites.len() > 4 {
-            elites.truncate(4);
+        if !survivors.is_empty() {
+            elites = survivors
+                .iter()
+                .take(4)
+                .map(|s| (s.family.clone(), s.g.clone()))
+                .collect();
         }
     }
 
-    certified_all.sort_by(|a, b| {
+    assessed_all.sort_by(|a, b| {
         a.mass_g
             .partial_cmp(&b.mass_g)
             .unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    if certified_all.is_empty() {
-        eprintln!("auto-evolve: no candidate completed full Stage-2 certification");
-        return 1;
-    }
-
-    let mut md = String::from(
-        "# Automated All-Gates Evolution Leaderboard\n\nAll designs below passed **16/16 `W_CAD_v2` hard gates**, **10/10 `RS-karambit-v2` (`all_hard = true`)**, **3D `TET10` solid-tip FEM (`SF >= 1.0`)**, **`side.a4` buckling & support (`lambda_cr >= 1.0`)**, **3-level Roache `GCI`**, and **18/18 CAD battery cases**.\n\n| Rank | Design Label | Family | Mass (g) | 3D Solid Mass (g) | `W_CAD_v2` | `G1` | Strict Hunter SF | 3D Solid Tip SF | Seq Ratio | Fatigue SF | Ring Bearing (mm) | Buckling `lambda_cr` | Battery | Genome CSV |\n|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|\n",
-    );
-    let mut json_rows = Vec::with_capacity(certified_all.len());
-    for (idx, c) in certified_all.iter().enumerate() {
+    let qualified: Vec<_> = assessed_all
+        .iter()
+        .filter(|c| c.all_16_gates && c.rs_v2_all_hard)
+        .collect();
+    let mut md=String::from("# Evolution certification attempts\n\nSearch rank is provisional. Qualification requires all 16 engineering gates and the complete measured RS-v2 verdict, including both independent fine-mesh solvers.\n\n| Design | Qualified | Mass g | W_CAD | G1 | Solid tip SF | RS-v2 all_hard | Battery |\n|---|---|---:|---:|---:|---:|---|---|\n");
+    let mut rows = Vec::new();
+    for c in &assessed_all {
+        let qualifies = c.all_16_gates && c.rs_v2_all_hard;
         let _ = writeln!(
             md,
-            "| {} | `{}` | `{}` | **{:.3}** | **{:.3}** | **`{:+.6}`** | `{:.6}` | `{:.4}` | `{:.4}` | `{:.4}` | `{:.4}` | `{:.2}` | `{:.3}` | `{}/18` | `{}` |",
-            idx + 1,
+            "| `{}` | {} | {:.3} | {:+.6} | {:.6} | {:.4} | {} | {}/18 |",
             c.label,
-            c.family,
+            qualifies,
             c.mass_g,
-            c.mass_3d_g,
             c.w_cad,
             c.g1,
-            c.strict_hunter_sf,
             c.solid_tip_sf,
-            c.seq_ratio,
-            c.fat_sf,
-            c.ring_bearing_w_mm,
-            c.buckling_eig,
-            c.battery_pass,
-            c.genome_csv.display()
+            c.rs_v2_all_hard,
+            c.battery_pass
         );
-        json_rows.push(json!({
-            "rank": idx + 1,
-            "label": c.label,
-            "family": c.family,
-            "mass_g": c.mass_g,
-            "mass_3d_g": c.mass_3d_g,
-            "w_cad": c.w_cad,
-            "g1": c.g1,
-            "strict_hunter_sf": c.strict_hunter_sf,
-            "solid_tip_sf": c.solid_tip_sf,
-            "seq_ratio": c.seq_ratio,
-            "fat_sf": c.fat_sf,
-            "ring_bearing_w_mm": c.ring_bearing_w_mm,
-            "buckling_eigenvalue_a4": c.buckling_eig,
-            "battery_pass_count": c.battery_pass,
-            "all_16_gates": c.all_16_gates,
-            "rs_v2_all_hard": c.rs_v2_all_hard,
-            "genome_csv": c.genome_csv.to_string_lossy(),
-            "scorecard_md": c.scorecard_md.to_string_lossy(),
-        }));
+        rows.push(json!({"label":c.label,"family":c.family,"qualified":qualifies,
+            "mass_g":c.mass_g,"mass_3d_g":c.mass_3d_g,"w_cad":c.w_cad,"g1":c.g1,
+            "solid_tip_sf":c.solid_tip_sf,"strict_hunter_sf":c.strict_hunter_sf,"seq_ratio":c.seq_ratio,
+            "fat_sf":c.fat_sf,"ring_bearing_w_mm":c.ring_bearing_w_mm,"buckling_eigenvalue_a4":c.buckling_eig,
+            "battery_pass_count":c.battery_pass,"all_16_gates":c.all_16_gates,"rs_v2_all_hard":c.rs_v2_all_hard,
+            "certificate_identity":certification::identity(&c.g),"genome_csv":c.genome_csv,"scorecard_md":c.scorecard_md}));
     }
-
-    let lb_md_path = out_dir.join("leaderboard.md");
-    let lb_json_path = out_dir.join("leaderboard.json");
-    let _ = std::fs::write(&lb_md_path, &md);
-    let _ = std::fs::write(
-        &lb_json_path,
-        serde_json::to_string_pretty(&json!({
-            "schema": "jarambit.auto_evolve.leaderboard.v1",
-            "champion": json_rows.first(),
-            "designs": json_rows,
-        }))
-        .unwrap()
-            + "\n",
-    );
-
-    println!("\n{md}");
+    let champion = rows.iter().find(|r| r["qualified"] == true).cloned();
+    let result = json!({"schema":"jarambit.auto_evolve.leaderboard.v2","champion":champion,
+        "qualified_count":qualified.len(),"assessed_count":rows.len(),"designs":rows,"unverified":errors});
+    if let Err(e) = std::fs::write(out_dir.join("leaderboard.md"), &md).and_then(|_| {
+        std::fs::write(
+            out_dir.join("leaderboard.json"),
+            serde_json::to_string_pretty(&result).unwrap() + "\n",
+        )
+    }) {
+        eprintln!("auto-evolve: cannot save evaluation results: {e}");
+        return 1;
+    }
     println!(
-        "Champion: {} (mass={:.3}g, 3D={:.3}g, W_CAD={:+.6}, G1={:.6}, battery={}/18)\nLeaderboard written to: {}",
-        certified_all[0].label,
-        certified_all[0].mass_g,
-        certified_all[0].mass_3d_g,
-        certified_all[0].w_cad,
-        certified_all[0].g1,
-        certified_all[0].battery_pass,
-        lb_md_path.display()
+        "{md}\nCompleted assessments: {}; qualified: {}; unverified: {}",
+        assessed_all.len(),
+        qualified.len(),
+        errors.len()
     );
-    0
+    if assessed_all.is_empty() || !errors.is_empty() {
+        1
+    } else {
+        0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn failed_strength_screen_remains_available_for_top_k_assessment() {
+        let root = repo_root();
+        let seeds = load_seed_genomes(
+            &root,
+            Some("evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv"),
+        );
+        let candidate = screen_candidate_stage1(0, 0, &seeds[0].0, &seeds[0].1, "test")
+            .expect("rankable failed candidate");
+        assert!(candidate.screen_deficit > 0.0);
+    }
+    #[test]
+    fn invalid_seed_input_has_no_external_cad_fallback() {
+        assert!(load_seed_genomes(&repo_root(), Some("missing_genome.csv")).is_empty());
+    }
 }

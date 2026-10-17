@@ -2,17 +2,11 @@
 # ==============================================================================
 # evolve.sh — Turnkey Automated Evolution Across ALL Engineering Gates
 # ==============================================================================
-# Evolves and certifies stronger, lighter Ti-6Al-4V karambit CADs natively in
-# Rust with ZERO gate relaxation:
-#   - 16/16 W_CAD_v2_ultrarunner_karambit hard gates
-#   - 10/10 RS-karambit-v2 (all_hard = true: human-maximum 70 Nm twist / 1200 N
-#     spine / 5000 N ring, 10^5-cycle R=0.1 fatigue SF >= 1.50, >=10.0 mm 3D
-#     ring-bore bearing, sharp bevel law edge_t <= 0.20 mm & theta_1 <= 12 deg,
-#     and 3D watertight B-rep needle-point check)
-#   - 3D P2 quadratic tetrahedron (TET10) solid-tip submodel FEM (SF >= 1.00)
-#   - side.a4 radial bore-pin + Winkler grip pad + Lanczos buckling (lambda >= 1)
-#   - 3-level Roache Grid Convergence Index (GCI) + strict 0.0625 mm^2 plate FEM
-#   - Watertight 3D STEP + STL export + 18/18 CAD battery + Master Scorecard
+# Evolves genome-defined CAD and automatically assesses the top-k with the standard
+# skfem P2 + DOLFINx pipeline on one saved fine mesh. Qualification is earned only
+# when the unchanged 16 engineering gates and RS-karambit-v2 all_hard both pass.
+# Failed and unverified attempts remain visible in leaderboard.json and raw files.
+# --top-k-certify [N] (alias --certify-top N; default 2) controls costly assessments.
 #
 # Usage:
 #   ./evolve.sh                                  # Default: 2 rounds, 12 candidates/elite/round -> out/auto_evolve
@@ -28,7 +22,10 @@ export JARAMBIT_P1_SFMAP="${JARAMBIT_P1_SFMAP:-$ROOT_DIR/evidence/d1_p1/w249_sfm
 export JARAMBIT_FEM="${JARAMBIT_FEM:-1}"
 
 echo "[evolve.sh] Building release binary (target/release/jarambit)..."
-cargo build --release --bin jarambit --quiet
+export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
+export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-line-tables-only}"
+cargo build --release --locked -p jarambit -p jarambit-crescent --bin jarambit \
+    --example export_step --example plate_gci_probe --example g3_side_report --quiet
 
 if [[ $# -gt 0 && "${1:-}" != -* ]]; then
     ROUNDS="${1:-2}"

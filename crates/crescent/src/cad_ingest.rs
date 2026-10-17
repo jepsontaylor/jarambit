@@ -103,6 +103,7 @@ pub fn deduplicate_triangles(flat: &[V3]) -> Result<Solid, String> {
     Ok(Solid {
         verts: unique,
         tris,
+        bore: None,
     })
 }
 

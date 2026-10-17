@@ -126,6 +126,14 @@ pub fn rs_v2_fatigue_pass(f: &Fem) -> bool { f.fat_sf >= 1.0 }
 /// Ring finger-bearing geometry (RS-v2): min local thickness along the ring bore (= bearing width along the finger
 /// axis for a straight bore) and the radial band width (ring OD - ID)/2. Edge radius r needs t >= 2 r + flat.
 pub fn ring_bearing(p: &Pheno) -> (f64, f64) {
+    if p.rs_v2 {
+        let r=p.ring_id/2.0;
+        let width=(0..72).map(|k| {
+            let a=k as f64*std::f64::consts::TAU/72.0;
+            crate::export::thickness_at(p,(r*a.cos(),r*a.sin()))
+        }).fold(f64::INFINITY,f64::min);
+        return (width,(p.ring_od-p.ring_id)/2.0);
+    }
     let rr = p.ring_id / 2.0;
     let w = (0..72).map(|k| { let a = k as f64 * std::f64::consts::PI / 36.0; let q = ((rr + 0.3) * a.cos(), (rr + 0.3) * a.sin());
         if point_in_poly(q, &p.outline) { p.field.at(q) } else { f64::INFINITY } }).fold(f64::INFINITY, f64::min);

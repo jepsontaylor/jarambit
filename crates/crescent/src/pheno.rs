@@ -42,6 +42,10 @@ impl Field {
 
 #[derive(Clone, Debug)]
 pub struct Pheno {
+    /// Exact input genes for the continuous exported surface (no catalog or design-label lookup).
+    pub genome: Genome,
+    pub surface_x_max: f64,
+    pub cut_in: Segments, pub cut_sp: Segments,
     pub cp: Vec<P2>,
     /// Full exterior: scallops + jimping + ring + fillets (clockwise like C.4).
     pub outline: Vec<P2>,
@@ -273,8 +277,10 @@ pub fn build(g: &Genome) -> Pheno {
     let pad = [(pc.0 - pw / 2.0, pc.1 - pl / 2.0), (pc.0 + pw / 2.0, pc.1 - pl / 2.0), (pc.0 + pw / 2.0, pc.1 + pl / 2.0), (pc.0 - pw / 2.0, pc.1 + pl / 2.0)];
     let neck_x = ring_od / 2.0 - 3.0;
     let grip_len = cp[13].0 - neck_x;
-    let edge_in: Vec<P2> = c[..=i_heel].to_vec(); let edge_sp: Vec<P2> = c[i_sp0..].to_vec();
-    let mut p = Pheno { cp, outline, macro_outline, curve: c, cidx, holes, hole_names, t: g.v[T], mat: g.mat, tip, heel, dx,
+    let cutting = if g.rs_v2() { &cs } else { &c };
+    let edge_in: Vec<P2> = cutting[..=i_heel].to_vec(); let edge_sp: Vec<P2> = cutting[i_sp0..].to_vec();
+    let mut p = Pheno { genome: g.clone(), surface_x_max: outline.iter().map(|q|q.0).fold(f64::NEG_INFINITY,f64::max),
+        cut_in: Segments::new(&edge_in), cut_sp: Segments::new(&edge_sp), cp, outline, macro_outline, curve: c, cidx, holes, hole_names, t: g.v[T], mat: g.mat, tip, heel, dx,
         edge_in, edge_sp, blade, grip_len, ring_od, ring_id, pad, teeth_in, teeth_sp, ripple_in, ripple_sp,
         field: Field { x0: 0.0, y0: 0.0, g: GRID, nx: 0, ny: 0, th: vec![], base: vec![] }, mass_g: 0.0, blank_g: 0.0, area_mm2: 0.0,
         removed: [0.0; NREM], n_win, win_area, n_perf, perf_area, web_clamped: 0, min_web: 0.0, land_full_mm2: 0.0, pad_flat: false, groove_w: 0.0, groove_area: 0.0,
@@ -300,7 +306,7 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
     let (tan_in, tan_sp) = (g.v[EA_IN].to_radians().tan(), g.v[EA_SP].to_radians().tan());
     let et = g.v[EDGE_TH];
     let rs_v2 = p.rs_v2;
-    let et_std = if rs_v2 { 0.895f64.max(et) } else { et };
+    let et_std = et;
     let nn_in = Nn::new(&densify(&p.edge_in, 0.25, false), 2.0);
     let nn_sp = Nn::new(&densify(&p.edge_sp, 0.25, false), 2.0);
     let mut bpts: Vec<P2> = densify(&p.outline, 0.25, true);
@@ -435,17 +441,7 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
                 if tot > 0.0 { for k in 0..NREM { removed[k] += removed_here * rem[k] / tot * gsz * gsz; } }
                 let mut thv = thv_std;
                 if rs_v2 {
-                    let d_tip = dist(q, p.tip);
-                    if d_tip < 3.6 {
-                        let u_t = smooth((d_tip - 2.1) / 1.5);
-                        let pt_law = (et + 0.20 * d_tip.min(1.0) + 0.38 * (d_tip - 1.0).max(0.0)).min(thv);
-                        thv = pt_law * (1.0 - u_t) + thv * u_t;
-                    }
-                    if rq_ <= r_id + 0.62 && point_in_poly(q, &p.outline) {
-                        let u_b = smooth((rq_ - (r_id + 0.48)) / 0.14);
-                        let w_bore = 10.20f64.max(thv);
-                        thv = w_bore * (1.0 - u_b) + thv * u_b;
-                    } else if in_groove {
+                    if in_groove {
                         thv = (thv - 2.0 * 0.58).max(web_min);
                     } else if pk_f > 0.0 {
                         thv = (thv - 2.0 * 0.28 * pk_f).max(web_min);
@@ -453,6 +449,7 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
                         thv = (thv - 2.0 * 0.36).max(web_min);
                     }
                 }
+                if rs_v2 { thv = bore_collar_thickness(p, q, thv); }
                 th[j * nx + i] = thv as f32; base_v[j * nx + i] = (if rs_v2 { thv_std } else { base }) as f32; area += gsz * gsz;
                 // P1: 'full thickness' = the local knot-field base (a planar ground face), not the max stock
                 let full = if p1 { base } else { t };
@@ -477,30 +474,46 @@ fn thickness_field(g: &Genome, p: &mut Pheno) {
                     if rs_v2 && !base_v[k].is_nan() { base_v[k] = (base_v[k] as f64 - 2.0 * fl).max(web_min) as f32; }
                 } } } }
     }
+    p.field = Field { x0, y0, g: gsz, nx, ny, th, base: base_v };
     if rs_v2 {
-        let q_in = p.edge_in.iter().copied().find(|&q| dist(q, p.tip) >= 2.0).unwrap_or(p.heel);
-        let q_sp = p.edge_sp.iter().rev().copied().find(|&q| dist(q, p.tip) >= 2.0).unwrap_or(p.edge_sp[0]);
-        let u_bis = norm(add(norm(sub(q_in, p.tip)), norm(sub(q_sp, p.tip))));
-        for s in 0..=28 {
-            let a = s as f64 * 0.125;
-            let q = add(p.tip, mul(u_bis, a));
-            let ii = ((q.0 - x0) / gsz).floor() as isize;
-            let jj = ((q.1 - y0) / gsz).floor() as isize;
-            if ii >= 0 && jj >= 0 && (ii as usize) < nx && (jj as usize) < ny {
-                let idx = jj as usize * nx + ii as usize;
-                let c = (x0 + (ii as f64 + 0.5) * gsz, y0 + (jj as f64 + 0.5) * gsz);
-                let dc = dist(c, p.tip).max(a);
-                let pt_v = (et + 0.20 * dc.min(1.0) + 0.38 * (dc - 1.0).max(0.0)) as f32;
-                if th[idx].is_nan() || (a <= 2.2 && pt_v < th[idx]) { th[idx] = pt_v; }
-            }
-        }
+        let actual: Vec<f32> = p.field.th.iter().enumerate().map(|(k, &v)| {
+            if v.is_nan() { return v; }
+            let q = (x0 + (k % nx) as f64 * gsz + gsz / 2.0,
+                     y0 + (k / nx) as f64 * gsz + gsz / 2.0);
+            crate::export::thickness_at(p, q) as f32
+        }).collect();
+        p.field.th = actual;
     }
     let rho = density(p.mat);
-    let vol: f64 = th.iter().filter(|v| !v.is_nan()).map(|&v| v as f64 * gsz * gsz).sum();
+    let vol: f64 = p.field.th.iter().filter(|v| !v.is_nan()).map(|&v| v as f64 * gsz * gsz).sum();
     p.mass_g = vol * rho / 1000.0; p.blank_g = area * t * rho / 1000.0; p.area_mm2 = area;
     p.removed = removed; p.web_clamped = clamped; p.min_web = if min_web == f64::MAX { t } else { min_web };
     p.land_full_mm2 = land_full; p.pad_flat = pad_flat;
     p.groove_w = if groove_on { g_r1 - g_r0 } else { 0.0 }; p.groove_area = groove_area;
     p.pocket_area = pocket_area;
-    p.field = Field { x0, y0, g: gsz, nx, ny, th, base: base_v };
+}
+
+/// Integral bore collar dimensions derived exclusively from the existing ring-wall gene.
+/// A quarter-circle roll on each face leaves a straight finger-bearing length of twice the wall.
+/// These are construction rules, not requirement limits or strength multipliers.
+pub fn bore_dimensions(p: &Pheno) -> (f64, f64) {
+    let wall = (p.ring_od - p.ring_id) / 2.0;
+    (wall / 4.0, 2.0 * wall)
+}
+
+pub fn bore_collar_thickness(p: &Pheno, q: P2, substrate: f64) -> f64 {
+    let (radius, bearing) = bore_dimensions(p);
+    let d = q.0.hypot(q.1) - p.ring_id / 2.0;
+    // The vertical tangent amplifies sub-ulp radial noise through sqrt; snap only the CAD boundary.
+    let d = if d.abs()<1e-9 {0.0}else{d};
+    if d < -1e-8 { return substrate; }
+    if d <= radius + 1e-9 {
+        let d = d.clamp(0.0, radius);
+        return bearing + 2.0 * (radius * radius - (radius - d).powi(2)).max(0.0).sqrt();
+    }
+    if d <= 1.5 * radius + 1e-9 { return bearing + 2.0 * radius; }
+    let wall = (p.ring_od - p.ring_id) / 2.0;
+    let u = ((d - 1.5 * radius) / (wall - 1.5 * radius)).clamp(0.0, 1.0);
+    let roll_out = (bearing + 2.0 * radius) * (1.0 - u * u * (3.0 - 2.0 * u));
+    substrate.max(roll_out)
 }

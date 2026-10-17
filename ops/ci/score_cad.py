@@ -1050,6 +1050,7 @@ def score_cad(
 
     scorecard = {
         'schema': SCORECARD_SCHEMA,
+        'certificate_identity': cad_eval.get('certificate_identity'),
         'subject': subj,
         'source_commit': commit,
         'evaluation_mode': cad_eval.get('evaluation_mode', resolved['mode']),

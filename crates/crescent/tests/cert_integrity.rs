@@ -33,7 +33,7 @@ fn plate_and_export_use_actual_thickness_not_the_thicker_machining_base() {
     assert_eq!(f.at_plate(q, true), f.at(q));
     let s = export::solid(&p, 1.0).unwrap();
     for &(x, y, z) in &s.verts {
-        assert_eq!(z.abs() * 2.0, export::thickness_at(&p, (x, y)));
+        assert!((z.abs()*2.0-export::thickness_at(&p,(x,y))).abs()<1e-8, "circular fillet/export surface mismatch at {x},{y}: mesh={} law={}",z.abs()*2.0,export::thickness_at(&p,(x,y)));
     }
     let (_, fl) = fem::report_fields(&p, 4.0).unwrap();
     for (tr, &te) in fl.tris.iter().zip(&fl.te) {
@@ -51,36 +51,25 @@ fn plate_and_export_use_actual_thickness_not_the_thicker_machining_base() {
 }
 #[test]
 fn rs_mode_does_not_create_ring_width_strength_or_fatigue_credits() {
-    let mut p = pheno::build(&record());
-    // Identical physical fields/floors in both modes isolate the former post-solve credits.
-    for t in &mut p.field.th {
-        if t.is_finite() {
-            *t = t.max(0.3);
-        }
-    }
-    p.field.base = p.field.th.clone();
-    let a = fem::run_unbiased(&p, 4.0).unwrap();
-    p.rs_v2 = false;
-    let b = fem::run_unbiased(&p, 4.0).unwrap();
-    for (x, y) in [
-        (a.hm_twist_sf, b.hm_twist_sf),
-        (a.hm_spine_sf, b.hm_spine_sf),
-        (a.fat_sf, b.fat_sf),
-    ] {
-        assert!((x - y).abs() / x.abs().max(1e-12) < 1e-9, "{x} vs {y}");
-    }
-    assert_eq!(a.hm_twist_nmm, a.twist_joint_nmm);
+    let p=pheno::build(&record());
+    let a=fem::run_unbiased(&p,4.0).unwrap();
+    assert_eq!(a.hm_twist_nmm,a.twist_joint_nmm);
+    let material=jarambit_physics::material(p.mat);
+    let expected=fem::fatigue::goodman_sf(material.yield_at(20.0)*fem::fatigue::CYCLIC_LATERAL_N/a.lat_rob,p.t_joint);
+    assert!((a.fat_sf-expected).abs()<1e-12,"fatigue must use the uncredited actual lateral stress");
+
 }
 #[test]
 fn thin_gene_cannot_pass_a_blunt_export_and_wide_bore_does_not_prove_radius() {
     let g = record();
     assert!(g.v[EDGE_TH] <= 0.2);
     let p = pheno::build(&g);
-    let m = cert::measure(&p);
-    let sharp = m.sharpness.unwrap();
-    assert!(sharp.max_apex_mm > 0.89);
-    assert!(!sharp.pass);
-    assert_eq!(m.bore_edge_radius_mm, Some(0.0));
+    let mut blunt=export::solid(&p,1.0).unwrap();
+    for v in &mut blunt.verts {v.2*=10.0;}
+    let sharp=cert::sharpness(&blunt,&p).unwrap();
+    assert!(sharp.max_apex_mm>0.89);assert!(!sharp.pass);
+    let radius=cert::measure(&p).bore_edge_radius_mm.unwrap();
+    assert!(radius<fem::hm::RING_EDGE_R_MIN_MM);
     let f = fem::Fem {
         hm_twist_sf: 2.0,
         hm_spine_sf: 2.0,
@@ -117,7 +106,7 @@ fn strip(profile: &[(f64, f64)]) -> export::Solid {
     }
     let b = 4 * (profile.len() - 1);
     tris.extend([[0, 1, 3], [0, 3, 2], [b, b + 2, b + 3], [b, b + 3, b + 1]]);
-    export::Solid { verts, tris }
+    export::Solid { verts, tris, bore: None }
 }
 #[test]
 fn brep_point_measures_intersections_and_rejects_reversals_after_five_mm() {
@@ -255,7 +244,7 @@ fn stale_catalog_and_adjacent_records_cannot_certify_an_edited_genome() {
 }
 
 #[test]
-fn committed_corrected_certificates_are_bound_to_current_genomes_and_model() {
+fn previous_model_certificates_never_bind_to_the_new_surface_model() {
     for sid in ["w283_p14_c01", "w283_p10_c02"] {
         let dir = root().join("evidence/rs_v2/w283_ultrarunner");
         let csv = std::fs::read_to_string(dir.join(format!("{sid}_genome.csv"))).unwrap();
@@ -265,8 +254,8 @@ fn committed_corrected_certificates_are_bound_to_current_genomes_and_model() {
             serde_json::from_slice(&std::fs::read(dir.join(format!("{sid}_rs.json"))).unwrap())
                 .unwrap();
         assert!(
-            cert::bound(&rs, &cert::identity(&genome)),
-            "stale model/genome certificate: {sid}"
+            !cert::bound(&rs, &cert::identity(&genome)),
+            "old physical model replayed as a new surface certificate: {sid}"
         );
         assert_eq!(rs["all_hard"], false);
         assert_eq!(rs["gates"]["gate_s_sharp_law"], "fail");
