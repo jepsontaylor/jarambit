@@ -7,9 +7,13 @@ fn main() {
     let off = h.iter().position(|c| *c == "cp00").expect("cp00");
     let f: Vec<&str> = l.next().unwrap().split(",").collect();
     let g = Genome::from_csv(&f[off..]).expect("genome parse");
-    let s = export::solid(&pheno::build(&g), 1.0).expect("solid");
+    let p=pheno::build(&g);
+    let s = export::solid(&p, 1.0).expect("solid");
     let (once, more, dmax) = export::census(&s.tris);
     std::fs::write(format!("{}.step", a[2]), export::step(&s, &a[3])).unwrap();
     std::fs::write(format!("{}.stl", a[2]), export::stl(&s, &a[3])).unwrap();
-    println!("boundary {once} nonmanifold {more} dmax {dmax} volume {:.0} mm3", export::volume(&s));
+    let mut surface=export::surface_json(&s);surface["tip"]=serde_json::json!(p.tip);surface["rs_v2"]=serde_json::json!(p.rs_v2);
+    surface["certificate_identity"]=serde_json::json!(jarambit_crescent::certification::identity(&g));
+    std::fs::write(format!("{}_surface.json", a[2]), serde_json::to_string(&surface).unwrap()+"\n").unwrap();
+    println!("boundary {once} nonmanifold {more} dmax {dmax} volume {:.9} mm3", export::volume(&s));
 }

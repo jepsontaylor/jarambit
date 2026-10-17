@@ -21,6 +21,12 @@ pub fn identity(g: &Genome) -> String {
     for value in &g.v {
         bytes.extend_from_slice(&value.to_bits().to_le_bytes());
     }
+    bytes.extend_from_slice(crate::c6_ref::rev().as_bytes());
+    if let Some(map)=if g.p1(){crate::pheno::sfmap()}else{None} {
+        for v in [map.x0,map.y0,map.g] {bytes.extend_from_slice(&v.to_bits().to_le_bytes());}
+        for v in [map.nx,map.ny] {bytes.extend_from_slice(&(v as u64).to_le_bytes());}
+        for v in &map.d {bytes.extend_from_slice(&v.to_bits().to_le_bytes());}
+    }
     for source in [
         include_str!("aesthetic.rs"),
         include_str!("battery.rs")
@@ -33,6 +39,8 @@ pub fn identity(g: &Genome) -> String {
         include_str!("cad_ingest.rs"),
         include_str!("certification.rs"),
         include_str!("export.rs"),
+        include_str!("step_export.rs"),
+        include_str!("../examples/export_step.rs"),
         include_str!("fem.rs"),
         include_str!("g1.rs"),
         include_str!("gates.rs"),
@@ -66,6 +74,9 @@ pub fn identity(g: &Genome) -> String {
         include_str!("../../../requirements/RS-karambit-v1.toml"),
         include_str!("../../../requirements/RS-karambit-v2.toml"),
         include_str!("../../../ops/ci/evaluate_cad_candidate.py"),
+        include_str!("../../../ops/ci/verify_genome_export.py"),
+        include_str!("../../../ops/ci/score_cad.py"),
+        include_str!("../../../ops/ci/cad_battery.py"),
         include_str!("../../../fem_solid/convergence.py"),
         include_str!("../../../fem_solid/cross_check.py"),
         include_str!("../../../fem_solid/gci.py"),
@@ -76,6 +87,7 @@ pub fn identity(g: &Genome) -> String {
         include_str!("../../../fem_solid/step_mesh_smoke.py"),
         include_str!("../../../fem_solid/step_solid.py"),
         include_str!("../../../fem_solid/tip_solid.py"),
+        include_str!("../../../fem_solid/export_surface.py"),
     ] {
         bytes.push(0);
         bytes.extend_from_slice(source.as_bytes());
@@ -196,59 +208,31 @@ pub fn sharpness(s: &Solid, p: &Pheno) -> Option<Sharpness> {
     let (mut apex, mut angle, mut count) = (0.0f64, 0.0f64, 0usize);
     let mut complete = true;
     for edge in [&p.edge_in, &p.edge_sp] {
+        let index=Segments::new(edge);
+        let distance=|q|index.nearest(q,0.5);
         let mut seen = std::collections::HashSet::new();
         let mut edge_count = 0;
-        for &(x, y, _) in &s.verts {
-            if !seen.insert((x.to_bits(), y.to_bits())) {
-                continue;
-            }
-            let q = (x, y);
-            let near = edge
-                .windows(2)
-                .min_by(|a, b| seg_dist(q, a[0], a[1]).total_cmp(&seg_dist(q, b[0], b[1])))?;
-            if seg_dist(q, near[0], near[1]) > 0.031 {
-                continue;
-            }
-            let tg = norm(sub(near[1], near[0]));
-            let mut n = (-tg.1, tg.0);
-            if !point_in_poly(add(q, mul(n, 0.05)), &p.outline) {
-                n = mul(n, -1.0);
-            }
-            let Some(t0) = thickness(s, q) else {
-                complete = false;
-                continue;
-            };
-            apex = apex.max(t0);
-            edge_count += 1;
-            let xs = stations(s, q, n, 0.4, &[]);
-            let Some(ts) = xs
-                .iter()
-                .map(|&a| thickness(s, add(q, mul(n, a))))
-                .collect::<Option<Vec<_>>>()
-            else {
-                complete = false;
-                continue;
-            };
-            for (aa, tt) in xs.windows(2).zip(ts.windows(2)) {
-                angle = angle.max(
-                    ((tt[1] - tt[0]).abs() / (2.0 * (aa[1] - aa[0])))
-                        .atan()
-                        .to_degrees(),
-                );
-            }
+        for &(x,y,_) in &s.verts {
+            if !seen.insert((x.to_bits(),y.to_bits())) || distance((x,y)) > 0.031 { continue; }
+            if let Some(t) = thickness(s,(x,y)) { apex=apex.max(t);edge_count+=1; }
+            else { complete=false; }
         }
-        if edge_count == 0 {
-            return None;
+        if edge_count == 0 { return None; }
+        count+=edge_count;
+        // Exact slopes of the exported planar faces in the first 0.4 mm. This also measures
+        // the acute endpoint, where a full 0.4 mm normal ray leaves the part. The gradient
+        // magnitude bounds EVERY directional half-angle, including the edge-normal direction.
+        for tr in &s.tris {
+            let [a,b,c]=tr.map(|i|s.verts[i]);
+            if ![a,b,c].iter().any(|v|distance((v.0,v.1))<=0.4) { continue; }
+            let u=(b.0-a.0,b.1-a.1,b.2-a.2);let v=(c.0-a.0,c.1-a.1,c.2-a.2);
+            let nx=u.1*v.2-u.2*v.1;let ny=u.2*v.0-u.0*v.2;let nz=u.0*v.1-u.1*v.0;
+            if nz.abs()<1e-14 { continue; } // vertical boundary walls are the measured apex, not a bevel face
+            angle=angle.max((nx.hypot(ny)/nz.abs()).atan().to_degrees());
         }
-        count += edge_count;
     }
-    Some(Sharpness {
-        pass: complete && apex <= APEX_MAX_MM && angle <= HALF_ANGLE_MAX_DEG,
-        complete,
-        max_apex_mm: apex,
-        max_half_angle_deg: angle,
-        samples: count,
-    })
+    Some(Sharpness { pass:complete && apex<=APEX_MAX_MM && angle<=HALF_ANGLE_MAX_DEG,
+        complete,max_apex_mm:apex,max_half_angle_deg:angle,samples:count })
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -258,21 +242,56 @@ pub struct Measurements {
     pub point: Option<PointProfile>,
     pub bore_edge_radius_mm: Option<f64>,
 }
-/// Native unfilleted bore: a top face which does not rise away from the vertical bore wall has a sharp corner.
-/// A potentially rounded profile is left unverified until an actual radius fit is available; width never proves radius.
+/// Fit the circular rolls from actual exported vertices on both faces, around the entire bore.
+/// Width, a gene or the presence of metadata can never prove this measurement. A sharp or
+/// incomplete profile remains unverified; a known flat native bore still measures radius zero.
 pub fn bore_radius(s: &Solid, p: &Pheno) -> Option<f64> {
-    let r = p.ring_id / 2.0;
-    for k in 0..72 {
-        let a = k as f64 * std::f64::consts::TAU / 72.0;
-        let n = (a.cos(), a.sin());
-        let at = thickness(s, mul(n, r))?;
-        let next = thickness(s, mul(n, r + 0.05))?;
-        if next <= at {
-            return Some(0.0);
+    let r=p.ring_id/2.0;
+    let mut profiles: std::collections::BTreeMap<i64,(Vec<P2>,Vec<P2>)>=std::collections::BTreeMap::new();
+    for &(x,y,z) in &s.verts {
+        let rho=x.hypot(y);
+        if rho < r-1e-7 || rho > r+(p.ring_od-p.ring_id)/4.0 {continue;}
+        let theta=y.atan2(x).rem_euclid(std::f64::consts::TAU);
+        let row=profiles.entry((theta*1e8).round() as i64).or_default();
+        if z>0.0 {row.0.push((rho,z));} else if z<0.0 {row.1.push((rho,-z));}
+    }
+    let mut sectors=[false;72];let mut minimum=f64::INFINITY;
+    for (theta,(mut top,mut bottom)) in profiles {
+        for points in [&mut top,&mut bottom] {
+            points.sort_by(|a,b|a.0.total_cmp(&b.0).then(a.1.total_cmp(&b.1)));
+            points.dedup_by(|a,b|dist(*a,*b)<1e-8);
+        }
+        if top.first().map_or(true,|v|(v.0-r).abs()>1e-7)
+            && bottom.first().map_or(true,|v|(v.0-r).abs()>1e-7) {continue;}
+        // The native export supplies 16 meridional facets per quarter-circle on each face.
+        // Check every one; do not infer a radius from one convenient three-point subset.
+        for points in [&top,&bottom] {
+            if points.len()<17 || (points[0].0-r).abs()>1e-7 {return None;}
+            let (a,b,c)=(points[0],points[8],points[16]);
+            let den=2.0*(a.0*(b.1-c.1)+b.0*(c.1-a.1)+c.0*(a.1-b.1));
+            if den.abs()<1e-12 {return Some(0.0);}
+            let aa=a.0*a.0+a.1*a.1;let bb=b.0*b.0+b.1*b.1;let cc=c.0*c.0+c.1*c.1;
+            let center=((aa*(b.1-c.1)+bb*(c.1-a.1)+cc*(a.1-b.1))/den,
+                        (aa*(c.0-b.0)+bb*(a.0-c.0)+cc*(b.0-a.0))/den);
+            let radius=dist(a,center);
+            if !radius.is_finite() || (center.0-a.0-radius).abs()>1e-7
+                || (center.1-a.1).abs()>1e-7 || (c.0-center.0).abs()>0.03
+                || points[..17].iter().any(|&v|(dist(v,center)-radius).abs()>1e-7) {return None;}
+            minimum=minimum.min(radius);
+        }
+        sectors[(((theta as f64/1e8)/std::f64::consts::TAU*72.0) as usize).min(71)]=true;
+    }
+    if sectors.iter().all(|v|*v) && minimum.is_finite() {return Some(minimum);}
+    // Legacy planar/unfilleted geometry can still establish a sharp corner.
+    if !p.rs_v2 {
+        for k in 0..72 {
+            let a=k as f64*std::f64::consts::TAU/72.0;let n=(a.cos(),a.sin());
+            if thickness(s,mul(n,r+0.05))?<=thickness(s,mul(n,r))? {return Some(0.0);}
         }
     }
     None
 }
+
 pub fn measure(p: &Pheno) -> Measurements {
     let mut m = Measurements {
         source: "export::solid(max_area=1.0); triangle intersections",

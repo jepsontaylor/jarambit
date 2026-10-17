@@ -29,6 +29,7 @@ def thick(P):
 gl = json.load(open(fn.replace("_D1.json", "_grind_law.json")))
 tip_gl = np.array(gl["edges"][0]["samples"][0][:2])          # inner-edge start = the point (pheno tip)
 ob = np.array(d["outline"]); tipo = ob[np.argmin(np.linalg.norm(ob-tip_gl, axis=1))]  # nearest outline vertex (plate: nearest outer node)
+if 'export_surface' in d:tipo=np.asarray(d['export_surface']['tip'],float)
 dvec = tipo/np.linalg.norm(tipo); nvec = np.array([-dvec[1], dvec[0]])
 cen = xy[tris].mean(1); dc = np.linalg.norm(cen-tipo, axis=1)
 # ---- PLATE reference from the exported crescent-d1 field (0.25 mm^2 cert mesh, per unit torque) ----
@@ -56,6 +57,11 @@ for a, b in [(4, 5), (5, 6), (6, 8), (8, 10), (10, 12), (12, 15), (15, 20), (20,
     s = (dc >= a) & (dc < b) & np.isfinite(twist); prof_plate[f"{a}-{b}"] = float(twist[s].max()*T_NMM) if s.any() else None
 print("PLATE", json.dumps(plate), flush=True)
 # ---- SOLID submodel ----
+source_heights = None
+if 'export_surface' in d:
+    from export_surface import load_surface
+    xy,tris,source_heights=load_surface(d['export_surface'])
+    cen=xy[tris].mean(1);dc=np.linalg.norm(cen-tipo,axis=1)
 keep = dc <= RC
 from scipy.sparse.csgraph import connected_components
 ki = np.where(keep)[0]; kt0 = tris[ki]
@@ -67,19 +73,13 @@ kt = tris[keep]
 used = np.unique(kt); rm = -np.ones(len(xy), int); rm[used] = np.arange(len(used)); P2d = xy[used]; T2d = rm[kt]
 # cut nodes: vertices of kept tris that also belong to a dropped tri
 dropped = np.unique(tris[~keep]); cutmask = np.zeros(len(xy), bool); cutmask[dropped] = True; cut2d = cutmask[used]
-for _ in range(NSUB):   # uniform 1->4 triangle subdivision (midpoints)
-    edges = {}; newp = list(P2d); newcut = list(cut2d); NT = []
-    def mid(a, b):
-        k = (min(a, b), max(a, b))
-        if k not in edges:
-            edges[k] = len(newp); newp.append((P2d[a]+P2d[b])/2); newcut.append(cut2d[a] and cut2d[b])
-        return edges[k]
-    for a, b, c in T2d:
-        ab, bc, ca = mid(a, b), mid(b, c), mid(c, a); NT += [(a, ab, ca), (ab, b, bc), (ca, bc, c), (ab, bc, ca)]
-    P2d = np.array(newp); T2d = np.array(NT); cut2d = np.array(newcut)
+heights=source_heights[used] if source_heights is not None else None
+from export_surface import refine
+for _ in range(NSUB):
+    P2d,T2d,cut2d,heights=refine(P2d,T2d,cut2d,heights)
 # the cut arc: keep only cut nodes near dist = RC-ish (avoid tagging interior)  -> nodes with dist >= RC-3 that were cut-tagged
 dn = np.linalg.norm(P2d-tipo, axis=1); cut2d &= dn > RC-4.0
-hh = thick(P2d); N2 = len(P2d)
+hh = heights if heights is not None else thick(P2d); N2 = len(P2d)
 pts = np.vstack([np.c_[P2d, (k/NL-0.5)*hh] for k in range(NL+1)])
 def tets_of_prism(v):
     v = list(v)
@@ -144,18 +144,22 @@ if __import__("os").environ.get("DUMP_MESH"):  # PR-0.30.2: hand the exact submo
     if __import__("os").environ.get("DUMP_ONLY") == "1": print("DUMP_ONLY: mesh written, skfem solve skipped", flush=True); sys.exit(0)
 Kff = K[free][:, free]; t1 = time.time()
 u = np.zeros(ib.N)
+algorithm="scipy_sparse_direct";iterations=None
 try:
     import pyamg
     B = np.zeros((ib.N, 6)); xd = ib.doflocs
     B[0::3, 0] = 1; B[1::3, 1] = 1; B[2::3, 2] = 1
     B[0::3, 3] = -xd[1, 0::3]; B[1::3, 3] = xd[0, 1::3]; B[1::3, 4] = -xd[2, 1::3]; B[2::3, 4] = xd[1, 2::3]
     B[0::3, 5] = xd[2, 0::3]; B[2::3, 5] = -xd[0, 2::3]
+    algorithm="skfem_p2_amg_cg"
     ml = pyamg.smoothed_aggregation_solver(Kff, B=B[free], max_coarse=3000); rr = []
-    u[free] = ml.solve(fvec[free], tol=1e-10, accel="cg", maxiter=3000, residuals=rr); print(f"AMG-CG its {len(rr)-1}", flush=True)
+    u[free] = ml.solve(fvec[free], tol=1e-10, accel="cg", maxiter=3000, residuals=rr); iterations=len(rr)-1; print(f"AMG-CG its {len(rr)-1}", flush=True)
 except ImportError:
     u[free] = spla.spsolve(Kff.tocsc(), fvec[free], permc_spec="MMD_AT_PLUS_A")
 res = np.linalg.norm(Kff@u[free]-fvec[free])/np.linalg.norm(fvec[free])
-print(f"solved {time.time()-t1:.0f}s rel.res {res:.1e}", flush=True)
+solve_seconds=time.time()-t1
+print(f"solved {solve_seconds:.0f}s rel.res {res:.1e}", flush=True)
+if not np.isfinite(res) or res>1e-10:raise RuntimeError(f'primary solve did not meet its configured 1e-10 tolerance: {res}')
 # stresses at element VERTICES (reference points) -> nodal max/avg; P2 -> linear stress per element
 Xr = np.array([[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], float); Wr = np.ones(4)/24
 bv = Basis(mesh, e, quadrature=(Xr, Wr))
@@ -182,6 +186,6 @@ solid = dict(PATCH_mm=PATCH, n_tet=int(len(TT)), n_dof=int(ib.N), R_CUT=RC, NL=N
              elem_mean_peak=dict(MPa=round(float(vmc[ic]), 1), at=cc[ic].round(2).tolist()),
              SF_solid_nodal_avg=round(SALLOW/zs["MPa"], 3), SF_solid_nodal_max=round(SALLOW/zx["MPa"], 3), SF_solid_elem_mean=round(SALLOW/float(vmc[ic]), 3),
              twist_rot_check=None, wall_s=round(time.time()-t0, 1))
-outj = dict(design=fn, T_Nmm=T_NMM, sallow_joint_MPa=round(SALLOW, 1), JK2=round(JK2, 4), plate=plate, solid=solid, profile_MPa=dict(plate_raw=prof_plate, solid_nodal_avg=prof_solid))
+outj = dict(solver=dict(algorithm=algorithm,iterations=iterations,relative_residual=float(res),converged=True,solve_seconds=solve_seconds),design=fn, T_Nmm=T_NMM, sallow_joint_MPa=round(SALLOW, 1), JK2=round(JK2, 4), plate=plate, solid=solid, profile_MPa=dict(plate_raw=prof_plate, solid_nodal_avg=prof_solid))
 json.dump(outj, open(OUT, "w"), indent=1)
 print(json.dumps(outj, indent=1))

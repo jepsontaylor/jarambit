@@ -1295,174 +1295,53 @@ pub fn build_subject(
     }))
 }
 
-fn build_solid_tip_case(
-    root: &Path,
-    spec: &GenomeSpec,
-    commit: &str,
-    rs: &Value,
-    sha: &str,
-) -> Value {
-    let source = rs.get("solid_tip_source").and_then(|v| v.as_str());
-    let payload = source.and_then(|s| load_json(root, s));
-    let is_stored_schema = payload
-        .as_ref()
-        .and_then(|p| p.get("schema"))
-        .and_then(|v| v.as_str())
-        == Some("jarambit.stored_solid_tip.v1");
-
-    if payload.is_none() || is_stored_schema {
-        let stored = if is_stored_schema {
-            payload
-        } else {
-            spec.tip_mesh.as_deref().and_then(|p| load_json(root, p))
-        };
-        if let Some(st) = stored.filter(|d| {
-            d.get("schema").and_then(|v| v.as_str()) == Some("jarambit.stored_solid_tip.v1")
-        }) {
-            if st.get("primary_solver").and_then(|v|v.as_str()).map_or(false,|v|v.starts_with("native_rust")) {
-                return make_case("solid.tip","solver_run","incomplete",Some("native_rust_tet10"),Some(sha),commit,spec.tip_mesh.as_deref(),Some("independent skfem/dolfinx certification unverified"),None,None);
-            }
-            let solid = st.get("stored_solid").cloned().unwrap_or(json!({}));
-            let missing: Vec<&str> = SOLVER_FIELDS
-                .iter()
-                .copied()
-                .filter(|name| !is_valid_num(solid.get(*name)))
-                .collect();
-            let sf = solid.get("SF_nodal_max");
-            let complete = missing.is_empty() && is_valid_num(sf);
-            let detail = json!({
-                "SF_nodal_max": if is_valid_num(sf) { sf.unwrap().clone() } else { Value::Null },
-                "n_tet": solid.get("n_tet"),
-                "n_dof": solid.get("n_dof"),
-                "ksp_its": solid.get("ksp_its"),
-                "NL": solid.get("NL"),
-                "NSUB": solid.get("NSUB"),
-                "missing": missing,
-                "solve_rerun": st.get("solve_rerun").and_then(|v| v.as_bool()).unwrap_or(false),
-                "copied_from_another_genome": false,
-                "entered_as_solver_run": complete,
-                "genome_data_row_matches_csv": st.get("genome_data_row_matches_csv"),
-                "d1_sha256": st.get("d1_sha256"),
-            });
-            if complete {
-                return make_case(
-                    "solid.tip",
-                    "solver_run",
-                    "pass",
-                    Some("solid_skfem_p2"),
-                    Some(sha),
-                    commit,
-                    spec.tip_mesh.as_deref(),
-                    None,
-                    Some(detail),
-                    Some(json!({"solid_tip_sf_nodal_max": sf.unwrap()})),
-                );
-            }
-            let reason = format!("missing {}", missing.join(", "));
-            return make_case(
-                "solid.tip",
-                "solver_run",
-                "incomplete",
-                Some("solid_skfem_p2"),
-                Some(sha),
-                commit,
-                spec.tip_mesh.as_deref(),
-                Some(&reason),
-                Some(detail),
-                None,
-            );
-        }
-        let detail = spec
-            .d1_searched
-            .as_ref()
-            .map(|s| json!({"searched": s, "found": false}));
-        return make_case(
-            "solid.tip",
-            "solver_run",
-            "incomplete",
-            Some("solid_skfem_p2"),
-            Some(sha),
-            commit,
-            source,
-            Some("no solid tip bound to this genome"),
-            detail,
-            None,
-        );
-    }
-
-    let payload = payload.unwrap();
-    let levels = payload
-        .get("levels")
-        .and_then(|v| v.as_array())
-        .cloned()
-        .unwrap_or_default();
-    let mut finest = levels.last().cloned().unwrap_or(json!({}));
-    let counted = spec.tip_mesh.as_deref().and_then(|p| load_json(root, p));
-    let mut matched = false;
-    if let Some(cnt) = counted {
-        if let Some(arr) = cnt.get("levels").and_then(|v| v.as_array()) {
-            for row in arr {
-                if row.get("NL") == finest.get("NL")
-                    && row.get("NSUB") == finest.get("NSUB")
-                    && row.get("n_dof") == finest.get("n_dof")
-                {
-                    if let Some(nt) = row.get("n_tet") {
-                        if nt.is_i64() {
-                            finest.as_object_mut().unwrap().insert("n_tet".into(), nt.clone());
-                            matched = true;
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-    }
-    let missing: Vec<&str> = SOLVER_FIELDS
-        .iter()
-        .copied()
-        .filter(|name| !is_valid_num(finest.get(*name)))
-        .collect();
-    let sf = finest.get("SF_nodal_max");
-    let detail = json!({
-        "SF_nodal_max": if is_valid_num(sf) { sf.unwrap().clone() } else { Value::Null },
-        "SF_nodal_max_published_fine": payload.get("SF_nodal_max").and_then(|v| v.get("fine")),
-        "n_tet": finest.get("n_tet"),
-        "n_dof": finest.get("n_dof"),
-        "ksp_its": finest.get("ksp_its"),
-        "NL": finest.get("NL"),
-        "NSUB": finest.get("NSUB"),
-        "n_tet_counted_this_lane": matched,
-        "solve_rerun": false,
-        "copied_from_another_genome": false,
-        "missing": missing,
+fn build_solid_tip_case(root:&Path,spec:&GenomeSpec,commit:&str,rs:&Value,sha:&str)->Value {
+    let source=rs.get("solid_tip_source").and_then(Value::as_str).or(spec.tip_mesh.as_deref());
+    let payload=source.and_then(|s|load_json(root,s));
+    let stored=payload.as_ref().and_then(|v| {
+        if v["schema"]=="jarambit.stored_solid_tip.v1" {Some(v)}else{v.get("solid_record")}
     });
-    if missing.is_empty() && is_valid_num(sf) {
-        make_case(
-            "solid.tip",
-            "solver_run",
-            "pass",
-            Some("solid_skfem_p2"),
-            Some(sha),
-            commit,
-            spec.tip_mesh.as_deref(),
-            None,
-            Some(detail),
-            Some(json!({"solid_tip_sf_nodal_max": sf.unwrap()})),
-        )
-    } else {
-        let reason = format!("missing {}", missing.join(", "));
-        make_case(
-            "solid.tip",
-            "solver_run",
-            "incomplete",
-            Some("solid_skfem_p2"),
-            Some(sha),
-            commit,
-            source,
-            Some(&reason),
-            Some(detail),
-            None,
-        )
+    let validated=(||->Result<&Value,String>{
+        let st=stored.ok_or("no content-bound independent solid record")?;
+        let path=Path::new(&spec.genome);let path=if path.is_absolute(){path.to_path_buf()}else{root.join(path)};
+        let g=parse_genome_csv_file(&path)?;let key=crate::certification::identity(&g);
+        if !crate::certification::bound(rs,&key) || !crate::certification::bound(st,&key)
+            || st["genome_sha256"].as_str()!=Some(sha) {return Err("solid/RS identity or genome hash mismatch".into());}
+        let d1_path=spec.d1.as_deref().ok_or("missing bound D1 input")?;
+        let d1=load_json(root,d1_path).ok_or("missing bound D1 input")?;
+        let d1_path=if Path::new(d1_path).is_absolute(){PathBuf::from(d1_path)}else{root.join(d1_path)};
+        if !crate::certification::bound(&d1,&key) || st["d1_sha256"].as_str()!=sha256_file(&d1_path).as_deref() {
+            return Err("solid D1 content binding mismatch".into());
+        }
+        let src=Path::new(source.ok_or("missing solid source")?);
+        let src=if src.is_absolute(){src.to_path_buf()}else{root.join(src)};
+        let prefix=src.file_name().and_then(|s|s.to_str()).and_then(|s|s.strip_suffix("_solid_tip.json")).ok_or("solid artifact paths unavailable")?;
+        let folder=src.parent().ok_or("solid artifact parent unavailable")?;
+        for (suffix,key) in [("solid_mesh.npz","mesh_sha256"),("skfem_raw.json","skfem_raw_sha256"),("dolfinx_raw.json","dolfinx_raw_sha256")] {
+            if st[key].as_str()!=sha256_file(&folder.join(format!("{prefix}_{suffix}"))).as_deref() {
+                return Err(format!("solid raw artifact content mismatch: {suffix}"));
+            }
+        }
+        let sk=load_json(folder,&format!("{prefix}_skfem_raw.json")).ok_or("primary observation unavailable")?;
+        let dx=load_json(folder,&format!("{prefix}_dolfinx_raw.json")).ok_or("independent observation unavailable")?;
+        if sk["solver"]["converged"]!=true {return Err("primary raw solve is not converged".into());}
+        let sk=sk.get("solid").unwrap_or(&sk);let observed=&st["stored_solid"];
+        for (raw,field) in [("SF_solid_nodal_max","SF_skfem_nodal_max"),("SF_solid_nodal_avg","SF_skfem_nodal_avg")] {
+            if sk[raw].as_f64()!=observed[field].as_f64(){return Err("primary SF differs from raw observation".into());}
+        }
+        for field in ["SF_nodal_max","SF_nodal_avg"] {
+            if dx[field].as_f64()!=observed[field].as_f64(){return Err("independent SF differs from raw observation".into());}
+        }
+        if crate::certification::independent_pass(st)!=Some(true) {return Err("independent fine-mesh comparison unverified or failed".into());}
+        if SOLVER_FIELDS.iter().any(|f|!is_valid_num(observed.get(*f))){return Err("incomplete solver observation".into());}
+        Ok(st)
+    })();
+    match validated {
+        Ok(st)=>make_case("solid.tip","solver_run","pass",Some("solid_skfem_p2"),Some(sha),commit,source,None,
+            Some(json!({"certificate_identity":st["certificate_identity"],"independent_comparison":"verified",
+                "raw_observations_validated":true,"stored_solid":st["stored_solid"]})),
+            Some(json!({"solid_tip_sf_nodal_max":st["stored_solid"]["SF_nodal_max"]}))),
+        Err(reason)=>make_case("solid.tip","solver_run","incomplete",Some("solid_skfem_p2"),Some(sha),commit,source,Some(&reason),None,None),
     }
 }
 
@@ -3614,69 +3493,15 @@ mod tests {
             }
         }
 
-        let w282_p14 = build_subject(
-            &root,
-            "w282_p14_c01",
-            &"0".repeat(40),
-            &probes,
-            None,
-            None,
-        )
-        .expect("w282_p14_c01 builds");
-        assert_eq!(w282_p14["pass_count"].as_u64(), Some(11));
-        assert_eq!(w282_p14["solver_run_count"].as_u64(), Some(1));
-        assert_eq!(w282_p14["global_fitness"]["status"].as_str(), Some("COMPLETE"));
-        let g_p14 = w282_p14["global_fitness"]["G"].as_f64().unwrap();
-        assert!((g_p14 - 0.878210).abs() < 1e-4, "g_p14={g_p14}");
-
-        let w282_p10 = build_subject(
-            &root,
-            "w282_p10_c02",
-            &"0".repeat(40),
-            &probes,
-            None,
-            None,
-        )
-        .expect("w282_p10_c02 builds");
-        assert_eq!(w282_p10["pass_count"].as_u64(), Some(11));
-        assert_eq!(w282_p10["solver_run_count"].as_u64(), Some(1));
-        assert_eq!(w282_p10["global_fitness"]["status"].as_str(), Some("COMPLETE"));
-        let g_p10 = w282_p10["global_fitness"]["G"].as_f64().unwrap();
-        assert!((g_p10 - 0.881101).abs() < 1e-4, "g_p10={g_p10}");
-
-        let w283_p14 = build_subject(
-            &root,
-            "w283_p14_c01",
-            &"0".repeat(40),
-            &probes,
-            None,
-            None,
-        )
-        .expect("w283_p14_c01 builds");
-        assert!(w283_p14["pass_count"].as_u64().unwrap()<13);
-        assert_eq!(w283_p14["solver_run_count"].as_u64(), Some(1));
-        assert_eq!(w283_p14["global_fitness"]["status"].as_str(), Some("COMPLETE"));
-        let g283_p14 = w283_p14["global_fitness"]["G"].as_f64().unwrap();
-        let ev=load_json(&root,"evidence/cad_battery/w283_p14_c01.json").unwrap();
-        assert!((g283_p14-ev["global_fitness"]["G"].as_f64().unwrap()).abs()<1e-9);
-        assert!(g283_p14<0.913855);
-
-        let w283_p10 = build_subject(
-            &root,
-            "w283_p10_c02",
-            &"0".repeat(40),
-            &probes,
-            None,
-            None,
-        )
-        .expect("w283_p10_c02 builds");
-        assert!(w283_p10["pass_count"].as_u64().unwrap()<13);
-        assert_eq!(w283_p10["solver_run_count"].as_u64(), Some(1));
-        assert_eq!(w283_p10["global_fitness"]["status"].as_str(), Some("COMPLETE"));
-        let g283_p10 = w283_p10["global_fitness"]["G"].as_f64().unwrap();
-        let ev=load_json(&root,"evidence/cad_battery/w283_p10_c02.json").unwrap();
-        assert!((g283_p10-ev["global_fitness"]["G"].as_f64().unwrap()).abs()<1e-9);
-        assert!(g283_p10<0.916719);
+        for sid in ["w282_p14_c01","w282_p10_c02","w283_p14_c01","w283_p10_c02"] {
+            let rec=build_subject(&root,sid,&"0".repeat(40),&probes,None,None).unwrap();
+            assert_eq!(rec["cases"].as_array().unwrap().len(),18);
+            let tip=rec["cases"].as_array().unwrap().iter().find(|c|c["id"]=="solid.tip").unwrap();
+            assert_eq!(tip["status"],"incomplete");
+            assert!(tip["g_inputs"].is_null());
+            assert_eq!(rec["solver_run_count"],0);
+            assert_eq!(rec["global_fitness"]["status"],"INCOMPLETE");
+        }
     }
 
     #[test]
@@ -3803,3 +3628,37 @@ mod tests {
 
 
 
+
+#[cfg(test)]
+mod catalog_binding_controls {
+    use super::*;
+    #[test]
+    fn catalog_requires_current_content_and_exact_raw_observations() {
+        // Synthetic software control only; these values are not a CAD/solver certificate.
+        let repo=PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let unique=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+        let folder=repo.join("target/catalog-binding-controls").join(unique.to_string());std::fs::create_dir_all(&folder).unwrap();
+        let genome=repo.join("evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv");std::fs::copy(&genome,folder.join("genome.csv")).unwrap();
+        let g=parse_genome_csv_file(&genome).unwrap();let key=crate::certification::identity(&g);let sha=sha256_file(&genome).unwrap();
+        let d1=json!({"certificate_identity":key});std::fs::write(folder.join("d1.json"),d1.to_string()).unwrap();
+        std::fs::write(folder.join("control_solid_mesh.npz"),b"synthetic mesh binding control").unwrap();
+        std::fs::write(folder.join("control_skfem_raw.json"),json!({"solver":{"converged":true},"solid":{"SF_solid_nodal_max":1.2,"SF_solid_nodal_avg":1.3}}).to_string()).unwrap();
+        std::fs::write(folder.join("control_dolfinx_raw.json"),json!({"SF_nodal_max":1.201,"SF_nodal_avg":1.301}).to_string()).unwrap();
+        let mesh=sha256_file(&folder.join("control_solid_mesh.npz")).unwrap();
+        let mut st=json!({"schema":"jarambit.stored_solid_tip.v1","certificate_identity":key,"genome_sha256":sha,
+            "d1_sha256":sha256_file(&folder.join("d1.json")).unwrap(),"mesh_sha256":mesh,
+            "skfem_raw_sha256":sha256_file(&folder.join("control_skfem_raw.json")).unwrap(),
+            "dolfinx_raw_sha256":sha256_file(&folder.join("control_dolfinx_raw.json")).unwrap(),
+            "stored_solid":{"NL":4,"NSUB":1,"n_tet":12,"n_dof":80,"ksp_its":15,"SF_skfem_nodal_max":1.2,"SF_skfem_nodal_avg":1.3,"SF_nodal_max":1.201,"SF_nodal_avg":1.301},
+            "dolfinx_cross_check":{"status":"verified","primary_solver":"skfem_p2","independent_solver":"dolfinx_v0.9.0","mesh_sha256":mesh,"SF_nodal_max":1.201,"SF_nodal_avg":1.301}});
+        let rs=json!({"certificate_identity":key,"solid_tip_source":"control_solid_tip.json"});
+        let spec=GenomeSpec{genome:"genome.csv".into(),d1:Some("d1.json".into()),tip_mesh:Some("control_solid_tip.json".into()),..Default::default()};
+        let run=|doc:&Value| {std::fs::write(folder.join("control_solid_tip.json"),doc.to_string()).unwrap();build_solid_tip_case(&folder,&spec,&"0".repeat(40),&rs,&sha)};
+        assert_eq!(run(&st)["status"],"pass");
+        let original=st.clone();st["certificate_identity"]=json!("stale");assert_eq!(run(&st)["status"],"incomplete");
+        st=original.clone();st["stored_solid"]["SF_nodal_max"]=json!(9.);st["dolfinx_cross_check"]["SF_nodal_max"]=json!(9.);assert_eq!(run(&st)["status"],"incomplete");
+        st=original.clone();st["dolfinx_cross_check"]["primary_solver"]=json!("native_rust_tet10");assert_eq!(run(&st)["status"],"incomplete");
+        st=original;std::fs::write(folder.join("control_solid_mesh.npz"),b"changed mesh").unwrap();let failed=run(&st);
+        assert_eq!(failed["status"],"incomplete");assert!(failed["g_inputs"].is_null());
+    }
+}

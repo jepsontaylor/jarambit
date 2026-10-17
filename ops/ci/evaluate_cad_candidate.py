@@ -231,6 +231,36 @@ def solid_evidence_matches(doc: dict, genome_sha: str, d1_sha: str, identity: st
     except (KeyError,TypeError,ValueError):return False
 
 
+def validate_solid_artifacts(doc: dict, folder: Path, label: str) -> bool:
+    """Re-read observations as well as hashing them; copied SF metadata is never an oracle."""
+    try:
+        for suffix,key in [('solid_mesh.npz','mesh_sha256'),('skfem_raw.json','skfem_raw_sha256'),('dolfinx_raw.json','dolfinx_raw_sha256')]:
+            if _sha256(folder/f'{label}_{suffix}') != doc.get(key):return False
+        sk=json.loads((folder/f'{label}_skfem_raw.json').read_text())
+        if sk.get('solver',{}).get('converged') is not True:return False
+        sk=sk.get('solid',sk)
+        dx=json.loads((folder/f'{label}_dolfinx_raw.json').read_text());stored=doc['stored_solid']
+        for raw,field in [('SF_solid_nodal_max','SF_skfem_nodal_max'),('SF_solid_nodal_avg','SF_skfem_nodal_avg')]:
+            if sk[raw] != stored[field]:return False
+        for field in ['SF_nodal_max','SF_nodal_avg']:
+            if dx[field] != stored[field] or dx[field]!=doc['dolfinx_cross_check'][field]:return False
+        return True
+    except (OSError,KeyError,TypeError,ValueError):return False
+
+
+def independent_runtime() -> dict:
+    candidate=Path('/home/ubuntu/.venvs/jarambit-sheath/bin/python')
+    python=os.environ.get('JARAMBIT_SOLVER_PYTHON') or (str(candidate) if candidate.is_file() else sys.executable)
+    versions=subprocess.check_output([python,'-c',
+        'import json,sys,sysconfig,numpy,scipy,skfem,pyamg,OCP;print(json.dumps(dict(python=sys.version,numpy=numpy.__version__,scipy=scipy.__version__,skfem=skfem.__version__,pyamg=pyamg.__version__,site_packages=sysconfig.get_path("purelib"))))'],text=True)
+    image='ghcr.io/fenics/dolfinx/dolfinx:v0.9.0'
+    try:
+        image_id=subprocess.check_output(['docker','image','inspect',image,'--format','{{.Id}}'],text=True).strip()
+    except (OSError,subprocess.CalledProcessError) as exc:
+        raise RuntimeError(f'independent DOLFINx runtime unverified; install Docker and pull {image}') from exc
+    return {'solver_python':python,'versions':json.loads(versions),'docker_image':image,'docker_image_id':image_id}
+
+
 def evaluate_candidate(
     label: str,
     genome_csv: Path,
@@ -242,6 +272,8 @@ def evaluate_candidate(
     genome_csv = genome_csv.resolve()
     out_dir = out_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    runtime=independent_runtime()
+    (out_dir/f'{label}_runtime.json').write_text(json.dumps(runtime,indent=2,sort_keys=True)+'\n')
 
     if bin_dir is None:
         bin_dir = ROOT / 'target' / 'release'
@@ -275,150 +307,175 @@ def evaluate_candidate(
         [str(export_step_bin), str(canon_genome), str(out_dir / label), label],
         cwd=ROOT, check=True, capture_output=True, text=True,
     )
+    (out_dir/f'{label}_export_stdout.txt').write_text(exp_res.stdout)
     cad_info = verify_step_and_stl(step_path, stl_path, exp_res.stdout.strip(), float(mt['mass_g']))
+    from ops.ci.verify_genome_export import inspect_step
+    brep=inspect_step(step_path)
+    (out_dir/f'{label}_step_check.json').write_text(json.dumps(brep,indent=2,sort_keys=True)+'\n')
+    cad_info['brep_check']=brep
+    cad_info['cad_valid']=cad_info['cad_valid'] and brep['valid'] and brep['solids']==1
+
+
+    # Bind the actual saved export surface to the solver input. The fine mesh is refined from
+    # these facets, including their actual edge heights, rather than a 0.5 mm display raster.
+    surface_path=out_dir/f'{label}_surface.json'
+    surface=json.loads(surface_path.read_text())
+    if surface.get('certificate_identity')!=d1_doc['certificate_identity']:
+        raise RuntimeError('export tool/model identity mismatch; rebuild jarambit and its export/probe examples')
+    if surface.get('rs_v2') and not brep['bore_rolls_on_both_faces']:
+        cad_info['cad_valid']=False
+        cad_info['bore_validation_status']='unverified: both analytic bore rolls required'
+    surface.update(source_step_sha256=_sha256(step_path),source_stl_sha256=_sha256(stl_path),
+                   source_surface_sha256=_sha256(surface_path))
+    d1_doc['export_surface']=surface
+    d1_path.write_text(json.dumps(d1_doc,sort_keys=True,separators=(',',':'))+'\n')
 
     # 3. Run 3-level plate GCI (4.0, 1.0, 0.25 mm^2) + extract Karambit geometry metrics
     gci_path = out_dir / f'{label}_plate_gci.json'
-    with tempfile.TemporaryDirectory() as tmp:
-        raw_p = Path(tmp) / 'raw_gci.json'
-        subprocess.run([str(probe_bin), str(canon_genome), str(raw_p)], cwd=ROOT, check=True)
-        raw_gci = json.loads(raw_p.read_text(encoding='utf-8'))
-        karambit_meta = dict(raw_gci.get('karambit') or {})
-        levels_raw = raw_gci['levels_fine_to_coarse']
-        obs_seq = Observable(
-            id='plate_seq_ratio', metric='seq_ratio',
-            region='blade_vs_ring_neck', projection='plate_cst_dkt', units='ratio',
+    raw_p = out_dir / f'{label}_plate_gci_raw.json'
+    subprocess.run([str(probe_bin), str(canon_genome), str(raw_p)], cwd=ROOT, check=True)
+    raw_gci = json.loads(raw_p.read_text(encoding='utf-8'))
+    karambit_meta = dict(raw_gci.get('karambit') or {})
+    levels_raw = raw_gci['levels_fine_to_coarse']
+    obs_seq = Observable(
+        id='plate_seq_ratio', metric='seq_ratio',
+        region='blade_vs_ring_neck', projection='plate_cst_dkt', units='ratio',
+    )
+    obs_sf = Observable(
+        id='plate_sf_hunter', metric='sf_hunter',
+        region='blade_outside_4mm', projection='plate_cst_dkt', units='ratio',
+    )
+    l_seq = [
+        Level(
+            mesh=MeshRef(id=f"{label}_area_{lv['max_area_mm2']}", revision='rev1', sha256=lv['mesh_sha256']),
+            h=float(lv['h_mm']), observable=obs_seq,
         )
-        obs_sf = Observable(
-            id='plate_sf_hunter', metric='sf_hunter',
-            region='blade_outside_4mm', projection='plate_cst_dkt', units='ratio',
+        for lv in levels_raw
+    ]
+    l_sf = [
+        Level(
+            mesh=MeshRef(id=f"{label}_area_{lv['max_area_mm2']}", revision='rev1', sha256=lv['mesh_sha256']),
+            h=float(lv['h_mm']), observable=obs_sf,
         )
-        l_seq = [
-            Level(
-                mesh=MeshRef(id=f"{label}_area_{lv['max_area_mm2']}", revision='rev1', sha256=lv['mesh_sha256']),
-                h=float(lv['h_mm']), observable=obs_seq,
-            )
-            for lv in levels_raw
-        ]
-        l_sf = [
-            Level(
-                mesh=MeshRef(id=f"{label}_area_{lv['max_area_mm2']}", revision='rev1', sha256=lv['mesh_sha256']),
-                h=float(lv['h_mm']), observable=obs_sf,
-            )
-            for lv in levels_raw
-        ]
-        seq_res = compute_gci(
-            levels_raw[0]['seq_ratio'], levels_raw[1]['seq_ratio'], levels_raw[2]['seq_ratio'],
-            r=2.0, levels=l_seq,
-        ).to_dict()
-        sf_res = compute_gci(
-            levels_raw[0]['sf_hunter'], levels_raw[1]['sf_hunter'], levels_raw[2]['sf_hunter'],
-            r=2.0, levels=l_sf,
-        ).to_dict()
-        gci_doc = {
-            'schema': 'jarambit.plate_gci.v1',
-            'certificate_identity': d1_doc['certificate_identity'],
-            'subject': label,
-            'genome': str(canon_genome.relative_to(ROOT)) if canon_genome.is_relative_to(ROOT) else str(canon_genome),
-            'genome_sha256': _sha256(canon_genome),
-            'karambit': karambit_meta,
-            'primary_observable': 'seq_ratio',
-            'refinement_ratio_r': 2.0,
-            'levels_fine_to_coarse': levels_raw,
-            'seq_ratio_gci': seq_res,
-            'sf_hunter_gci': sf_res,
-        }
-        gci_path.write_text(json.dumps(gci_doc, indent=2, sort_keys=True) + '\n', encoding='utf-8')
-
+        for lv in levels_raw
+    ]
+    seq_res = compute_gci(
+        levels_raw[0]['seq_ratio'], levels_raw[1]['seq_ratio'], levels_raw[2]['seq_ratio'],
+        r=2.0, levels=l_seq,
+    ).to_dict()
+    sf_res = compute_gci(
+        levels_raw[0]['sf_hunter'], levels_raw[1]['sf_hunter'], levels_raw[2]['sf_hunter'],
+        r=2.0, levels=l_sf,
+    ).to_dict()
+    gci_doc = {
+        'schema': 'jarambit.plate_gci.v1',
+        'certificate_identity': d1_doc['certificate_identity'],
+        'subject': label,
+        'genome': str(canon_genome.relative_to(ROOT)) if canon_genome.is_relative_to(ROOT) else str(canon_genome),
+        'genome_sha256': _sha256(canon_genome),
+        'karambit': karambit_meta,
+        'primary_observable': 'seq_ratio',
+        'refinement_ratio_r': 2.0,
+        'levels_fine_to_coarse': levels_raw,
+        'seq_ratio_gci': seq_res,
+        'sf_hunter_gci': sf_res,
+    }
+    gci_path.write_text(json.dumps(gci_doc, indent=2, sort_keys=True) + '\n', encoding='utf-8')
     # 4. Run 3D P2 solid-tip submodel + dolfinx v0.9.0 cross-check
     solid_tip_path = out_dir / f'{label}_solid_tip.json'
     skfem_cache = out_dir / f'{label}_skfem_raw.json'
     cached = json.loads(solid_tip_path.read_text()) if solid_tip_path.is_file() else {}
-    cached_files = all((out_dir/f'{label}_{suffix}').is_file() and _sha256(out_dir/f'{label}_{suffix}')==cached.get(key) for suffix,key in [('solid_mesh.npz','mesh_sha256'),('skfem_raw.json','skfem_raw_sha256'),('dolfinx_raw.json','dolfinx_raw_sha256')])
+    cached_files = validate_solid_artifacts(cached,out_dir,label)
     if run_solid or not cached_files or not solid_evidence_matches(cached, _sha256(canon_genome), _sha256(d1_path), d1_doc['certificate_identity']):
-        with tempfile.TemporaryDirectory() as tmp:
-            mesh_npz = Path(tmp) / 'mesh.npz'
-            raw_solid = Path(tmp) / 'solid_raw.json'
-            py_sheath = '/home/ubuntu/.venvs/jarambit-sheath/bin/python'
-            amg_path = '/home/ubuntu/.jarambit_custody_archive/out_custody/jarambit_tools/w18tip/amg'
-            env_solid = {
-                **os.environ,
-                'PYTHONPATH': f'{amg_path}:{ROOT}',
-                'DUMP_MESH': str(mesh_npz),
-            }
-            subprocess.run(
-                [py_sheath, str(ROOT / 'fem_solid' / 'tip_solid.py'), str(d1_path), '30', '4', '1', str(raw_solid)],
-                cwd=ROOT, env=env_solid, check=True,
-            )
-            shutil.copyfile(raw_solid, skfem_cache)
-            sk_doc=json.loads(raw_solid.read_text(encoding='utf-8'))
-            shutil.copyfile(mesh_npz,out_dir/f'{label}_solid_mesh.npz')
-            mesh_sha=_sha256(mesh_npz)
-            dolfinx_out = subprocess.check_output(
-                [
-                    'docker', 'run', '--rm',
-                    '-v', f'{ROOT}:/repo:ro',
-                    '-v', f'{tmp}:/work:ro',
-                    '-v', '/home/ubuntu/.venvs/jarambit-sheath/lib/python3.12/site-packages:/ext_sp:ro',
-                    '-e', 'PYTHONPATH=/usr/local/dolfinx-real/lib/python3.12/dist-packages:/usr/local/lib:/ext_sp:/repo',
-                    'ghcr.io/fenics/dolfinx/dolfinx:v0.9.0',
-                    'python3', '/repo/fem_solid/cross_check.py', '/work/mesh.npz',
-                ],
-                cwd=ROOT, text=True,
-            )
-            dx_doc = json.loads(dolfinx_out[dolfinx_out.rfind('{'):])
-            (out_dir/f'{label}_dolfinx_raw.json').write_text(json.dumps(dx_doc,indent=2,sort_keys=True)+'\n')
-            sk_solid = sk_doc.get('solid', sk_doc)
-            sf_sk_max = float(sk_solid['SF_solid_nodal_max'])
-            sf_dx_max = float(dx_doc['SF_nodal_max'])
-            sf_sk_avg = float(sk_solid['SF_solid_nodal_avg'])
-            sf_dx_avg = float(dx_doc['SF_nodal_avg'])
-            rel_err_max = abs(sf_sk_max - sf_dx_max) / max(sf_dx_max, 1e-9)
-            rel_err_avg = abs(sf_sk_avg - sf_dx_avg) / max(sf_dx_avg, 1e-9)
-            solid_record = {
-                'schema': 'jarambit.stored_solid_tip.v1',
-                'certificate_identity': d1_doc['certificate_identity'],
-                'mesh_sha256':mesh_sha, 'skfem_raw_sha256':_sha256(skfem_cache),
-                'dolfinx_raw_sha256':_sha256(out_dir/f'{label}_dolfinx_raw.json'),
-                'subject': label,
-                'd1_path': str(d1_path.relative_to(ROOT)) if d1_path.is_relative_to(ROOT) else str(d1_path),
-                'd1_sha256': _sha256(d1_path),
-                'genome_sha256': _sha256(canon_genome),
-                'genome_data_row_matches_csv': True,
-                'copied_from_another_genome': False,
-                'entered_as_solver_run': True,
-                'solve_rerun': True,
-                'metrics': {
-                    'spg': float(mt['spg']),
-                    'aes_score': float(mt['aes_score']),
-                },
-                'stored_solid': {
-                    'NL': int(sk_solid['NL']),
-                    'NSUB': int(sk_solid['NSUB']),
-                    'R_CUT': float(sk_solid['R_CUT']),
-                    'PATCH_mm': float(sk_solid['PATCH_mm']),
-                    'n_tet': int(sk_solid['n_tet']),
-                    'n_dof': int(sk_solid['n_dof']),
-                    'ksp_its': int(dx_doc['ksp_its']),
-                    'SF_nodal_max': sf_dx_max,
-                    'SF_nodal_avg': sf_dx_avg,
-                    'SF_skfem_nodal_max': sf_sk_max,
-                    'SF_skfem_nodal_avg': sf_sk_avg,
-                    'SF_elem_mean': float(sk_solid['SF_solid_elem_mean']),
-                },
-                'dolfinx_cross_check': {
-                    'container': 'ghcr.io/fenics/dolfinx/dolfinx:v0.9.0',
-                    'status': 'verified', 'primary_solver':'skfem_p2', 'independent_solver':'dolfinx_v0.9.0',
-                    'mesh_sha256':mesh_sha,
-                    'SF_nodal_max': sf_dx_max,
-                    'SF_nodal_avg': sf_dx_avg,
-                    'ksp_its': int(dx_doc['ksp_its']),
-                    'rel_err_nodal_max': round(rel_err_max, 6),
-                    'rel_err_nodal_avg': round(rel_err_avg, 6),
-                    'within_2pct': bool(rel_err_max <= 0.02 and rel_err_avg <= 0.02),
-                },
-            }
-            solid_tip_path.write_text(json.dumps(solid_record, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+        mesh_npz = out_dir/f'{label}_solid_mesh.npz'
+        raw_solid = skfem_cache
+        py_sheath = runtime['solver_python']
+        amg_path = str(ROOT)
+        env_solid = {
+            **os.environ,
+            'PYTHONPATH': f'{amg_path}:{ROOT}',
+            'DUMP_MESH': str(mesh_npz),
+            'OMP_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','MKL_NUM_THREADS':'1',
+        }
+        primary=subprocess.run(
+            [py_sheath,str(ROOT/'fem_solid'/'tip_solid.py'),str(d1_path),'30','4','1',str(raw_solid)],
+            cwd=ROOT,env=env_solid,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+        (out_dir/f'{label}_skfem_stdout.txt').write_text(primary.stdout)
+        print(primary.stdout,flush=True)
+        if primary.returncode:raise RuntimeError('primary solid solve unverified; see saved skfem output')
+        sk_doc=json.loads(raw_solid.read_text(encoding='utf-8'))
+        mesh_sha=_sha256(mesh_npz)
+        dolfinx_out = subprocess.check_output(
+            [
+                'docker', 'run', '--rm',
+                '-v', f'{ROOT}:/repo:ro',
+                '-v', f'{out_dir}:/work:rw',
+                '-v', f'{runtime["versions"]["site_packages"]}:/ext_sp:ro',
+                '-e', 'OMP_NUM_THREADS=1', '-e', 'OPENBLAS_NUM_THREADS=1', '-e', 'MKL_NUM_THREADS=1',
+                '-e', 'PYTHONPATH=/usr/local/dolfinx-real/lib/python3.12/dist-packages:/usr/local/lib:/ext_sp:/repo',
+                '-e', f'CROSS_CHECK_SIDECAR=/work/{label}_dolfinx_sidecar.json',
+                runtime['docker_image_id'],
+                'python3', '/repo/fem_solid/cross_check.py', f'/work/{mesh_npz.name}',
+            ],
+            cwd=ROOT, text=True,
+        )
+        (out_dir/f'{label}_dolfinx_stdout.txt').write_text(dolfinx_out)
+        dx_doc = json.loads(dolfinx_out[dolfinx_out.rfind('{'):])
+        (out_dir/f'{label}_dolfinx_raw.json').write_text(json.dumps(dx_doc,indent=2,sort_keys=True)+'\n')
+        sk_solid = sk_doc.get('solid', sk_doc)
+        sf_sk_max = float(sk_solid['SF_solid_nodal_max'])
+        sf_dx_max = float(dx_doc['SF_nodal_max'])
+        sf_sk_avg = float(sk_solid['SF_solid_nodal_avg'])
+        sf_dx_avg = float(dx_doc['SF_nodal_avg'])
+        rel_err_max = abs(sf_sk_max - sf_dx_max) / max(sf_dx_max, 1e-9)
+        rel_err_avg = abs(sf_sk_avg - sf_dx_avg) / max(sf_dx_avg, 1e-9)
+        solid_record = {
+            'schema': 'jarambit.stored_solid_tip.v1',
+            'certificate_identity': d1_doc['certificate_identity'],
+            'mesh_sha256':mesh_sha, 'skfem_raw_sha256':_sha256(skfem_cache),
+            'dolfinx_raw_sha256':_sha256(out_dir/f'{label}_dolfinx_raw.json'),
+            'subject': label,
+            'd1_path': str(d1_path.relative_to(ROOT)) if d1_path.is_relative_to(ROOT) else str(d1_path),
+            'd1_sha256': _sha256(d1_path),
+            'genome_sha256': _sha256(canon_genome),
+            'source_step_sha256': _sha256(step_path), 'source_stl_sha256': _sha256(stl_path),
+            'source_surface_sha256': _sha256(surface_path),
+            'genome_data_row_matches_csv': True,
+            'copied_from_another_genome': False,
+            'entered_as_solver_run': True,
+            'solve_rerun': True,
+            'metrics': {
+                'spg': float(mt['spg']),
+                'aes_score': float(mt['aes_score']),
+            },
+            'stored_solid': {
+                'NL': int(sk_solid['NL']),
+                'NSUB': int(sk_solid['NSUB']),
+                'R_CUT': float(sk_solid['R_CUT']),
+                'PATCH_mm': float(sk_solid['PATCH_mm']),
+                'n_tet': int(sk_solid['n_tet']),
+                'n_dof': int(sk_solid['n_dof']),
+                'ksp_its': int(dx_doc['ksp_its']),
+                'primary_solver_stats':sk_doc['solver'],
+                'SF_nodal_max': sf_dx_max,
+                'SF_nodal_avg': sf_dx_avg,
+                'SF_skfem_nodal_max': sf_sk_max,
+                'SF_skfem_nodal_avg': sf_sk_avg,
+                'SF_elem_mean': float(sk_solid['SF_solid_elem_mean']),
+            },
+            'dolfinx_cross_check': {
+                'container': runtime['docker_image'], 'container_image_id':runtime['docker_image_id'],
+                'status': 'verified', 'primary_solver':'skfem_p2', 'independent_solver':'dolfinx_v0.9.0',
+                'mesh_sha256':mesh_sha,
+                'SF_nodal_max': sf_dx_max,
+                'SF_nodal_avg': sf_dx_avg,
+                'ksp_its': int(dx_doc['ksp_its']),
+                'rel_err_nodal_max': round(rel_err_max, 6),
+                'rel_err_nodal_avg': round(rel_err_avg, 6),
+                'within_2pct': bool(rel_err_max <= 0.02 and rel_err_avg <= 0.02),
+            },
+        }
+        solid_tip_path.write_text(json.dumps(solid_record, indent=2, sort_keys=True) + '\n', encoding='utf-8')
     else:
         solid_record = json.loads(solid_tip_path.read_text(encoding='utf-8'))
         if 'metrics' not in solid_record:
@@ -434,49 +491,56 @@ def evaluate_candidate(
     solid_tip_path.write_text(json.dumps(solid_record,indent=2,sort_keys=True)+'\n')
 
     # Write bindings.json + gci-format JSON in a temp solid dir so `rs-v2-eval` binds `solid_tip_sf`
-    with tempfile.TemporaryDirectory() as solid_tmp:
-        gci_file = Path(solid_tmp) / f'{label}_gci.json'
-        gci_compat = {
-            'design': label,
-            'certificate_identity': d1_doc['certificate_identity'],
-            'solid_record': solid_record,
-            'SF_nodal_max': {
-                'fine': solid_record['stored_solid']['SF_nodal_max'],
-            },
-            'levels': [
-                {
-                    'NL': solid_record['stored_solid']['NL'],
-                    'NSUB': solid_record['stored_solid']['NSUB'],
-                    'n_tet': solid_record['stored_solid']['n_tet'],
-                    'n_dof': solid_record['stored_solid']['n_dof'],
-                    'ksp_its': solid_record['stored_solid']['ksp_its'],
-                    'SF_nodal_max': solid_record['stored_solid']['SF_nodal_max'],
-                }
-            ],
-        }
-        gci_file.write_text(json.dumps(gci_compat), encoding='utf-8')
-        bindings_compat = {
-            d1_doc['certificate_identity']: {
-                'genome': str(canon_genome),
-                'certificate_identity': d1_doc['certificate_identity'],
-                'gci': str(gci_file),
-                'gci_sha256':_sha256(gci_file),
+    solid_tmp = str(out_dir / 'solid-bindings')
+    Path(solid_tmp).mkdir(exist_ok=True)
+    gci_file = Path(solid_tmp) / f'{label}_gci.json'
+    gci_compat = {
+        'design': label,
+        'certificate_identity': d1_doc['certificate_identity'],
+        'solid_record': solid_record,
+        'SF_nodal_max': {
+            'fine': solid_record['stored_solid']['SF_nodal_max'],
+        },
+        'levels': [
+            {
+                'NL': solid_record['stored_solid']['NL'],
+                'NSUB': solid_record['stored_solid']['NSUB'],
+                'n_tet': solid_record['stored_solid']['n_tet'],
+                'n_dof': solid_record['stored_solid']['n_dof'],
+                'ksp_its': solid_record['stored_solid']['ksp_its'],
+                'SF_nodal_max': solid_record['stored_solid']['SF_nodal_max'],
             }
+        ],
+    }
+    gci_file.write_text(json.dumps(gci_compat), encoding='utf-8')
+    bindings_compat = {
+        d1_doc['certificate_identity']: {
+            'genome': str(canon_genome),
+            'certificate_identity': d1_doc['certificate_identity'],
+            'gci': str(gci_file),
+            'gci_sha256':_sha256(gci_file),
         }
-        (Path(solid_tmp) / 'bindings.json').write_text(json.dumps(bindings_compat), encoding='utf-8')
-        subprocess.run(
-            [
-                str(jarambit_bin), 'rs-v2-eval',
-                '--genomes', f'{label}={canon_genome}',
-                '--out', str(out_dir),
-                '--solid-dir', solid_tmp,
-            ],
-            cwd=ROOT, check=True,
-        )
+    }
+    (Path(solid_tmp) / 'bindings.json').write_text(json.dumps(bindings_compat), encoding='utf-8')
+    subprocess.run(
+        [
+            str(jarambit_bin), 'rs-v2-eval',
+            '--genomes', f'{label}={canon_genome}',
+            '--out', str(out_dir),
+            '--solid-dir', solid_tmp,
+        ],
+        cwd=ROOT, check=True,
+    )
     rs_raw_path = out_dir / f'{label}.json'
     rs_path = out_dir / f'{label}_rs.json'
-    shutil.move(str(rs_raw_path), str(rs_path))
+    shutil.copyfile(rs_raw_path,rs_path)
     rs_doc = json.loads(rs_path.read_text(encoding='utf-8'))
+    if surface.get('rs_v2'):
+        measured=rs_doc['export_measurements'].get('bore_edge_radius_mm')
+        step_radius=brep.get('bore_edge_radius_mm')
+        agrees=measured is not None and step_radius is not None and abs(measured-step_radius)<=1e-7
+        cad_info['bore_measurement_agrees_with_step']=agrees
+        cad_info['cad_valid']=cad_info['cad_valid'] and agrees
     rs_doc['genome'] = str(canon_genome.relative_to(ROOT)) if canon_genome.is_relative_to(ROOT) else str(canon_genome)
     rs_doc['solid_tip_source'] = str(solid_tip_path.relative_to(ROOT)) if solid_tip_path.is_relative_to(ROOT) else str(solid_tip_path)
     rs_path.write_text(json.dumps(rs_doc, indent=2, sort_keys=True) + '\n', encoding='utf-8')

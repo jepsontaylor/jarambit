@@ -217,3 +217,34 @@ pub fn self_intersects(p: &[P2]) -> bool {
     } } }
     false
 }
+
+/// Exact polyline distance, using spatial bins only to avoid testing distant segments.
+#[derive(Clone, Debug)]
+pub struct Segments { points: Vec<P2>, bins: HashMap<(i64,i64),Vec<usize>> }
+impl Segments {
+    pub fn new(points: &[P2]) -> Self {
+        let mut bins:HashMap<(i64,i64),Vec<usize>>=HashMap::new();
+        for (i,w) in points.windows(2).enumerate() {
+            for x in (w[0].0.min(w[1].0)/2.0).floor() as i64..=(w[0].0.max(w[1].0)/2.0).floor() as i64 {
+                for y in (w[0].1.min(w[1].1)/2.0).floor() as i64..=(w[0].1.max(w[1].1)/2.0).floor() as i64 {
+                    bins.entry((x,y)).or_default().push(i);
+                }
+            }
+        }
+        Self{points:points.to_vec(),bins}
+    }
+    pub fn nearest(&self,q:P2,limit:f64)->f64 {
+        let cell=((q.0/2.0).floor() as i64,(q.1/2.0).floor() as i64);
+        let mut best=f64::INFINITY;
+        for ring in 0..=(limit/2.0).ceil() as i64+1 {
+            for x in cell.0-ring..=cell.0+ring {for y in cell.1-ring..=cell.1+ring {
+                if ring>0 && x>cell.0-ring && x<cell.0+ring && y>cell.1-ring && y<cell.1+ring {continue;}
+                if let Some(ids)=self.bins.get(&(x,y)) {for &i in ids {best=best.min(seg_dist(q,self.points[i],self.points[i+1]));}}
+            }}
+            let lower=(q.0-(cell.0-ring) as f64*2.0).min((cell.0+ring+1) as f64*2.0-q.0)
+                .min(q.1-(cell.1-ring) as f64*2.0).min((cell.1+ring+1) as f64*2.0-q.1);
+            if lower>=best.min(limit) {break;}
+        }
+        if best<=limit {best}else{f64::INFINITY}
+    }
+}

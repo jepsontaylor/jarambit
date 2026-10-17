@@ -433,66 +433,33 @@ def _side_cases(spec, commit, sha):
 
 
 def _solid_tip(spec, commit, rs, sha):
-    source = rs.get('solid_tip_source')
-    payload = _load(source) if source else None
-    if not payload or payload.get('schema') == 'jarambit.stored_solid_tip.v1':
-        stored = payload if (payload and payload.get('schema') == 'jarambit.stored_solid_tip.v1') else (_load(spec.get('tip_mesh')) if spec.get('tip_mesh') else None)
-        if stored and stored.get('schema') == 'jarambit.stored_solid_tip.v1':
-            solid = dict(stored.get('stored_solid') or {})
-            missing = [name for name in SOLVER_FIELDS
-                       if not isinstance(solid.get(name), (int, float)) or isinstance(solid.get(name), bool)]
-            sf = solid.get('SF_nodal_max')
-            complete = bool(not missing and isinstance(sf, (int, float)) and not isinstance(sf, bool))
-            # A stored SF without every solver field stays out of G.
-            detail = {
-                'SF_nodal_max': sf if isinstance(sf, (int, float)) and not isinstance(sf, bool) else None,
-                'n_tet': solid.get('n_tet'), 'n_dof': solid.get('n_dof'), 'ksp_its': solid.get('ksp_its'),
-                'NL': solid.get('NL'), 'NSUB': solid.get('NSUB'),
-                'missing': missing, 'solve_rerun': bool(stored.get('solve_rerun')),
-                'copied_from_another_genome': False, 'entered_as_solver_run': complete,
-                'genome_data_row_matches_csv': stored.get('genome_data_row_matches_csv'),
-                'd1_sha256': stored.get('d1_sha256'),
-            }
-            if complete:
-                return _case('solid.tip', 'solver_run', 'pass', solver='solid_skfem_p2', geometry_sha256=sha,
-                             source_commit=commit, evidence_path=spec.get('tip_mesh'),
-                             detail=detail, g_inputs={'solid_tip_sf_nodal_max': sf})
-            return _case('solid.tip', 'solver_run', 'incomplete', solver='solid_skfem_p2', geometry_sha256=sha,
-                         source_commit=commit, evidence_path=spec.get('tip_mesh'),
-                         reason='missing ' + ', '.join(missing), detail=detail)
-        searched = spec.get('d1_searched')
-        detail = {'searched': list(searched), 'found': False} if searched else None
-        return _case('solid.tip', 'solver_run', 'incomplete', solver='solid_skfem_p2', geometry_sha256=sha,
-                     source_commit=commit, evidence_path=source, reason='no solid tip bound to this genome',
-                     detail=detail)
-    levels = payload.get('levels') or []
-    finest = dict(levels[-1]) if levels else {}
-    counted = _load(spec.get('tip_mesh')) if spec.get('tip_mesh') else None
-    matched = None
-    if counted:
-        for row in counted.get('levels') or []:
-            if row.get('NL') == finest.get('NL') and row.get('NSUB') == finest.get('NSUB') and row.get('n_dof') == finest.get('n_dof'):
-                matched = row
-                break
-    if matched and isinstance(matched.get('n_tet'), int):
-        finest['n_tet'] = matched['n_tet']
-    missing = [name for name in SOLVER_FIELDS if not isinstance(finest.get(name), (int, float)) or isinstance(finest.get(name), bool)]
-    sf = finest.get('SF_nodal_max')
-    detail = {
-        'SF_nodal_max': sf if isinstance(sf, (int, float)) and not isinstance(sf, bool) else None,
-        'SF_nodal_max_published_fine': (payload.get('SF_nodal_max') or {}).get('fine'),
-        'n_tet': finest.get('n_tet'), 'n_dof': finest.get('n_dof'), 'ksp_its': finest.get('ksp_its'),
-        'NL': finest.get('NL'), 'NSUB': finest.get('NSUB'),
-        'n_tet_counted_this_lane': bool(matched), 'solve_rerun': False,
-        'copied_from_another_genome': False, 'missing': missing,
-    }
-    # n_tet is required. A historical SF without it is not a solver_run success and is not a G input.
-    if not missing and isinstance(sf, (int, float)) and not isinstance(sf, bool):
-        return _case('solid.tip', 'solver_run', 'pass', solver='solid_skfem_p2', geometry_sha256=sha,
-                     source_commit=commit, evidence_path=spec.get('tip_mesh'),
-                     detail=detail, g_inputs={'solid_tip_sf_nodal_max': sf})
-    return _case('solid.tip', 'solver_run', 'incomplete', solver='solid_skfem_p2', geometry_sha256=sha,
-                 source_commit=commit, evidence_path=source, reason='missing ' + ', '.join(missing), detail=detail)
+    from ops.ci.evaluate_cad_candidate import solid_evidence_matches, independent_agreement, validate_solid_artifacts
+    source=rs.get('solid_tip_source') or spec.get('tip_mesh')
+    stored=_load(source) if source else None
+    if stored and stored.get('schema')!='jarambit.stored_solid_tip.v1':stored=stored.get('solid_record')
+    if stored:
+        solid=stored.get('stored_solid') or {}
+        missing=[name for name in SOLVER_FIELDS if not isinstance(solid.get(name),(int,float)) or isinstance(solid.get(name),bool)]
+        if missing:
+            return _case('solid.tip','solver_run','incomplete',solver='solid_skfem_p2',geometry_sha256=sha,
+                         source_commit=commit,evidence_path=source,reason='missing '+', '.join(missing),
+                         detail={'missing':missing,'ksp_its':solid.get('ksp_its'),'n_tet':solid.get('n_tet'),'n_dof':solid.get('n_dof'),'entered_as_solver_run':False})
+    d1=_load(spec.get('d1')) if spec.get('d1') else None
+    try:
+        d1_path=Path(spec['d1']);d1_path=d1_path if d1_path.is_absolute() else ROOT/d1_path
+        source_path=Path(source);source_path=source_path if source_path.is_absolute() else ROOT/source_path
+        label=source_path.name.removesuffix('_solid_tip.json')
+        key=d1['certificate_identity']
+        bound=rs.get('certificate_identity')==key and solid_evidence_matches(stored,sha,_sha256(d1_path),key)
+        bound=bound and validate_solid_artifacts(stored,source_path.parent,label)
+        bound=bound and independent_agreement(stored)['within_2pct']
+    except (OSError,KeyError,TypeError,ValueError):bound=False
+    if not bound:
+        return _case('solid.tip','solver_run','incomplete',solver='solid_skfem_p2',geometry_sha256=sha,
+                     source_commit=commit,evidence_path=source,reason='content-bound independent fine-mesh observations unavailable')
+    return _case('solid.tip','solver_run','pass',solver='solid_skfem_p2',geometry_sha256=sha,
+                 source_commit=commit,evidence_path=source,detail={'certificate_identity':key,'raw_observations_validated':True},
+                 g_inputs={'solid_tip_sf_nodal_max':stored['stored_solid']['SF_nodal_max']})
 
 
 def _g_from_cases(cases):
