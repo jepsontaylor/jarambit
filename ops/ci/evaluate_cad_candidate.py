@@ -249,16 +249,39 @@ def validate_solid_artifacts(doc: dict, folder: Path, label: str) -> bool:
 
 
 def independent_runtime() -> dict:
-    candidate=Path('/home/ubuntu/.venvs/jarambit-sheath/bin/python')
-    python=os.environ.get('JARAMBIT_SOLVER_PYTHON') or (str(candidate) if candidate.is_file() else sys.executable)
+    python=os.environ.get('JARAMBIT_SOLVER_PYTHON') or sys.executable
     versions=subprocess.check_output([python,'-c',
         'import json,sys,sysconfig,numpy,scipy,skfem,pyamg,OCP;print(json.dumps(dict(python=sys.version,numpy=numpy.__version__,scipy=scipy.__version__,skfem=skfem.__version__,pyamg=pyamg.__version__,site_packages=sysconfig.get_path("purelib"))))'],text=True)
-    image='ghcr.io/fenics/dolfinx/dolfinx:v0.9.0'
+    image='ghcr.io/fenics/dolfinx/dolfinx@sha256:628f40dd62c7f37962ccadc5a745f23d52c56b2ac3ad9b9b6a86c567c07aa27b'
     try:
         image_id=subprocess.check_output(['docker','image','inspect',image,'--format','{{.Id}}'],text=True).strip()
     except (OSError,subprocess.CalledProcessError) as exc:
         raise RuntimeError(f'independent DOLFINx runtime unverified; install Docker and pull {image}') from exc
     return {'solver_python':python,'versions':json.loads(versions),'docker_image':image,'docker_image_id':image_id}
+
+
+def run_independent_cross_check(mesh_npz: Path, out_dir: Path, label: str, runtime: dict) -> dict:
+    output = out_dir/'container-output'
+    output.mkdir(exist_ok=True)
+    site = Path(runtime['versions']['site_packages'])
+    # Import NumPy from the pinned independent image BEFORE appending only SciPy's wheel path.
+    launcher = "import numpy,runpy,sys;sys.path.append('/deps');sys.argv=sys.argv[1:];runpy.run_path(sys.argv[0],run_name='__main__')"
+    try:
+        stdout = subprocess.check_output([
+            'docker','run','--rm','-v',f'{ROOT}:/repo:ro','-v',f'{out_dir}:/work:ro',
+            '-v',f'{output}:/results:rw','-v',f'{site}/scipy:/deps/scipy:ro',
+            '-v',f'{site}/scipy.libs:/deps/scipy.libs:ro',
+            '-e','OMP_NUM_THREADS=1','-e','OPENBLAS_NUM_THREADS=1','-e','MKL_NUM_THREADS=1',
+            '-e','PYTHONPATH=/usr/local/dolfinx-real/lib/python3.12/dist-packages:/usr/local/lib:/repo','-e',f'CROSS_CHECK_SIDECAR=/results/{label}_dolfinx_sidecar.json',
+            runtime['docker_image'],'python3','-c',launcher,'/repo/fem_solid/cross_check.py',f'/work/{mesh_npz.name}'
+        ],cwd=ROOT,text=True)
+    except (OSError,subprocess.CalledProcessError) as exc:
+        raise RuntimeError('independent Docker solve unverified') from exc
+    (out_dir/f'{label}_dolfinx_stdout.txt').write_text(stdout)
+    doc=json.loads(stdout[stdout.rfind('{'):])
+    shutil.copyfile(output/f'{label}_dolfinx_sidecar.json',out_dir/f'{label}_dolfinx_sidecar.json')
+    (out_dir/f'{label}_dolfinx_raw.json').write_text(json.dumps(doc,indent=2,sort_keys=True)+'\n')
+    return doc
 
 
 def evaluate_candidate(
@@ -310,7 +333,8 @@ def evaluate_candidate(
     (out_dir/f'{label}_export_stdout.txt').write_text(exp_res.stdout)
     cad_info = verify_step_and_stl(step_path, stl_path, exp_res.stdout.strip(), float(mt['mass_g']))
     from ops.ci.verify_genome_export import inspect_step
-    brep=inspect_step(step_path)
+    surface_path=out_dir/f'{label}_surface.json'
+    brep=inspect_step(step_path,surface_path)
     (out_dir/f'{label}_step_check.json').write_text(json.dumps(brep,indent=2,sort_keys=True)+'\n')
     cad_info['brep_check']=brep
     cad_info['cad_valid']=cad_info['cad_valid'] and brep['valid'] and brep['solids']==1
@@ -322,9 +346,9 @@ def evaluate_candidate(
     surface=json.loads(surface_path.read_text())
     if surface.get('certificate_identity')!=d1_doc['certificate_identity']:
         raise RuntimeError('export tool/model identity mismatch; rebuild jarambit and its export/probe examples')
-    if surface.get('rs_v2') and not brep['bore_rolls_on_both_faces']:
+    if surface.get('rs_v2') and not brep['bore_geometry_matches_mesh']:
         cad_info['cad_valid']=False
-        cad_info['bore_validation_status']='unverified: both analytic bore rolls required'
+        cad_info['bore_validation_status']='unverified: STEP bore position/radii/full coverage must agree with actual mesh'
     surface.update(source_step_sha256=_sha256(step_path),source_stl_sha256=_sha256(stl_path),
                    source_surface_sha256=_sha256(surface_path))
     d1_doc['export_surface']=surface
@@ -405,23 +429,10 @@ def evaluate_candidate(
         if primary.returncode:raise RuntimeError('primary solid solve unverified; see saved skfem output')
         sk_doc=json.loads(raw_solid.read_text(encoding='utf-8'))
         mesh_sha=_sha256(mesh_npz)
-        dolfinx_out = subprocess.check_output(
-            [
-                'docker', 'run', '--rm',
-                '-v', f'{ROOT}:/repo:ro',
-                '-v', f'{out_dir}:/work:rw',
-                '-v', f'{runtime["versions"]["site_packages"]}:/ext_sp:ro',
-                '-e', 'OMP_NUM_THREADS=1', '-e', 'OPENBLAS_NUM_THREADS=1', '-e', 'MKL_NUM_THREADS=1',
-                '-e', 'PYTHONPATH=/usr/local/dolfinx-real/lib/python3.12/dist-packages:/usr/local/lib:/ext_sp:/repo',
-                '-e', f'CROSS_CHECK_SIDECAR=/work/{label}_dolfinx_sidecar.json',
-                runtime['docker_image_id'],
-                'python3', '/repo/fem_solid/cross_check.py', f'/work/{mesh_npz.name}',
-            ],
-            cwd=ROOT, text=True,
-        )
-        (out_dir/f'{label}_dolfinx_stdout.txt').write_text(dolfinx_out)
-        dx_doc = json.loads(dolfinx_out[dolfinx_out.rfind('{'):])
-        (out_dir/f'{label}_dolfinx_raw.json').write_text(json.dumps(dx_doc,indent=2,sort_keys=True)+'\n')
+        primary_sha = _sha256(skfem_cache)
+        dx_doc = run_independent_cross_check(mesh_npz, out_dir, label, runtime)
+        if _sha256(skfem_cache) != primary_sha:
+            raise RuntimeError('primary observation changed during independent solve')
         sk_solid = sk_doc.get('solid', sk_doc)
         sf_sk_max = float(sk_solid['SF_solid_nodal_max'])
         sf_dx_max = float(dx_doc['SF_nodal_max'])

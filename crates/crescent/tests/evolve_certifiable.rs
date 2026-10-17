@@ -39,11 +39,11 @@ fn existing_genome_domain_can_export_a_sharp_edge_and_real_bore_roll() {
     assert!(step.contains("SHAPE_DEFINITION_REPRESENTATION("));
     assert!(step.contains("SI_UNIT(.MILLI.,.METRE.)"));
     // Changing a claimed radius cannot alter what the actual exported vertices measure.
-    let mut changed = p.clone();
-    changed.genome.v[genome::RING_WALL] = 7.;
+    let mut changed = s.clone();
+    changed.bore.as_mut().unwrap().radius = 99.;
     assert_eq!(
         certification::bore_radius(&s, &p),
-        certification::bore_radius(&s, &changed)
+        certification::bore_radius(&changed, &p)
     );
 }
 #[test]
@@ -98,4 +98,24 @@ fn exact_segment_index_matches_brute_force_distance() {
             }
         }
     }
+}
+
+#[test]
+fn incomplete_or_locally_undersized_bore_roll_never_passes() {
+    let p=pheno::build(&control());
+    let s=export::solid(&p,1.).unwrap();
+    let mut one_face=s.clone();
+    for v in &mut one_face.verts {if v.2<0. {v.2=-6.3;}}
+    assert!(certification::bore_radius(&one_face,&p).map_or(true,|r|r<1.5));
+    let mut local=s.clone();
+    // Rebuild a single actual meridian with a smaller circular roll, preserving its bore contact.
+    let r=p.ring_id/2.;let theta=0.;
+    for v in &mut local.verts {
+        if v.1.atan2(v.0).abs()<1e-8 && v.0.hypot(v.1)<=r+1.575+1e-8 {
+            let phi=((v.0.hypot(v.1)-r)/1.575).clamp(0.,1.);
+            let angle=(1.-phi).acos();let rho=r+1.3*(1.-angle.cos());
+            v.0=rho;v.1=theta;v.2=v.2.signum()*(6.3+1.3*angle.sin());
+        }
+    }
+    assert!(certification::bore_radius(&local,&p).map_or(true,|r|r<1.5));
 }

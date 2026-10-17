@@ -318,3 +318,51 @@ fn bevel_face_entering_the_edge_band_is_measured_even_with_distant_vertices() {
     // The steep face is only 0.05 mm from the edge; all three vertices are more than 0.4 mm away.
     let measured=cert::sharpness(&s,&p).unwrap();assert!(!measured.pass);assert!(measured.max_half_angle_deg>25.);
 }
+
+/// A local collar change may change stresses; it must not add a separate RS strength multiplier.
+#[test]
+fn bore_local_perturbation_does_not_credit_twist_or_spine_capacity() {
+    use jarambit_crescent::geom::{densify, dist, dp_closed, norm, sub, Nn};
+    use jarambit_physics::{fine, material};
+    let base=pheno::build(&record());
+    assert!(base.rs_v2);
+    let mut widths=Vec::new();
+    for extra in [0.,2.] {
+        let mut p=base.clone();
+        // Software perturbation: leave the planform/holes/load path fixed, alter only the local collar.
+        p.ring_od+=extra;
+        widths.push(fem::ring_bearing(&p).0);
+        let (f,fields)=fem::report_fields(&p,4.).unwrap();
+        let mt=material(p.mat);
+        let twist=f.twist20_nmm*fem::joint_k(&mt,p.t_joint,2)/f.twist_kc;
+        assert!((f.hm_twist_nmm-twist).abs()<1e-10*twist);
+        let outer=dp_closed(&p.outline,0.03);
+        let holes:Vec<_>=p.holes.iter().map(|h|dp_closed(h,0.02)).collect();
+        let mesh=fine::mesh_domain(&outer,&holes,4.).unwrap();
+        assert_eq!(mesh.xy,fields.xy);assert_eq!(mesh.tris,fields.tris);
+        let n=mesh.xy.len();let rr=p.ring_id/2.;
+        let ring:Vec<_>=mesh.xy.iter().enumerate().map(|(i,q)|mesh.on_hole[i]&&(q.0.hypot(q.1)-rr).abs()<0.05).collect();
+        let tip=*mesh.xy.iter().enumerate().filter(|(i,_)|mesh.on_outer[*i])
+            .min_by(|(_,a),(_,b)|dist(**a,p.tip).total_cmp(&dist(**b,p.tip))).unwrap().1;
+        let t6=fine::T6::new(&mesh,p.t,mt.e_gpa*1000.,fine::NU).with_thickness(fields.te);
+        let mut ring6=vec![false;t6.xy.len()];ring6[..n].copy_from_slice(&ring);
+        for t in &t6.tris {for (a,b,m) in [(t[0],t[1],t[3]),(t[1],t[2],t[4]),(t[2],t[0],t[5])] {
+            ring6[m]=ring[a]&&ring[b]&&(t6.xy[m].0.hypot(t6.xy[m].1)-rr).abs()<0.05;
+        }}
+        let fixed:Vec<_>=ring6.iter().flat_map(|b|[*b,*b]).collect();
+        let system=t6.system(&fixed).unwrap();
+        let nn=Nn::new(&densify(&p.edge_sp,0.25,false),2.);
+        let on_sp=|i:usize|i<n&&mesh.on_outer[i]&&nn.nearest(mesh.xy[i],1.)<0.6&&dist(mesh.xy[i],tip)>fine::TIP_EXCL_MM;
+        let mean=|v:&Vec<(f64,f64)>|(v.iter().map(|q|q.0).sum::<f64>()/v.len() as f64,v.iter().map(|q|q.1).sum::<f64>()/v.len() as f64);
+        let mut load=vec![0.;t6.xy.len()*2];
+        let length=t6.edge_traction(&on_sp,norm(sub(mean(&p.edge_in),mean(&p.edge_sp))),&mut load);
+        assert!(length>0.);for v in &mut load {*v/=length;}
+        let stresses=t6.nodal_stress(&t6.solve(&system,&load));
+        let peak=stresses.iter().enumerate().filter(|(i,_)|dist(t6.xy[*i],tip)>=fine::TIP_EXCL_MM)
+            .map(|(_,s)|fine::von_mises(*s)).fold(0.,f64::max);
+        let raw=mt.yield_at(20.)/peak*fem::joint_k(&mt,p.t_joint,1);
+        assert!((f.hm_spine_n-raw).abs()<1e-10*raw,"bearing {} mm created spine credit",widths.last().unwrap());
+        assert!((f.hm_spine_sf-raw/fem::hm::SPINE_N).abs()<1e-10);
+    }
+    assert!(widths[1]>widths[0]);
+}
