@@ -317,14 +317,7 @@ fn certify_candidate_stage2(
 
     // The native coarse screen deliberately remains unverified. Qualification dispatches
     // the standard evaluator, which executes skfem P2 and DOLFINx on one saved fine mesh.
-    let python = std::env::var("JARAMBIT_SOLVER_PYTHON").unwrap_or_else(|_| {
-        let installed = "/home/ubuntu/.venvs/jarambit-sheath/bin/python";
-        if Path::new(installed).is_file() {
-            installed.into()
-        } else {
-            "python3".into()
-        }
-    });
+    let python = std::env::var("JARAMBIT_SOLVER_PYTHON").unwrap_or_else(|_| "python3".into());
     let status = std::process::Command::new(&python)
         .arg(root.join("ops/ci/score_cad.py"))
         .args([
@@ -403,6 +396,15 @@ fn certify_candidate_stage2(
         genome_csv,
         scorecard_md: out_dir.join(format!("{}_master_scorecard.md", cand.label)),
     })
+}
+
+/// Keep authoritative qualified genomes before adding provisional search diversity.
+fn replacement_elites(qualified: impl Iterator<Item = (String, Genome)>, survivors: &[ScreenSurvivor], previous: &[(String, Genome)]) -> Vec<(String, Genome)> {
+    let mut next = Vec::new();
+    for pair in qualified.chain(survivors.iter().take(4).map(|s| (s.family.clone(), s.g.clone()))) {
+        if !next.iter().any(|(_, g)| *g == pair.1) { next.push(pair); }
+    }
+    if next.is_empty() { previous.to_vec() } else { next }
 }
 
 /// CLI entrypoint for `jarambit auto-evolve`.
@@ -642,9 +644,6 @@ pub fn run_auto_evolve_cli(args: &[String]) -> i32 {
                         cert.solid_tip_sf,
                         cert.strict_hunter_sf
                     );
-                    if cert.all_16_gates && cert.rs_v2_all_hard {
-                        elites.push((cert.family.clone(), cert.g.clone()));
-                    }
                     assessed_all.push(cert);
                 }
                 Err(e) => {
@@ -654,13 +653,11 @@ pub fn run_auto_evolve_cli(args: &[String]) -> i32 {
             }
         }
 
-        if !survivors.is_empty() {
-            elites = survivors
-                .iter()
-                .take(4)
-                .map(|s| (s.family.clone(), s.g.clone()))
-                .collect();
-        }
+        elites = replacement_elites(
+            assessed_all.iter().filter(|c| c.all_16_gates && c.rs_v2_all_hard)
+                .map(|c| (c.family.clone(), c.g.clone())),
+            &survivors, &elites,
+        );
     }
 
     assessed_all.sort_by(|a, b| {
@@ -759,6 +756,22 @@ mod tests {
                 }
             }
         }
+    }
+    #[test]
+    fn qualified_elite_survives_replacement_by_four_different_provisional_genomes() {
+        let seeds = load_seed_genomes(&repo_root(), Some("evidence/rs_v2/w283_ultrarunner/w283_p14_c01_genome.csv"));
+        let champion = seeds[0].clone();
+        let survivors: Vec<_> = (0..4).map(|i| {
+            let mut g=champion.1.clone();g.v[genome::EA_IN]=14.0+i as f64;
+            ScreenSurvivor {label:i.to_string(),family:"provisional".into(),g,mass_g:1.,seq_ratio:0.,fat_sf:0.,ring_bearing_w_mm:0.,screen_deficit:0.}
+        }).collect();
+        let next=replacement_elites(std::iter::once(champion.clone()),&survivors,&[]);
+        assert_eq!(next.len(),5);assert_eq!(next[0],champion);
+        let next_round=replacement_elites(std::iter::once(next[0].clone()),&[],&next);
+        assert_eq!(next_round,vec![champion]);
+        assert_eq!(replacement_elites(std::iter::empty(),&[],&seeds),seeds);
+        let dedup=replacement_elites(seeds.clone().into_iter().chain(seeds.clone()),&[],&[]);
+        assert_eq!(dedup,seeds);
     }
     #[test]
     fn invalid_seed_input_has_no_external_cad_fallback() {

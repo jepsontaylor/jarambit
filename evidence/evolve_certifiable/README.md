@@ -36,3 +36,7 @@ The [RS-v2 result](automatic/by-content/db5d8e32e99d0b2d8ef6d7c7f9622a0601487c25
 [Actual export measurements](controls/legal_genome/control_measurements.json) show apex 0.134160883 mm, maximum half-angle 16.444344357 degrees and minimum fitted bore roll radius 1.575000000 mm. The exported edge passes the unchanged sharpness checks. [Independent OpenCascade inspection](controls/legal_genome/control_step_check.json) reads one valid solid with analytic toroidal bore rolls on both faces, radius 1.575 mm. STEP, STL and the exact surface vertices are retained alongside those observations.
 
 This control still fails the unchanged full point-profile monotonicity check. It is not an `all_hard` certificate. It demonstrates that the former edge and bore construction barriers can be removed within the existing genome domain.
+
+## Follow-up policy and regeneration
+
+The stricter STEP read-back and pinned independent runtime change the validation-policy fingerprint. The retained solve observations describe their recorded producer; they are withheld as current catalog certificates. Their geometry is unchanged. The manifest's additive `regeneration` ledger records fresh exporter STEP/STL/surface SHA256 values. STEP/STL match the original files byte-for-byte; surface geometry/topology/tip/mode also match, with a new policy identity. CI regenerates these exports and checks both the SHA256 ledger and the unchanged historical payload. Every original large artifact remains in git; its future retention is an owner decision.

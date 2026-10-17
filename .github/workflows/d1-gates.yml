@@ -39,7 +39,7 @@ jobs:
         run: |
           export TMPDIR="$PWD/target/ci-d1-tmp/${GITHUB_RUN_ID}/${GITHUB_RUN_ATTEMPT}"
           mkdir -p "$TMPDIR"
-          cargo test --release --workspace -- --test-threads=2
+          cargo test --release --locked --workspace -- --test-threads=2
       - name: Clippy - no Option::unwrap_or_default in the CLI (missing FEM must be null + status, PR-0.28.3)
         run: cargo clippy --release -p jarambit -- -A clippy::all -D clippy::disallowed_methods
       - name: D1 owner-lock gate tests (explicit, fast)
@@ -52,6 +52,13 @@ jobs:
             --threads "$(nproc)" --out out/ci_d1
           python3 ops/ci/d1_smoke.py out/ci_d1
           python3 ops/ci/check_json_strict.py out/ci_d1
+      - name: Reproduce retained genome exports and inspect independent STEP bore geometry
+        run: |
+          cargo build --release --locked -p jarambit-crescent --example export_step
+          python3 ops/ci/check_export_regeneration.py
+          python3 -m venv target/ci-cad-env
+          target/ci-cad-env/bin/python -m pip install -r fem_solid/requirements.txt
+          target/ci-cad-env/bin/python -m unittest discover -s ops/ci/cad_tests -v
       - name: Upload D1 smoke report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
