@@ -2307,6 +2307,7 @@
         "SF_nodal_avg": 1.016,
         "SF_nodal_max": 0.958
       },
+      "status": "pass",
       "within_2pct": true
     },
     "w283_p14_c01": {
@@ -2331,6 +2332,7 @@
         "SF_nodal_avg": 1.016,
         "SF_nodal_max": 0.958
       },
+      "status": "pass",
       "within_2pct": true
     }
   },
