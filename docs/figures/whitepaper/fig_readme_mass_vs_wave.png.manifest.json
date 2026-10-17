@@ -1,6 +1,6 @@
 {
  "figure": "docs/figures/whitepaper/fig_readme_mass_vs_wave.png",
- "figure_sha256": "616d13d1035faf435e7ce86de3a5f906e852f1c1d9cd8269cf7c718a99741cf4",
+ "figure_sha256": "ac5eb2388d5071590ac76c820c1791d9a3b4fb5d50afc7447b43ed08793b257d",
  "inputs": {
   "docs/wave27_diversity/plates/wave27_D1_index.json": "5a7258526e80410bad0ae0580b5f31c28982a780fc3c7b4a18a66dc39b96dcf2",
   "docs/wave27_diversity/plates_e/wave27e_D1_index.json": "c15de7dd4039251f048e295d1bc57e8fe56ab50249b09fa03ddd0f3ae37d96c2",

@@ -1,6 +1,6 @@
 {
  "figure": "docs/figures/whitepaper/fig_why_this_matters.png",
- "figure_sha256": "6c525dc8df6478f796bc12f6bd0c42634f181d00bbf1eee5405d8cb2f3c47ddb",
+ "figure_sha256": "a01defc46a1f1eec299de2702a589bd98333464663ac87a6b2f74c47c15f1ee3",
  "inputs": {
   "docs/market/2026-10-13/benchmark.json": "fee4c4143e0a6ec548c1b5ae0695f9a78c5f0260725650528ea5983c24e48edd",
   "docs/market/2026-10-13/census.json": "871c17a50d205feae5a93100ab212d2ddf06354d3d5fcf17c95c51ff313f7893",

@@ -156,16 +156,16 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
     # Plot W_CAD_v2 16-gate winners (2.5D raster + 3D solid)
     ax.plot(xs_wcad, ys_wcad, '-s', color='#3fb950', linewidth=2.6, markersize=8.0,
             markerfacecolor='#3fb950', markeredgecolor='#f0f6fc', markeredgewidth=1.1,
-            label='2.5D Raster Mass — W274–W283 All-16-Gates Winners', zorder=5)
+            label='2.5D Raster Mass — W274–W282 All-16-Gates Winners', zorder=5)
     ax.plot(xs_wcad, ys_wcad_3d, '--D', color='#d2a8ff', linewidth=1.8, markersize=6.0,
             markerfacecolor='#d2a8ff', markeredgecolor='#0d1117', markeredgewidth=0.9,
-            label=f"3D Solid STEP/STL Mass — W274–W283 ({100.0 * abs(wcad_winners[-1]['mass_g'] - wcad_winners[-1]['mass_3d_g']) / wcad_winners[-1]['mass_g']:.2f}% parity on W283)", zorder=6)
+            label=f"3D Solid STEP/STL Mass — W274–W282 ({100.0 * abs(wcad_winners[-1]['mass_g'] - wcad_winners[-1]['mass_3d_g']) / wcad_winners[-1]['mass_g']:.2f}% parity on W282)", zorder=6)
 
     # Highlight current record w283_p14_c01
     rec = wcad_winners[-1]
     rx = xs[-1]
     ax.scatter([rx], [rec['mass_g']], s=260, marker='*', color='#ffd33d', edgecolors='#f0f6fc', linewidths=1.3, zorder=8,
-               label=f"Current Record: {rec['label']} ({rec['mass_g']:.3f} g / {rec['mass_3d_g']:.3f} g 3D, G1={rec['g1']:.6f})")
+               label=f"Historical screen record: {rec['label']} ({rec['mass_g']:.3f} g / {rec['mass_3d_g']:.3f} g 3D, G1={rec['g1']:.6f})")
 
     # Annotate points cleanly above/below markers without touching
     pos_map = {
@@ -200,7 +200,7 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
 
     # Prominent callout box for record w283_p14_c01 kept strictly inside axis bounds
     callout = (
-        f"RECORD: {rec['label']} (Wave 283)\n"
+        f"HISTORICAL SCREEN: {rec['label']} (Wave 282)\n"
         f"• 2.5D Raster: {rec['mass_g']:.3f} g  |  3D Solid: {rec['mass_3d_g']:.3f} g\n"
         f"• Locked G1 = {rec['g1']:.6f}  |  W_CAD = +{rec['w_cad']:.4f}\n"
         f"• strict_lat = {rec['strict_lat_n']:.1f} N  |  seq = {rec['seq_ratio']:.3f}  |  3D tip SF = {rec['solid_tip_sf']:.4f}"
@@ -220,7 +220,7 @@ def _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False):
     ax.set_xticks(xs)
     ax.set_xticklabels([f"{p['wave'].upper()}\n({p['label'][:8]})" for p in all_pts], fontsize=7.2, rotation=20, ha='right')
     ax.set_ylabel('Finished Titanium Knife Mass (g)', fontsize=10.5, fontweight='bold')
-    ax.set_xlabel('Evolutionary Wave (All-Gates Winners, W20 → W283)', fontsize=10.5, fontweight='bold')
+    ax.set_xlabel('Evolutionary Wave (All-Gates Winners, W20 → W282)', fontsize=10.5, fontweight='bold')
     ax.set_ylim(73.4, 88.8)
     ax.set_xlim(-0.6, len(all_pts) - 0.2)
     ax.grid(True, color='#21262d', linestyle='--', linewidth=0.7, alpha=0.8)
@@ -245,7 +245,7 @@ def make_readme_hero_fig():
     _plot_mass_vs_wave(ax, v1_winners, wcad_winners, compact=False)
     rec = wcad_winners[-1]
     ax.set_title(
-        f"jarambit Multi-Wave Mass Progression (W20 → W283): Record {rec['label']} at {rec['mass_g']:.3f} g ({rec['mass_3d_g']:.3f} g 3D Solid, G1 = {rec['g1']:.6f})",
+        f"jarambit Multi-Wave Mass Progression (W20 → W282): Record {rec['label']} at {rec['mass_g']:.3f} g ({rec['mass_3d_g']:.3f} g 3D Solid, G1 = {rec['g1']:.6f})",
         fontsize=11.8, fontweight='bold', pad=12,
     )
     leg = ax.legend(loc='upper right', facecolor='#0d1117', edgecolor='#30363d', fontsize=8.2, ncol=2)
@@ -290,7 +290,7 @@ def make_why_this_matters_fig():
 
     # Panel (a): Mass vs Wave curve
     _plot_mass_vs_wave(ax0, v1_winners, wcad_winners, compact=True)
-    ax0.set_title('(a) Evolutionary Mass Reduction Across All-Gates Winners (W20 → W283)', fontsize=11.0, fontweight='bold', pad=10)
+    ax0.set_title('(a) Evolutionary Mass Reduction Across All-Gates Winners (W20 → W282)', fontsize=11.0, fontweight='bold', pad=10)
     leg0 = ax0.legend(loc='upper right', facecolor='#0d1117', edgecolor='#30363d', fontsize=7.4)
     for txt in leg0.get_texts():
         txt.set_color('#c9d1d9')
