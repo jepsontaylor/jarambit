@@ -11,7 +11,16 @@ pub const EXPORT_AREA_MM2: f64 = 1.0;
 
 /// Includes the canonical genome, requirements and numerical implementation. Labels are display data.
 pub fn identity(g: &Genome) -> String {
-    let mut bytes = g.csv_row().into_bytes();
+    let row = g.csv_row();
+    let mut bytes = row
+        .rsplit(',')
+        .next()
+        .expect("material")
+        .as_bytes()
+        .to_vec();
+    for value in &g.v {
+        bytes.extend_from_slice(&value.to_bits().to_le_bytes());
+    }
     for source in [
         include_str!("aesthetic.rs"),
         include_str!("battery.rs")

@@ -89,6 +89,9 @@ fn solid_tip_sf(solid_dir: &str, _label: &str, g: &Genome) -> Option<(f64, Strin
     if e["gci_sha256"].as_str()!=Some(jarambit_crescent::battery::sha256_bytes(&bytes).as_str()){return None;}
     let j: serde_json::Value=serde_json::from_slice(&bytes).ok()?;
     if !jarambit_crescent::certification::bound(&j,&key) { return None; }
+    if !jarambit_crescent::certification::bound(&j["solid_record"],&key) {return None;}
+    let genome_sha=jarambit_crescent::battery::sha256_file(std::path::Path::new(e["genome"].as_str()?))?;
+    if j["solid_record"]["genome_sha256"].as_str()!=Some(genome_sha.as_str()){return None;}
     if jarambit_crescent::certification::independent_pass(&j["solid_record"])!=Some(true){return None;}
     let sf=j["SF_nodal_max"]["fine"].as_f64()?;
     if Some(sf)!=j["solid_record"]["stored_solid"]["SF_nodal_max"].as_f64(){return None;}
@@ -141,19 +144,20 @@ pub fn rs_v2_eval(genomes: &str, out_dir: &str, solid_dir: &str) -> bool {
             "lat_rob_n": f.lat_rob, "ring_rob_n": f.ring_rob, "twist_body_sf": f.twist_body_sf, "twist_tipzone_sf": f.twist_tipzone_sf,
             "strict_lat_rob_0p0625_n": strict_lat, "twist_tipzone_sf_strict": strict_tz,
             "solid_tip_sf": solid.as_ref().map(|s| s.0), "solid_tip_source": solid.as_ref().map(|s| s.1.clone()),
-            "solid_tip_note": "bound by evidence/fem_solid/gci/bindings.json: identical genome + design label required (finest mesh SF_nodal_max); absent or mismatched = unverified",
+            "solid_tip_note": "content identity, exact genome, payload hash and independently measured solid record must agree; absent or mismatched = unverified",
             "seq_ratio": f.seq_ratio, "hm_twist_sf": f.hm_twist_sf, "hm_tip_inplane_sf": f.hm_tip_inplane_sf, "hm_tip_inplane_record_only": fem::HM_TIP_INPLANE_RECORD_ONLY, "hm_spine_sf": f.hm_spine_sf,
             "hm_ringback_sf": f.hm_ringback_sf, "fat_sf": f.fat_sf, "ring_bearing_w_mm": bw, "ring_band_mm": band,
             "gates": groups, "screen": gate(screen), "unverified": unverified, "all_hard": all_hard,
             "groups": {"screen_plate": screen == Some(true), "seq_hard": f.seq_ratio >= fem::SEQ_TARGET, "human_max": fem::rs_v2_human_max_pass(&f, &p),
                        "fatigue": fem::rs_v2_fatigue_pass(&f)}});
-        if let Some((s2_ok, t025, t100, t200, taper_mm, mono)) = s2 {
+        if let Some((s2_ok, t025, t100, t200, taper_lower_bound_mm, mono)) = s2 {
             j["gate_s_point_profile"] = serde_json::json!({
                 "pass": s2_ok,
                 "t_0p25_mm": t025,
                 "t_1p00_mm": t100,
                 "t_2p00_mm": t200,
-                "taper_mm": taper_mm,
+                "taper_mm": measured.point.as_ref().and_then(|p|p.taper_mm),
+                "taper_lower_bound_mm": taper_lower_bound_mm,
                 "monotonic": mono,
             });
         }
@@ -190,13 +194,19 @@ mod rs_v2_tests {
         assert!(solid_tip_sf(ds, "g3", &g3).is_none(), "no bindings -> unverified");
         let key=jarambit_crescent::certification::identity(&g3);
         let gci = d.join("g3_gci.json");
-        let proof=serde_json::json!({"certificate_identity":key,"design":"g3","SF_nodal_max":{"fine":1.6},"solid_record":{"mesh_sha256":"a".repeat(64),"stored_solid":{"NL":4,"NSUB":1,"SF_nodal_max":1.6,"SF_nodal_avg":1.7,"SF_skfem_nodal_max":1.6,"SF_skfem_nodal_avg":1.7},"dolfinx_cross_check":{"status":"verified","primary_solver":"skfem_p2","independent_solver":"dolfinx_v0.9.0","mesh_sha256":"a".repeat(64),"SF_nodal_max":1.6,"SF_nodal_avg":1.7}}});
+        let genome_sha=jarambit_crescent::battery::sha256_file(std::path::Path::new(&repo("evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv"))).unwrap();
+        let mut proof=serde_json::json!({"certificate_identity":key,"design":"g3","SF_nodal_max":{"fine":1.6},"solid_record":{"certificate_identity":key,"genome_sha256":genome_sha,"mesh_sha256":"a".repeat(64),"stored_solid":{"NL":4,"NSUB":1,"SF_nodal_max":1.6,"SF_nodal_avg":1.7,"SF_skfem_nodal_max":1.6,"SF_skfem_nodal_avg":1.7},"dolfinx_cross_check":{"status":"verified","primary_solver":"skfem_p2","independent_solver":"dolfinx_v0.9.0","mesh_sha256":"a".repeat(64),"SF_nodal_max":1.6,"SF_nodal_avg":1.7}}});
         std::fs::write(&gci,proof.to_string()).unwrap();let sha=jarambit_crescent::battery::sha256_file(&gci).unwrap();
         let bind = serde_json::json!({key.clone(): {"certificate_identity":key,"gci_sha256":sha,"gci": gci, "genome": repo("evidence/rs_v2/genomes/g3_tip+00_t60_tt3.csv")}});
         std::fs::write(d.join("bindings.json"), bind.to_string()).unwrap();
         assert_eq!(solid_tip_sf(ds, "g3", &g3).map(|x| x.0), Some(1.6));
         assert!(solid_tip_sf(ds, "g3", &w).is_none(), "same label, different genome must be unverified");
         assert_eq!(solid_tip_sf(ds,"x",&g3).map(|x|x.0),Some(1.6),"same content may be relabeled");
+        proof["solid_record"]["certificate_identity"]=serde_json::json!("another-genome-model");
+        std::fs::write(&gci,proof.to_string()).unwrap();
+        let mut wrong=bind.clone();wrong[&key]["gci_sha256"]=serde_json::json!(jarambit_crescent::battery::sha256_file(&gci).unwrap());
+        std::fs::write(d.join("bindings.json"),wrong.to_string()).unwrap();
+        assert!(solid_tip_sf(ds,"g3",&g3).is_none(),"outer keys cannot launder another solver record");
         std::fs::write(&gci,"{\"SF_nodal_max\":{\"fine\":99.0}}").unwrap();
         assert!(solid_tip_sf(ds,"g3",&g3).is_none(),"edited payload cannot retain an old content binding");
         std::fs::remove_dir_all(&d).ok();

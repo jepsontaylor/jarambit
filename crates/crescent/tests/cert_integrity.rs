@@ -299,3 +299,20 @@ fn exported_edge_measurement_can_accept_a_thin_flat_edge_and_reject_a_blunt_one(
     ]);
     assert!(!cert::sharpness(&bad, &p).unwrap().pass);
 }
+
+#[test]
+fn sub_csv_precision_genome_changes_have_distinct_content_keys() {
+    let g = record();
+    let mut other = g.clone();
+    other.v[EDGE_TH] += 1e-9;
+    assert_eq!(
+        g.csv_row(),
+        other.csv_row(),
+        "the old display serialization loses this change"
+    );
+    assert_ne!(
+        cert::identity(&g),
+        cert::identity(&other),
+        "identity must bind exact IEEE-754 bits"
+    );
+}
