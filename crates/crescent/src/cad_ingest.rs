@@ -150,13 +150,84 @@ fn parse_step_id(s: &str) -> Option<usize> {
     s.strip_prefix('#')?.trim().parse::<usize>().ok()
 }
 
-/// Inspect STEP header and entity counts.
+/// Strip `/* ... */` block comments and contents of `'...'` string literals from STEP text.
+pub fn strip_step_comments_and_strings(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if i + 1 < bytes.len() && bytes[i] == b'/' && bytes[i + 1] == b'*' {
+            i += 2;
+            while i + 1 < bytes.len() && !(bytes[i] == b'*' && bytes[i + 1] == b'/') {
+                i += 1;
+            }
+            if i + 1 < bytes.len() {
+                i += 2;
+            } else {
+                break;
+            }
+        } else if bytes[i] == b'\'' {
+            out.push_str("''");
+            i += 1;
+            while i < bytes.len() {
+                if bytes[i] == b'\'' {
+                    if i + 1 < bytes.len() && bytes[i + 1] == b'\'' {
+                        i += 2;
+                        continue;
+                    }
+                    i += 1;
+                    break;
+                }
+                i += 1;
+            }
+        } else {
+            out.push(bytes[i] as char);
+            i += 1;
+        }
+    }
+    out
+}
+
+fn step_data_section(stripped: &str) -> &str {
+    if let Some((_, after_data)) = stripped.split_once("DATA;") {
+        if let Some((data_body, _)) = after_data.split_once("ENDSEC;") {
+            return data_body;
+        }
+        return after_data;
+    }
+    ""
+}
+
+fn step_data_declares_mm_length_unit(data_body: &str) -> bool {
+    let mut length_unit_count = 0usize;
+    for stmt in data_body.split(';') {
+        let compact: String = stmt.chars().filter(|c| !c.is_ascii_whitespace()).collect();
+        if !compact.starts_with('#') || !compact.contains('=') {
+            continue;
+        }
+        if compact.contains("LENGTH_UNIT(") {
+            length_unit_count += 1;
+            let valid_mm = compact.contains("NAMED_UNIT(")
+                && compact.contains("SI_UNIT(.MILLI.,.METRE.)")
+                && compact.matches("SI_UNIT(").count() == 1
+                && !compact.contains("CONVERSION_BASED_UNIT(");
+            if !valid_mm {
+                return false;
+            }
+        }
+    }
+    length_unit_count >= 1
+}
+
+/// Inspect STEP header and entity counts after stripping comments and string literals.
 pub fn inspect_step_header(text: &str) -> StepHeaderMeta {
-    let has_iso = text.trim_start().starts_with("ISO-10303-21;");
-    let has_mm_decl = text.contains("SI_UNIT(.MILLI.,.METRE.)") || text.contains("MILLI");
-    let manifold_solids = text.matches("MANIFOLD_SOLID_BREP(").count().max(1);
-    let closed_shells = text.matches("CLOSED_SHELL(").count().max(1);
-    let advanced_faces = text.matches("ADVANCED_FACE(").count();
+    let stripped = strip_step_comments_and_strings(text);
+    let has_iso = stripped.trim_start().starts_with("ISO-10303-21;");
+    let data_body = step_data_section(&stripped);
+    let has_mm_decl = has_iso && step_data_declares_mm_length_unit(data_body);
+    let manifold_solids = data_body.matches("MANIFOLD_SOLID_BREP(").count();
+    let closed_shells = data_body.matches("CLOSED_SHELL(").count();
+    let advanced_faces = data_body.matches("ADVANCED_FACE(").count();
     StepHeaderMeta {
         has_iso,
         has_mm_decl,

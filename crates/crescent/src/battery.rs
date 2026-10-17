@@ -149,6 +149,16 @@ pub struct GenomeSpec {
     pub side_sha: Option<String>,
     pub side_seq: Option<f64>,
     pub d1_searched: Option<Vec<String>>,
+    #[serde(default)]
+    pub step: Option<String>,
+    #[serde(default)]
+    pub stl: Option<String>,
+    #[serde(default)]
+    pub surface: Option<String>,
+    #[serde(default)]
+    pub cad_eval: Option<String>,
+    #[serde(default)]
+    pub step_check: Option<String>,
 }
 
 fn d1_searched(name: &str) -> Vec<String> {
@@ -192,6 +202,7 @@ pub fn genome_catalog(root: &Path) -> Vec<GenomeSpec> {
         side_sha: g3_sha,
         side_seq: g3_seq,
         d1_searched: None,
+        ..Default::default()
     });
 
     for (id, rs, genome, searched) in [
@@ -246,6 +257,7 @@ pub fn genome_catalog(root: &Path) -> Vec<GenomeSpec> {
             side_sha: ssha,
             side_seq: sseq,
             d1_searched: if searched { Some(d1_searched(id)) } else { None },
+            ..Default::default()
         });
     }
 
@@ -278,6 +290,7 @@ pub fn genome_catalog(root: &Path) -> Vec<GenomeSpec> {
             side_sha: ssha,
             side_seq: sseq,
             d1_searched: None,
+            ..Default::default()
         });
     }
     out
@@ -573,6 +586,410 @@ fn g_from_cases(cases: &[Value]) -> Map<String, Value> {
         }
     }
     inputs
+}
+
+fn resolve_file(root: &Path, rel: Option<&str>) -> Option<PathBuf> {
+    let r = rel?;
+    if r.is_empty() {
+        return None;
+    }
+    let p = Path::new(r);
+    let full = if p.is_absolute() {
+        p.to_path_buf()
+    } else {
+        root.join(p)
+    };
+    full.is_file().then_some(full)
+}
+
+fn is_hex64(s: Option<&str>) -> bool {
+    s.map_or(false, |v| {
+        v.len() == 64 && v.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+    })
+}
+
+fn bound_genome_geom_cases(
+    root: &Path,
+    spec: &GenomeSpec,
+    commit: &str,
+    rs: &Value,
+    sha: &str,
+    mass: Option<&Value>,
+    g_mass: Option<Value>,
+) -> Vec<(String, Value)> {
+    let step_rel = spec.step.as_deref();
+    let stl_rel = spec.stl.as_deref();
+    let cad_eval_rel = spec.cad_eval.as_deref();
+    let step_check_rel = spec.step_check.as_deref();
+    let surface_rel = spec.surface.as_deref();
+
+    let step_full = resolve_file(root, step_rel);
+    let stl_full = resolve_file(root, stl_rel);
+    let surface_full = resolve_file(root, surface_rel);
+
+    let step_sha = step_full.as_deref().and_then(sha256_file);
+    let stl_sha = stl_full.as_deref().and_then(sha256_file);
+    let surf_sha = surface_full.as_deref().and_then(sha256_file);
+
+    let cad_eval = cad_eval_rel.and_then(|r| load_json(root, r));
+    let step_check = step_check_rel.and_then(|r| load_json(root, r));
+    let surface_doc = surface_rel.and_then(|r| load_json(root, r));
+
+    let cad_blk = cad_eval
+        .as_ref()
+        .and_then(|d| d.get("cad"))
+        .filter(|v| v.is_object());
+    let cert_id = cad_eval
+        .as_ref()
+        .and_then(|d| d.get("certificate_identity"))
+        .and_then(|v| v.as_str());
+    let rs_cert_id = rs.get("certificate_identity").and_then(|v| v.as_str());
+
+    let binding_err: Option<&str> = if step_full.is_none()
+        || stl_full.is_none()
+        || step_sha.is_none()
+        || stl_sha.is_none()
+        || !cad_eval.as_ref().map_or(false, |v| v.is_object())
+        || cad_blk.is_none()
+    {
+        Some("incomplete or missing bound STEP/STL/cad_eval artifacts")
+    } else if cad_eval
+        .as_ref()
+        .and_then(|d| d.get("genome_sha256"))
+        .and_then(|v| v.as_str())
+        != Some(sha)
+    {
+        Some("cad_eval genome_sha256 mismatch")
+    } else if !is_hex64(cert_id) || !is_hex64(rs_cert_id) || rs_cert_id != cert_id {
+        Some("cad_eval certificate_identity mismatch")
+    } else if cad_blk
+        .and_then(|b| b.get("step_sha256"))
+        .and_then(|v| v.as_str())
+        != step_sha.as_deref()
+        || cad_blk
+            .and_then(|b| b.get("stl_sha256"))
+            .and_then(|v| v.as_str())
+            != stl_sha.as_deref()
+    {
+        Some("STEP/STL sha256 does not match cad_eval")
+    } else if surface_rel.is_some()
+        && (surf_sha.is_none()
+            || !surface_doc.as_ref().map_or(false, |v| v.is_object())
+            || surface_doc
+                .as_ref()
+                .and_then(|d| d.get("certificate_identity"))
+                .and_then(|v| v.as_str())
+                != cert_id
+            || !is_hex64(
+                cad_blk
+                    .and_then(|b| b.get("surface_sha256"))
+                    .and_then(|v| v.as_str()),
+            )
+            || cad_blk
+                .and_then(|b| b.get("surface_sha256"))
+                .and_then(|v| v.as_str())
+                != surf_sha.as_deref())
+    {
+        Some("export surface sha256 or certificate_identity mismatch")
+    } else {
+        None
+    };
+
+    let ev_step = step_rel.unwrap_or(&spec.genome);
+    if let Some(err) = binding_err {
+        return vec![
+            (
+                "geom.unit".into(),
+                make_case(
+                    "geom.unit",
+                    "gate",
+                    "blocked",
+                    None,
+                    Some(sha),
+                    commit,
+                    Some(ev_step),
+                    Some(err),
+                    None,
+                    None,
+                ),
+            ),
+            (
+                "geom.one_solid".into(),
+                make_case(
+                    "geom.one_solid",
+                    "gate",
+                    "blocked",
+                    None,
+                    Some(sha),
+                    commit,
+                    Some(ev_step),
+                    Some(err),
+                    None,
+                    None,
+                ),
+            ),
+            (
+                "geom.mass".into(),
+                make_case(
+                    "geom.mass",
+                    "derived",
+                    "incomplete",
+                    Some("plate_cst_dkt"),
+                    Some(sha),
+                    commit,
+                    Some(step_rel.unwrap_or(&spec.rs)),
+                    Some(err),
+                    None,
+                    None,
+                ),
+            ),
+            (
+                "geom.pin".into(),
+                make_case(
+                    "geom.pin",
+                    "software_contract",
+                    "blocked",
+                    None,
+                    Some(sha),
+                    commit,
+                    Some(ev_step),
+                    Some(err),
+                    None,
+                    None,
+                ),
+            ),
+        ];
+    }
+
+    let cad_blk = cad_blk.unwrap();
+    let step_bytes = std::fs::read(step_full.as_ref().unwrap()).unwrap_or_default();
+    let step_text = String::from_utf8_lossy(&step_bytes);
+    let step_meta = inspect_step_header(&step_text);
+    let stl_bytes = std::fs::read(stl_full.as_ref().unwrap()).unwrap_or_default();
+    let stl_census = parse_stl_triangles(&stl_bytes)
+        .ok()
+        .map(|s| mesh_census_and_volume(&s));
+    let stl_watertight_ok = stl_census.as_ref().map_or(false, |c| {
+        c.watertight_exact && c.boundary_edges == 0 && c.non_manifold_edges == 0
+    });
+
+    let unit_ok = step_meta.has_iso
+        && step_meta.has_mm_decl
+        && cad_blk.get("units").and_then(|v| v.as_str()) == Some("mm")
+        && cad_blk.get("units_source").and_then(|v| v.as_str()) == Some("step_declaration");
+
+    let brep_doc = if step_check_rel.is_some() {
+        step_check.as_ref().filter(|v| v.is_object())
+    } else {
+        cad_blk.get("brep_check").filter(|v| v.is_object())
+    };
+    let brep_missing = brep_doc.is_none();
+    let brep_ok = if let Some(bd) = brep_doc {
+        let is_rs_v2 = surface_doc
+            .as_ref()
+            .and_then(|d| d.get("rs_v2"))
+            .and_then(|v| v.as_bool())
+            == Some(true);
+        bd.get("valid").and_then(|v| v.as_bool()) == Some(true)
+            && bd.get("solids").and_then(|v| v.as_i64()) == Some(1)
+            && (!is_rs_v2 || bd.get("bore_geometry_matches_mesh").and_then(|v| v.as_bool()) == Some(true))
+    } else {
+        false
+    };
+
+    let one_solid_ok = !brep_missing
+        && step_meta.has_iso
+        && step_meta.manifold_solids == 1
+        && step_meta.closed_shells == 1
+        && cad_blk.get("manifold_solids").and_then(|v| v.as_u64()) == Some(1)
+        && cad_blk.get("closed_shells").and_then(|v| v.as_u64()) == Some(1)
+        && cad_blk.get("watertight_exact").and_then(|v| v.as_bool()) == Some(true)
+        && cad_blk.get("boundary_edges").and_then(|v| v.as_u64()) == Some(0)
+        && cad_blk.get("non_manifold_edges").and_then(|v| v.as_u64()) == Some(0)
+        && stl_watertight_ok
+        && brep_ok;
+
+    let mass_3d = cad_blk.get("mass_3d_g").and_then(|v| v.as_f64());
+    let rel_diff = cad_blk.get("rel_mass_diff").and_then(|v| v.as_f64());
+    let watertight = cad_blk.get("watertight_exact").and_then(|v| v.as_bool()) == Some(true);
+    let plate_m = mass.and_then(|v| v.as_f64()).filter(|x| x.is_finite());
+    let valid_3d = mass_3d.map_or(false, |m| m.is_finite() && m > 0.0);
+    let valid_rel = rel_diff.map_or(false, |r| r.is_finite());
+    let recomp_rel = match (mass_3d, plate_m) {
+        (Some(m3), Some(mp)) if valid_3d => Some((m3 - mp).abs() / mp.max(1e-9)),
+        _ => None,
+    };
+    let stl_mass_3d = stl_census.as_ref().map(|c| c.mass_3d_g);
+    let stl_mass_matches_eval = match (stl_mass_3d, mass_3d) {
+        (Some(sm), Some(em)) => (sm - em).abs() <= 0.05,
+        _ => false,
+    };
+    let stl_recomp_rel = match (stl_mass_3d, plate_m) {
+        (Some(sm), Some(mp)) if sm.is_finite() && sm > 0.0 => Some((sm - mp).abs() / mp.max(1e-9)),
+        _ => None,
+    };
+    let mass_ok = g_mass.is_some()
+        && valid_3d
+        && valid_rel
+        && watertight
+        && stl_watertight_ok
+        && stl_mass_matches_eval
+        && rel_diff.unwrap() <= 0.01
+        && recomp_rel.map_or(false, |r| r <= 0.01)
+        && stl_recomp_rel.map_or(false, |r| r <= 0.01);
+
+    let regen_step_sha = cad_blk.get("regenerated_step_sha256").and_then(|v| v.as_str());
+    let regen_stl_sha = cad_blk.get("regenerated_stl_sha256").and_then(|v| v.as_str());
+    let regen_surf_sha = cad_blk.get("regenerated_surface_sha256").and_then(|v| v.as_str());
+    let require_regen_shas = step_check_rel.is_some()
+        || regen_step_sha.is_some()
+        || regen_stl_sha.is_some()
+        || regen_surf_sha.is_some();
+    let regen_shas_ok = if require_regen_shas {
+        is_hex64(regen_step_sha)
+            && is_hex64(regen_stl_sha)
+            && regen_step_sha == step_sha.as_deref()
+            && regen_stl_sha == stl_sha.as_deref()
+            && (regen_surf_sha.is_none() || (is_hex64(regen_surf_sha) && regen_surf_sha == surf_sha.as_deref()))
+    } else {
+        true
+    };
+    let regen_det = cad_blk
+        .get("regeneration_deterministic")
+        .and_then(|v| v.as_bool())
+        == Some(true)
+        && regen_shas_ok;
+    let surf_ok = surf_sha.is_some()
+        && surface_doc
+            .as_ref()
+            .and_then(|d| d.get("certificate_identity"))
+            .and_then(|v| v.as_str())
+            == cert_id;
+    let pin_ok = regen_det && surf_ok;
+
+    vec![
+        (
+            "geom.unit".into(),
+            make_case(
+                "geom.unit",
+                "gate",
+                if unit_ok { "pass" } else { "fail" },
+                None,
+                Some(sha),
+                commit,
+                step_rel,
+                if unit_ok {
+                    None
+                } else {
+                    Some("STEP file lacks explicit SI_UNIT(.MILLI.,.METRE.) LENGTH_UNIT declaration")
+                },
+                Some(json!({
+                    "units": cad_blk.get("units"),
+                    "units_source": cad_blk.get("units_source"),
+                    "step_sha256": step_sha,
+                    "has_mm_step_declaration": step_meta.has_mm_decl,
+                })),
+                None,
+            ),
+        ),
+        (
+            "geom.one_solid".into(),
+            make_case(
+                "geom.one_solid",
+                "gate",
+                if brep_missing {
+                    "blocked"
+                } else if one_solid_ok {
+                    "pass"
+                } else {
+                    "fail"
+                },
+                None,
+                Some(sha),
+                commit,
+                step_rel,
+                if brep_missing {
+                    Some("missing OpenCascade B-rep step_check evidence")
+                } else if one_solid_ok {
+                    None
+                } else {
+                    Some("exported STEP/STL is not a single watertight solid")
+                },
+                Some(json!({
+                    "manifold_solids": step_meta.manifold_solids,
+                    "closed_shells": step_meta.closed_shells,
+                    "watertight_exact": stl_census.as_ref().map(|c| c.watertight_exact),
+                    "boundary_edges": stl_census.as_ref().map(|c| c.boundary_edges),
+                    "non_manifold_edges": stl_census.as_ref().map(|c| c.non_manifold_edges),
+                    "step_sha256": step_sha,
+                    "stl_sha256": stl_sha,
+                })),
+                None,
+            ),
+        ),
+        (
+            "geom.mass".into(),
+            make_case(
+                "geom.mass",
+                "derived",
+                if mass_ok {
+                    "pass"
+                } else if g_mass.is_some() {
+                    "fail"
+                } else {
+                    "incomplete"
+                },
+                Some("plate_cst_dkt"),
+                Some(sha),
+                commit,
+                step_rel,
+                if mass_ok {
+                    None
+                } else if g_mass.is_some() {
+                    Some("3D solid vs 2.5D plate mass mismatch or non-watertight mesh")
+                } else {
+                    Some("missing plate mass")
+                },
+                Some(json!({
+                    "plate_mass_g": mass,
+                    "mass_3d_g": stl_mass_3d.or(mass_3d),
+                    "rel_mass_diff": stl_recomp_rel.or(rel_diff),
+                    "step_sha256": step_sha,
+                    "stl_sha256": stl_sha,
+                    "note": "bound 3D STEP/STL solid mass verified against 2.5D plate mass (<=1%)",
+                })),
+                if mass_ok { g_mass } else { None },
+            ),
+        ),
+        (
+            "geom.pin".into(),
+            make_case(
+                "geom.pin",
+                "software_contract",
+                if pin_ok { "pass" } else { "fail" },
+                None,
+                Some(sha),
+                commit,
+                step_rel,
+                if pin_ok {
+                    None
+                } else {
+                    Some("genome CAD export is not deterministically pinned to certificate_identity")
+                },
+                Some(json!({
+                    "genome_sha256": sha,
+                    "certificate_identity": cert_id,
+                    "step_sha256": step_sha,
+                    "stl_sha256": stl_sha,
+                    "surface_sha256": surf_sha,
+                    "regenerated_step_sha256": regen_step_sha,
+                    "regenerated_stl_sha256": regen_stl_sha,
+                    "regeneration_deterministic": regen_det,
+                })),
+                None,
+            ),
+        ),
+    ]
 }
 
 /// Build the 18-case CAD battery record (`jarambit.cad_battery.subject.v1`) for a catalog or custom subject.
@@ -1203,69 +1620,80 @@ pub fn build_subject(
         } else {
             None
         };
-        cases.insert(
-            "geom.unit".into(),
-            make_case(
-                "geom.unit",
-                "gate",
-                "blocked",
-                None,
-                Some(&sha),
-                commit,
-                Some(&spec.genome),
-                Some("no step bound"),
-                None,
-                None,
-            ),
-        );
-        cases.insert(
-            "geom.one_solid".into(),
-            make_case(
-                "geom.one_solid",
-                "gate",
-                "blocked",
-                None,
-                Some(&sha),
-                commit,
-                Some(&spec.genome),
-                Some("no step bound"),
-                None,
-                None,
-            ),
-        );
-        cases.insert(
-            "geom.mass".into(),
-            make_case(
-                "geom.mass",
-                "derived",
-                if g_mass.is_some() { "pass" } else { "incomplete" },
-                Some("plate_cst_dkt"),
-                Some(&sha),
-                commit,
-                Some(&spec.rs),
-                None,
-                Some(json!({
-                    "plate_mass_g": mass,
-                    "note": "fem::certify mass, not a STEP",
-                })),
-                g_mass,
-            ),
-        );
-        cases.insert(
-            "geom.pin".into(),
-            make_case(
-                "geom.pin",
-                "software_contract",
-                "blocked",
-                None,
-                Some(&sha),
-                commit,
-                Some(&spec.genome),
-                Some("genome is not a native CAD pin"),
-                None,
-                None,
-            ),
-        );
+        let has_bound_cad = spec.step.is_some()
+            || spec.stl.is_some()
+            || spec.cad_eval.is_some()
+            || spec.step_check.is_some()
+            || spec.surface.is_some();
+        if has_bound_cad {
+            for (k, v) in bound_genome_geom_cases(root, &spec, commit, &rs, &sha, mass, g_mass) {
+                cases.insert(k, v);
+            }
+        } else {
+            cases.insert(
+                "geom.unit".into(),
+                make_case(
+                    "geom.unit",
+                    "gate",
+                    "blocked",
+                    None,
+                    Some(&sha),
+                    commit,
+                    Some(&spec.genome),
+                    Some("no step bound"),
+                    None,
+                    None,
+                ),
+            );
+            cases.insert(
+                "geom.one_solid".into(),
+                make_case(
+                    "geom.one_solid",
+                    "gate",
+                    "blocked",
+                    None,
+                    Some(&sha),
+                    commit,
+                    Some(&spec.genome),
+                    Some("no step bound"),
+                    None,
+                    None,
+                ),
+            );
+            cases.insert(
+                "geom.mass".into(),
+                make_case(
+                    "geom.mass",
+                    "derived",
+                    if g_mass.is_some() { "pass" } else { "incomplete" },
+                    Some("plate_cst_dkt"),
+                    Some(&sha),
+                    commit,
+                    Some(&spec.rs),
+                    None,
+                    Some(json!({
+                        "plate_mass_g": mass,
+                        "note": "fem::certify mass, not a STEP",
+                    })),
+                    g_mass,
+                ),
+            );
+            cases.insert(
+                "geom.pin".into(),
+                make_case(
+                    "geom.pin",
+                    "software_contract",
+                    "blocked",
+                    None,
+                    Some(&sha),
+                    commit,
+                    Some(&spec.genome),
+                    Some("genome is not a native CAD pin"),
+                    None,
+                    None,
+                ),
+            );
+        }
         role = "genome";
     }
 
@@ -2167,6 +2595,57 @@ fn parse_genome_csv_file(path: &Path) -> Result<Genome, String> {
         .ok_or_else(|| format!("genome parse failed for {}", path.display()))
 }
 
+fn run_step_brep_check(root: &Path, step_path: &Path, surface_path: &Path) -> Option<Value> {
+    let mut candidates: Vec<String> = Vec::new();
+    if let Ok(env_py) = std::env::var("JARAMBIT_SOLVER_PYTHON") {
+        if !env_py.trim().is_empty() {
+            candidates.push(env_py);
+        }
+    }
+    candidates.push(root.join("target/ci-cad-env/bin/python").to_string_lossy().to_string());
+    for p in [
+        "/home/ubuntu/.venvs/jarambit-sheath/bin/python",
+        "/home/ubuntu/.venvs/jarambit-cad/bin/python",
+        "/home/ubuntu/.venvs/jarambit-evo3c/bin/python",
+        "/home/ubuntu/jarambit_render/venv-cad/bin/python",
+        "python3",
+    ] {
+        candidates.push(p.to_string());
+    }
+    let script = concat!(
+        "import json, sys\n",
+        "from pathlib import Path\n",
+        "sys.path.insert(0, sys.argv[1])\n",
+        "from ops.ci.verify_genome_export import inspect_step\n",
+        "print(json.dumps(inspect_step(Path(sys.argv[2]), Path(sys.argv[3])), sort_keys=True))\n"
+    );
+    for py in candidates {
+        if py.starts_with('/') && !Path::new(&py).is_file() {
+            continue;
+        }
+        let out = std::process::Command::new(&py)
+            .args([
+                "-c",
+                script,
+                &root.to_string_lossy(),
+                &step_path.to_string_lossy(),
+                &surface_path.to_string_lossy(),
+            ])
+            .current_dir(root)
+            .output();
+        if let Ok(res) = out {
+            if res.status.success() {
+                if let Ok(val) = serde_json::from_slice::<Value>(&res.stdout) {
+                    if val.is_object() {
+                        return Some(val);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Evaluate this genome afresh; the native solid solve is a screen, not an independent cross-check.
 pub fn evaluate_genome_candidate_native(
     root: &Path,
@@ -2189,31 +2668,84 @@ pub fn evaluate_genome_candidate_native(
             .unwrap_or_else(|_| path.to_string_lossy().to_string())
     };
 
-    // Export or verify 3D STEP + STL
+    // Export or verify 3D STEP + STL + surface
     let step_path = out_dir.join(format!("{label}.step"));
     let stl_path = out_dir.join(format!("{label}.stl"));
+    let surface_path = out_dir.join(format!("{label}_surface.json"));
+    let step_check_path = out_dir.join(format!("{label}_step_check.json"));
     let solid = export::solid(&p, 1.0).ok_or("export::solid failed")?;
     let (boundary, non_manifold, dmax) = export::census(&solid.tris);
     let volume_mm3 = export::volume(&solid).round();
     let step_str = export::step(&solid, label);
     let stl_bytes = export::stl(&solid, label);
+    let mut surface_doc = export::surface_json(&solid);
+    surface_doc["tip"] = json!(p.tip);
+    surface_doc["rs_v2"] = json!(p.rs_v2);
+    surface_doc["certificate_identity"] = json!(&certificate_key);
+    let surface_str = serde_json::to_string(&surface_doc).unwrap() + "\n";
     std::fs::write(&step_path, &step_str).map_err(|e| e.to_string())?;
     std::fs::write(&stl_path, &stl_bytes).map_err(|e| e.to_string())?;
+    std::fs::write(&surface_path, &surface_str).map_err(|e| e.to_string())?;
+    let step_sha = sha256_bytes(step_str.as_bytes());
+    let stl_sha = sha256_bytes(stl_bytes.as_bytes());
+    let surf_sha = sha256_bytes(surface_str.as_bytes());
+
+    let (regen_step_sha, regen_stl_sha, regen_surf_sha) = if let Some(s2) = export::solid(&p, 1.0) {
+        let mut surf2 = export::surface_json(&s2);
+        surf2["tip"] = json!(p.tip);
+        surf2["rs_v2"] = json!(p.rs_v2);
+        surf2["certificate_identity"] = json!(&certificate_key);
+        let surf2_str = serde_json::to_string(&surf2).unwrap() + "\n";
+        (
+            Some(sha256_bytes(export::step(&s2, label).as_bytes())),
+            Some(sha256_bytes(export::stl(&s2, label).as_bytes())),
+            Some(sha256_bytes(surf2_str.as_bytes())),
+        )
+    } else {
+        (None, None, None)
+    };
+    let regen_deterministic = regen_step_sha.as_deref() == Some(step_sha.as_str())
+        && regen_stl_sha.as_deref() == Some(stl_sha.as_str())
+        && regen_surf_sha.as_deref() == Some(surf_sha.as_str());
+
+    let brep_doc = run_step_brep_check(root, &step_path, &surface_path);
+    if let Some(ref bd) = brep_doc {
+        std::fs::write(
+            &step_check_path,
+            serde_json::to_string_pretty(bd).unwrap() + "\n",
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    let brep_valid = brep_doc.as_ref().map_or(false, |bd| {
+        bd.get("valid").and_then(|v| v.as_bool()) == Some(true)
+            && bd.get("solids").and_then(|v| v.as_i64()) == Some(1)
+            && (!p.rs_v2 || bd.get("bore_geometry_matches_mesh").and_then(|v| v.as_bool()) == Some(true))
+    });
+
     let step_meta = inspect_step_header(&step_str);
     let watertight = boundary == 0 && non_manifold == 0 && dmax == 1;
     let mass_3d_g = round_n(volume_mm3 * 0.00443, 4);
     let mass_raster_g = round_n(p.mass_g, 4);
     let rel_mass_diff = round_n((mass_3d_g - p.mass_g).abs() / p.mass_g.max(1e-9), 6);
     let cad_valid = step_meta.has_iso
+        && step_meta.has_mm_decl
         && step_meta.manifold_solids == 1
         && step_meta.closed_shells >= 1
         && watertight
-        && rel_mass_diff <= 0.01;
-    let cad_info = json!({
+        && rel_mass_diff <= 0.01
+        && regen_deterministic
+        && brep_valid;
+    let mut cad_info = json!({
         "step_path": rel_path(&step_path),
-        "step_sha256": sha256_bytes(step_str.as_bytes()),
+        "step_sha256": step_sha,
         "stl_path": rel_path(&stl_path),
-        "stl_sha256": sha256_bytes(stl_bytes.as_bytes()),
+        "stl_sha256": stl_sha,
+        "surface_path": rel_path(&surface_path),
+        "surface_sha256": surf_sha,
+        "regenerated_step_sha256": regen_step_sha,
+        "regenerated_stl_sha256": regen_stl_sha,
+        "regenerated_surface_sha256": regen_surf_sha,
+        "regeneration_deterministic": regen_deterministic,
         "units": "mm",
         "units_source": if step_meta.has_mm_decl { "step_declaration" } else { "project_convention" },
         "manifold_solids": step_meta.manifold_solids,
@@ -2228,6 +2760,9 @@ pub fn evaluate_genome_candidate_native(
         "rel_mass_diff": rel_mass_diff,
         "cad_valid": cad_valid,
     });
+    if let Some(bd) = brep_doc {
+        cad_info["brep_check"] = bd;
+    }
 
     // Resolve or compute GCI
     let mut gci_doc=run_plate_gci_3level(label,&rel_path(genome_csv),&g_sha,&g).ok_or("run_plate_gci_3level failed")?;
@@ -2762,6 +3297,13 @@ pub fn evaluate_genome_candidate_native(
         "weighted_cad_score": w_cad,
     });
 
+    let eval_path = out_dir.join(format!("{label}_cad_eval.json"));
+    std::fs::write(
+        &eval_path,
+        serde_json::to_string_pretty(&summary).unwrap() + "\n",
+    )
+    .map_err(|e| e.to_string())?;
+
     let spec_out = {
         let tip_p = out_dir.join(format!("{label}_solid_tip.json"));
         let a4_p = out_dir.join(format!("{label}_a4.json"));
@@ -2793,6 +3335,11 @@ pub fn evaluate_genome_candidate_native(
             side_sha,
             side_seq: Some(seq_ratio),
             d1_searched: None,
+            step: Some(step_path.to_string_lossy().to_string()),
+            stl: Some(stl_path.to_string_lossy().to_string()),
+            surface: Some(surface_path.to_string_lossy().to_string()),
+            cad_eval: Some(eval_path.to_string_lossy().to_string()),
+            step_check: Some(step_check_path.to_string_lossy().to_string()),
         }
     };
     Ok((summary, spec_out))
