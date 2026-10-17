@@ -1,7 +1,7 @@
 {
   "aes_pass": true,
   "all_hard": false,
-  "certificate_identity": "e1a202592363b8252051856817e71632387908bb9fb39126514a3ecae8d5f31e",
+  "certificate_identity": "29cc265209093fc44d3bedf788f1210438d27be31ec16e644738453c53f1e25b",
   "export_measurements": {
     "bore_edge_radius_mm": 0.0,
     "point": {
@@ -116,7 +116,8 @@
     "t_0p25_mm": 0.2790761110835701,
     "t_1p00_mm": 0.4736637046549481,
     "t_2p00_mm": 0.9172027033808883,
-    "taper_mm": 10.0
+    "taper_lower_bound_mm": 10.0,
+    "taper_mm": null
   },
   "gates": {
     "aesthetic_and_geometric": "pass",
@@ -152,7 +153,7 @@
   "ring_rob_n": 15491.856474946993,
   "screen": "fail",
   "seq_ratio": 0.7179476490627898,
-  "solid_tip_note": "bound by evidence/fem_solid/gci/bindings.json: identical genome + design label required (finest mesh SF_nodal_max); absent or mismatched = unverified",
+  "solid_tip_note": "content identity, exact genome, payload hash and independently measured solid record must agree; absent or mismatched = unverified",
   "solid_tip_sf": 0.9578,
   "solid_tip_source": "evidence/cert_integrity/recertified/w283_p10_c02/w283_p10_c02_solid_tip.json",
   "strict_lat_rob_0p0625_n": 176.76326370055324,

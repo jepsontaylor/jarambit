@@ -1,5 +1,5 @@
 {
-  "certificate_identity": "618aed84db5bb7e76d89c86e9820557e0b74d86191a1180f814097c7d6024627",
+  "certificate_identity": "17576c751c5c0157cac7d098fd821915e54e811c5b7b2f9883889a0d0f11f245",
   "genome": "evidence/cert_integrity/recertified/w283_p14_c01/w283_p14_c01_genome.csv",
   "genome_sha256": "aa54fe9148fe303b2054bc5449f063f507d6feffa07556d144013aa9ded5b009",
   "karambit": {
@@ -53,6 +53,7 @@
       "sf_hunter": 0.8775402533531654
     }
   ],
+  "observed_certificate_identity": "618aed84db5bb7e76d89c86e9820557e0b74d86191a1180f814097c7d6024627",
   "primary_observable": "seq_ratio",
   "refinement_ratio_r": 2.0,
   "schema": "jarambit.plate_gci.v1",

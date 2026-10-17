@@ -18,7 +18,7 @@
     "units_source": "project_convention",
     "watertight_exact": true
   },
-  "certificate_identity": "618aed84db5bb7e76d89c86e9820557e0b74d86191a1180f814097c7d6024627",
+  "certificate_identity": "17576c751c5c0157cac7d098fd821915e54e811c5b7b2f9883889a0d0f11f245",
   "engineering_metrics": {
     "aes_pass": true,
     "aes_score": 0.4079,
@@ -196,6 +196,7 @@
     "teeth_in": 15,
     "teeth_sp": 14
   },
+  "observed_certificate_identity": "618aed84db5bb7e76d89c86e9820557e0b74d86191a1180f814097c7d6024627",
   "rs_v2_gates": {
     "aesthetic_and_geometric": "pass",
     "fatigue": "fail",

@@ -306,9 +306,9 @@ fn sub_csv_precision_genome_changes_have_distinct_content_keys() {
     let mut other = g.clone();
     other.v[EDGE_TH] += 1e-9;
     assert_eq!(
-        g.csv_row(),
-        other.csv_row(),
-        "the old display serialization loses this change"
+        format!("{:.6}", g.v[EDGE_TH]),
+        format!("{:.6}", other.v[EDGE_TH]),
+        "rounded displays can hide the difference"
     );
     assert_ne!(
         cert::identity(&g),

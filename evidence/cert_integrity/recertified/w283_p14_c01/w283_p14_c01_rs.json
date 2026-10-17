@@ -1,7 +1,7 @@
 {
   "aes_pass": true,
   "all_hard": false,
-  "certificate_identity": "618aed84db5bb7e76d89c86e9820557e0b74d86191a1180f814097c7d6024627",
+  "certificate_identity": "17576c751c5c0157cac7d098fd821915e54e811c5b7b2f9883889a0d0f11f245",
   "export_measurements": {
     "bore_edge_radius_mm": 0.0,
     "point": {
@@ -116,7 +116,8 @@
     "t_0p25_mm": 0.2790761110835701,
     "t_1p00_mm": 0.4736637046549481,
     "t_2p00_mm": 0.9172027033808883,
-    "taper_mm": 10.0
+    "taper_lower_bound_mm": 10.0,
+    "taper_mm": null
   },
   "gates": {
     "aesthetic_and_geometric": "pass",
@@ -138,7 +139,7 @@
     "seq_hard": false
   },
   "hm_ringback_sf": 2.859525228086611,
-  "hm_spine_sf": 0.43134815352586536,
+  "hm_spine_sf": 0.431348153525743,
   "hm_tip_inplane_record_only": true,
   "hm_tip_inplane_sf": 0.5553764837608903,
   "hm_twist_sf": 0.110986187014051,
@@ -152,7 +153,7 @@
   "ring_rob_n": 15491.915610772525,
   "screen": "fail",
   "seq_ratio": 0.743647399006731,
-  "solid_tip_note": "bound by evidence/fem_solid/gci/bindings.json: identical genome + design label required (finest mesh SF_nodal_max); absent or mismatched = unverified",
+  "solid_tip_note": "content identity, exact genome, payload hash and independently measured solid record must agree; absent or mismatched = unverified",
   "solid_tip_sf": 0.9577,
   "solid_tip_source": "evidence/cert_integrity/recertified/w283_p14_c01/w283_p14_c01_solid_tip.json",
   "strict_lat_rob_0p0625_n": 176.7204400004798,

@@ -2288,7 +2288,7 @@
     "w283_p10_c02": {
       "NL": 4,
       "NSUB": 1,
-      "certificate_identity": "e1a202592363b8252051856817e71632387908bb9fb39126514a3ecae8d5f31e",
+      "certificate_identity": "29cc265209093fc44d3bedf788f1210438d27be31ec16e644738453c53f1e25b",
       "dolfinx": {
         "SF_nodal_avg": 1.0158,
         "SF_nodal_max": 0.9578,
@@ -2301,6 +2301,7 @@
       "evidence_path": "evidence/cert_integrity/recertified/w283_p10_c02/w283_p10_c02_solid_tip.json",
       "mesh_sha256": "3e04e5bc74bd0d905be49dc5b53a86c0755f9ab8cafef15de4b1273e1d8c44a2",
       "n_dof": 416583,
+      "observed_certificate_identity": "e1a202592363b8252051856817e71632387908bb9fb39126514a3ecae8d5f31e",
       "rel_err_nodal_avg": 0.000197,
       "rel_err_nodal_max": 0.000209,
       "skfem": {
@@ -2313,7 +2314,7 @@
     "w283_p14_c01": {
       "NL": 4,
       "NSUB": 1,
-      "certificate_identity": "618aed84db5bb7e76d89c86e9820557e0b74d86191a1180f814097c7d6024627",
+      "certificate_identity": "17576c751c5c0157cac7d098fd821915e54e811c5b7b2f9883889a0d0f11f245",
       "dolfinx": {
         "SF_nodal_avg": 1.0156,
         "SF_nodal_max": 0.9577,
@@ -2326,6 +2327,7 @@
       "evidence_path": "evidence/cert_integrity/recertified/w283_p14_c01/w283_p14_c01_solid_tip.json",
       "mesh_sha256": "1e233d11cd0404cca2aa59e074bd7712fbb049edde11d77364e61a233afde253",
       "n_dof": 416583,
+      "observed_certificate_identity": "618aed84db5bb7e76d89c86e9820557e0b74d86191a1180f814097c7d6024627",
       "rel_err_nodal_avg": 0.000394,
       "rel_err_nodal_max": 0.000313,
       "skfem": {

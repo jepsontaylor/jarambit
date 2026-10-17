@@ -207,6 +207,12 @@ mod rs_v2_tests {
         let mut wrong=bind.clone();wrong[&key]["gci_sha256"]=serde_json::json!(jarambit_crescent::battery::sha256_file(&gci).unwrap());
         std::fs::write(d.join("bindings.json"),wrong.to_string()).unwrap();
         assert!(solid_tip_sf(ds,"g3",&g3).is_none(),"outer keys cannot launder another solver record");
+        proof["solid_record"]["certificate_identity"]=serde_json::json!(key);
+        proof["solid_record"]["genome_sha256"]=serde_json::json!("f".repeat(64));
+        std::fs::write(&gci,proof.to_string()).unwrap();
+        wrong[&key]["gci_sha256"]=serde_json::json!(jarambit_crescent::battery::sha256_file(&gci).unwrap());
+        std::fs::write(d.join("bindings.json"),wrong.to_string()).unwrap();
+        assert!(solid_tip_sf(ds,"g3",&g3).is_none(),"the solver record must name the exact genome CSV hash");
         std::fs::write(&gci,"{\"SF_nodal_max\":{\"fine\":99.0}}").unwrap();
         assert!(solid_tip_sf(ds,"g3",&g3).is_none(),"edited payload cannot retain an old content binding");
         std::fs::remove_dir_all(&d).ok();
