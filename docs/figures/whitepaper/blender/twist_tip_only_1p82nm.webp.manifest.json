@@ -1,0 +1,29 @@
+{
+ "extra": {
+  "blender": "Blender 4.5.3 LTS",
+  "command": "python3 ops/render/blender/render_paper.py --scene twist_tip_only_1p82nm --samples 48",
+  "denoise": true,
+  "encoding": "WebP quality 92, method 6; original PNG retained under target/paper/blender",
+  "engine": "Cycles CPU",
+  "field": "No stress field; illustrative finish / fixture / load annotations",
+  "field_scale": null,
+  "finish": "Illustrative titanium/anodized shader; no structural or coating qualification",
+  "geometry": "Exact committed w282 STL; no remodeled geometry; section scene clips at z=0",
+  "samples": 48,
+  "scene": "twist_tip_only_1p82nm",
+  "status": "Historical w282 screen record, not certified on fixed main; no currently certified all-gates winner",
+  "threads": 4
+ },
+ "figure": "docs/figures/whitepaper/blender/twist_tip_only_1p82nm.webp",
+ "figure_sha256": "311025f4aaefe94b21f25322c173beeab53129d6572fb0fb8a3f809116e33615",
+ "inputs": {
+  "evidence/rs_v2/w282_ultrarunner/w282_p14_c01.stl": "b2ba70cf9b34ea5771a364f24d48121e48761ff0830e8e0a26cccbadb105e0e7",
+  "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_D1.json": "184e454feca52afffd156ce1b607025fb50dc3eca0687b835b36ef8f48c5fc46",
+  "evidence/rs_v2/w282_ultrarunner/w282_p14_c01_cad_eval.json": "afdfa9676e988928159274a8b046b4bb02521f274abcf618938cef9dcb29db17",
+  "ops/render/blender/paper_scenes.py": "a2e32098d9663f366fea8a943b518d70f586b37e4bd1e598d14e6ca4ce92a9dd",
+  "ops/render/blender/render_paper.py": "b5a80ea4e5ee842d4ee52f28f8134f325753d46c23a4b7a488cf2cfb64bc58bd"
+ },
+ "norms": {},
+ "schema": 1,
+ "script": "ops/render/blender/paper_scenes.py"
+}

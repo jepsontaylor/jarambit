@@ -4,6 +4,36 @@ docs/figures/whitepaper/fig_why_this_matters.png  # whitepaper page-1 why this m
 docs/figures/whitepaper/fig_w279_gate_margins.png  # whitepaper page-1 w283_p14_c01 16-gate margins
 docs/figures/whitepaper/fig_web_studio.png  # interactive 3D CAD & gate scorecard web studio overview
 docs/figures/engineering_gates/fig1_evolutionary_trajectories.png  # evolutionary trajectories & QD archive
-docs/figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png  # 17x18 CAD battery, GCI & DOLFINx cross-check
+docs/figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png  # historical 17x18 snapshot; paper now uses fig_battery_23.png
 docs/figures/engineering_gates/fig3_cad_and_fem_gallery.png  # real 3D CAD & FEM gallery
 
+
+# Expanded paper: input-bound population/verification figures and the 16-gate + 3-hero Cycles atlas.
+docs/figures/engineering_gates/fig_population_trajectories.png
+docs/figures/engineering_gates/fig_population_diversity.png
+docs/figures/engineering_gates/fig_archive_descriptor_spread.png
+docs/figures/engineering_gates/fig_gate_pass_rates.png
+docs/figures/engineering_gates/fig_population_screen_rates.png
+docs/figures/engineering_gates/fig_pareto_history.png
+docs/figures/engineering_gates/fig_winner_lineage.png
+docs/figures/engineering_gates/fig_battery_23.png
+docs/figures/engineering_gates/fig_verification_and_retraction.png
+docs/figures/whitepaper/blender/cad_watertight_and_single_solid.webp
+docs/figures/whitepaper/blender/geometric_and_holder_gates.webp
+docs/figures/whitepaper/blender/karambit_ring_and_curved_claw.webp
+docs/figures/whitepaper/blender/c6_aesthetic_floor.webp
+docs/figures/whitepaper/blender/cert_hiker_180n.webp
+docs/figures/whitepaper/blender/cert_hunter_260n.webp
+docs/figures/whitepaper/blender/strict_hunter_260n.webp
+docs/figures/whitepaper/blender/cert_ring_pull_1500n.webp
+docs/figures/whitepaper/blender/twist_body_1p82nm.webp
+docs/figures/whitepaper/blender/twist_tip_only_1p82nm.webp
+docs/figures/whitepaper/blender/twist_tip_submodel_strict_1p82nm.webp
+docs/figures/whitepaper/blender/solid_tip_3d_p2_1p82nm.webp
+docs/figures/whitepaper/blender/side_a4_buckling_and_support.webp
+docs/figures/whitepaper/blender/failure_sequence_1p2.webp
+docs/figures/whitepaper/blender/plate_gci_valid_3level.webp
+docs/figures/whitepaper/blender/dolfinx_cross_check_2pct.webp
+docs/figures/whitepaper/blender/hero_oblique.webp
+docs/figures/whitepaper/blender/hero_reverse.webp
+docs/figures/whitepaper/blender/hero_section.webp

@@ -1,0 +1,3322 @@
+{
+ "cells": [
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "pass",
+   "subject": "c10a"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "pass",
+   "subject": "c10a"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "pass",
+   "subject": "c10a"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "pass",
+   "subject": "c10a"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "gate",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "gate",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "derived",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "pass",
+   "subject": "c10a"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/c10a.json",
+   "status": "blocked",
+   "subject": "c10a"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "pass",
+   "subject": "c93"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "pass",
+   "subject": "c93"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "pass",
+   "subject": "c93"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "pass",
+   "subject": "c93"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "gate",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "gate",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "derived",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/c93.json",
+   "status": "blocked",
+   "subject": "c93"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "pass",
+   "subject": "c92"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "pass",
+   "subject": "c92"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "pass",
+   "subject": "c92"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "pass",
+   "subject": "c92"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "gate",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "gate",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "derived",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/c92.json",
+   "status": "blocked",
+   "subject": "c92"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "pass",
+   "subject": "c10c"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "pass",
+   "subject": "c10c"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "pass",
+   "subject": "c10c"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "pass",
+   "subject": "c10c"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "gate",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "gate",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "derived",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/c10c.json",
+   "status": "blocked",
+   "subject": "c10c"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "pass",
+   "subject": "g3"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "pass",
+   "subject": "g3"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "pass",
+   "subject": "g3"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "pass",
+   "subject": "g3"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "blocked",
+   "subject": "g3"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "blocked",
+   "subject": "g3"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "pass",
+   "subject": "g3"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "blocked",
+   "subject": "g3"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "fail",
+   "subject": "g3"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "fail",
+   "subject": "g3"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "fail",
+   "subject": "g3"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "pass",
+   "subject": "g3"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "pass",
+   "subject": "g3"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "pass",
+   "subject": "g3"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "pass",
+   "subject": "g3"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "pass",
+   "subject": "g3"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "pass",
+   "subject": "g3"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/g3.json",
+   "status": "fail",
+   "subject": "g3"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "pass",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "pass",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "pass",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "pass",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "blocked",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "blocked",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "pass",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "blocked",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "fail",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "fail",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "fail",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "fail",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "pass",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "pass",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "pass",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "pass",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "pass",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w271b_11772.json",
+   "status": "fail",
+   "subject": "w271b_11772"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "pass",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "pass",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "pass",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "pass",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "blocked",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "blocked",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "pass",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "blocked",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "fail",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "fail",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "fail",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "fail",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "pass",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "pass",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "pass",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "pass",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "pass",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w271b_11860.json",
+   "status": "fail",
+   "subject": "w271b_11860"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "pass",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "pass",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "pass",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "pass",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "blocked",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "blocked",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "pass",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "blocked",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "fail",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "fail",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "fail",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "pass",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "pass",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "pass",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "pass",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "pass",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "pass",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w271c_11522.json",
+   "status": "fail",
+   "subject": "w271c_11522"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "pass",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "pass",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "pass",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "pass",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "blocked",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "blocked",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "pass",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "blocked",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "fail",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "fail",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "fail",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "fail",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "pass",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "pass",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "pass",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "pass",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "pass",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w272_s2902_c01.json",
+   "status": "fail",
+   "subject": "w272_s2902_c01"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "pass",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "pass",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "pass",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "pass",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "blocked",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "blocked",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "pass",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "blocked",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "fail",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "fail",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "fail",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "pass",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "pass",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "pass",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "pass",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "pass",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "pass",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w273_s2904_c01.json",
+   "status": "fail",
+   "subject": "w273_s2904_c01"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "pass",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "pass",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "pass",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "pass",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "blocked",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "blocked",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "pass",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "blocked",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "fail",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "fail",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "fail",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "fail",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "pass",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "pass",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "pass",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "pass",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "pass",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w273_s2903_c04.json",
+   "status": "fail",
+   "subject": "w273_s2903_c04"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "pass",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "pass",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "pass",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "pass",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "blocked",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "blocked",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "pass",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "blocked",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "fail",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "pass",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "fail",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "fail",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "pass",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "pass",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "pass",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "pass",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "pass",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w274_s2905_c01.json",
+   "status": "fail",
+   "subject": "w274_s2905_c01"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "pass",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "pass",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "pass",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "pass",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "blocked",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "blocked",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "pass",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "blocked",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "fail",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "pass",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "fail",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "fail",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "pass",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "pass",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "pass",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "pass",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "pass",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w275_s2909_c01.json",
+   "status": "fail",
+   "subject": "w275_s2909_c01"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "pass",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "pass",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "pass",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "pass",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "blocked",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "blocked",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "pass",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "blocked",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "fail",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "pass",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "fail",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "fail",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "pass",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "pass",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "pass",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "pass",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "pass",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w276_s2913_c01.json",
+   "status": "fail",
+   "subject": "w276_s2913_c01"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "pass",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "pass",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "pass",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "pass",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "blocked",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "blocked",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "pass",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "blocked",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "fail",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "pass",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "fail",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "fail",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "pass",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "pass",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "pass",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "pass",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "pass",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w277_s2919_c01.json",
+   "status": "fail",
+   "subject": "w277_s2919_c01"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "pass",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "pass",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "pass",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "pass",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "blocked",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "blocked",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "pass",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "blocked",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "fail",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "pass",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "fail",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "fail",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "pass",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "pass",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "pass",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "pass",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "pass",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w278_s2922_c01.json",
+   "status": "fail",
+   "subject": "w278_s2922_c01"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "pass",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "pass",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "pass",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "pass",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "blocked",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "blocked",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "pass",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "blocked",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "fail",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "pass",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "fail",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "fail",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "pass",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "pass",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "pass",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "pass",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "pass",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w279_s2928_c01.json",
+   "status": "fail",
+   "subject": "w279_s2928_c01"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "pass",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "pass",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "pass",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "pass",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "blocked",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "blocked",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "pass",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "blocked",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "fail",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "pass",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "fail",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "fail",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "pass",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "pass",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "pass",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "pass",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "pass",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w280_s2931_c01.json",
+   "status": "fail",
+   "subject": "w280_s2931_c01"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "pass",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "pass",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "pass",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "pass",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "blocked",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "blocked",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "pass",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "blocked",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "fail",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "pass",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "fail",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "fail",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "pass",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "pass",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "pass",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "pass",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "pass",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w281_s2932_c01.json",
+   "status": "fail",
+   "subject": "w281_s2932_c01"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "pass",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "pass",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "pass",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "pass",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "blocked",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "blocked",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "pass",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "blocked",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "fail",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "pass",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "fail",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "fail",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "pass",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "pass",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "pass",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "pass",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "pass",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w282_p14_c01.json",
+   "status": "fail",
+   "subject": "w282_p14_c01"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "pass",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "pass",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "pass",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "pass",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "blocked",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "blocked",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "pass",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "blocked",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "fail",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "pass",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "fail",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "fail",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "pass",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "pass",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "pass",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "pass",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "pass",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w282_p10_c02.json",
+   "status": "fail",
+   "subject": "w282_p10_c02"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "pass",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "pass",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "pass",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "pass",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "blocked",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "blocked",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "pass",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "blocked",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "fail",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "fail",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "fail",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "fail",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "pass",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "pass",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "pass",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "pass",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "pass",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w283_p14_c01.json",
+   "status": "fail",
+   "subject": "w283_p14_c01"
+  },
+  {
+   "case": "build.analytic",
+   "kind": "software_contract",
+   "pointer": "/cases/0/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "pass",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "build.gci_contracts",
+   "kind": "software_contract",
+   "pointer": "/cases/1/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "pass",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "build.claims",
+   "kind": "software_contract",
+   "pointer": "/cases/2/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "pass",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "build.dolfinx",
+   "kind": "software_contract",
+   "pointer": "/cases/3/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "pass",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "geom.unit",
+   "kind": "gate",
+   "pointer": "/cases/4/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "blocked",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "geom.one_solid",
+   "kind": "gate",
+   "pointer": "/cases/5/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "blocked",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "geom.mass",
+   "kind": "derived",
+   "pointer": "/cases/6/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "pass",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "geom.pin",
+   "kind": "software_contract",
+   "pointer": "/cases/7/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "blocked",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "plate.loads",
+   "kind": "derived",
+   "pointer": "/cases/8/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "fail",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "plate.seq",
+   "kind": "gate",
+   "pointer": "/cases/9/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "fail",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "plate.l7",
+   "kind": "derived",
+   "pointer": "/cases/10/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "fail",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "plate.gci",
+   "kind": "derived",
+   "pointer": "/cases/11/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "pass",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "side.a1",
+   "kind": "derived",
+   "pointer": "/cases/12/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "pass",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "side.a2",
+   "kind": "derived",
+   "pointer": "/cases/13/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "pass",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "side.a3",
+   "kind": "derived",
+   "pointer": "/cases/14/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "pass",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "side.a4",
+   "kind": "derived",
+   "pointer": "/cases/15/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "pass",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "solid.tip",
+   "kind": "solver_run",
+   "pointer": "/cases/16/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "pass",
+   "subject": "w283_p10_c02"
+  },
+  {
+   "case": "gate.rs_v2",
+   "kind": "gate",
+   "pointer": "/cases/17/status",
+   "source": "evidence/cad_battery/w283_p10_c02.json",
+   "status": "fail",
+   "subject": "w283_p10_c02"
+  }
+ ],
+ "schema": 1,
+ "totals": {
+  "blocked": 112,
+  "fail": 81,
+  "pass": 221
+ }
+}

@@ -1,381 +1,248 @@
 # Engineering Gates, Multi-Fidelity Physics, and Evolutionary Dynamics in `jarambit`
 
 **Authors:** Jepson Taylor & the `jarambit` Engineering/Assurance Pipeline  
-**Document Version:** `1.0.0` — `2026-10-16` (synchronized with [`docs/VERSION`](VERSION) and [`docs/WHITEPAPER.md`](WHITEPAPER.md))
-**Canonical Evidence Schemas:** `jarambit.cad_battery.v1` · `RS-karambit-v1` · `RS-karambit-v2` · `GLOBAL_METRIC = G1`
+**Document Version:** `1.0.0` — `2026-10-17` (synchronized with [WHITEPAPER](WHITEPAPER.md) and [VERSION](VERSION))
 
----
+**Scope:** utility-load numerical screening, reproducible search history, and certificate integrity.
 
 ## Abstract
 
-`jarambit` is a deterministic, Rust-native evolutionary CAD and multi-fidelity structural verification pipeline for fixed-blade titanium hiking/utility karambits (`SWITCHBACK` class, Ti-6Al-4V Grade 5 / Grade 23 ELI / Ti-6Al-2Sn-4Zr-6Mo). Unlike conventional generative design workflows that blend geometric legality, manufacturability, and structural safety into soft penalty weights, `jarambit` enforces a strict **two-tier gate hierarchy**:
+`jarambit` couples a constrained titanium CAD genotype to plate elasticity, a local quadratic-tetrahedron solid model, geometric checks, and evolutionary search. This companion extends the existing white paper with an implementation-derived account of every gate and its verification limits. Three distinct denominators matter: **16 W_CAD_v2 engineering gates**, **10 RS-karambit-v2 hard-gate groups**, and **18 CAD battery evaluators applied to 23 subjects, giving 414 recorded cells**. They are not interchangeable pass counts. Selected historical candidates became lighter, but the v1.0.0 audit exposed geometry, measurement, solver-independence, and evidence-identity defects. **There is no currently certified all-gates winner.** The w283 all-hard claims are withdrawn; any w284–w29x result scored by the rejected pipeline is **PROVISIONAL** until re-certified on fixed main. Renderings show the historical w282 screen record, never a qualified manufactured product.
 
-1. **Hard Engineering & Manufacturability Gates (Rejections, Never Penalties):** Every candidate genotype or native B-rep CAD model is subjected to deterministic geometric, red-team, sheath/holder snap-fit, aesthetic (`C.4`/`C.5`/`C.6`), multi-mesh CST+DKT plate FEM, 3D quadratic-tetrahedron (`TET10`) tip submodel, Roache 3-mesh Grid Convergence Index (`GCI`), and `RS-karambit-v2` human-maximum / Goodman fatigue / sharpness gates. Any hard-gate violation immediately rejects the design from promotion eligibility.
-2. **Locked Cross-Wave Global Fitness Metric (`G1`) & Quality-Diversity (`QD`) Search:** Across 29+ evolutionary waves (`w1` $\rightarrow$ `w27` $\rightarrow$ `w271` $\rightarrow$ `w272` $\rightarrow$ `w273` $\rightarrow$ `w274` $\rightarrow$ `w275` $\rightarrow$ `w276` $\rightarrow$ `w277` $\rightarrow$ `w278` $\rightarrow$ `w279` $\rightarrow$ `w280` $\rightarrow$ `w281` $\rightarrow$ `w282` $\rightarrow$ `w283`), feasible and near-feasible designs are explored via an island genetic algorithm coupled to a 12-dimensional $k$-NN novelty archive and a 2D MAP-Elites Quality-Diversity (`QD`) grid, and ranked across waves by a single locked global metric $G_1$ ([`metrics/global_metric.py`](../metrics/global_metric.py)) guarded by a **178-group (`356`-control) scientific assurance suite** (`T00`–`T19`).
+## I. Architecture and interpretation
 
-> [!IMPORTANT]
-> **Honest Qualification Verdict (`RS-karambit-v1` vs `RS-karambit-v2`)**
-> - Historical `RS-karambit-v1` and 16-gate `W_CAD_v2` screens through Wave 282 remain historical records. Wave 283 is excluded from the passing record progression after independent re-certification.
-> - **No currently reported design establishes an all-hard `RS-karambit-v2` pass.** The Wave 283 pass claims are withdrawn. Corrected exports, raw independent solver observations, and content identities are retained with the re-certification evidence.
+The controlling predicate is the `gates_map` in [evaluate_cad_candidate.py::evaluate_candidate](../ops/ci/evaluate_cad_candidate.py); native scorecards are assembled by [battery.rs](../crates/crescent/src/battery.rs) and [score_cad.rs](../crates/cli/src/score_cad.rs). A genome is decoded, exported, measured, screened, re-solved on certification meshes, evaluated by the independent solid pipeline, and summarized. A missing observation cannot establish qualification. A negative evolutionary fitness ranks failures for continued search; it does not admit them through a hard gate.
 
----
+The native path and standard independent pipeline have different capabilities. Native `solid_tet10` is a numerical screen. Actual independent solver certification uses [evaluate_cad_candidate.py](../ops/ci/evaluate_cad_candidate.py), [tip_solid.py](../fem_solid/tip_solid.py), and [cross_check.py](../fem_solid/cross_check.py). A matching label, a saved scorecard, a successful renderer, or the word “certified” in a console message cannot supply missing evidence. Faceted project STEP exports carry `MANIFOLD_SOLID_BREP` syntax but are not thereby validated sewn OCC B-reps.
 
-<!-- GEN:CERT_INTEGRITY:BEGIN -->
-**v1.0.0 certification claims withdrawn (#75–#81).** Neither Wave 283 candidate passes the fixed pipeline. The exported geometry and all requirement thresholds are unchanged. Native-only solid solves are unverified; the results below use actual scikit-fem P2 and DOLFINx solves on the same mesh.
+### I-A. Shared mechanics, loads, and fidelity
 
-| candidate | raster / solid g | strict lateral N | cert seq | solid-tip SF | G1 | W_CAD | RS-v2 |
-|---|---:|---:|---:|---:|---:|---:|---|
-| `w283_p14_c01` | 75.382 / 75.199 | 176.720 | 0.7436 | 0.9577 | 0.623888 | -3.878704 | FAIL |
-| `w283_p10_c02` | 75.642 / 75.505 | 176.763 | 0.7179 | 0.9578 | 0.621632 | -3.964924 | FAIL |
+The crescent implementation is [fem.rs::run_b, certify, run_unbiased](../crates/crescent/src/fem.rs), backed by [physics/fine.rs](../crates/physics/src/fine.rs). Linear isotropic elasticity solves $K u=f$; the plate combines membrane response with Batoz DKT bending. In-plane diagnostics use quadratic T6 triangles. The flexural rigidity is $D=Et^3/[12(1-\nu^2)]$. The default Ti-6Al-4V screening model has $E=113.8$ GPa, $\nu=0.34$, density $4.43$ g/cm³ and provisional 20 °C yield $828$ MPa; these values are code assumptions, not coupon measurements for a manufactured part. The temperature law in [physics::Material::yield_at](../crates/physics/src/lib.rs) is linear, $\sigma_y(T)=\sigma_y(20)[1-0.0011(T-20)]$ for this alloy.
 
-Source: `evidence/rs_v2/w283_ultrarunner/*_{cad_eval,rs,solid_tip}.json`; raw solver outputs and exact meshes are retained in `evidence/cert_integrity/recertified/`. The retracted certificates are preserved under `evidence/cert_integrity/v1.0.0-retracted/`. Lateral strength, failure sequence, human-maximum loads, fatigue, exported edge sharpness and full 0–10 mm point monotonicity remain blockers; the bore has no verified required fillet. Historical 16-gate screen results below do not establish an RS-v2 all-hard pass or manufacturing promotion. G1 above uses the full-precision RS inputs in each battery record; CAD-eval JSON retains its rounded D1 inputs.
-<!-- GEN:CERT_INTEGRITY:END -->
+D1 applies simultaneous stock and temperature knockdowns:
 
-## I. End-to-End Architecture & The 18-Evaluator CAD-to-`G1` Pipeline
+$$k_p(t)=\left(\frac{t-0.1\ {\rm mm}}{t}\right)^p\frac{\sigma_y(100\ ^\circ{\rm C})}{\sigma_y(20\ ^\circ{\rm C})},\qquad C_{\rm robust}=C_{20}k_p.$$
 
-Every candidate in `jarambit`—whether synthesized from the 20-gene legacy genotype ([`crates/genotype/src/lib.rs`](../crates/genotype/src/lib.rs)), the 128-gene `C.4`/`C.5`/`C.6` spline + 3D thickness/relief/lattice genotype ([`crates/crescent/src/genotype.rs`](../crates/crescent/src/genotype.rs)), or imported as a native B-rep `STEP`/`STL` solid ([`designs/switchback/`](../designs/switchback/))—passes through an 18-evaluator CAD battery ([`ops/ci/cad_battery.py`](../ops/ci/cad_battery.py)) that feeds the locked global fitness score $G_1$.
+The code uses $p=2$ for bending/torsion capacity and $p=1$ for membrane ring pull. This conservative multiplicative proxy is not a re-mesh of every manufacturing realization. Certification takes conservative metrics over maximum triangle areas **0.25 and 0.125 mm²**, with no search bias; the strict solve uses **0.0625 mm²**. Search meshes are coarser and configurable (2 mm² in the normal evaluator; 4 mm² in the retained w282 experiment). Area is not edge length. These tiers do not provide the same accuracy.
 
-```mermaid
-flowchart TD
-    subgraph Genotypes["1. Genotypes & CAD Representations"]
-        G20["20-Gene + TiGrade Genotype\n(crates/genotype/src/lib.rs)"]
-        G128["128-Gene Crescent Spline + 3D Relief\n+ Through-Lattice + Grind Law\n(crates/crescent/src/genotype.rs)"]
-        BREP["Native B-Rep STEP / Watertight STL\nSWITCHBACK C9.2 / C9.3 / C10a / C10c\n(designs/switchback/)"]
-    end
+For lateral loading the bore nodes are clamped in all five plate DOFs, with a unit transverse force distributed over a 2 mm tip patch. A 4 mm tip stress exclusion isolates the load singularity. For ring pull, the guard/ricasso band $x\in[76,100]+\Delta x$ mm is seated and a unit $-x$ bore traction is integrated. First-yield capacity is $C_{20}=\sigma_y(20)/\hat\sigma_{\rm vm}$ for a unit-load stress peak. Chord torsion loads slope DOFs along $n=(-d_y,d_x)$, perpendicular to the ring-to-tip chord $d$. The thick rectangular section correction is $k_c=(1/3)/\alpha(b/t)$, implemented by `alpha_rect` and `torsion_3d_factor`; it is applied to plate torsion, not to a separately solved solid model.
 
-    subgraph HardGates["2. Pre-FEM Geometric, Red-Team & Aesthetic Gates"]
-        RT["Red-Team & Manufacturability Gates\n- 3 Blade Length Measures >= 86.225 mm, Edge <= 101.6 mm\n- Ring ID 25.4 +- 0.5 mm, Wall >= 4.5 mm, Fillet >= 8 mm\n- Ligaments >= 3.0 mm (or RAIL_W), Genus-1 Watertight\n- Double Serrated (>= 3 teeth, >= 0.05 mm ripple)\n- Stock 5.3..6.0 mm (0.1 mm quantum), Edge >= 14 deg\n- Holder Pop-In (F_ins 3..80 N, F_draw 1.5..45 N, 200x100x9 mm)\n- Brand Pad on Clear Flat"]
-        AES["Automated Aesthetic Floor (C.4 / C.5 / C.6)\n- Hausdorff <= 6.0 mm, Curvature EMD <= 0.06\n- Straight Run <= C.4 + 8 mm, Blend R >= 2.0 mm\n- Spine Convex & Hawkbill Concave Continuity\n- Thumb Seat >= 0.4 mm, Guard Lobe >= 5.0 mm, Hook >= 25 mm\n- C.5 Jimping (0.45 mm +-20%) & C.6 Ring Groove (>= 2.0 mm)"]
-    end
+PR #82 makes the plate and solid inputs use the post-removal export thickness law: `export::thickness_at` evaluates $t(q)=\max(t_{field}(q),t_{floor})$ with **0.05 mm** floor in RS-v2 mode and **0.30 mm** in the legacy mode. `fem::run_b` averages four evaluations per triangle (centroid and the three centroid-to-vertex midpoints) to obtain the element thickness. It removes the earlier pre-removal-field substitution and global ring-width strength credits. Geometry equality is necessary; it does not eliminate plate-model error or turn a local submodel into a whole-part qualification.
 
-    subgraph Evaluators["3. Multi-Fidelity Structural Physics & 18-Evaluator CAD Battery"]
-        PLATE["Plate CST + Batoz DKT FEM (crates/crescent/src/fem.rs)\n- 828 MPa Joint Thin (-0.1 mm) + Hot (100 C) Knockdown\n- Search (2.0 mm2, bias 1.11/1.08) -> Cert min(0.25, 0.125 mm2) -> Strict (0.0625 mm2)\n- Hiker >= 180 N, Hunter >= 260 N, Ring Pull >= 1500 N\n- Chord Torsion 1.82 N*m (Body & 4-15 mm Tip-Zone SF >= 1.0, St-Venant 3D k_c)\n- Failure Sequence Ratio seq = F_hand / F_blade >= 1.2"]
-        PGCI["3-Mesh Plate GCI (plate_gci_probe + fem_solid/gci.py)\n- Areas {4.0, 1.0, 0.25} mm2 (r = 2.0), Roache GCI_fine <= 5%"]
-        SOLID["3D Quadratic TET10 Solid Tip Submodel & Whole-Part\n- scikit-fem P2 (fem_solid/tip_solid.py, step_solid.py)\n- DOLFINx v0.9.0 CG+GAMG Cross-Check (rel_err < 0.06%)\n- 3-Level Solid GCI up to 3.19M DOFs"]
-        SIDE["Side Reports A1-A4 (g3_side_report + ops/ci/side_a4.py)\n- A1-A3: Hand/Blade/Ring/Neck Peaks, Governor (x,y), Mesh Stability\n- A4: Radial Pin Bearing + Winkler Grip Foundation + Linear Buckling lambda_cr"]
-        RSV2["RS-karambit-v2 Hard Gates & Sharpness Gate S\n- Human-Max: Twist 16.2 N*m, Spine 3427 N, Ring-Back 3000 N (DAF 2), Tip 1000 N\n- Ring Bearing Width >= 10 mm, Edge Radius >= 1.5 mm\n- L7 Fatigue: Marin + Modified Goodman (0..180 N, 1e7 cycles, SF >= 1.0)\n- Gate S: Apex <= 0.20 mm, Half-Angles <= 25 deg, Point Taper S2"]
-    end
+### I-B. Reading the verification citations
 
-    subgraph Scoring["4. Evolutionary Search & Global Fitness G1"]
-        EVO["Island GA + 12-D Novelty + 2D MAP-Elites QD\n- Cap-Free Feasible Objective F(mass, margin, aes, nov)\n- Lossless Checkpoints & Append-Only Zstd .jevl Lineage"]
-        G1["Locked Global Metric G1 (metrics/global_metric.py)\n- Complete 5-Input Contract (SF_tip, SPG, aes, mass_g, seq_ratio)\n- Deletion Monotonicity & Scoped Claim Verification (T00-T19)"]
-    end
+Each gate below names its exact Boolean predicate, computation, retained evidence, and verification limits. File links denote implementations or reusable test procedures; they do not assert that those tests ran for every candidate. The frozen T00–T19 catalog is mapped in §IV-C using its actual contents. In particular T01 concerns GCI, T02 claim honesty, T03 checked stochastic reductions, T04 search contracts, and T05 field/representation semantics. Proposed entries and software controls supply no physical validation. No per-gate physical test coverage is inferred from a T-family label.
 
-    Genotypes --> HardGates --> Evaluators --> Scoring
-    Scoring -. "Parent Selection / Elites / Seeds (w6 -> w282)" .-> Genotypes
+## II. The 16 W_CAD_v2 engineering gates, grouped by what they test
+
+### II-A. Geometry and manufacturability
+
+#### 1. `cad_watertight_and_single_solid` — exported topology and mass consistency
+
+**Predicate and units.** `cad_info.cad_valid` requires the STEP header, exactly **one** `MANIFOLD_SOLID_BREP`, at least **one** closed shell, STL **zero boundary edges**, **zero non-manifold edges**, maximum directed-edge repeat **one**, and relative solid/raster mass difference **≤0.01** (1%). Lengths are mm. At Ti-6Al-4V density, $m_{3D}=0.00443 V$ grams for volume in mm³; $V=|\sum a\cdot(b\times c)|/6$ on oriented surface triangles.
+
+**Computation.** [export.rs::solid, census, volume](../crates/crescent/src/export.rs), [evaluate_cad_candidate.py::verify_step_and_stl](../ops/ci/evaluate_cad_candidate.py), and native [cad_ingest.rs::mesh_census_and_volume](../crates/crescent/src/cad_ingest.rs). This is a mesh/export consistency test; it does not prove absence of every triangle self-intersection or successful OCC sewing.
+
+**Verification.** CAD ingest/export unit controls and `ops/ci/tests/test_cad_battery.py`; retained `*_cad_eval.json:/cad` binds actual STEP/STL hashes and mass observations. T02 governs whether those observations may support a claim; it is not a topology solver. The #75 regression `plate_and_export_use_actual_thickness_not_the_thicker_machining_base` additionally checks geometry consistency.
+
+[Blender topology plate](figures/whitepaper/blender/cad_watertight_and_single_solid.webp).
+
+#### 2. `geometric_and_holder_gates` — legal geometry and assumed holder compatibility
+
+**Predicate and units.** `len(rs_doc.rejects)==0`, ultimately [gates.rs::check](../crates/crescent/src/gates.rs). Each of tip-to-heel, horizontal reach and sharpened arc is **≥85.725 mm**; each cutting-edge arc is **≤101.6 mm**. Grip length is **60–80 mm**; ring ID **25.4±0.5 mm**; ring-wall ligament **≥4.5 mm**; other ligaments **≥3 mm** (P1 may require the wider rail). Stock is **5.3–6.0 mm** in **0.1 mm** increments. Both edges require ≥3 teeth and ripple **≥0.05 mm**; primary edge angles are **≥14°/side**. Titanium, a non-self-intersecting connected outline, clear flat brand pad and valid feature containment are required.
+
+**Holder model.** `holder_fit` scans rotations −30°…30° in 0.5° increments against **200×100 mm**. Stack $t+2w+2c\le9$ mm with $c=0.2$ mm, insertion **3–80 N**, draw **1.5–45 N**, cairn retention feature **≥4 mm**, friction land **≥40 mm²**. [redteam::holder_forces](../crates/redteam/src/lib.rs) uses $F_{in}=6.6w^3\delta$ N, derived from a 2.2 GPa cantilever proxy; $F_{draw}=0.55F_{in}$. Additional decoded failures and the sanity mass interval **20<m<200 g** also reject. This broad sanity interval is separate from the soft 80 g ranking target.
+
+**Verification.** `gates.rs`, red-team tests, phenotype tests in [crescent/src/tests.rs](../crates/crescent/src/tests.rs), and battery `geom.*` records. T02 covers scoped claims and T19 prevents a missing required execution being counted as success. No measured insertion/draw curve or directional retention validation is supplied by the scalar holder proxy.
+
+[Blender holder/envelope plate](figures/whitepaper/blender/geometric_and_holder_gates.webp).
+
+### II-B. Ergonomics and appearance
+
+#### 3. `karambit_ring_and_curved_claw` — ring and hooked-outline archetype
+
+**Predicate.** The conjunction in `evaluate_candidate`: ring ID **25.4±0.5 mm**, ring wall **≥4.5 mm**, C.6 ring-face groove width **≥2.0 mm**, hook drop **≥25 mm**, minimum of the three blade-length measures **≥85.725 mm**, ≥3 teeth on each edge, and aesthetic pass. The implemented comparisons allow $10^{-6}$ mm around the stated ring-ID/archetype length limits (`+1e-6` on ID deviation; `-1e-6` on minimum lengths); `gates::check` separately uses $10^{-9}$ mm on ring ID. These numerical comparisons are stated rather than silently changed. The reported inside-concave/spine-convex fractions contribute to the score; the code applies reference continuity limits through the aesthetic evaluator, not through an invented fixed 95% gate.
+
+**Computation and science.** [pheno.rs::build](../crates/crescent/src/pheno.rs) decodes geometry; [aesthetic.rs::evaluate, continuity](../crates/crescent/src/aesthetic.rs) samples curvature; `evaluate_candidate` reads export metadata and D1. This is a deterministic shape/retention-interface proxy, without FEM or anthropometric sampling. Ring ID does not establish comfortable pressure distribution, and groove width does not establish the bore-edge radius required by RS-v2.
+
+**Verification.** Reference-seed/feature tests in `crescent/src/tests.rs`, explicit `/karambit_archetype` observations in `*_cad_eval.json`, and exported-mesh measurements from [certification.rs::measure](../crates/crescent/src/certification.rs). T02's truthful-negative controls address reporting; the catalog supplies no executed human-fit study for this gate.
+
+[Blender ring plate, with an illustrative 22 mm gauge](figures/whitepaper/blender/karambit_ring_and_curved_claw.webp).
+
+#### 4. `c6_aesthetic_floor` — reference geometry and required features
+
+**Predicate.** `mt.aes_pass`, from [aesthetic.rs::evaluate](../crates/crescent/src/aesthetic.rs). Symmetric Hausdorff distance **≤6 mm**; normalized curvature-histogram EMD **≤0.06** (32 bins); longest nearly straight run **≤reference+8 mm**, with straight defined by $|\kappa|<1/250$ mm$^{-1}$. Minimum concave blend radius is **≥min(2 mm, 0.8×reference minimum)**. Convex-spine and concave-inside sample fractions are **≥reference−0.03**. Thumb-seat depth **≥0.4 mm**, guard-lobe prominence **≥5 mm**, hook drop **≥25 mm**, neck-fillet gene **≥8 mm**. Wrap length **≥45 mm** and texture condition, flat pad, jimp scale **0.8–1.2** (0.36–0.54 mm nominal depth), and active C.6 groove width **≥2 mm** with groove area **>50 mm²** are also checked.
+
+**Computation.** Outline resampling and curvature statistics are geometric screens. The soft score $A=e^{-H/6}e^{-EMD/0.05}[1-0.5\min(\Delta L/8,1)]$ is separate: **A≥0.50 is not the hard predicate**. A score near 0.408 can pass every actual sub-check.
+
+**Verification.** Reference-feature tests in `crescent/src/tests.rs` and D1 `metrics.aes_fails`, Hausdorff and EMD fields provide inspectable diagnostics. There is no frozen T-family that establishes human aesthetic approval; automated acceptance and owner sign-off remain separate.
+
+[Blender C.6 plate](figures/whitepaper/blender/c6_aesthetic_floor.webp).
+
+### II-C. Structural strength
+
+The following eight gates share §I-A's material law and geometry. Their load capacities and safety factors are predictions of specified linear-elastic models, not physical proof loads.
+
+#### 5. `cert_hiker_180n` — transverse utility-load capacity
+
+**Predicate:** `lat_rob_cert_n >= 180.0` N, equivalently $SF_h=C_{lat}/180\ge1$. `fem::certify` takes conservative lateral capacity over **0.25/0.125 mm²** ring-clamped DKT meshes, using the unit out-of-plane tip patch, excluded 4 mm load zone, and $k_2$ joint thin/hot factor. It tests bending strength under the lower lateral utility load, not impact response.
+
+**Verification:** [physics/fine.rs](../crates/physics/src/fine.rs) elasticity tests, [physics/tests/solver_parity.rs](../crates/physics/tests/solver_parity.rs), and candidate `*_D1.json`/`*_cad_eval.json` fields `lat_rob` and `sf_hiker`. T05 concerns field/representation contracts, with execution scope checked separately; T01 addresses mesh evidence. Calibration residuals and lack of physical coupons are discussed in §IV.
+
+[Blender hiker plate](figures/whitepaper/blender/cert_hiker_180n.webp). Its color field is the saved multi-load D1 envelope, labeled accordingly; the arrow identifies this gate's fixture/load.
+
+#### 6. `cert_hunter_260n` — higher transverse utility-load capacity
+
+**Predicate:** `lat_rob_cert_n >= 260.0` N; $SF_H=C_{lat}/260\ge1$. The solver, support, mesh pair and knockdown are the same as gate 5; the required capacity is higher. There is no independent second material model behind these two Booleans. `fem::certify` in [fem.rs](../crates/crescent/src/fem.rs) supplies both values to `evaluate_candidate`.
+
+**Verification:** unit-load linearity, solver parity, actual-export thickness regression (#75), and the `lat_rob_cert_n`/`sf_hunter_cert` fields in each CAD evaluation. The 40-design T1→T2 calibration in [t1_t2.json](calibration/t1_t2.json) has a historical lateral residual sigma of 6.5%; that is not a per-design uncertainty bound. T01/T05 concern numerical contracts; neither supplies physical strength validation.
+
+[Blender hunter plate](figures/whitepaper/blender/cert_hunter_260n.webp).
+
+#### 7. `strict_hunter_260n` — transverse strength on the strict mesh
+
+**Predicate:** `strict_lat_rob_0p0625_n >= 260.0` N. [bench.rs::rs_v2_eval](../crates/cli/src/bench.rs) and the D1 CLI call `fem::run_unbiased` at **0.0625 mm²**, then apply $k_2$. Boundary conditions and 260 N floor remain unchanged. Refining the same model probes mesh sensitivity; it does not add a new load case or remove geometric/model uncertainty.
+
+**Verification:** strict D1 rescreen CSV plus bound `*_D1.json` and `*_rs.json`; T01 mesh-sequence/observable-identity controls; #75's export-field consistency regression. W283's fixed value **176.720 N** for p14 is materially below the unchanged floor despite the earlier 262.6 N claim. A valid independent solid comparison cannot repair this plate failure.
+
+[Blender strict-lateral plate](figures/whitepaper/blender/strict_hunter_260n.webp). The displayed stress mesh is the retained certification mesh, not a claimed new strict solve.
+
+#### 8. `cert_ring_pull_1500n` — seated ring-traction capacity
+
+**Predicate:** `ring_rob_cert_n >= 1500.0` N. A T6 membrane solve seats the guard/ricasso band and integrates unit $-x$ traction on the bore. Capacity derives from the hand-side nodal von Mises peak outside the excluded seated region, using $k_1$ rather than the flexural $k_2$. [fem.rs::run_b, certify](../crates/crescent/src/fem.rs) conservatively combines the certification meshes.
+
+**Verification:** consistent edge-traction implementation in `physics/fine.rs`, solver/representation tests, `*_D1.json:/metrics/ring_rob`, and `*_cad_eval.json:/engineering_metrics/ring_rob_cert_n`. T05's balance/invariance controls address numerical semantics; no physical ring proof test is inferred. This 1500 N static requirement differs from RS-v2's provisional 3000 N ring-back static equivalent and from finger-bearing comfort.
+
+[Blender ring-pull plate](figures/whitepaper/blender/cert_ring_pull_1500n.webp).
+
+#### 9. `twist_body_1p82nm` — chord torsion away from the tip
+
+**Predicate:** `twist_body_sf >= 1.0` at **1.82 N·m = 1820 N·mm**. A ring-held tip torque is applied about the chord. The body stress peak excludes the inner **15 mm** around the tip; its own local rectangular-section $k_c$ and $k_2$ give $SF=T_{y,body}/1820$. This is a body-region metric of the same tip-loaded solve, not a second body-load fixture.
+
+**Computation:** `fem::run_b` constructs `excl15`, obtains `kc_body`, and reports `body_j3`; `certify` combines meshes. **Verification:** chord-axis load tests and section correction in `physics/fine.rs`/`crescent/src/fem.rs`, saved D1 body/hand/tip diagnostics, and #76's `rs_mode_does_not_create_ring_width_strength_or_fatigue_credits`. T05 addresses load/field semantics; certification is required because historical torsion calibration misses its residual bar (§IV-B).
+
+[Blender body-torsion plate](figures/whitepaper/blender/twist_body_1p82nm.webp).
+
+#### 10. `twist_tip_only_1p82nm` — tip-loaded torsional peak
+
+**Predicate:** `twist_tip_sf >= 1.0` at **1.82 N·m**. The name is retained from the scorecard: it tests the corrected peak from the tip-loaded chord-torsion solve outside the **4 mm** load singularity exclusion. It is not an independently resolved 3D point test. [fem.rs::run_b](../crates/crescent/src/fem.rs) computes the unit-torque stress, walks the local section in 0.05 mm increments to obtain $b/t$, applies $k_c$ and $k_2$, and the D1 writer exposes `twist_tip_sf`.
+
+**Verification:** unit-load/rotation tests, explicit slope-DOF torque direction, historical T1/T2 torsion calibration, D1 `twist_tip_*` values and actual-export regression. T01/T05 offer numerical contracts only. A point can pass this plate metric yet fail solid-tip SF, measured edge thickness or point monotonicity.
+
+[Blender tip-loaded torsion plate](figures/whitepaper/blender/twist_tip_only_1p82nm.webp).
+
+#### 11. `twist_tip_submodel_strict_1p82nm` — strict-mesh tip annulus torsion
+
+**Predicate:** `twist_tipzone_sf_strict >= 1.0` at **1.82 N·m**, evaluated at **0.0625 mm²**. The peak region is the **4≤distance<15 mm** tip annulus. The strict unbiased solve obtains that annulus's local $k_c$ and thin/hot factor. Despite the historical “submodel” name, this gate is a restricted plate observable; gate 12 supplies the independent 3D local model.
+
+**Computation and verification:** `fem::run_unbiased`/`run_b` (`tipzone_ex`, `kc_tz`), D1 strict reports and `rs_v2_eval`; T01 requires consistent regions/observables across mesh levels, T05 addresses representation semantics. Missing strict data is unverified. A certification-mesh picture does not demonstrate strict convergence, and a strict-mesh pass does not establish point sharpness.
+
+[Blender strict-tip-annulus plate](figures/whitepaper/blender/twist_tip_submodel_strict_1p82nm.webp).
+
+#### 12. `solid_tip_3d_p2_1p82nm` — local three-dimensional tip strength
+
+**Predicate:** `solid_tip_sf_nodal_max >= 1.0` under **1.82 N·m**, using the recorded fine-mesh result. [tip_solid.py](../fem_solid/tip_solid.py) and [solve_dolfinx.py](../fem_solid/solve_dolfinx.py) solve isotropic 3D elasticity, $\sigma=2\mu\epsilon+\lambda\operatorname{tr}(\epsilon)I$, with a clamped cut face and torque traction. The local radius is **30 mm**; the standard saved refinement is **NL=4, NSUB=1**, with quadratic P2 tetrahedra. The reported nodal-maximum SF is allowable divided by the declared recovered von Mises maximum. Nodal maximum, nodal average and element mean are distinct observables.
+
+**Verification:** [verify_analytic.py](../fem_solid/tests/verify_analytic.py) benchmarks, `test_tip_regression.py`, `test_field_semantics.py`, and actual saved `*_solid_mesh.npz`, `*_skfem_raw.json`, `*_dolfinx_raw.json`, `*_solid_tip.json`. T05 covers observable/projection contracts; T01 covers admissible convergence. PR #82's independently observed w283 p14/p10 SF **0.9577/0.9578** fails. Native TET10 alone is unverified for independent certification; no native result is relabeled as two solvers.
+
+[Blender solid-tip load illustration](figures/whitepaper/blender/solid_tip_3d_p2_1p82nm.webp); no unsaved solid stress field is synthesized.
+
+### II-D. Stiffness and stability
+
+#### 13. `side_a4_buckling_and_support` — compliant support and linearized buckling
+
+**Predicate:** A4 `status == 'pass'` **and** `buckling_eigenvalue >=1.0`. `status` itself requires positive eigenvalue and supported sequence **≥the certified sequence**. [side_a4.py::evaluate_subject](../ops/ci/side_a4.py) and [physics/side_a4.rs::solve_side_a4](../crates/physics/src/side_a4.rs) add radial/tangential bore springs **50,000/5,000 N/mm per boundary node**, flange stiffness **100,000 N/mm**, and grip Winkler stiffness **200 N/mm³** times tributary area. The former paper's 50 N/mm³ value was stale.
+
+The linearized eigenproblem is $K_{support}\phi=\lambda_{cr}G\phi$, with compression-positive geometric stiffness assembled for the 260 N reference load; $P_{cr}=260\lambda_{cr}$ N. Python uses sparse factorization/eigensolution; Rust uses sparse Cholesky and K-orthogonal Lanczos. This is an elastic buckling/support diagnostic, not nonlinear collapse, contact validation or permission to replace the clamped failure-sequence gate.
+
+**Verification:** retained `*_a4.json` (support coefficients, sequence, eigenvalue and critical load), native/Python parity fixtures in `battery.rs`, T05 numerical semantics, and T01 where mesh studies are available. The compliant-support model lacks physical hand/pin stiffness calibration; the node-based bore stiffness is itself mesh dependent.
+
+[Blender compliant-support plate](figures/whitepaper/blender/side_a4_buckling_and_support.webp).
+
+### II-E. Failure sequence
+
+#### 14. `failure_sequence_1p2` — hand-side yield must follow blade-side yield
+
+**Predicate:** `seq_ratio_cert >=1.20`, dimensionless. [fem.rs::run_b](../crates/crescent/src/fem.rs) partitions blade $x\ge x_{heel}$ and hand $x<x_{heel}-3$ mm, excluding the 4 mm tip patch. For common material and unit load, $C_{hand}/C_{blade}=\hat\sigma_{blade}/\hat\sigma_{hand}$. It takes the worst ratio across lateral, chord torsion and in-plane pry; `certify` retains the conservative value over the mesh pair. Pry is a sequence diagnostic without a separate W_CAD load-floor gate.
+
+**Verification:** recorded `seq_case`, hand/blade field diagnostics, `*_plate_gci.json` and D1/RS records. T01 controls region/observable identity and extrapolation; T04 distinguishes legal, feasible and ranked designs. This elastic yield-order proxy does not simulate crack initiation, fracture propagation, or safe real-world failure. A4 supported sequence is reported separately and cannot override this clamped-fixture predicate. W283 p14/p10 re-certification gives **0.7436/0.7179**, below 1.20.
+
+[Blender failure-sequence plate](figures/whitepaper/blender/failure_sequence_1p2.webp).
+
+### II-F. Numerical verification
+
+#### 15. `plate_gci_valid_3level` — mesh/observable metadata predicate
+
+**Exact implemented predicate:** the sequence-ratio GCI record must have truthy **`sequence_valid` and `observable_valid`**. This particular W_CAD Boolean does **not** test a maximum GCI percentage or require `fit_status == admissible_estimate`. Consequently, its name must not be read as proof of an asymptotic error bound. The battery's `plate.gci` reports the fuller convergence status separately.
+
+**Computation:** [plate_gci_probe.rs](../crates/crescent/examples/plate_gci_probe.rs) supplies three **4, 1, 0.25 mm²** meshes, corresponding to edge-size ratio $r=2$, to [evaluate_cad_candidate.py](../ops/ci/evaluate_cad_candidate.py) / [fem_solid/gci.py::compute_gci](../fem_solid/gci.py). For a monotone valid sequence, $p=\ln|\epsilon_{32}/\epsilon_{21}|/\ln r$ and $GCI_{fine}=1.25| (f_1-f_2)/f_1 |/(r^p-1)$. The frozen implementation refuses unsupported sequences and distinguishes oscillation, unresolved/precision-limited behavior and nonpositive order. Three levels alone do not establish asymptotic validity.
+
+**Verification:** `fem_solid/tests/test_gci.py`, `test_gci_evidence.py`, actual T01's 18 catalog entries, saved candidate mesh/observable identities. Several historical scorecards show this W_CAD flag as true while the battery records oscillatory GCI. We retain that discrepancy explicitly; no threshold or gate code is changed in this paper update.
+
+[Blender mesh plate](figures/whitepaper/blender/plate_gci_valid_3level.webp).
+
+#### 16. `dolfinx_cross_check_2pct` — independently observed solver agreement
+
+**Predicate:** the independent record's recomputed `within_2pct` is true; the unchanged relative comparison limit is **0.02 (2%)**. The gate recomputes $e=|SF_{skfem}-SF_{DOLFINx}|/SF_{DOLFINx}\le0.02$ for **both** declared nodal-maximum and nodal-average observations; inputs must be finite and positive, with bound mesh identity and NL=4/NSUB=1. The comparison uses the **same saved mesh**, with independent scikit-fem P2 and pinned DOLFINx v0.9.0 execution. [certification.rs::independent_pass](../crates/crescent/src/certification.rs) rejects native/missing/mislabeled records; [cross_check.py](../fem_solid/cross_check.py) retains the distinct solver observations. Stresses, projections, material law, load and constrained region must agree before comparison is meaningful.
+
+**Verification:** `fem_solid/tests/test_dolfinx_verification_record.py`, field-semantics/representation controls, #79's `native_or_missing_independent_solver_never_becomes_a_pass`, and hashed mesh/raw artifacts in [cert_integrity/recertified](../evidence/cert_integrity/recertified/). T05 concerns field semantics; T02 concerns honest claims; T19 distinguishes reuse from fresh execution. Agreement confirms implementation consistency for that problem. Both solvers can agree on a failed strength gate or share an incorrect physical assumption.
+
+[Blender independent-solver illustration](figures/whitepaper/blender/dolfinx_cross_check_2pct.webp).
+
+## III. RS-karambit-v2 and the 414-cell CAD battery
+
+### III-A. Ten RS-v2 hard-gate groups
+
+The authoritative writer is [bench.rs::rs_v2_eval](../crates/cli/src/bench.rs), with requirements in [RS-karambit-v2.toml](../requirements/RS-karambit-v2.toml). All ten groups must be observed and true for `all_hard=true`; missing observations enter `unverified`. These groups overlap W_CAD and add requirements; they are not ten extra disjoint load cases.
+
+| Group | Actual requirement / computation |
+|---|---|
+| `aesthetic_and_geometric` | Aesthetic pass and empty geometric rejects (§II-A/B). |
+| `floors_828_joint` | Joint thin/hot lateral ≥180/260 N and ring pull ≥1500 N (`Fem.floors_ok`). |
+| `twist_floor_body_and_tipsub_strict` | Body and strict 4–15 mm tip-annulus SF ≥1 at 1.82 N·m. |
+| `solid_tip_sf` | Content-bound independently measured solid-tip SF ≥1. |
+| `strict_hunter_lateral` | Strict 0.0625 mm² lateral ≥260 N. |
+| `seq_hard` | Certified yield-sequence proxy ≥1.20. |
+| `human_max` | Twist **16.2 N·m**, distributed spine **3427 N**, ring-back **3000 N**, each SF ≥1; measured bearing width **≥10 mm** and bore-edge radius **≥1.5 mm** on both faces. |
+| `fatigue` | Modified Goodman SF **≥1** for lateral cycling **0…180 N**, $R=0$, $10^7$ cycles (L7). |
+| `gate_s_sharp_law` | Measured cutting-edge apex **≤0.20 mm** and half-angle **≤25°** over the first **0.4 mm**, on the exported solid. |
+| `gate_s_tip_point_brep` | Measured thickness at 0.25/1/2 mm behind point **≤0.30/0.60/1.00 mm**, taper length **≥5 mm**, monotone non-decreasing thickness over the full **0–10 mm** profile. |
+
+The **1000 N in-plane tip** case is solved and reported, but is **record-only**. Ring-back's factor-two static equivalent is provisional pending measured impact data. The prose header of `evolve.sh` contains different human-max/fatigue/sharpness values; those comments are stale and are not the specification. This paper uses the unchanged TOML/Rust constants above and does not modify the owner's pipeline files.
+
+For fatigue [fem.rs::fatigue::goodman_sf](../crates/crescent/src/fem.rs) uses $S_{ut}=895$ MPa, $S'_e=0.5S_{ut}$, $k_a=4.51S_{ut}^{-0.265}$, $k_b=\min(1,1.24\max(t,2.79)^{-0.107})$ and $k_e=0.814$, giving $S_e=k_ak_bk_eS'_e$. For the $R=0$ load, $\sigma_a=\sigma_m=\sigma_{max}/2$ and $n=[\sigma_a/S_e+\sigma_m/S_{ut}]^{-1}$. No unsupported bore-width multiplier reduces the stress. Marin/Goodman is an engineering screening model, not measured titanium endurance or a life prediction validated on the finished geometry.
+
+[certification.rs::thickness, sharpness, point_profile, bore_radius](../crates/crescent/src/certification.rs) intersects exported triangles. Point monotonicity includes surface breakpoints over the entire interval; a missing exact 95%-of-core-thickness crossing is a measured **lower bound**, with exact `taper_mm=null`, not a made-up 10 mm length. Point direction is the bisector of the inside/spine edge directions sampled at least 2 mm from the point. `point_profile` defines taper as the first crossing of **0.95×joint thickness**, interpolated between measured surface breakpoints; monotonicity uses the exact non-decrease comparison with no downward allowance. `sharpness` computes each local half-angle as $\arctan(|\Delta t|/(2\Delta s))$ over the first 0.4 mm, using exported edge stations within 0.031 mm of the declared cutting curves. A wide sharp-edged bore measures zero radius; an unestablished positive fillet radius cannot pass. #77/#78/#81 regressions include positive thin-edge controls, reversals after 5 mm, sub-former-tolerance reversals, and wide but unrounded bores.
+
+### III-B. Eighteen evaluators, 23 subjects
+
+[manifest.json](../evidence/cad_battery/manifest.json) enumerates **23 subjects** and these **18 unique case IDs**. Their Cartesian product has **414 cells**. The matrix preserves `pass`, `fail`, `blocked`, and `incomplete`; a missing capability is never a passed structural test. `solid.tip` can report that a solver record is complete while its SF fails the physical strength requirement; read case `kind`, metrics and `gate.rs_v2` together.
+
+| Evaluators | What their records establish |
+|---|---|
+| `build.analytic`, `build.gci_contracts`, `build.claims`, `build.dolfinx` | Software or runtime capability contracts, with their own execution/admission status. |
+| `geom.unit`, `geom.one_solid`, `geom.mass`, `geom.pin` | Units, topology, mass consistency and bore geometry observations. |
+| `plate.loads`, `plate.seq`, `plate.l7`, `plate.gci` | Plate capacities, failure-sequence proxy, Goodman fatigue and mesh-study status. |
+| `side.a1`, `side.a2`, `side.a3`, `side.a4` | Local stress/zone diagnostics, alternative support and elastic buckling; diagnostic values do not override certified gates. |
+| `solid.tip` | Local quadratic-solid solve record and its metrics, including independence metadata. |
+| `gate.rs_v2` | Full observed RS-v2 conjunction; missing inputs prevent qualification. |
+
+![The complete 23-subject by 18-evaluator matrix](figures/engineering_gates/fig_battery_23.png)
+
+*Figure 1. All 414 recorded cells, regenerated by [battery.py](../ops/render/paper/battery.py). Every cell is traced by JSON pointer in [battery_points.json](figures/engineering_gates/battery_points.json); the PNG manifest hashes the 23 source records. Historical record reuse and corrected w283 observations remain distinguishable from a fresh certification. The earlier 17-subject illustration is superseded here.*
+
+A full catalog command uses all 23 explicit IDs, or the CLI's default catalog; [score_cad.rs](../crates/cli/src/score_cad.rs) documents the actual flags:
+
+```sh
+cargo run --release --locked --bin jarambit -- cad-battery --all --out-dir target/paper/battery
 ```
 
-### I-A. The 18 Standardized CAD Battery Evaluators (`jarambit.cad_battery.v1`)
+This paper's numerical tables reuse committed records; the command is a reproduction entry point and is not a claim that this documentation run re-solved all 23 subjects.
 
-Every CAD subject in [`evidence/cad_battery/*.json`](../evidence/cad_battery/manifest.json) is evaluated against the same 18-case vector defined in [`ops/ci/cad_battery.py`](../ops/ci/cad_battery.py#L48-L67):
+### III-C. Retained RS-v2 measurement table: `RS-karambit-v2` Detailed Gate Breakdown Across Evolved Genomes (`evidence/rs_v2/`)
 
-| # | Case ID | Category | Physical / Mathematical Observable | Pass Criterion (`jarambit.cad_battery.v1`) | Primary Implementation |
-|---:|:---|:---|:---|:---|:---|
-| 1 | `build.analytic` | Build Gate | Analytic & manufactured solutions (`crates/fem`, `crates/crescent`, `crates/physics`, `crates/evolve`) | All Rust unit & integration tests pass | [`crates/crescent/src/fem.rs`](../crates/crescent/src/fem.rs) |
-| 2 | `build.gci_contracts` | Build Gate | Roache GCI & assurance contract suite (`fem_solid/tests`, `assurance/tests`, `metrics/tests`) | All Python unit tests pass | [`fem_solid/gci.py`](../fem_solid/gci.py) |
-| 3 | `build.claims` | Build Gate | Public-document claim-scope & evidence custody admission (`check_claims.py`, `claim_admission.py`) | Zero unscoped `PASS` claims; valid checkout SHA | [`ops/ci/claim_admission.py`](../ops/ci/claim_admission.py) |
-| 4 | `build.dolfinx` | Build Gate | Cross-solver `DOLFINx v0.9.0` vs `scikit-fem` field semantics & representation invariants (`63` tests + `7` genomes) | `all_within_2pct == true` (actual $\le 0.05\%$) | [`fem_solid/cross_check.py`](../fem_solid/cross_check.py) |
-| 5 | `geom.unit` | Geometry | Native STEP header length unit verification (`SI_UNIT(.MILLI.,.METRE.)`) | `unit == "mm"` (blocked on CSV-only genomes) | [`ops/ci/cad_battery.py`](../ops/ci/cad_battery.py#L84-L108) |
-| 6 | `geom.one_solid` | Geometry | Topological connected-component / single manifold B-rep solid check | `solids == 1` | [`ops/ci/cad_battery.py`](../ops/ci/cad_battery.py#L109-L148) |
-| 7 | `geom.mass` | Geometry | Volume integral $\times \rho_{\text{Ti}} = 4.43\times 10^{-3}\text{ g/mm}^3$ vs reference mass | $|\Delta m| \le 0.5\text{ g}$ and finite mass in $[1, 1000]\text{ g}$ | [`crates/crescent/src/stl.rs`](../crates/crescent/src/stl.rs) |
-| 8 | `geom.pin` | Geometry | Bore diameter $25.4 \pm 0.5\text{ mm}$ and bore-axis bearing width | Bore clean, pin-ready | [`crates/crescent/src/outline.rs`](../crates/crescent/src/outline.rs) |
-| 9 | `plate.loads` | Plate FEM | Cert-mesh (`min(0.25, 0.125) mm²`) + strict (`0.0625 mm²`) load capacities & human-max plate loads | `floors_ok` **and** `hm_spine_sf >= 1` **and** `hm_ringback_sf >= 1` | [`crates/crescent/src/fem.rs`](../crates/crescent/src/fem.rs#L653-L799) |
-| 10 | `plate.seq` | Plate FEM | Hand-zone vs blade-zone yield-onset ratio $\text{seq\_ratio} = F_{y,\text{hand}} / F_{y,\text{blade}}$ | $\text{seq\_ratio} \ge 1.20$ on unbiased $0.25\text{ mm}^2$ mesh | [`crates/crescent/src/fem.rs`](../crates/crescent/src/fem.rs#L748-L770) |
-| 11 | `plate.l7` | Plate FEM | `L7` Marin-corrected modified Goodman high-cycle fatigue ($0 \leftrightarrow 180\text{ N}$, $10^7$ cycles) + `hm_twist` | `l7_goodman_sf >= 1.0` **and** `hm_twist_sf >= 1.0` | [`crates/crescent/src/rs_v2.rs`](../crates/crescent/src/rs_v2.rs#L80-L120) |
-| 12 | `plate.gci` | Plate GCI | 3-mesh Roache GCI across `max_area` $\in \{4.0, 1.0, 0.25\}\text{ mm}^2$ ($r = 2.0$) | Convergent / bounded `GCI_fine <= 5%` on `seq_ratio` & `sf_hunter` | [`plate_gci_probe.rs`](../crates/crescent/examples/plate_gci_probe.rs) |
-| 13 | `side.a1` | Side Report | Zone stress decomposition (`blade`, `bore_rim`, `groove`, `neck`, `other`) + Weibull $A_{\text{eff}}$ ($m \in \{10,20,30\}$) | Complete zone peak & $A_{\text{eff}}$ report at $4\text{ mm}$ & $15\text{ mm}$ tip exclusions | [`g3_side_report.rs`](../crates/crescent/examples/g3_side_report.rs) |
-| 14 | `side.a2` | Side Report | Governing element $(x,y)$ coordinates, radius from bore center, and distance to C.6 groove annulus | Complete governor localization across all load cases | [`g3_side_report.rs`](../crates/crescent/examples/g3_side_report.rs) |
-| 15 | `side.a3` | Side Report | Unbiased mesh stability across $0.25$, $0.125$, and $0.0625\text{ mm}^2$ (`seq_ratio` and zone peaks) | Complete 3-tier mesh-stability table | [`g3_side_report.rs`](../crates/crescent/examples/g3_side_report.rs) |
-| 16 | `side.a4` | Side Report | Radial pin bearing + Winkler grip pad foundation + linear plate buckling eigenvalue $\lambda_{\text{cr}}$ | `supported_seq_ratio > certified_seq_ratio` and $\lambda_{\text{cr}} > 1.0$ | [`crates/physics/src/side_a4.rs`](../crates/physics/src/side_a4.rs), [`ops/ci/side_a4.py`](../ops/ci/side_a4.py) |
-| 17 | `solid.tip` | 3D Solid FEM | Quadratic `TET10` (`P2`) 3D tip submodel ($R_{\text{cut}} = 30\text{ mm}$, $1.82\text{ N}\cdot\text{m}$ chord torsion, $4\text{--}15\text{ mm}$ ROI) | Nodal-max $\text{SF}_{\text{tip}} > 0$ and `DOLFINx` vs `scikit-fem` diff $\le 2\%$ | [`crates/physics/src/solid_tet10.rs`](../crates/physics/src/solid_tet10.rs), [`fem_solid/tip_solid.py`](../fem_solid/tip_solid.py) |
-| 18 | `gate.rs_v2` | Promotion Gate | Full `RS-karambit-v2` hard-gate conjunction (`w20_hard_pass`, `solid_tip_sf >= 1`, `seq >= 1.2`, `hm_* >= 1`, `l7 >= 1`, `bearing_w >= 10`) | `overall_pass == true` | [`crates/crescent/src/rs_v2.rs`](../crates/crescent/src/rs_v2.rs) |
+The existing paper’s detailed RS-v2 table is retained below. Pre-w283 rows are historical observations under their recorded model; w283 rows are the corrected rejected records from PR #82. These scalar fields do not fill missing bore/edge/solver evidence, and none establishes an RS-v2 all-hard pass. The six top-level named-genome records in the main paper are a subset of this broader retained evidence.
 
-### I-B. Pure-Rust Turnkey CAD $\rightarrow$ All-Gates + Combined Fitness Scoring (`jarambit score-cad`, `jarambit cad-battery`, `web/`)
-
-Both the 16-gate `W_CAD_v2` certification pipeline and the 18-evaluator CAD battery execute **natively in Rust with zero Python subprocesses** ([`crates/crescent/src/battery.rs`](../crates/crescent/src/battery.rs), [`crates/crescent/src/g1.rs`](../crates/crescent/src/g1.rs), [`crates/crescent/src/gci.rs`](../crates/crescent/src/gci.rs), [`crates/crescent/src/cad_ingest.rs`](../crates/crescent/src/cad_ingest.rs), [`crates/physics/src/side_a4.rs`](../crates/physics/src/side_a4.rs), [`crates/physics/src/solid_tet10.rs`](../crates/physics/src/solid_tet10.rs), [`crates/cli/src/score_cad.rs`](../crates/cli/src/score_cad.rs)):
-
-- **Turnkey CAD Scorecard (`jarambit score-cad <input>`)**: Accepts any `.step`/`.stp`, `.stl`, 128-gene `.csv` genome, or catalog subject ID, evaluates **all 16 hard engineering/CAD/archetype gates** AND **all 18 CAD battery evaluators** in-process in Rust, and emits a unified Master CAD Scorecard (`<subject>_master_scorecard.json` + `<subject>_master_scorecard.md`) containing both `W_CAD_v2_ultrarunner_karambit` (with 5-component weighted breakdown) and the locked cross-wave global fitness `G1` (with 5-term breakdown). Passing `--force-standalone-cad` evaluates any arbitrary 3D `.step` or `.stl` purely from its 3D surface geometry via exact barycentric triangle thickness rasterization, DKT+CST plate FEM, native `side.a4` Winkler+bore buckling (`jarambit_physics::side_a4`), and native 3D P2 `TET10` solid-tip FEM (`jarambit_physics::solid_tet10`, `--run-solid`).
-- **Pure-Rust 21×18 Battery & Single-Candidate Evaluation (`jarambit cad-battery`, `--evaluate-genome <csv>`)**: Rebuilds all 21 catalog subjects × 18 evaluators (`378` cells) natively in Rust (`run_cad_battery_native`) with exact parity against [`ops/ci/cad_battery.py`](../ops/ci/cad_battery.py).
-- **Interactive Vite + TypeScript + React 3D CAD & Gate Scorecard Studio (`web/`, `jarambit export-web-data`)**: Exports all 21×18 battery records, featured master scorecards, and binary STL meshes for interactive 3D manifold inspection, 16-gate safety margin visualization, and cross-wave (`w20` $\rightarrow$ `w282`) Pareto exploration.
-- **Evolutionary Loop Integration (`JARAMBIT_ALL_GATES=1 JARAMBIT_CAD_BATTERY=1`)**: During `jarambit crescent-evolve`, `qd::fitness` optimizes the exact `W_CAD_v2` combined fitness directly (`crates/crescent/src/qd.rs`), and `JARAMBIT_CAD_BATTERY=1` automatically runs the full 16-gate + 18-evaluator CAD battery in-process in Rust on the top certified elites at the end of the evolutionary run.
-
----
-
-## II. Geometric, Red-Team, Holder Pop-In, DFM & C.4/C.5/C.6 Aesthetic Gates
-
-Before any finite-element solve is executed, `jarambit` applies deterministic geometric, manufacturability, and aesthetic filters. Any violation returns an immediate rejection reason in `rejects` (never a soft penalty).
-
-### II-A. Hard Geometric & Red-Team Gates
-
-Implemented in [`crates/genotype/src/lib.rs`](../crates/genotype/src/lib.rs#L211-L407) (legacy 20-gene) and [`crates/crescent/src/outline.rs`](../crates/crescent/src/outline.rs#L363-L526) (128-gene crescent):
-
-1. **All-Three Blade Length Floors & Legal Ceiling (`red_team_all_three_blade_measures`):**
-   To prevent evolutionary "cheating" where a curved spine or overhanging tang inflates one length measure while the usable blade shrinks, **all three** geometric length measures must simultaneously exceed the $3.375\text{ in}$ ($85.725\text{ mm}$) legal minimum plus a $+0.50\text{ mm}$ machining guard band ($86.225\text{ mm}$):
-   $$\min\!\big(L_{\text{tip-to-heel}},\; x_{\text{tip}} - x_{\text{heel}},\; s_{\text{inner}}\big) \ge 86.225\text{ mm}, \qquad s_{\text{inner}} \le 101.60\text{ mm}\;(4.000\text{ in})$$
-   where $L_{\text{tip-to-heel}} = \|\mathbf{p}_{\text{tip}} - \mathbf{p}_{\text{heel}}\|_2$ is the straight chord, $x_{\text{tip}} - x_{\text{heel}}$ is horizontal reach, and $s_{\text{inner}} = \int_{\text{heel}}^{\text{tip}} ds$ is the inner sharpened hawkbill arc length.
-2. **Retention Ring Bore, Outer Wall & Neck Fillet:**
-   - Inner diameter: $D_{\text{ID}} \in [24.90, 25.90]\text{ mm}$ ($25.4 \pm 0.5\text{ mm}$, $1.00\text{ in}$ standard index-finger bore).
-   - Minimum ring wall radial thickness: $w_{\text{ring}}(\theta) = R_{\text{outer}}(\theta) - R_{\text{ID}} \ge 4.50\text{ mm}$ for all $\theta \in [0, 2\pi)$.
-   - Ring-to-neck transition fillet radius: $r_{\text{fillet}} \ge 8.0\text{ mm}$ (20-gene) / smooth $C^1$ blend radius $r_{\text{blend}} \ge 2.0\text{ mm}$ (crescent).
-3. **Ligament & Through-Window Topology (`single_connected_solid`, `genus == 1`):**
-   - Every internal weight-relief pocket or through-lattice window must maintain a minimum ligament of $\ge 3.0\text{ mm}$ (20-gene) or $\ge w_{\text{rail}}$ (`3.5 mm` standard / `2.4 mm` P1) to the outer contour, ring bore, C.6 annular groove, and adjacent windows.
-   - The 2D planform polygon must be simple (zero self-intersections), and the extruded 3D triangle mesh (`crates/crescent/src/stl.rs`) must be a **single connected, watertight manifold** (`boundary_edges == 0`, `non_manifold_edges == 0`, `components == 1`, `inverted_normals == 0`) with Euler characteristic $\chi = V - E + F = 2 - 2g$ matching the exact through-hole count $g = 1 + N_{\text{through}}$.
-4. **Double Serrated Profile:**
-   Both the inner hawkbill cutting edge and the outer spine carry machined serration scallops with tooth count $N_{\text{teeth}} \ge 3$ and peak-to-trough depth $\ge 0.05\text{ mm}$ (`non_serrated_inner` / `non_serrated_outer` rejected).
-5. **Stock Quantum, Edge Inclusion Angle & Ti-Only Material Gate:**
-   - Stock thickness $t_0 \in [5.3, 6.0]\text{ mm}$ quantized to $0.1\text{ mm}$ mill stock increments (`off_stock_quantum` rejected if $|10 t_0 - \text{round}(10 t_0)| > 10^{-6}$).
-   - Edge bevel full inclusion angle $\theta_{\text{edge}} \ge 14.0^\circ$ (with $0.5^\circ$ guard band $\implies 14.5^\circ$ nominal).
-   - Material restricted strictly to titanium alloys (`Ti6Al4V` Grade 5, `Ti6Al4V_ELI` Grade 23, `Ti6246`); any non-Ti material string is rejected at parse time (`T19-06`).
-6. **Brand Pad on Clear Flat (`brand_pad_clear_flat`):**
-   A rectangular laser-etch brand pad ($18\text{ mm} \times 3.5\text{ mm}$ in 20-gene; $12\text{ mm} \times 3\text{ mm}$ in crescent) must lie strictly inside the unground, un-pocketed flat web with $\ge 1.5\text{ mm}$ clearance to all pockets, bevels, and boundaries.
-7. **Holder / Sheath Pop-In Retention & Envelope Gate (`crates/holder/src/lib.rs`, `docs/HOLDER_ENVELOPE.md`):**
-   Every valid knife must admit a companion snap-fit polymer/composite holder (`PA12-CF`, $E = 3500\text{ MPa}$, $\sigma_y = 55\text{ MPa}$) modeled as twin cantilever detent arms engaging the retention ring:
-   $$k_{\text{arm}} = \frac{3 E I}{L_{\text{arm}}^3}, \quad I = \frac{b h^3}{12}, \quad F_{\text{ins}} = 2 k_{\text{arm}} \delta \frac{\sin\alpha_{\text{lead}} + \mu\cos\alpha_{\text{lead}}}{\cos\alpha_{\text{lead}} - \mu\sin\alpha_{\text{lead}}}, \quad F_{\text{draw}} = 2 k_{\text{arm}} \delta \frac{\sin\alpha_{\text{exit}} + \mu\cos\alpha_{\text{exit}}}{\cos\alpha_{\text{exit}} - \mu\sin\alpha_{\text{exit}}}$$
-   Hard constraints:
-   $$F_{\text{ins}} \in [3.0, 80.0]\text{ N}, \quad F_{\text{draw}} \in [1.5, 45.0]\text{ N}, \quad \text{SF}_{\text{detent}} = \frac{\sigma_y}{\sigma_{\max}(10\text{ N side})} \ge 1.5, \quad \text{Box}(L, W, H) \le (200.0, 100.0, 9.0)\text{ mm}$$
-   where the $9.0\text{ mm}$ thickness cap includes the $+1.0\text{ mm}$ bilateral sheath wall clearance around the blade stock.
-
-### II-B. Automated Aesthetic Floor (`C.4` Outline + `C.5` Jimping + `C.6` Ring Groove)
-
-Implemented in [`crates/crescent/src/aesthetic.rs`](../crates/crescent/src/aesthetic.rs#L1-L122), the aesthetic gate prevents evolutionary drift toward jagged or non-ergonomic silhouettes by anchoring the outline to the human-approved `SWITCHBACK Rev C.4/C.5/C.6` reference geometry (`REF_OUTLINE`):
-
-| Aesthetic Sub-Gate | Mathematical Definition | Hard Threshold | Composite Score Weight |
-|:---|:---|:---|:---|
-| Symmetric Hausdorff Distance $d_H(P, R)$ | $\max\!\big(\sup_{p\in P}\inf_{r\in R}\|p-r\|_2,\; \sup_{r\in R}\inf_{p\in P}\|p-r\|_2\big)$ | $d_H \le 6.0\text{ mm}$ | $0.25\,\text{clamp}(1 - d_H/6, 0, 1)$ |
-| Signed-Curvature 1-Wasserstein $\text{EMD}(\kappa_P, \kappa_R)$ | $\frac{1}{B}\sum_{b=1}^{B} \left|\text{CDF}_P(b) - \text{CDF}_R(b)\right|$ ($B=32$ bins on $[-0.15, 0.15]\text{ mm}^{-1}$) | $\text{EMD} \le 0.06$ | $0.20\,\text{clamp}(1 - \text{EMD}/0.06, 0, 1)$ |
-| Maximum Straight Run $L_{\text{flat}}$ | Longest contiguous run with $\|\kappa(s)\| < 0.002\text{ mm}^{-1}$ | $L_{\text{flat}} \le L_{\text{flat,C.4}} + 8.0\text{ mm}$ | $0.10\,\text{clamp}(1 - \max(0, L_{\text{flat}} - L_{\text{C.4}})/8, 0, 1)$ |
-| Minimum Blend Radius $r_{\min}$ | $\min_{s \notin \text{tip}} 1/\|\kappa(s)\|$ outside the $3\text{ mm}$ tip apex | $r_{\min} \ge 2.0\text{ mm}$ | $0.10\,\text{clamp}((r_{\min}-2)/8, 0, 1)$ |
-| Spine Convex Fraction $f_{\text{spine}}$ | Fraction of spine arc ($x \in [35, 165]\text{ mm}$) with $\kappa \ge -0.004\text{ mm}^{-1}$ | $f_{\text{spine}} \ge f_{\text{C.4}} - 0.12$ | $0.10\,f_{\text{spine}}$ |
-| Hawkbill Concave Fraction $f_{\text{belly}}$ | Fraction of inner belly ($x \in [105, 175]\text{ mm}$) with $\kappa \le +0.003\text{ mm}^{-1}$ | $f_{\text{belly}} \ge 0.85$ | $0.10\,f_{\text{belly}}$ |
-| Thumb-Ramp Seat Depth $d_{\text{seat}}$ | Saddle depth below line joining ring top and spine hump | $d_{\text{seat}} \ge 0.40\text{ mm}$ | $0.05\,\text{clamp}(d_{\text{seat}}/5, 0, 1)$ |
-| Finger-Choil Guard Lobe $p_{\text{guard}}$ | Guard protrusion below line from ring bottom to belly | $p_{\text{guard}} \ge 5.0\text{ mm}$ | $0.05\,\text{clamp}(p_{\text{guard}}/14, 0, 1)$ |
-| Hawkbill Hook Drop $d_{\text{hook}}$ | Vertical drop $-y_{\text{tip}}$ below ring centerline | $d_{\text{hook}} \ge 25.0\text{ mm}$ | $0.05\,\text{clamp}((d_{\text{hook}}-25)/30, 0, 1)$ |
-| `C.5` Jimping & `C.6` Ring Groove | Spine/neck jimping depth $0.45\text{ mm} \pm 20\%$; ring groove radial width $\ge 2.0\text{ mm}$, depth $\in [0.4, 0.30\,t_0]$ | All 4 sub-checks true | Hard gate (`c5_jimp_ok && c6_groove_ok`) |
-
----
-
-## III. Multi-Fidelity Structural Physics: CST+DKT Plate FEM, St-Venant 3D Torsion, Solid TET10 Submodel, Roache GCI & Side Report A4 Buckling
-
-### III-A. Multi-Tier CST + Batoz DKT Plate FEM (`crates/crescent/src/fem.rs`)
-
-The primary structural screen and certification engine discretizes the 2D karambit planform via constrained Delaunay triangulation (`spade`) with adaptive boundary refinement and assembles a 5-DOF-per-node ($u, v, w, \theta_x, \theta_y$) shell element combining:
-- **In-Plane Constant-Strain Triangle (`CST` Membrane, 2 DOFs/node):** Element thickness $t_e = t(x_c, y_c)$ evaluated from the 3D phenotype thickness law (incorporating the primary hollow/flat bevel, tip taper `dt_tip`, spine crown, C.6 annular ring groove, and bilateral pockets).
-- **Out-of-Plane Discrete Kirchhoff Triangle (`DKT` Plate Bending, 3 DOFs/node, Batoz et al. 1980):** Flexural rigidity $D_e = \frac{E t_e^3}{12(1-\nu^2)}$, capturing out-of-plane lateral bend ($w$) and chord-axis torsion ($\theta_x, \theta_y$).
-
-#### Joint Thin + Hot Material Knockdown (`828 MPa` Effective Allowable)
-Under `RS-karambit-v1` / `D1`, all structural safety factors evaluate the worst-case combination of **minimum stock tolerance** ($-0.1\text{ mm}$) and **elevated operating temperature** ($T = 100\text{ }^\circ\text{C}$, where Ti-6Al-4V yield drops by $6\%$ from $880\text{ MPa}$ to $827.2\text{ MPa}$, rounded in the D1 spec to $828\text{ MPa}$):
-$$k_{\text{joint}}(t_{\text{joint}}, p) = (1 - 0.06)\,\left(\frac{t_{\text{joint}} - 0.1\text{ mm}}{t_{\text{joint}}}\right)^p, \qquad p = \begin{cases} 1 & \text{in-plane membrane (pry, ring pull, spine)} \\ 2 & \text{out-of-plane bending/torsion (lateral, twist)} \end{cases}$$
-
-#### Three-Tier Mesh Hierarchy & Search-to-Certification Calibration
-To prevent coarse-mesh optimism during evolutionary search while keeping per-candidate evaluation fast, `jarambit` uses a calibrated 3-tier mesh hierarchy:
-1. **Search Tier (`max_area = 2.0 mm²`, `run()`):** Used inside the inner GA loop. Applies conservative calibration dividers (`SEARCH_LATERAL_BIAS = 1.11`, `SEARCH_SEQ_BIAS = 1.08`) derived from the Wave 27 42-arm regression so a search-tier pass reliably predicts fine-mesh certification.
-2. **Certification Tier (`min(0.25 mm², 0.125 mm²)`, `run_certified()`):** Evaluates every load case on both `0.25 mm²` and `0.125 mm²` meshes and takes the **worst-case minimum** capacity across both meshes (`lat20 = f4.lat20.min(f8.lat20)`).
-3. **Strict D1 Verification Tier (`max_area = 0.0625 mm²`, `run_strict()`):** ~60,000–100,000 triangles; verifies that hunter lateral capacity remains $\ge 260\text{ N}$ and tip-zone torsion SF remains $\ge 1.0$ without unconverged stress spikes.
-
-#### St-Venant 3D Rectangular Section Correction for Chord Torsion (`1.82 N·m`)
-Thin-plate DKT bending overestimates the torsional shear stress of a narrow rectangular cross-section of chord width $b(x)$ and thickness $t_e$ near the blade tip. `jarambit` applies the exact St-Venant rectangular bar torsion factor $\alpha_{\text{rect}}(b/t)$:
-$$\alpha_{\text{rect}}(\eta) = \frac{1}{3}\left(1 - \frac{192}{\pi^5 \eta}\sum_{n=1,3,5,7} \frac{1}{n^5}\tanh\frac{n\pi\eta}{2}\right), \quad \eta = \frac{\max(b, t_e)}{\min(b, t_e)}, \quad k_c = \text{clamp}\!\left(\frac{1/6}{\alpha_{\text{rect}}(\eta)}\frac{\max(b,t_e)}{\min(b,t_e)},\; 0.35,\; 1.0\right)$$
-Element torsion stress is evaluated in two distinct regions:
-- **Body Torsion SF (`twist_body_sf`):** Outside the $15\text{ mm}$ tip radius ($r_{\text{tip}} \ge 15\text{ mm}$).
-- **Plate Tip-Submodel Screen (`twist_tipzone_sf`):** Within the $4\text{ mm} \le r_{\text{tip}} < 15\text{ mm}$ tip annulus (the $r_{\text{tip}} < 4\text{ mm}$ point-load singularity is handed off to the 3D quadratic `TET10` solid submodel).
-
-#### Failure-Sequence Ratio (`seq_ratio`)
-Under lateral overload, a safe utility tool must yield visibly in the **blade** ($x \ge x_{\text{heel}}$, away from the operator's fingers) before yielding in the **hand/ring/neck zone** ($x < x_{\text{heel}}$):
-$$\text{seq\_ratio} = \frac{F_{y,\text{hand}}}{F_{y,\text{blade}}} = \frac{\max_{e \in \Omega_{\text{blade}}} \sigma_{\text{vM},e}}{\max_{e \in \Omega_{\text{hand}}} \sigma_{\text{vM},e}}, \qquad \text{Hard Promotion Target: } \text{seq\_ratio} \ge 1.20$$
-
-### III-B. `RS-karambit-v2` Human-Maximum Loads, `L7` Goodman Fatigue & Sharpness Gate `S`
-
-Introduced in `v0.31` ([`crates/crescent/src/rs_v2.rs`](../crates/crescent/src/rs_v2.rs), [`crates/physics/src/lib.rs`](../crates/physics/src/lib.rs#L172-L386)), `RS-karambit-v2` extends the `RS-karambit-v1` utility screen with biomechanically grounded human-maximum loads and cyclic endurance:
-
-1. **Human-Maximum Static Loads (`joint_k` thin+hot knockdown applied):**
-   - **`hm_twist` ($16.2\text{ N}\cdot\text{m}$):** 95th-percentile male isometric pronation/supination torque with a ring-locked grip ($\text{SF} \ge 1.0$ required).
-   - **`hm_spine` ($3427\text{ N}$):** Distributed in-plane downward spine traction over $[x_{\text{heel}}, x_{\text{tip}} - 10\text{ mm}]$ toward the cutting edge with the retention ring held ($\text{SF} \ge 1.0$ required).
-   - **`hm_ringback` ($3000\text{ N}$):** Dynamic amplification factor $\text{DAF} = 2.0 \times 1500\text{ N}$ static equivalent on the outer ring back with the grip band seated ($\text{SF} \ge 1.0$ required).
-   - **`hm_tip_inplane` ($1000\text{ N}$):** In-plane upward tip load over the last $8\text{ mm}$ (recorded for diagnostic completeness; not a hard gate).
-2. **`L7` High-Cycle Fatigue (Marin-Corrected Endurance Limit + Modified Goodman):**
-   For $10^7$ zero-to-max hiker lateral cycles ($F \in [0, 180]\text{ N}$, $\sigma_a = \sigma_m = \frac{1}{2}\sigma_{\max}(180\text{ N})$ at $100\text{ }^\circ\text{C}$ and $t - 0.1\text{ mm}$):
-   $$S_e = k_a k_b k_c k_d k_e \, (0.5\,\sigma_{\text{UTS}}), \qquad \frac{1}{\text{SF}_{\text{Goodman}}} = \frac{\sigma_a}{S_e} + \frac{\sigma_m}{\sigma_{\text{UTS}}(100\text{ }^\circ\text{C})} \le 1.0$$
-   with machined Ti-6Al-4V Marin factors $k_a = 4.51\,\sigma_{\text{UTS}}^{-0.265}$, $k_b = (d_e / 7.62)^{-0.107}$ ($d_e = 0.808\sqrt{w_{\text{neck}} t}$), $k_c = 1.0$, $k_d = 0.94$, $k_e = 0.814$ ($99\%$ reliability), giving $S_e \approx 315.4\text{ MPa}$.
-3. **Finger-Bearing Width & Grip Comfort:**
-   Bore axial length $w_{\text{bearing}} = t_{\text{ring}} \ge 10.0\text{ mm}$ (`ring_bearing_w_mm`) and outer handle edge radius $r_{\text{edge}} \ge 1.5\text{ mm}$.
-4. **Sharpness & Edge Retention Gate `S` (`S1`–`S3`, [`crates/physics/src/lib.rs`](../crates/physics/src/lib.rs#L279-L386)):**
-   - **`S1` Primary Bevel Half-Angle & Apex Width:** $\theta_{1/2}(s) = \arctan\!\big(\frac{t(s) - w_{\text{apex}}(s)}{2 h_{\text{grind}}(s)}\big) \in [8^\circ, 25^\circ]$ and $w_{\text{apex}}(s) \le 0.20\text{ mm}$ at every station $s \in \{0.25, 0.50, 0.75\}$.
-   - **`S2` Penetrator Point Taper:** Monotonic spine and belly convergence over the final $15\text{ mm}$ with tip half-angles $\le 25^\circ$ and tip thickness $t_{\text{tip}} \le 2.0\text{ mm}$.
-   - **`S3` Edge Retention Index (`ERI`, CATRA TCC proxy):** $\text{ERI} = \frac{H_{\text{HRC}}}{60}\frac{1 + 0.12\,V_{\text{carbide}}}{(\theta_{\text{deg}}/30)^{0.65}\,(w_{\text{apex}}/0.25)^{0.40}}$.
-
-### III-C. 3D Quadratic-Tetrahedron (`TET10`) Tip Submodel, Cross-Solver Verification & Roache 3-Mesh GCI
-
-Because a 2D Kirchhoff plate cannot resolve the full 3D triaxial stress state inside the double-beveled, serrated hawkbill tip under chord torsion, `jarambit` extracts the 3D STL/STEP tip submodel within $R_{\text{cut}} = 30\text{ mm}$ of the tip apex, clamps the cut boundary $\Gamma_{\text{cut}}$, applies the $1.82\text{ N}\cdot\text{m}$ Saint-Venant torsional traction on the $r_{\text{tip}} \le 4\text{ mm}$ tip cap, and solves the 3D linear elasticity equations on a 10-node quadratic tetrahedron (`TET10` / $P_2$) mesh ([`fem_solid/tip_solid.py`](../fem_solid/tip_solid.py), [`fem_solid/step_solid.py`](../fem_solid/step_solid.py)):
-
-1. **Cross-Solver Parity (`scikit-fem` vs `DOLFINx v0.9.0`):**
-   Every genome in the CAD battery (`g3`, `w271b_11772`, `w271b_11860`, `w271c_11522`, `w272_s2902_c01`, `w273_s2904_c01`, `w273_s2903_c04`, `w274_s2905_c01`, `w275_s2909_c01`, `w276_s2913_c01`, `w277_s2919_c01`, `w278_s2922_c01`, `w279_s2928_c01`, `w280_s2931_c01`, `w281_s2932_c01`, `w282_p10_c02`, `w282_p14_c01`) plus the native B-rep `SWITCHBACK Rev C.10a` (`372,357` DOFs) is solved independently in `scikit-fem` (`ElementTetP2` + `pyamg` smoothed-aggregation CG) and inside the official `ghcr.io/fenics/dolfinx/dolfinx:v0.9.0` container (`PETSc` CG + `GAMG`, $\text{rtol} = 10^{-12}$) via [`fem_solid/cross_check.py`](../fem_solid/cross_check.py). Across the 17 genome subjects in `evidence/cad_battery/dolfinx_cross_check.json`, the nodal-maximum and nodal-average von Mises stresses agree to **within $0.00\%$–$0.05\%$** (vs the $2.0\%$ gate tolerance).
-2. **Roache 3-Mesh Grid Convergence Index (`GCI`, [`fem_solid/gci.py`](../fem_solid/gci.py)):**
-   For three nested meshes with characteristic lengths $h_1 > h_2 > h_3$ and constant refinement ratio $r = h_1/h_2 = h_2/h_3 > 1$, the observed order $p$, Richardson extrapolation $\phi_{\text{ext}}$, and fine-grid uncertainty $\text{GCI}_{\text{fine}}$ (with safety factor $F_s = 1.25$) are:
-   $$p = \frac{\ln\!\big((\phi_1 - \phi_2)/(\phi_2 - \phi_3)\big)}{\ln r}, \qquad \phi_{\text{ext}} = \phi_3 + \frac{\phi_3 - \phi_2}{r^p - 1}, \qquad \text{GCI}_{\text{fine}} = \frac{F_s\,|\phi_3 - \phi_2|}{\max(|\phi_3|, \epsilon)\,(r^p - 1)}$$
-   - **3D Solid Tip GCI (`evidence/fem_solid/gci/*.json`):** 3 refinement levels up to $3,192,243$ DOFs (`NL=4, NSUB=2`), yielding $\text{GCI}_{\text{fine}} \in [0.4\%, 1.8\%]$ ($p \in [2.00, 3.15]$).
-   - **2D Plate GCI (`evidence/cad_battery/plate_gci/*.json`):** 3 refinement levels at $\text{max\_area} \in \{4.0, 1.0, 0.25\}\text{ mm}^2$ ($h \in \{2.0, 1.0, 0.5\}\text{ mm}$, $r = 2.0$), verifying mesh convergence on both `seq_ratio` and `sf_hunter`.
-
-### III-D. Side Reports `A1`–`A4`: Stress Governance, Bore-Pin Contact & Linear Plate Buckling
-
-To diagnose *why* early single-piece $5.8\text{--}6.0\text{ mm}$ flat-stock karambits (`g3`, `w271`–`w273`) exhibited a clamped-bore `seq_ratio` near $0.78\text{--}1.05$ (prior to the `W_CAD_v2` neck/groove calibration in `w274`–`w282` that raised clamped `seq_ratio` to $1.201\text{--}1.273$), `jarambit` runs four diagnostic side reports (`side.a1`–`side.a4`) that **never alter or override** the certified gates:
-
-- **`side.a1` & `side.a2` (Zone Stress Decomposition, Weibull $A_{\text{eff}}$ & Spatial Governor):** Partitions the mesh into 5 disjoint anatomical zones (`bore_rim`, `groove`, `neck`, `blade`, `other`) and computes both the peak von Mises stress and the Weibull effective area $A_{\text{eff}}(m) = \sum_{e} A_e (\sigma_e / \sigma_{\max})^m$ ($m \in \{10, 20, 30\}$). Under lateral load, the hand-side peak occurs inside the **`C.6` ring groove annulus** at $r \approx 14.7\text{ mm}$ ($x \approx 14.6\text{ mm}, y \approx -1.5\text{ mm}$) due to the rigid 5-DOF bore clamp and groove thickness step.
-- **`side.a3` (Mesh Stability Across $0.25, 0.125, 0.0625\text{ mm}^2$):** Confirms that the groove-governed hand peak is a smooth continuum feature (varying by $< 2.2\%$ from $0.25\text{ mm}^2$ to $0.0625\text{ mm}^2$), not a mesh artifact.
-- **`side.a4` (Compliant Bore Pin + Winkler Grip Pad Support & Linear Buckling, [`ops/ci/side_a4.py`](../ops/ci/side_a4.py)):** Replaces the artificial 5-DOF rigid bore clamp with a realistic radial pin bearing + flange spring stiffness ($k_r = 50\text{ kN/mm}$, $k_t = 5\text{ kN/mm}$, $k_{\text{flange}} = 100\text{ kN/mm}$) plus a distributed Winkler palm/grip pad foundation ($k_f = 200\text{ N/mm}^3$) over $x \in [18, 95]\text{ mm}$, and solves the out-of-plane geometric stiffness eigenvalue problem:
-  $$K_{\text{support}}\,\boldsymbol{\phi} = \lambda_{\text{cr}}\,(-K_G)\,\boldsymbol{\phi}$$
-  Under realistic pin + palm support, **`supported_seq_ratio` jumps to $2.72\text{--}4.64$** across all 17 genomes (hand stress drops by $> 70\%$ once load transfers through the palm pad rather than cantilevering purely into the ring bore), and the critical linear buckling load factor is $\lambda_{\text{cr}} \in [5.67, 13.12] \times 260\text{ N}$ ($F_{\text{cr}} \in [1473, 3412]\text{ N}$).
-
----
-
-## IV. The 178-Group (`356`-Control) Scientific Assurance Catalog (`T00`–`T19`)
-
-Every evaluator, numerical solver, RNG stream, checkpoint serializer, and claim-admission gate in `jarambit` is backed by a machine-verified **178-group scientific assurance catalog** ([`assurance/testing/policy.json`](../assurance/testing/policy.json), orchestrated by [`ops/ci/science_suite.py`](../ops/ci/science_suite.py)). Each of the 178 groups requires **both** a `positive_control` (proving the invariant holds on valid data) and a `negative_control` (proving a synthetic perturbation, NaN injection, or contract violation is deterministically caught and refused), totaling **356 verified controls**:
-
-| Family | Groups | Domain & Invariants Verified | Primary Test Modules & Binaries |
-|:---|---:|:---|:---|
-| `T00` | 6 | **Assurance Spine (`S01`):** Dual-control schema, source-bundle SHA-256 binding, execution receipts, mutation refusal | [`assurance/tests/test_spine.py`](../assurance/tests/test_spine.py) |
-| `T01` | 18 | **Grid Convergence (`S02`):** Roache 3-mesh GCI math, non-uniform ratio rejection, oscillatory refusal, asymptotic range, plate & solid GCI | [`fem_solid/tests/test_gci.py`](../fem_solid/tests/test_gci.py) |
-| `T02` | 8 | **Method of Manufactured Solutions (`MMS`):** Polynomial & trigonometric CST/DKT manufactured fields, $L_2$/$H^1$ convergence rates | [`crates/fem/src/lib.rs`](../crates/fem/src/lib.rs), [`crates/crescent/src/fem.rs`](../crates/crescent/src/fem.rs) |
-| `T03` | 10 | **Deterministic RNG & Lossless Checkpoints (`S04`):** SplitMix64 stream isolation, IEEE-754 hex checkpoint framing (`jarambit-ckpt 2`), resume bit-identity, `.jevl` zstd framing | [`crates/evolve/src/lib.rs`](../crates/evolve/src/lib.rs), [`crates/crescent/src/checkpoint.rs`](../crates/crescent/src/checkpoint.rs) |
-| `T04` | 14 | **Linear Solver & Conditioning Gates (`S06`):** Skyline vs `faer` $LL^T$ parity, zero/negative pivot refusal, rigid-body mode detection, residual gates | [`crates/crescent/src/solver_faer.rs`](../crates/crescent/src/solver_faer.rs), [`crates/fem/src/lib.rs`](../crates/fem/src/lib.rs) |
-| `T05` | 12 | **Physical & Geometric Invariances:** $SE(2)$ rigid rotation/translation invariance, mirror symmetry, load linearity, thickness scaling ($t^1, t^2, t^3$) | [`crates/crescent/src/invariance.rs`](../crates/crescent/src/invariance.rs) |
-| `T06` | 10 | **CAD Topology & Mass Conservation:** Watertight STL Euler characteristic, self-intersection refusal, divergence-theorem volume vs 2D prism integral | [`crates/crescent/src/stl.rs`](../crates/crescent/src/stl.rs), [`crates/crescent/src/outline.rs`](../crates/crescent/src/outline.rs) |
-| `T07` | 12 | **Cross-Solver Field Semantics (`S07`):** `DOLFINx v0.9.0` vs `scikit-fem` `DG1` von Mises interpolation, ROI annulus filtering, mesh hash binding | [`fem_solid/tests/test_field_semantics.py`](../fem_solid/tests/test_field_semantics.py), [`test_representation_invariants.py`](../fem_solid/tests/test_representation_invariants.py) |
-| `T08` | 8 | **Constitutive & Knockdown Contracts:** Ti alloy property tables, Arrhenius/thermal yield knockdown, Marin fatigue factors, Goodman envelope | [`research/science_v1/test_t08_t18_catalog.py`](../research/science_v1/test_t08_t18_catalog.py), [`crates/physics/src/lib.rs`](../crates/physics/src/lib.rs) |
-| `T09` | 10 | **Boundary Condition & Load Equivalence:** Bore clamp vs compliant pin support, consistent nodal force integration, zero net-force drift | [`research/science_v1/test_t08_t18_catalog.py`](../research/science_v1/test_t08_t18_catalog.py) |
-| `T10` | 8 | **Singularity & ROI Exclusion Contracts:** Point-load $1/r$ stress singularity isolation, $4\text{--}15\text{ mm}$ tip annulus ROI stability, Weibull $A_{\text{eff}}$ | [`research/science_v1/test_t08_t18_catalog.py`](../research/science_v1/test_t08_t18_catalog.py) |
-| `T11` | 8 | **Aesthetic & Differential Geometry Contracts:** Hausdorff distance symmetry/triangle inequality, curvature histogram $\text{EMD}$, $C^1$ blend radius | [`crates/crescent/src/aesthetic.rs`](../crates/crescent/src/aesthetic.rs), [`research/science_v1/test_t08_t18_catalog.py`](../research/science_v1/test_t08_t18_catalog.py) |
-| `T12` | 8 | **Multi-Objective & Global Metric `G1` Axioms (`S03`):** Strict monotonicity, completeness enforcement (`INCOMPLETE` on null/bool/NaN/out-of-range), deletion non-improvement | [`metrics/tests/test_global_metric.py`](../metrics/tests/test_global_metric.py) |
-| `T13` | 8 | **Monte Carlo & Tolerance Robustness:** Latin-hypercube / deterministic seed perturbation over stock thickness, temperature, and load angle | [`crates/evolve/src/lib.rs`](../crates/evolve/src/lib.rs), [`research/science_v1/test_t08_t18_catalog.py`](../research/science_v1/test_t08_t18_catalog.py) |
-| `T14` | 6 | **Quality-Diversity & Novelty Archive Contracts:** 12-D behavioral descriptor bounds, MAP-Elites niche replacement monotonicity, novelty $k$-NN invariance | [`crates/crescent/src/qd.rs`](../crates/crescent/src/qd.rs), [`research/science_v1/test_t08_t18_catalog.py`](../research/science_v1/test_t08_t18_catalog.py) |
-| `T15` | 6 | **Sheath / Holder Snap-Fit Mechanics:** Cantilever beam deflection, lead/exit ramp friction equations, $200\times 100\times 9\text{ mm}$ envelope | [`crates/holder/src/lib.rs`](../crates/holder/src/lib.rs), [`research/science_v1/test_t08_t18_catalog.py`](../research/science_v1/test_t08_t18_catalog.py) |
-| `T16` | 6 | **Sharpness & Edge Retention Gate `S`:** Primary/secondary bevel trigonometry, apex width cap, point taper monotonicity, `ERI` scaling | [`crates/physics/src/lib.rs`](../crates/physics/src/lib.rs), [`research/science_v1/test_t08_t18_catalog.py`](../research/science_v1/test_t08_t18_catalog.py) |
-| `T17` | 6 | **Figure & Media Provenance Manifests:** Input/script/output SHA-256 verification, swapped-STL/PNG tamper refusal, colorbar norm checks | [`ops/ci/tests/test_figures.py`](../ops/ci/tests/test_figures.py), [`ops/ci/verify_figures.py`](../ops/ci/verify_figures.py) |
-| `T18` | 4 | **Benchmarking & Hardware Telemetry Integrity:** Fixed-workload timing receipts, solver drift threshold enforcement | [`research/science_v1/test_t08_t18_catalog.py`](../research/science_v1/test_t08_t18_catalog.py) |
-| `T19` | 10 | **Evidence Custody & Scoped Claim Admission (`S05`):** Canonical JSON hashing, `claim_report` binary verification, unscoped `PASS` refusal, `v1.0.0` promotion lock | [`ops/ci/tests/test_claim_admission.py`](../ops/ci/tests/test_claim_admission.py), [`crates/evidence/src/lib.rs`](../crates/evidence/src/lib.rs) |
-| **Total** | **178** | **178 Groups $\times$ 2 Controls (`positive_control` + `negative_control`) = 356 Verified Controls** | **100% Pass in CI (`version-check.yml`)** |
-
----
-
-## V. Evolutionary Search Mechanics & Multi-Wave Behavioral Analysis (`w1` $\rightarrow$ `w282`)
-
-### V-A. Island Genetic Algorithm, Constraint-Dominated Selection & Cap-Free Objective
-
-Implemented in [`crates/crescent/src/qd.rs`](../crates/crescent/src/qd.rs#L100-L246), the evolutionary engine evolves $M$ semi-isolated islands (typically $M \in \{4, 8\}$, population $N \in \{64, 160\}$ per generation) with ring-topology migration every 8 generations:
-
-1. **Two-Regime Constraint-Dominated Fitness (`fitness()`):**
-   - **Infeasible / Gate-Violating Regime (`!legal`):** Any candidate that violates the aesthetic floor, red-team geometry, structural load floors, or (when `P1` / `JARAMBIT_ALL_GATES=1` is active) $\text{seq\_ratio} < 1.20$ / `rs_v2` hard gates receives a **strictly negative** fitness:
-     $$F_{\text{infeasible}}(\mathbf{g}) = -10.0 - 2.0\,N_{\text{aes\_fails}} - 3.0\,N_{\text{rejects}} - 5.0\,\max(0, 1 - \text{SF}_{\min}) - \Delta_{\text{seq}} - \Delta_{\text{rs\_v2}} < 0$$
-   - **Feasible Regime (`legal == true`):** Under `JARAMBIT_ALL_GATES=1`, feasible candidates are scored directly by the `W_CAD_v2` combined fitness (`w_cad_v2_feasible()` in [`crates/crescent/src/qd.rs`](../crates/crescent/src/qd.rs)): $1.00 + 0.70\,U_{\text{mass}} + 0.12\,U_{\text{karambit}} + 0.10\,U_{\text{survival}} + 0.05\,U_{\text{seq}} + 0.03\,U_{\text{carry}} \in [1.00, 2.00]$ (plus $0.05\,\text{nov}$ tie-breaking). In legacy non-`ALL_GATES` runs, fitness uses the cap-free reward:
-     $$F_{\text{feasible}}(\mathbf{g}) = r_{\text{mass}}(m) + 0.35\,\min(\text{SF}_{\min} - 1, 2.0) + 0.50\,\text{aes} + 0.15\,\text{nov} + 0.25\,\min\!\big(\max(0, \text{seq\_ratio} - 1.2), 0.8\big)$$
-     where the cap-free mass reward is:
-     $$r_{\text{mass}}(m) = \begin{cases} 4.0 + 0.12\,(80 - m) & \text{if } m \le 80\text{ g} \\ \max\!\big(0.1,\; 4.0 - 0.25\,(m - 80)\big) & \text{if } m > 80\text{ g} \end{cases}$$
-2. **12-Dimensional Behavioral Novelty (`novelty()`):**
-   To prevent premature convergence onto a single local outline optimum, each candidate is mapped to a normalized 12-D behavior vector $\mathbf{b}(\mathbf{g}) \in \mathbb{R}^{12}$ (mass, relief fraction, spine arc, belly arc, reach, hook drop, thumb-seat depth, guard protrusion, neck width, spine peak $y$, tip thickness, and mean curvature) and scored by its mean Euclidean distance to its $k = 8$ nearest neighbors in the growing novelty archive.
-3. **2D MAP-Elites Quality-Diversity Archive (`QdGrid`, $10 \times 12 = 120$ Niches):**
-   Feasible designs are indexed into a $10 \times 12$ behavioral grid spanning **Material Relief Fraction** ($c_{\text{rem}} \in \{0,\dots,9\}$, $2.5\%$ per bin) $\times$ **Finished Mass Bin** ($c_{\text{mass}} \in \{0,\dots,11\}$, $2\text{ g}$ per bin from $70\text{ g}$ to $94\text{ g}$). Each niche retains the highest-fitness legal elite discovered across the run.
-4. **Lossless Checkpointing (`jarambit-ckpt 2`) & Append-Only Zstd Event Lineage (`*.jevl`):**
-   Every generation writes a lossless checkpoint ([`crates/crescent/src/checkpoint.rs`](../crates/crescent/src/checkpoint.rs)) serializing all 128 floating-point genes in exact IEEE-754 hexadecimal representation (`{:016x}`) alongside the exact `SplitMix64` RNG state, ensuring zero-drift bit-identical continuation across restarts (`T03`). Simultaneously, every candidate evaluation is appended to a zstd-compressed JSONL event stream (`events.jevl`) recording parent IDs, operator tags, full gate metrics, and timing.
-
-### V-B. Multi-Wave Evolutionary Behavior (`w6` $\rightarrow$ `w13` $\rightarrow$ `w15` $\rightarrow$ `w16` $\rightarrow$ `w27` $\rightarrow$ `w271` $\rightarrow$ `w272` $\rightarrow$ `w273` $\rightarrow$ `w274` $\rightarrow$ `w275` $\rightarrow$ `w276` $\rightarrow$ `w277` $\rightarrow$ `w278` $\rightarrow$ `w279` $\rightarrow$ `w280` $\rightarrow$ `w281` $\rightarrow$ `w282`)
-
-![Figure 1 — Evolutionary Search Progression, MAP-Elites QD Archive, and Pareto / G1 Trajectory](figures/engineering_gates/fig1_evolutionary_trajectories.png)
-
-**Figure 1** (generated deterministically by [`ops/render/engineering_gates_paper_figs.py`](../ops/render/engineering_gates_paper_figs.py) from committed telemetry and verified by [`fig1_evolutionary_trajectories.png.manifest.json`](figures/engineering_gates/fig1_evolutionary_trajectories.png.manifest.json)) illustrates three fundamental evolutionary phenomena across the project history:
-
-1. **Step-Wise Punctuated Equilibrium in Best Strength-Per-Gram & All-Gates Mass Reduction (Figure 1a):**
-   - In **Wave 6 (`docs/crescent/history.csv`, 40 gens)**, introducing the `C.4`-anchored spline genotype with pocket relief rapidly lifted best search-tier SPG from $1.76\text{ N/g}$ at Gen 0 to $3.29\text{ N/g}$ by Gen 35 as infeasible geometries were purged in the first 6 generations.
-   - In **Wave 13 (`wave13_c6`, 120 gens)** and **Wave 15 (`wave15_c6_long`, 240 gens)**, unlocking the `C.6` annular ring groove and continuous 3D bevel/relief thickness law enabled sustained SPG climbs from $3.82\text{ N/g}$ to **$4.076\text{ N/g}$** (`wave13_c6`) and **$4.068\text{ N/g}$** (`wave15_c6_long`).
-   - In **Wave 16 (`wave16_c6_through4`, 240 gens)**, enforcing 4 mandatory through-windows (`genus == 5`) shifted the baseline SPG to $3.57\text{ N/g}$ at Gen 0, followed by 180 generations of ligament-routing refinement to reach $3.790\text{ N/g}$.
-   - In **Wave 272 (`evidence/rs_v2/w272_xbabe3/s2902`, 120 gens)** and **Wave 273 (`evidence/rs_v2/w273_xbabe3/s2904`, 40 gens)**, activating `P1` sequence-ratio pressure drove evolution along the `seq_ratio >= 1.0` ridge while reducing mass below $79\text{ g}$.
-   - In **Waves 274–282 (`evidence/rs_v2/w274_calibrated` through `w282_ultrarunner`)**, activating full `JARAMBIT_ALL_GATES=1` + `JARAMBIT_CAD_BATTERY=1` (`W_CAD_v2`) enforced certified $\text{seq\_ratio} \ge 1.20$, strict $0.0625\text{ mm}^2$ lateral/twist, holder-envelope, and 3D P2 solid-tip $\text{SF} \ge 1.0$ inside the search loop, driving all-gates mass down from $84.979\text{ g}$ (`w274_s2905_c01`) $\rightarrow$ $81.774\text{ g}$ (`w275_s2909_c01`) $\rightarrow$ $79.995\text{ g}$ (`w276_s2913_c01`) $\rightarrow$ $79.509\text{ g}$ (`w277_s2919_c01`) $\rightarrow$ $78.580\text{ g}$ (`w278_s2922_c01`) $\rightarrow$ $77.535\text{ g}$ (`w279_s2928_c01`) $\rightarrow$ $76.965\text{ g}$ (`w280_s2931_c01`) $\rightarrow$ $75.911\text{ g}$ (`w281_s2932_c01`) $\rightarrow$ $75.836\text{ g}$ (`w282_p10_c02`, `75.616 g` 3D solid, `W_CAD = +1.7978`, `G1 = 0.8811`) $\rightarrow$ **$75.568\text{ g}$ raster / $75.323\text{ g}$ 3D solid** (`w282_p14_c01`, strict lateral $262.6\text{ N}$ / $+1.00\%$ reserve, certified `seq_ratio = 1.201`, 3D P2 solid-tip $\text{SF} = 1.4093$, `W_CAD = +1.7790`, `G1 = 0.8782`); Tables V-1 and V-2 show the committed results.
-2. **2D MAP-Elites Niche Illumination (Figure 1b):**
-   Across the combined QD archives (`wave13_c6`, `wave16_c6_through4`, `w272_s2902`, `w273_s2903`, `w273_s2904`), **64 of the 120 `(relief_bin, mass_bin)` niches** are populated with fully legal elites spanning $72\text{ g}$ (`bin 1`) to $92\text{ g}$ (`bin 10`) and relief fractions up to $18.5\%$ (`bin 7`). The highest SPG density ($3.80\text{--}3.89\text{ N/g}$) concentrates in the high-relief, sub-$76\text{ g}$ corner (`bins (5..6, 0..3)`), demonstrating that deep pocket relief in the neutral handle web simultaneously lowers mass and improves strength-per-gram.
-3. **Cross-Wave Mass vs Certified SPG & `G1` Trajectory (Figure 1c):**
-    Table V-1 summarizes the quantitative progression across the key evolutionary milestones:
-
-| Wave / Candidate | Stock $t_0$ (mm) | Finished Mass (g) | Cert Hunter Lateral (N) | Cert SPG (N/g) | Unbiased `seq_ratio` | 3D Solid Tip $\text{SF}_{\text{tip}}$ | Aesthetic Score | Locked Global Metric $G_1$ | Key Evolutionary Adaptation |
-|:---|---:|---:|---:|---:|---:|---:|---:|---:|:---|
-| `wave20 c11_fit` | 6.0 | 83.40 | 333.1 | 3.994 | 0.9260 | 1.1640 | 0.6730 | **0.8480** | First `RS-karambit-v1` screen pass (`w20`) |
-| `wave25 c01_fit` | 6.0 | 82.00 | 305.5 | 3.726 | 0.8790 | 1.5270 | 0.6480 | **0.9520** | Thickened tip taper (`dt_tip`) boosts 3D tip SF |
-| `g3_tip+00_t60_tt3` (`w27`) | 6.0 | 84.802 | 351.7 | 4.147 | 0.9591 | **1.6003** | 0.6486 | **1.0036** (`0.9804` prod) | Peak `G1` & 3D solid tip SF ($+0.3\text{ mm}$ tip stock) |
-| `w271b_11772` (`w271b`) | 5.8 | 78.552 | 306.3 | 3.900 | 0.8823 | 0.8337 | 0.6928 | **0.7506** | Sub-$80\text{ g}$ mass reduction via $5.8\text{ mm}$ stock |
-| `w271b_11860` (`w271b`) | 5.8 | 73.326 | 270.6 | 3.691 | 0.8918 | 0.8140 | 0.6332 | **0.7217** | Ultra-light $73.33\text{ g}$ frontier elite |
-| `w271c_11522` (`w271c`) | 5.8 | 79.962 | 274.7 | 3.435 | 0.7784 | **1.0330** | 0.6498 | **0.7597** | Sub-$80\text{ g}$ **and** 3D solid tip $\text{SF} \ge 1.0$ |
-| `w272_s2902_c01` (`w272`) | 5.8 | 79.426 | 309.7 | 3.899 | **1.0000** | 0.8750 | 0.6271 | **0.7524** | First sub-$80\text{ g}$ candidate with $\text{seq\_ratio} \ge 1.0$ |
-| `w273_s2903_c04` (`w273`) | 5.8 | 79.299 | 307.0 | 3.871 | **1.0088** | 0.8750 | 0.6271 | **0.7509** | Further mass trim ($-0.13\text{ g}$) + $\text{seq\_ratio} = 1.009$ |
-| `w273_s2904_c01` (`w273`) | 5.8 | 78.585 | 309.7 | **3.940** | **1.0012** | 0.8750 | 0.6271 | **0.7603** | Best sub-$80\text{ g}$ `G1` ($0.7603$) prior to `W_CAD_v2` |
-| `w274_s2905_c01` (`w274`) | 6.0 | 84.979 | 267.7 | 3.150 | **1.2730** | **1.3040** | 0.3896 | **0.7701** | First all-16-gates pass (`seq >= 1.20`, `solid_tip >= 1.0`, `W_CAD = +1.4634`) |
-| `w275_s2909_c01` (`w275`) | 6.0 | 81.774 | 274.4 | 3.356 | **1.2056** | **1.2967** | 0.3896 | **0.8015** | Sub-$82\text{ g}$ all-16-gates pass (`-3.205 g`, `W_CAD = +1.5589`) |
-| `w276_s2913_c01` (`w276`) | 5.9 | 79.995 | 274.8 | 3.435 | **1.2129** | **1.3393** | 0.3896 | **0.8323** | First sub-$80\text{ g}$ 2.5D raster all-16-gates pass (`W_CAD = +1.6381`) |
-| `w277_s2919_c01` (`w277`) | 5.9 | 79.509 (`79.656` 3D) | 273.2 | 3.436 | **1.2183** | **1.3393** | 0.3896 | **0.8348** | Sub-$80\text{ g}$ on both 2.5D & 3D solid, all 16 gates pass (`W_CAD = +1.6604`) |
-| `w278_s2922_c01` (`w278`) | 5.9 | 78.580 (`78.597` 3D) | 273.4 | 3.480 | **1.2229** | **1.3819** | 0.4079 | **0.8618** | Sub-$78.60\text{ g}$ 2.5D & 3D solid, `+5.1%` strict lat reserve, all 16 gates pass (`W_CAD = +1.7021`) |
-| `w279_s2928_c01` (`w279`) | 5.9 | 77.535 (`77.414` 3D) | 274.3 | 3.538 | **1.2022** | **1.3866** | 0.4079 | **0.8738** | Sub-$77.55\text{ g}$ 2.5D & 3D solid, `+5.5%` strict lat & `+10.7%` twist reserve, all 16 gates pass (`W_CAD = +1.7212`) |
-| `w280_s2931_c01` (`w280`) | 5.9 | **76.965** (`76.834` 3D) | 273.3 | **3.552** | **1.2016** | **1.3866** | 0.4079 | **0.8776** | First `74–77 g` stretch-band all-16-gates pass on 2.5D & 3D solid (`+5.2%` strict lat, `W_CAD = +1.7432`) |
-| `w281_s2932_c01` (`w281`) | 5.9 | **75.911** (`75.695` 3D) | 265.4 | 3.497 | **1.2115** | **1.4094** | 0.4079 | **0.8808** | Sub-76 g raster & solid; all 16 search gates pass (`W_CAD = +1.7916`) |
-| `w282_p10_c02` (`w282`) | 5.9 | **75.836** (`75.616` 3D) | 265.4 | 3.500 | **1.2150** | **1.4094** | 0.4079 | **0.8811** | High-reserve `W_CAD = +1.7978` & `G1 = 0.8811` (`16/16` pass) |
-| `w282_p14_c01` (`w282`) | 5.9 | **75.568** (`75.323` 3D) | 262.0 | 3.467 | **1.2010** | **1.4093** | 0.4079 | **0.8782** | Wave 282 lightest all-16-gates winner (`W_CAD = +1.7790`) |
-| `w283_p10_c02` (`w283`, re-certified) | 5.9 | **75.642** (`75.505` 3D) | 194.4 | 2.570 | **0.7180** | **0.9578** | 0.4079 | **0.6216** | Rejected: `W_CAD = -3.9649`, RS-v2 FAIL |
-| `w283_p14_c01` (`w283`, re-certified) | 5.9 | **75.382** (`75.199` 3D) | 194.8 | 2.584 | **0.7440** | **0.9577** | 0.4079 | **0.6239** | Rejected: `W_CAD = -3.8787`, RS-v2 FAIL |
-
-#### Table V-2: Margin-vs-Mass Pareto Progression (`W27` $\rightarrow$ `W283`, `evidence/wave27/g3_tip+00_t60_tt3_D1.json`, `evidence/rs_v2/w271c_11522.json`, `evidence/rs_v2/w2*/*_cad_eval.json`)
-
-| Candidate | Wave / Cohort | Mass 2.5D / 3D (g) | Strict $0.0625\text{ mm}^2$ Lateral (N / SF / Reserve) | Strict $4\text{--}15\text{ mm}$ Tip-Sub Twist SF (Reserve) | Cert `seq_ratio` (Reserve vs $1.20$) | 3D P2 Solid-Tip SF (Reserve vs $1.00$) | `side.a4` Winkler `seq` / $P_{\text{cr}}$ (N) | `W_CAD` | Locked `G1` | 16-Gate Status |
-|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|:---|
-| `g3_tip+00_t60_tt3` | Wave 27 provisional | `84.802` / `84.860` | `340.8 N` / `1.311` (`+31.1%`) | `1.458` (`+45.8%`) | `0.959` (`-20.1%` **FAIL**) | `1.6003` (`+60.0%`) | `2.790` / `2723 N` | *pre-`W_CAD`* | `0.9804` (`1.0036` fine) | **FAIL** (`seq < 1.20`, holder box) |
-| `w271c_11522` | Wave 271c mass push | `79.962` / `—` | `266.4 N` / `1.025` (`+2.5%`) | `0.842` (`-15.8%` **FAIL**) | `0.778` (`-35.1%` **FAIL**) | `1.0330` (`+3.3%`) | `3.067` / `2934 N` | *pre-`W_CAD`* | `0.7597` (`COMPLETE`) | **FAIL** (`seq < 1.20`, `twist_strict < 1.0`) |
-| `w274_s2905_c01` | Wave 274 `W_CAD_v2` | `84.979` / `85.021` | `266.8 N` / `1.026` (`+2.6%`) | `1.068` (`+6.8%`) | `1.273` (`+6.1%`) | `1.3040` (`+30.4%`) | `2.721` / `2693 N` | `+1.4634` | `0.7701` (`COMPLETE`) | **16/16 pass** (baseline all-gates) |
-| `w275_s2909_c01` | Wave 275 `W_CAD_v2` | `81.774` / `81.804` | `273.3 N` / `1.051` (`+5.1%`) | `1.062` (`+6.2%`) | `1.206` (`+0.5%`) | `1.2967` (`+29.7%`) | `3.373` / `3412 N` | `+1.5589` | `0.8015` (`COMPLETE`) | **16/16 pass** (`-3.205 g` vs `w274`) |
-| `w276_s2913_c01` | Wave 276 `W_CAD_v2` | `79.995` / `80.050` | `272.0 N` / `1.046` (`+4.6%`) | `1.095` (`+9.5%`) | `1.213` (`+1.1%`) | `1.3393` (`+33.9%`) | `4.096` / `2343 N` | `+1.6381` | `0.8323` (`COMPLETE`) | **16/16 pass** (sub-$80\text{ g}$ raster; `-4.984 g` vs `w274`) |
-| `w277_s2919_c01` | Wave 277 `W_CAD_v2` | `79.509` / `79.656` | `270.3 N` / `1.040` (`+4.0%`) | `1.095` (`+9.5%`) | `1.218` (`+1.5%`) | `1.3393` (`+33.9%`) | `3.399` / `1949 N` | `+1.6604` | `0.8348` (`COMPLETE`) | **16/16 pass** (sub-$80\text{ g}$ 2.5D & 3D; `-5.470 g` vs `w274`) |
-| `w278_s2922_c01` | Wave 278 `W_CAD_v2` | `78.580` / `78.597` | `273.2 N` / `1.051` (`+5.1%`) | `1.098` (`+9.8%`) | `1.223` (`+1.9%`) | `1.3819` (`+38.2%`) | `3.569` / `3051 N` | `+1.7021` | `0.8618` (`COMPLETE`) | **16/16 pass** (strictly dominates `w277`; `-6.399 g` vs `w274`) |
-| `w279_s2928_c01` | Wave 279 `W_CAD_v2` | `77.535` / `77.414` | `274.4 N` / `1.055` (`+5.5%`) | `1.107` (`+10.7%`) | `1.202` (`+0.2%`) | `1.3866` (`+38.7%`) | `3.878` / `2428 N` | `+1.7212` | `0.8738` (`COMPLETE`) | **16/16 pass** (sub-$78\text{ g}$ 2.5D & 3D; `-7.444 g` vs `w274`) |
-| `w280_s2931_c01` | Wave 280 `W_CAD_v2` | `76.965` / `76.834` | `273.4 N` / `1.052` (`+5.2%`) | `1.107` (`+10.7%`) | `1.202` (`+0.2%`) | `1.3866` (`+38.7%`) | `3.889` / `2035 N` | `+1.7432` | `0.8776` (`COMPLETE`) | **16/16 pass** (`74–77 g` stretch band; `-8.014 g` vs `w274`) |
-| `w281_s2932_c01` | Wave 281 `W_CAD_v2` | `75.911` / `75.695` | `267.4 N` / `1.028` (`+2.8%`) | `1.125` (`+12.5%`) | `1.212` (`+1.0%`) | `1.4094` (`+40.9%`) | `3.950` / `3042 N` | `+1.7916` | `0.8808` (`COMPLETE`) | **16/16 pass** (sub-76 g raster & solid; `-9.068 g` vs `w274`) |
-| `w282_p10_c02` | Wave 282 `W_CAD_v2` | `75.836` / `75.616` | `267.4 N` / `1.028` (`+2.8%`) | `1.125` (`+12.5%`) | `1.215` (`+1.25%`) | `1.4094` (`+40.9%`) | `3.951` / `3042 N` | `+1.7978` | `0.8811` (`COMPLETE`) | **16/16 pass** (Wave 282 peak `W_CAD`; `-9.143 g` vs `w274`) |
-| `w282_p14_c01` | Wave 282 `W_CAD_v2` | `75.568` / `75.323` | `262.6 N` / `1.010` (`+1.0%`) | `1.125` (`+12.5%`) | `1.201` (`+0.08%`) | `1.4093` (`+40.9%`) | `4.042` / `1522 N` | `+1.7790` | `0.8782` (`COMPLETE`) | **16/16 pass** (Wave 282 lightest; `-9.411 g` vs `w274`) |
-| `w283_p10_c02` | Wave 283 re-certification | `75.642` / `75.505` | `176.8 N` / `0.680` | `1.002` | `0.718` | `0.9578` | `3.787` | `-3.9649` | `0.6216` (`COMPLETE`) | **FAIL** (`all_hard = false`) |
-| `w283_p14_c01` | Wave 283 re-certification | `75.382` / `75.199` | `176.7 N` / `0.680` | `1.002` | `0.744` | `0.9577` | `4.551` | `-3.8787` | `0.6239` (`COMPLETE`) | **FAIL** (`all_hard = false`) |
-
----
-
-## VI. Complete 23-Subject CAD Battery & Multi-Design CAD/FEM Visual Gallery
-
-### VI-A. The 23-Subject × 18-Evaluator CAD Battery Matrix (`evidence/cad_battery/`)
-
-![Figure 2 — 17-Subject x 18-Evaluator CAD Battery Matrix, DOLFINx Cross-Check, and Side Report A4 Buckling](figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png)
-
-**Figure 2** is the historical 17-subject snapshot; Table VI-1 below gives the current 23-subject (`414`-cell) results. The figure (verified by [`fig2_cad_battery_matrix_and_gci.png.manifest.json`](figures/engineering_gates/fig2_cad_battery_matrix_and_gci.png.manifest.json)) presents the CAD battery matrix alongside the 3D solid tip `scikit-fem` vs `DOLFINx v0.9.0` cross-check and Side Report A4 sequence-ratio / buckling decomposition.
-
-#### Table VI-1: Master 23-Subject CAD Battery Summary (`evidence/cad_battery/*.json`)
-
-| Subject | Type | Mass (g) | Passed / 18 | Failed | Blocked | 3D Solid Tip $\text{SF}_{\text{tip}}$ (`scikit-fem` / `DOLFINx`) | Plate GCI (`seq` / `hunter`) | Certified `seq_ratio` | Supported `seq_ratio` (`A4`) | Buckling $\lambda_{\text{cr}}$ (`A4`) | Global Fitness $G_1$ |
-|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| [`g3`](../evidence/cad_battery/g3.json) | 128-gene CSV + STL | 84.80 | **11/18** | 4 | 3 | `1.6003` (`1.5341` / `1.5341`) | `1.38%` / oscillatory | 0.9591 | 2.7901 | 10.47 | **1.0036** |
-| [`w283_p14_c01`](../evidence/cad_battery/w283_p14_c01.json) | 128-gene CSV + STEP/STL | 75.38 | **10/18** | 1 | 3 | `0.9577` (`0.9580` / `0.9577`) | oscillatory / oscillatory | **0.7440** | 4.5506 | 4.61 | **0.6239** |
-| [`w283_p10_c02`](../evidence/cad_battery/w283_p10_c02.json) | 128-gene CSV + STEP/STL | 75.64 | **11/18** | 1 | 3 | `0.9578` (`0.9580` / `0.9578`) | admissible_estimate / admissible_estimate | **0.7180** | 3.7872 | 10.09 | **0.6216** |
-| [`w282_p14_c01`](../evidence/cad_battery/w282_p14_c01.json) | 128-gene CSV + STEP/STL | 75.57 | **11/18** | 4 | 3 | `1.4093` (`1.4090` / `1.4093`) | oscillatory / oscillatory | **1.2010** | 4.0425 | 5.85 | **0.8782** |
-| [`w282_p10_c02`](../evidence/cad_battery/w282_p10_c02.json) | 128-gene CSV + STEP/STL | 75.84 | **11/18** | 4 | 3 | `1.4094` (`1.4090` / `1.4094`) | oscillatory / oscillatory | **1.2150** | 3.9505 | 11.70 | **0.8811** |
-| [`w281_s2932_c01`](../evidence/cad_battery/w281_s2932_c01.json) | 128-gene CSV + STEP/STL | 75.91 | **11/18** | 4 | 3 | `1.4094` (`1.4090` / `1.4094`) | oscillatory / oscillatory | **1.2115** | 3.9500 | 11.70 | **0.8808** |
-| [`w280_s2931_c01`](../evidence/cad_battery/w280_s2931_c01.json) | 128-gene CSV + STEP/STL | 76.97 | **11/18** | 4 | 3 | `1.3866` (`1.3870` / `1.3866`) | oscillatory / oscillatory | **1.2016** | 3.8892 | 7.83 | **0.8776** |
-| [`w279_s2928_c01`](../evidence/cad_battery/w279_s2928_c01.json) | 128-gene CSV + STEP/STL | 77.53 | **11/18** | 4 | 3 | `1.3866` (`1.3870` / `1.3866`) | oscillatory / oscillatory | **1.2022** | 3.8779 | 9.34 | **0.8738** |
-| [`w278_s2922_c01`](../evidence/cad_battery/w278_s2922_c01.json) | 128-gene CSV + STEP/STL | 78.58 | **11/18** | 4 | 3 | `1.3819` (`1.3820` / `1.3819`) | oscillatory / oscillatory | **1.2229** | 3.5687 | 11.74 | **0.8618** |
-| [`w277_s2919_c01`](../evidence/cad_battery/w277_s2919_c01.json) | 128-gene CSV + STEP/STL | 79.51 | **11/18** | 4 | 3 | `1.3393` (`1.3390` / `1.3393`) | oscillatory / oscillatory | **1.2183** | 3.3997 | 7.50 | **0.8348** |
-| [`w276_s2913_c01`](../evidence/cad_battery/w276_s2913_c01.json) | 128-gene CSV + STEP/STL | 79.99 | **11/18** | 4 | 3 | `1.3393` (`1.3390` / `1.3393`) | oscillatory / oscillatory | **1.2129** | 4.0962 | 9.01 | **0.8323** |
-| [`w275_s2909_c01`](../evidence/cad_battery/w275_s2909_c01.json) | 128-gene CSV + STEP/STL | 81.77 | **11/18** | 4 | 3 | `1.2967` (`1.2970` / `1.2967`) | oscillatory / oscillatory | **1.2056** | 3.3735 | 13.12 | **0.8015** |
-| [`w274_s2905_c01`](../evidence/cad_battery/w274_s2905_c01.json) | 128-gene CSV + STEP/STL | 84.98 | **11/18** | 4 | 3 | `1.3040` (`1.3040` / `1.3040`) | oscillatory / oscillatory | **1.2730** | 2.7215 | 10.36 | **0.7701** |
-| [`w273_s2904_c01`](../evidence/cad_battery/w273_s2904_c01.json) | 128-gene CSV | 78.59 | **11/18** | 4 | 3 | `0.8750` (`0.8750` / `0.8746`) | `37.08%` / nonpositive | 1.0012 | 4.4649 | 7.16 | **0.7603** |
-| [`w271c_11522`](../evidence/cad_battery/w271c_11522.json) | 128-gene CSV | 79.96 | **11/18** | 4 | 3 | `1.0330` (`1.0330` / `1.0330`) | `5.36%` / `15.88%` | 0.7784 | 3.0674 | 11.28 | **0.7597** |
-| [`w272_s2902_c01`](../evidence/cad_battery/w272_s2902_c01.json) | 128-gene CSV | 79.43 | **10/18** | 5 | 3 | `0.8750` (`0.8750` / `0.8746`) | oscillatory / nonpositive | 1.0000 | 4.6037 | 5.67 | **0.7524** |
-| [`w273_s2903_c04`](../evidence/cad_battery/w273_s2903_c04.json) | 128-gene CSV | 79.30 | **10/18** | 5 | 3 | `0.8750` (`0.8750` / `0.8746`) | oscillatory / nonpositive | 1.0088 | 4.6367 | 9.06 | **0.7509** |
-| [`w271b_11772`](../evidence/cad_battery/w271b_11772.json) | 128-gene CSV + STL | 78.55 | **10/18** | 5 | 3 | `0.8337` (`0.8327` / `0.8327`) | nonpositive / oscillatory | 0.8823 | 3.8195 | 11.38 | **0.7506** |
-| [`w271b_11860`](../evidence/cad_battery/w271b_11860.json) | 128-gene CSV | 73.33 | **10/18** | 5 | 3 | `0.8140` (`0.8140` / `0.8144`) | nonpositive / oscillatory | 0.8918 | 3.4063 | 7.28 | **0.7217** |
-| [`c10a`](../evidence/cad_battery/c10a.json) | Native B-Rep STEP/STL | 64.84 | **9/18** | 0 | 9 | `0.2101` (`0.2101` / `0.2101`) | Blocked (B-Rep) | Blocked | Blocked | Blocked | `INCOMPLETE` |
-| [`c93`](../evidence/cad_battery/c93.json) | Native B-Rep STEP/STL | 66.77 | **8/18** | 0 | 10 | Blocked | Blocked | Blocked | Blocked | Blocked | `INCOMPLETE` |
-| [`c92`](../evidence/cad_battery/c92.json) | Native B-Rep STEP/STL | 66.76 | **8/18** | 0 | 10 | Blocked | Blocked | Blocked | Blocked | Blocked | `INCOMPLETE` |
-| [`c10c`](../evidence/cad_battery/c10c.json) | Native B-Rep STEP/STL | 67.09 | **7/18** | 1 | 10 | Blocked | Blocked | Blocked | Blocked | Blocked | `INCOMPLETE` |
-
-#### Table VI-2: `RS-karambit-v2` Detailed Gate Breakdown Across Evolved Genomes (`evidence/rs_v2/`)
 
 | Genome | `w20_hard_pass` (`RS-karambit-v1`) | `solid_tip_sf` ($\ge 1.0$) | `seq_ratio` ($\ge 1.20$) | `hm_twist_sf` ($16.2\text{ N}\cdot\text{m}$, $\ge 1.0$) | `hm_spine_sf` ($3427\text{ N}$, $\ge 1.0$) | `hm_ringback_sf` ($3000\text{ N}$, $\ge 1.0$) | `l7_goodman_sf` ($10^7$ cyc, $\ge 1.0$) | `ring_bearing_w` ($\ge 10.0\text{ mm}$) | `RS-karambit-v2` Overall Verdict |
 |:---|:---:|---:|---:|---:|---:|---:|---:|---:|:---:|
@@ -399,75 +266,250 @@ Implemented in [`crates/crescent/src/qd.rs`](../crates/crescent/src/qd.rs#L100-L
 | `w283_p10_c02` | `fail` | **0.9578** | **0.7180** | **0.1110** | **0.4317** | **2.8596** | **0.5431** | **10.20** | `fail` (`RS-karambit-v2`, measured export) |
 | `w283_p14_c01` | `fail` | **0.9577** | **0.7440** | **0.1110** | **0.4313** | **2.8595** | **0.5442** | **10.20** | `fail` (`RS-karambit-v2`, measured export) |
 
-> [!NOTE]
-> **Physical Insight from Tables V-2, VI-1 & VI-2:**
-> 1. **Wave 283 qualification withdrawn:** actual exported thickness, uncredited loads/fatigue, mesh edge/profile measurements and independent solvers supersede the original pass claims. No manufacturing promotion is justified.
-> 2. **Remaining work:** redesign the physical edge, point, ring fillet and load paths, then obtain an actual independent full re-certification. No change to a requirement threshold or bound can substitute for measured compliance.
+## IV. Science verification and certificate integrity
 
----
+### IV-A. Analytic benchmarks and solver semantics
 
-### VI-B. Multi-Design 3D CAD, Planform FEM & Engineering Drawing Gallery
+Verification asks whether a code solves its specified equations. Validation asks whether those equations predict the intended physical part. The archived [verify_0.30.2.json](../evidence/fem_solid/verify_0.30.2.json) records two analytic checks implemented by [verify_analytic.py](../fem_solid/tests/verify_analytic.py): Saint-Venant torsion of a square bar, $\theta'=T/(0.140577Ga^4)$, and a thin plate with a hole against the finite-width Heywood/Kirsch stress concentration $K_t=[2+(1-d/W)^3]/(1-d/W)$. The archived results satisfy the recorded **1%** error bar. [test_dolfinx_verification_record.py](../fem_solid/tests/test_dolfinx_verification_record.py) checks those saved observations; running that reader is not a fresh analytic FEM execution.
 
-![Figure 3 — Real 3D CAD & FEM Gallery across g3, SWITCHBACK Rev C.9.2 / C.9.3 / C.10a, and Side Report A1-A3](figures/engineering_gates/fig3_cad_and_fem_gallery.png)
+A separate archived DOLFINx/scikit-fem tip comparison uses the same 422,955-DOF problem and a **2%** agreement bar. Plate backend parity compares skyline and faer with their actual rejection/drift limits; [issue32_drift.json](../evidence/bench/issue32_drift.json) reports maximum drift above the historical $10^{-9}$ bar. Equal pivot thresholds do not ensure equal rejection on differently ordered factorizations. These are implementation checks with specific fixtures, not universal error bounds.
 
-**Figure 3** (verified by [`fig3_cad_and_fem_gallery.png.manifest.json`](figures/engineering_gates/fig3_cad_and_fem_gallery.png.manifest.json)) compares the 3D watertight STL/STEP meshes and structural stress fields across both the evolved crescent lineage (`g3_tip+00_t60_tt3`, `w271c_11522`, `w272_s2902_c01`, `w273_s2904_c01`, `w273_s2903_c04`) and the native B-rep `SWITCHBACK` CAD revisions (`Rev C.9.2`, `Rev C.9.3`, `Rev C.10a`).
+Stress recovery is part of the observable: von Mises of averaged stress is not necessarily average von Mises, a nodal maximum is not an element mean, and a changed excluded region creates a different comparison. [fem_solid/tests/test_field_semantics.py](../fem_solid/tests/test_field_semantics.py), [test_representation_invariants.py](../fem_solid/tests/test_representation_invariants.py), and [assurance/numerical/observable_catalog.json](../assurance/numerical/observable_catalog.json) make those distinctions explicit. Tests requiring the independent DOLFINx/Basix/PETSc runtime must fail closed when the capability is absent; catalog/metadata controls do not substitute for operator execution.
 
-````carousel
-![g3_tip+00_t60_tt3 3D STEP Render with D1 100 C Safety Factor Colormap](figures/whitepaper/wave27_g3_tip+00_t60_tt3_STEP_3D.png)
-<!-- slide -->
-![g3_tip+00_t60_tt3 Complete D1 FEM Metrics Plate](figures/whitepaper/wave27_g3_tip+00_t60_tt3_W27HARDPASS_SPG4p15_wgt84p8g_D1_FEM_metrics.png)
-<!-- slide -->
-![g3_tip+00_t60_tt3 Component Detail Colormaps (Retention Ring, Handle Web, Transition Neck, Hawkbill Blade)](figures/whitepaper/g3_tip+00_t60_tt3_components.png)
-<!-- slide -->
-![SWITCHBACK Rev C.10a 4-View Engineering Drawing with GD&T Callouts](../designs/switchback/C10a/drawings/switchback_revC10a_drawing.png)
-<!-- slide -->
-![Patent Orthographic Views (FIG. 1A-1G) Generated from Committed g3_tip+00_t60_tt3 Geometry](patent/figures/fig1_views.png)
-````
+### IV-B. Mesh convergence, calibration and robustness
 
----
+Roache's GCI is an uncertainty estimate conditional on a meaningful refinement sequence and a consistent observable [R2]. A three-point curve fit can produce a number without demonstrating that the solution is in the asymptotic range. [gci.py](../fem_solid/gci.py) retains distinct states for oscillatory, nonpositive-order, precision-limited, unresolved and unsupported sequences; missing mesh/observable identity prevents admission. The finest-grid estimate must not be substituted for an unobserved physical error bound. In particular, the `plate_gci_valid_3level` gate's implemented metadata check (§II-F) is weaker than a positive convergence finding. Historical “all 16” flags and the battery's oscillatory plate GCI can coexist; the paper reports both.
 
-## VII. Reproducibility & Verification Commands
+The archived [T1/T2 calibration](calibration/t1_t2.md) evaluates 40 designs from `bench/fixed_1k`. Lateral, ring and pry residual sigmas are **6.5%, 5.5%, 3.3%**; torsion is **10.8%**, above the declared **7%** bar. Even its fitted alternative remains above the bar. The documented policy therefore gates torsion on certification rather than calibrated search values. This calibration belongs to its recorded source/model regime; it does not validate the altered v1.0.0 geometry substitution, nor automatically calibrate post-#82 main.
 
-Every table, plot, 3D render, and scientific control cited in this paper can be reproduced and verified offline from a clean checkout of `main`:
+Monte Carlo in [monte_carlo/src/lib.rs::perturb, env_sample, mix_seed, try_run_cols](../crates/monte_carlo/src/lib.rs) samples manufacturing perturbations, temperature **−10…100 °C**, and a specified utility-media mixture. Thickness uses a Gaussian perturbation with standard deviation **0.03 mm**; the environmental sampler assigns 25% probability to band extremes and otherwise samples the interval. Sample identity derives from `(seed,index)`, allowing the sample multiset to remain invariant to thread scheduling. Checked reducers in [stats.rs](../crates/monte_carlo/src/stats.rs) reject empty/nonfinite/incomplete inputs; joint scenarios preserve paired outcomes rather than multiplying marginal pass rates. T03's exact-n, quantile, correlation and replay controls test these software semantics.
 
-```bash
-# 1. Regenerate and verify all paper figures and SHA-256 manifests
-python3 -B ops/render/whitepaper_hero_figs.py
-python3 -B ops/render/engineering_gates_paper_figs.py
-python3 -B ops/ci/verify_figures.py
-python3 -B ops/ci/verify_media.py
-python3 -B ops/render/patent/figures.py --verify docs/patent/figures/figures.json
+These probability statements are conditional on the assumed input distributions and correlations. A p05 estimate is not a certified reliability level without population representativeness and sampling uncertainty. The deterministic D1 joint thin/hot capacity is not itself a full Monte Carlo reliability analysis. Neither procedure establishes fatigue life, impact response, human comfort or manufacturing-process capability without the corresponding physical data.
 
-# 2. Score ANY knife CAD (.step, .stl, 128-gene .csv genome, or catalog ID) through all 16 gates + all 18 CAD battery evaluators + combined fitness
-./target/release/jarambit score-cad w282_p14_c01 --out-dir /tmp/jarambit_quickstart_scorecard
-./target/release/jarambit score-cad evidence/rs_v2/w282_ultrarunner/w282_p14_c01.step \
-  --force-standalone-cad --out-dir /tmp/jarambit_quickstart_scorecard
+### IV-C. What the T00–T19 assurance catalog actually contains
 
-# 3. Run the 18-evaluator CAD battery across all 21 CAD subjects
-python3 -B ops/ci/cad_battery.py \
-  --all --analytic pass --gci pass --claims pass --dolfinx pass --measure-native
+The frozen source is [TEST_CASE_CATALOG.json](v1/science/tests/TEST_CASE_CATALOG.json), pinned by [release-v1.json](../assurance/policies/release-v1.json). It has **178 entries**, each requiring positive and adverse controls. **356 required control slots is not 356 executed, passing controls.** The catalog's recorded status strings describe 11 historical executed T01 entries, 12 T02 entries requiring independent runtime admission, and 155 proposed entries. Later test modules and receipts must be assessed on their own identities and execution evidence; those static strings are not this run's execution totals. [assurance_inventory.json](figures/engineering_gates/assurance_inventory.json) is regenerated directly from the catalog.
 
-# 4. Evaluate any single genome CSV end-to-end (Rust multi-tier FEM + 18-case CAD battery + G1)
-python3 -B ops/ci/cad_battery.py \
-  --evaluate-genome w282_p14_c01=evidence/rs_v2/w282_ultrarunner/w282_p14_c01_genome.csv \
-  --analytic pass --gci pass --claims pass --dolfinx pass \
-  --out-dir /tmp/jarambit_quickstart_battery
+| Family | Entries | Actual catalog subject and its relevance / limit |
+|---|---:|---|
+| T00 | 11 | Inventory, strict records, receipt/control completeness and scoped findings. |
+| T01 | 18 | GCI arithmetic, mesh sequence, observable identity, cache and singularity contracts. |
+| T02 | 12 | Claim honesty, candidate/requirement/physics identity, revoked review and truthful negatives. |
+| T03 | 10 | Checked stochastic reductions, joint correlation, replay, population shift and provenance. |
+| T04 | 12 | Feasibility/ranking, novelty context, archive behavior, checkpoint and lineage contracts. |
+| T05 | 12 | Numerical field semantics, representation invariance, units, balance and solver/operator controls. |
+| T06 | 10 | Benchmark accounting, equal budgets, splits, telemetry and audit independence. |
+| T07 | 13 | Specimen/material/history identity and unapproved evidence transfer. |
+| T08 | 6 | Download/units/registration and observation provenance controls. |
+| T09 | 6 | Latent-state/observation identifiability and matched controls. |
+| T10 | 5 | Graph/representation identifiability, physical rotation, shuffle and resolution controls. |
+| T11 | 7 | Sequence/order, cycle/time and duration controls. |
+| T12 | 5 | Observation arms, creation/erasure, drift and nuisance controls. |
+| T13 | 7 | Process versus film, coupling, topology and segmentation controls. |
+| T14 | 9 | Independent truth, silent damage, nuisance and instrument response. |
+| T15 | 6 | Strain versus damage, witness/self-test validity and warning persistence. |
+| T16 | 6 | Recovery/closure claims, failure migration and mechanism discrimination. |
+| T17 | 6 | Model domain, transition error, common ensemble bias and rate sensitivity. |
+| T18 | 7 | Competing models, nonidentifiability, independent audit and budget controls. |
+| T19 | 10 | Required executions, CI path/capability omissions, custody, historical reuse and final policy. |
+| Total | **178** | Frozen requirement inventory; execution and physical findings require their own receipts. |
 
-# 5. Run the full 178-group (356-control) T00-T19 scientific assurance suite
-python3 -B ops/ci/science_suite.py
+The earlier paper incorrectly mapped many of these families to knife-specific topics and claimed 100% execution. For example, T02 is claim honesty, not a manufactured-solution plate test; T16 does not by itself establish knife-edge retention. [science_suite.py](../ops/ci/science_suite.py) implements T19 orchestration/custody controls, not a monolithic fresh execution of every catalog entry. T19-08 specifically prevents render/finish metadata from becoming structural properties. An illustrated anodized surface therefore contributes no material-strength evidence.
 
-# 6. Verify version sync, status tables, README, WHITEPAPER, and claim admission
-python3 -B ops/ci/version_check.py
-python3 -B ops/ci/gen_status.py --check
-python3 -B ops/ci/gen_readme.py --check
-python3 -B ops/ci/gen_whitepaper.py --check
+### IV-D. The #75–#81 audit and PR #82 correction
+
+The independent audit was performed against released main `1e93e6f`; [PR #82](https://github.com/neverhuman/jarambit/pull/82), merged at `4cd0f994e803`, fixes certificate integrity and withdraws the affected claims. The audit observations and the final re-certification use different physical kernels; intermediate issue numbers must not be mixed with the final corrected values.
+
+| Finding | Defect in the rejected pipeline | Correction and adverse control |
+|---|---|---|
+| [#75](https://github.com/neverhuman/jarambit/issues/75) | Plate/native solid used thicker pre-removal `field.base`, while CAD/mass used sharpened, pocketed geometry. | Shared post-removal export thickness law and physical floor; actual-thickness regression. |
+| [#76](https://github.com/neverhuman/jarambit/issues/76) | Bore width globally multiplied remote strength/fatigue and substituted a body peak for required tip torque. | Remove unsupported algebraic credits and restore specified peaks; local bore changes cannot magically strengthen a remote section. |
+| [#77](https://github.com/neverhuman/jarambit/issues/77) | 0.18 mm gene passed although exported cutting edges exceeded the accepted apex cap. | Measure apex/angle on exported triangle intersections; positive thin-edge and adverse blunt-edge controls. |
+| [#78](https://github.com/neverhuman/jarambit/issues/78) | “B-rep” point test queried a raster and skipped monotonicity over 5–10 mm. | Measure the actual export at all relevant breakpoints through 10 mm; reject later and small reversals. |
+| [#79](https://github.com/neverhuman/jarambit/issues/79) | One native solve was copied into two solver slots with literal zero error and a true independence flag. | Distinct actual scikit-fem/DOLFINx observations on the identical saved fine mesh; native/missing independence stays unverified. |
+| [#80](https://github.com/neverhuman/jarambit/issues/80) | Subject labels and adjacent stale records authorized reuse after editing a genome. | Canonical genome/model content identities plus D1/mesh/raw/payload hashes; edited-genome and label-collision tests. |
+| [#81](https://github.com/neverhuman/jarambit/issues/81) | Available ring width stood in for an unmeasured bore-edge radius. | Measure exported bore geometry; zero/unverified radius cannot satisfy the unchanged ≥1.5 mm criterion. |
+
+[cert_integrity.rs](../crates/crescent/tests/cert_integrity.rs) contains the named regression controls. [certification.rs::identity](../crates/crescent/src/certification.rs) binds material and every exact IEEE-754 genome bit to implementation/requirement content, avoiding display-CSV precision collisions. A label may change without changing content identity; a numerical source or genome change invalidates reuse. Identity hashes protect custody, not scientific truth: they cannot make a wrong equation correct.
+
+The real post-fix comparison agrees to less than 0.04% in the reported SF observations while both tip strengths fail. Re-certification retains the **91,008 quadratic tetrahedra / 416,583 DOFs** fine mesh and distinct raw solver outputs for each w283 candidate. [model-provenance.json](../evidence/cert_integrity/model-provenance.json), [solver-verification.json](../evidence/cert_integrity/solver-verification.json) and [unchanged-requirements.json](../evidence/cert_integrity/unchanged-requirements.json) record the measured regime and unchanged requirements. The final [identity-upgrade.json](../evidence/cert_integrity/identity-upgrade.json) is explicitly metadata-only: it retains original observations and `solve_rerun=false`, refusing changed numerical sources, measurements, inputs or raw artifacts. No additional independent solve is claimed for re-issued bindings.
+
+Both original genomes are rejected. Old false-pass certificates remain in [v1.0.0-retracted](../evidence/cert_integrity/v1.0.0-retracted/) solely for audit. No currently certified all-gates winner exists; the CAD battery has **0/23 RS-v2 all-hard passes**. G1 completeness means its required scalar inputs exist, not that the candidate passes requirements. The correction table below retains PR #82's full-precision RS-based G1; CAD-eval summaries preserve their rounded D1 inputs.
+<!-- GEN:CERT_INTEGRITY:BEGIN -->
+**v1.0.0 certification claims withdrawn (#75–#81).** Neither Wave 283 candidate passes the fixed pipeline. The exported geometry and all requirement thresholds are unchanged. Native-only solid solves are unverified; the results below use actual scikit-fem P2 and DOLFINx solves on the same mesh.
+
+| candidate | raster / solid g | strict lateral N | cert seq | solid-tip SF | G1 | W_CAD | RS-v2 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `w283_p14_c01` | 75.382 / 75.199 | 176.720 | 0.7436 | 0.9577 | 0.623888 | -3.878704 | FAIL |
+| `w283_p10_c02` | 75.642 / 75.505 | 176.763 | 0.7179 | 0.9578 | 0.621632 | -3.964924 | FAIL |
+
+Source: `evidence/rs_v2/w283_ultrarunner/*_{cad_eval,rs,solid_tip}.json`; raw solver outputs and exact meshes are retained in `evidence/cert_integrity/recertified/`. The retracted certificates are preserved under `evidence/cert_integrity/v1.0.0-retracted/`. Lateral strength, failure sequence, human-maximum loads, fatigue, exported edge sharpness and full 0–10 mm point monotonicity remain blockers; the bore has no verified required fillet. Historical 16-gate screen results below do not establish an RS-v2 all-hard pass or manufacturing promotion. G1 above uses the full-precision RS inputs in each battery record; CAD-eval JSON retains its rounded D1 inputs.
+<!-- GEN:CERT_INTEGRITY:END -->
+![Numerical verification and the corrected rejected w283 designs](figures/engineering_gates/fig_verification_and_retraction.png)
+
+*Verification plate. Archived analytic benchmark errors and g3 refinement observations are separated from the corrected w283 measurements. The independent solvers agree on tip SF below 1, while strict lateral capacities are below 260 N. These are saved observations, not fresh solves or a new GCI admission. [verification.py](../ops/render/paper/verification.py) regenerates the plot; [verification_points.json](figures/engineering_gates/verification_points.json) traces every plotted observation.*
+
+## V. Automated evolution and historical population behavior
+
+### V-A. Two search mechanisms with different roles
+
+The legacy general search includes NSGA-II in [crates/evolve](../crates/evolve/src/lib.rs) [R3]. The retained crescent runs use [qd.rs::run_islands_with](../crates/crescent/src/qd.rs): tournament selection on scalar fitness, Gaussian mutation, crossover, archive parents, machining kicks and ring migration. They should not all be described as a single NSGA-II run. The descriptor has **16 dimensions** (`DESC_N`), covering removal fractions, shape zones, thickness variation, hook drop and internal machining features. Novelty is mean distance to the $k$ nearest aesthetic-pass descriptors; rejected appearance does not earn novelty. The MAP-Elites cell uses relief thresholds `[0.005, 0.01, 0.02, 0.03, 0.045, 0.065, 0.09, 0.12, 0.16, 0.21]` and mass index `floor((m−72)/2)` clamped to 0…10. This code is not the earlier paper's supposed 10×12 uniform grid.
+
+Each generation retains up to three fitness elites per island. Two-way tournaments choose ordinary parents; a nonempty archive supplies the first parent with probability 0.3. Crossover-plus-mutation is selected with probability 0.5; otherwise the child is mutated. When enabled, an additional machining kick occurs with probability 0.04. Migration sends the best configured migrants from island $i$ to replace the worst in island $(i+1)\bmod k$ at the configured interval. IDs, parent IDs and operator tags preserve ancestry; retained elites/migrants are appearances, not additional fresh evaluations.
+
+`qd::fitness` gives infeasible candidates negative values with distinct aesthetic, geometry, absent-FEM, load and sequence/torsion shortfall branches. Feasible search fitness under `JARAMBIT_ALL_GATES=1` uses `w_cad_v2_feasible`: 70% mass, 12% shape, 10% survival, 5% sequence and 3% carry terms. **This search function uses plate/novelty proxies**: its survival mix differs from the full scorecard and it lacks an independently observed solid-tip or A4 buckling term. The final [compute_weighted_cad_score](../ops/ci/evaluate_cad_candidate.py) uses actual full-evaluation inputs. Enabling an environment variable cannot turn every birth into a full 16-gate certification. G1 remains the separately locked cross-wave metric in [GLOBAL_METRIC.md](GLOBAL_METRIC.md).
+
+### V-B. `./evolve.sh`: family proposals, Stage 1 and Stage 2
+
+The wrapper builds the release CLI, sets the FEM/SF-map environment and forwards options to [auto_evolve.rs::run_auto_evolve_cli](../crates/cli/src/auto_evolve.rs). At the post-#82 baseline its defaults are **2 rounds**, **12 candidates per elite per round**, **2 Stage-2 candidates**, seed **2830**, and at most **16 worker threads**. Seed paths default to the two w283 and two w282 retained genomes; a fallback C.6 seed is available. A default seed is not an endorsed certified parent.
+
+`spawn_offspring_batch` proposes exact parents initially and six alternating operator families: pocket/rail/neck or machining adjustments; taper/fuller adjustments; edge/bevel adjustments; thickness knots; outline control points; and combined Gaussian variation or blended crossover. Perturbation scale decreases as $0.35/\sqrt{round+1}$. These are family-centered local proposals, not the island migration algorithm above.
+
+**Stage 1** requires RS-v2 geometry mode, aesthetic/geometric acceptance, the analytic sharp-law preliminary check, measured point acceptance, certification-mesh load/sequence/torsion, human-max and fatigue pass. It does not establish the full strict-mesh or independent solid result. Survivors are sorted by increasing mass then estimated fitness. **Stage 2** writes the genome and calls `score_cad_native` for strict plate, GCI, A4, solid screen, battery and master scorecard, then retains only candidates whose reported 16-gate and RS-v2 conjunctions both pass. Selection gives distinct families first choice before filling remaining slots. The distinction between a coarse native solve and independent certification remains essential after #82; a native-only result cannot claim the missing independent solver.
+
+A deterministic invocation of this baseline is:
+
+```sh
+CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=line-tables-only \
+  nice -n 10 ~/bin/memcap 32G -- ./evolve.sh \
+  --rounds 2 --candidates-per-round 12 --certify-top 2 \
+  --threads 4 --seed 2830 --prefix paper_replay \
+  --seeds evidence/rs_v2/w282_ultrarunner/w282_p14_c01_genome.csv,evidence/rs_v2/w282_ultrarunner/w282_p10_c02_genome.csv \
+  --out-dir target/paper/replay
 ```
+
+This documents actual flags; it does not claim this paper update ran a new search or produced a winner. The wrapper's stale prose load constants are superseded by §III-A. Future pipeline fixes must be described against their merged implementation; w284–w29x output produced under the rejected v1.0.0 regime stays **PROVISIONAL** until the actual exported candidate is re-certified on fixed main.
+
+### V-C. Reproducibility and the retained w282 experiment
+
+[w282 provenance](../evidence/rs_v2/w282_ultrarunner/provenance.json) records source commit, numerical-source and binary hashes, seed genomes and hashes, solver/container versions, environment and exact parameters: seed **2934**, **4 islands ×32 population**, **16 generations**, maximum search triangle area **4 mm²**, migration interval **4**, kick fraction **0.2**, **8 threads**, and **6** certification selections. Environment includes `JARAMBIT_ALL_GATES=1`, `JARAMBIT_CAD_BATTERY=1`, `JARAMBIT_CERT_STRICT=1`, and lateral/ring search bias overrides **1**. The committed `search/` files, rather than a replay under changed main, are the observations plotted here. An earlier failed biased probe is separately identified in provenance and must not be silently pooled with the retained run.
+
+The legacy engine's [evolve/src/lib.rs::save_ckpt,load_ckpt](../crates/evolve/src/lib.rs) preserves exact floating-point gene bits and island RNG state, tested by [replay.rs](../crates/evolve/tests/replay.rs). This checkpoint capability is not evidence of an unimplemented crescent checkpoint/resume path. [crates/evidence/src/lib.rs](../crates/evidence/src/lib.rs) frames zstd-compressed JSONL events with magic, length and checksum. Genome precision, source/model identity, sample/RNG seed, initial parents, configuration and stop condition all matter. A seed number alone cannot reproduce a changed implementation. The #82 evidence identity upgrade likewise cannot stand in for a solve under changed physics.
+
+### V-D. Population mass and fitness trajectories
+
+![Retained birth-level w282 mass and fitness, and earlier island champion histories](figures/engineering_gates/fig_population_trajectories.png)
+
+*Figure 2. Panels (a,b) reduce all **1,984 unique fresh evaluations** in [all_evals.json](../evidence/rs_v2/w282_ultrarunner/search/all_evals.json) by generation: minimum/median mass and maximum/median recorded search fitness. These are evaluated births including rejected candidates, not a reconstructed survivor population. Panels (c,d) use committed w6/w13/w15/w16/w272/w273 `history.csv` files: at each generation the highest-fitness island champion supplies the paired mass/fitness point. Those files do not contain population medians, so none are drawn. Earlier fitness scales belong to their original objectives and are not pooled into one comparable score.*
+
+The w282 birth sample contains **128 initial evaluations plus 16×116 offspring**, matching four islands with three retained elites each. Its best mass among all births need not be feasible. The [search summary](../evidence/rs_v2/w282_ultrarunner/search_summary.json) records **27 strict-certified retained selections**; the strict passers did not beat the baseline. The eventual lighter w282 named candidates arose from controlled probes of committed w281 genomes, not from an invented smooth improvement of the GA champion.
+
+### V-E. Per-gate pass rates and the missing-data boundary
+
+![Sixteen gate rates over retained selected candidate scorecards](figures/engineering_gates/fig_gate_pass_rates.png)
+
+*Figure 3. All 16 W_CAD predicates over the retained w274–w283 candidate evaluations. Each column reports its actual **n selected candidates**; these are **selected-sample rates**, not population success probabilities. Historical w274–w282 flags retain their original scoring regime. W283 uses corrected re-certification and cannot appear as a passing record. The point ledger records the exact source and `/weighted_cad_score/gates/<gate>` pointer for every observation.*
+
+![Search-condition rates for all retained w282 births](figures/engineering_gates/fig_population_screen_rates.png)
+
+*Figure 4. Birth-level search conditions in w282, including appearance, geometry, lateral/ring floors, sequence and tip-zone twist. All retained births form each denominator; an absent solve is counted as **not demonstrated**, with that convention recorded. These are coarse-screen conditions; strict mesh, full GCI and independent solid certification were not performed for every birth. Their full-population 16-gate rates are unavailable, rather than imputed from the elite scorecards.*
+
+There is no committed population telemetry for every project wave. W20–w25 retain selected-winner summaries, several w27x runs retain histories or archives, and many w274–w281 entries retain only finalists. Missing generations/waves are left missing. No uncommitted `out/`, shared-checkout scratch, fabricated intermediate mass, or rejected-pipeline w284–w29x result is admitted into these plots.
+
+### V-F. Genotype and descriptor diversity
+
+![w282 pairwise genotype spread, relief IQR and novelty](figures/engineering_gates/fig_population_diversity.png)
+
+*Figure 5. The genotype statistic is the root mean squared pairwise distance over varying numeric genes, each divided by its observed range over this retained run; fixed genes and categorical material are excluded. For generation matrix $X$ with $n$ rows and $d$ varying normalized genes, $D=\sqrt{2n\sum_j\operatorname{Var}(X_j)/[(n-1)d]}$. No sampling or fabricated bound table is used. Panels (b,c) report the actual relief-fraction interquartile range and median saved novelty. These are descriptor projections and the recorded novelty statistic; the retained files do not contain every birth's full 16-component descriptor.*
+
+Observed-range normalization allows within-run spread analysis; it does not provide cross-wave distances under different observed ranges. Novelty depends on the available archive/population context, so an increasing or decreasing value alone cannot establish morphological diversity or causality. The population ledger exposes the normalization and contributing CSV lines for each generation.
+
+![Retained archive descriptor spread across historical runs](figures/engineering_gates/fig_archive_descriptor_spread.png)
+
+*Figure 5b. Across the committed w7–w16, w272/w273 and w282 final MAP-Elites archives, the bars show observed median, interquartile range and full retained range of mass and relief fraction, with actual archive counts. These are selected niches under different run objectives, not complete population samples or identical descriptor distributions. W6 lacks the relief column and is omitted from this comparison. Every contributing CSV row is recorded in the point ledger.*
+
+### V-G. Lineage and the margin–mass frontier
+
+![Actual ancestry and separately sourced controlled-probe winners](figures/engineering_gates/fig_winner_lineage.png)
+
+*Figure 6. The left graph follows actual parent IDs and operator tags for the lightest retained strict-certified GA passer; layout ordinate has no descriptor meaning. The right graph shows the actual named w282 record and reserve peer from [controlled_probes.json](../evidence/rs_v2/w282_ultrarunner/controlled_probes.json): p14 descends from `w281_s2932_c02_light`, p10 from `w281_s2932_c01`, with the exact recorded relief/flute patches. The named winners are not falsely attached to a GA ancestry they never had. Missing earlier ancestry is not reconstructed by geometric similarity.*
+
+![Historical selected-candidate structural margin and G1 versus mass](figures/engineering_gates/fig_pareto_history.png)
+
+*Figure 7. Each point is a committed candidate evaluation. The displayed structural margin is $\min(C_{lat,strict}/260,seq/1.2,SF_{twist,strict},SF_{solid})-1$, explicitly a **four-metric subset**, not proof that all 16 gates pass. Mass and G1 retain their own observations and model regime. Red w283 points show the corrected failures. The figure displays trade-offs among retained points; it does not assert an exhaustive global Pareto optimum.*
+
+Historical selected mass falls from w274's **84.979 g** raster to w282 p14's **75.568 g**; the w282 reserve peer is **75.836 g**. These recorded selections illustrate a mass/reserve trade-off under their then-used models. They do not establish a record certified under the corrected main. The w283 **75.382/75.642 g** candidates remain measured geometries with rejected certificates. Cross-solver agreement and a complete G1 do not restore their failed strength or handling requirements.
+
+All seven population figures regenerate with [populations.py](../ops/render/paper/populations.py). [population_points.json](figures/engineering_gates/population_points.json) records source file, JSON pointers/CSV line numbers, denominator, reduction and plotted values; each PNG manifest binds that ledger, the script and the actual committed input files. Every observation input is checked with `git ls-files`. Sparse histories remain sparse.
+
+## VI. Blender atlas and reproducible publication
+
+### VI-A. Geometry and image semantics
+
+![Historical w282 oblique studio rendering](figures/whitepaper/blender/hero_oblique.webp)
+
+*Figure 8. Cycles CPU studio rendering of the exact committed `w282_p14_c01.stl`, the historical main screen record. The faceted geometry is preserved. It has not been re-certified on fixed main. Titanium reflectance, lighting and depth of field are illustrative; no surface-finish strength, film thickness, manufactured specimen or all-gates qualification is claimed.*
+
+![Reverse face with illustrative anodized material](figures/whitepaper/blender/hero_reverse.webp)
+
+*Figure 9. Reverse-angle rendering of the same unchanged mesh with an illustrative anodized-titanium shader. Appearance adds no coating/material evidence.*
+
+![Actual mesh section and illustrative ring gauge](figures/whitepaper/blender/hero_section.webp)
+
+*Figure 10. A plane cut through the actual mesh and a declared **22 mm cylindrical sizing gauge**. The gauge illustrates the ring context; it is not a human hand, comfort test, or validated finger-bearing/contact model. The section is a view operation, not a newly designed part.*
+
+The **16 individual gate renderings** linked in §II show the corresponding real geometry with identified load, boundary, envelope, sizing or mesh annotations. Where a field is shown, it is the saved w282 D1 **design-load plate envelope**, mapped on its retained element mesh at fixed **0–828 MPa**, including lateral/pry 260 N, chord torsion 1.82 N·m and ring 1500 N. The manifest declares the transfer function. A plate envelope is not relabeled as a single-case field, strict-mesh field or 3D solid solution. No missing stress/displacement data are invented. The nonlinear support/contact and holder geometry are illustrations where no exported counterpart exists.
+
+### VI-B. Rebuild commands and artifact custody
+
+Blender 4.5.3's official Linux archive is checksum-verified; the Ubuntu 4.0.2 package lacked OpenImageDenoiser. [render_paper.py](../ops/render/blender/render_paper.py) runs headless Cycles with **4 CPU threads**, **48 samples**, denoising, `nice -n 10` and `~/bin/memcap 32G --`. Images are approximately **1600×1000**, with compressed publication outputs and per-image input/script/output manifests. All render outputs are labeled with their true historical status. When a winner is certified on fixed main, its mesh and evidence must replace the selected inputs and the figures must be re-rendered; an attractive legacy render cannot serve as that re-certification.
+
+```sh
+python3 ops/render/paper/populations.py
+python3 ops/render/paper/battery.py
+python3 ops/render/paper/verification.py
+BLENDER=$HOME/opt/blender-4.5.3-linux-x64/blender \
+  python3 ops/render/blender/render_paper.py
+python3 ops/render/paper/build_pdf.py
+python3 ops/ci/version_check.py
+python3 ops/ci/verify_figures.py
+python3 ops/ci/gen_whitepaper.py --check
+```
+
+The PDF builder reads the existing two Markdown documents and their real figures. Build output and logs stay in this lane's `target/paper/`, following the repository's generated-output convention; no redundant full-paper PDF binary is committed. Figure PDFs elsewhere in the repository remain their existing artifacts. The Markdown, render/build sources, observation ledgers and compact images are the reviewable source publication. The source white paper retains its prior draft appendix for traceability; the publication PDF explicitly points to that archive rather than reproducing a second obsolete paper body.
+
+### VI-C. Individual gate renderings
+
+The following plates retain the actual historical w282 mesh. Load arrows, support springs, sizing gauges and envelopes identify the test setup; they are illustrative annotations. Any shown color field is the saved, explicitly labeled multi-load plate envelope. Each plate's footer states that no currently certified all-gates winner exists.
+
+![Gate 1: cad watertight and single solid](figures/whitepaper/blender/cad_watertight_and_single_solid.webp)
+
+![Gate 2: geometric and holder gates](figures/whitepaper/blender/geometric_and_holder_gates.webp)
+
+![Gate 3: karambit ring and curved claw](figures/whitepaper/blender/karambit_ring_and_curved_claw.webp)
+
+![Gate 4: c6 aesthetic floor](figures/whitepaper/blender/c6_aesthetic_floor.webp)
+
+![Gate 5: cert hiker 180n](figures/whitepaper/blender/cert_hiker_180n.webp)
+
+![Gate 6: cert hunter 260n](figures/whitepaper/blender/cert_hunter_260n.webp)
+
+![Gate 7: strict hunter 260n](figures/whitepaper/blender/strict_hunter_260n.webp)
+
+![Gate 8: cert ring pull 1500n](figures/whitepaper/blender/cert_ring_pull_1500n.webp)
+
+![Gate 9: twist body 1p82nm](figures/whitepaper/blender/twist_body_1p82nm.webp)
+
+![Gate 10: twist tip only 1p82nm](figures/whitepaper/blender/twist_tip_only_1p82nm.webp)
+
+![Gate 11: twist tip submodel strict 1p82nm](figures/whitepaper/blender/twist_tip_submodel_strict_1p82nm.webp)
+
+![Gate 12: solid tip 3d p2 1p82nm](figures/whitepaper/blender/solid_tip_3d_p2_1p82nm.webp)
+
+![Gate 13: side a4 buckling and support](figures/whitepaper/blender/side_a4_buckling_and_support.webp)
+
+![Gate 14: failure sequence 1p2](figures/whitepaper/blender/failure_sequence_1p2.webp)
+
+![Gate 15: plate gci valid 3level](figures/whitepaper/blender/plate_gci_valid_3level.webp)
+
+![Gate 16: dolfinx cross check 2pct](figures/whitepaper/blender/dolfinx_cross_check_2pct.webp)
 
 ## References
 
-1. K. Deb, A. Pratap, S. Agarwal, and T. Meyarivan, "A fast and elitist multiobjective genetic algorithm: NSGA-II," *IEEE Trans. Evol. Comput.*, vol. 6, no. 2, pp. 182–197, 2002.
-2. J.-L. Batoz, K.-J. Bathe, and L.-W. Ho, "A study of three-node triangular plate bending elements," *Int. J. Numer. Meth. Eng.*, vol. 15, no. 12, pp. 1771–1812, 1980.
-3. P. J. Roache, "Perspective: A method for uniform reporting of grid refinement studies," *ASME J. Fluids Eng.*, vol. 116, no. 3, pp. 405–413, 1994.
-4. S. El Kazdadi, "`faer`: High-performance linear algebra library for Rust," 2024.
-5. R. G. Budynas and J. K. Nisbett, *Shigley's Mechanical Engineering Design*, 11th ed. McGraw-Hill, 2020 (Marin endurance limit modification factors & modified Goodman criterion).
-6. J.-B. Mouret and J. Clune, "Illuminating search spaces by mapping elites," *arXiv:1504.04909*, 2015.
+[R1] J.-L. Batoz, K.-J. Bathe and L.-W. Ho, “A study of three-node triangular plate bending elements,” *International Journal for Numerical Methods in Engineering*, 15, 1771–1812, 1980. [Publisher / DOI](https://doi.org/10.1002/nme.1620151205).
+
+[R2] P. J. Roache, “Perspective: A Method for Uniform Reporting of Grid Refinement Studies,” *Journal of Fluids Engineering*, 116(3), 405–413, 1994. [DOI](https://doi.org/10.1115/1.2910291); [original paper](https://www3.nd.edu/~coast/jjwteach/www/www/60130/CourseLectureNotes/Roache_1994.pdf).
+
+[R3] K. Deb, A. Pratap, S. Agarwal and T. Meyarivan, “A fast and elitist multiobjective genetic algorithm: NSGA-II,” *IEEE Transactions on Evolutionary Computation*, 6(2), 182–197, 2002. [DOI](https://doi.org/10.1109/4235.996017).
+
+[R4] Repository implementation, requirements and saved observations are linked next to each predicate. [PR #82](https://github.com/neverhuman/jarambit/pull/82) and [issues #75–#81](https://github.com/neverhuman/jarambit/issues/75) establish the audit/correction history; final re-certification observations reside in [evidence/cert_integrity](../evidence/cert_integrity/). A citation to a test source is not a fresh test-execution receipt.

@@ -1,0 +1,33 @@
+{
+ "catalog_recorded_statuses": {
+  "executed; fem_solid/tests/test_gci.py; version-check 38662560217": 11,
+  "not_run; independent B/C/D runtime admission required": 12,
+  "proposed; not implemented or executed": 155
+ },
+ "groups": {
+  "T00": 11,
+  "T01": 18,
+  "T02": 12,
+  "T03": 10,
+  "T04": 12,
+  "T05": 12,
+  "T06": 10,
+  "T07": 13,
+  "T08": 6,
+  "T09": 6,
+  "T10": 5,
+  "T11": 7,
+  "T12": 5,
+  "T13": 7,
+  "T14": 9,
+  "T15": 6,
+  "T16": 6,
+  "T17": 6,
+  "T18": 7,
+  "T19": 10
+ },
+ "schema": 1,
+ "scope": "Frozen catalog metadata; these are not fresh executions, control receipts, physical validation or gate coverage.",
+ "sha256": "5746f3325bec2d62eb6c9e2f50184991c46e250bc9e3c76a2effcfbc8915a524",
+ "source": "docs/v1/science/tests/TEST_CASE_CATALOG.json"
+}
